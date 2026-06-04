@@ -1,0 +1,397 @@
+/* Admin Dashboard CSS Stylesheet */
+
+.admin-section {
+    margin-bottom: 32px;
+}
+
+.admin-section-heading {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--section-title-color);
+    margin-bottom: 16px;
+    letter-spacing: -0.2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-section-heading .warning-icon {
+    color: #fbbf24;
+}
+
+/* Quick Stats Row with Horizontal Scroll */
+.stats-scroll-container {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+/* Scrollbar customization for webkit browsers */
+.stats-scroll-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.stats-scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.stats-scroll-container::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 10px;
+}
+
+.stat-card-mini {
+    flex: 1;
+    min-width: 180px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 22px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+}
+
+.stat-card-mini:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.stat-card-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--section-title-color);
+}
+
+/* Admin Tables Layout */
+.admin-table-card {
+    background-color: var(--card-bg);
+    border-radius: 20px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+    border: 1px solid var(--border-color) !important;
+    overflow: hidden;
+    width: 100%;
+}
+
+.admin-table-card table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table-card th {
+    background-color: var(--table-header) !important;
+    color: #ffffff !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    padding: 14px 20px !important;
+    text-align: left;
+    border: none !important;
+    letter-spacing: 0.2px;
+}
+
+.admin-table-card td {
+    padding: 16px 20px !important;
+    font-size: 13.5px !important;
+    color: var(--text-main) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    background: transparent !important;
+    text-align: left;
+}
+
+.admin-table-card tr:last-child td {
+    border-bottom: none !important;
+}
+
+.admin-table-card tbody tr:hover td {
+    background-color: var(--bg-color) !important;
+}
+
+/* Row states & actions */
+.text-danger-bold {
+    color: #ef4444 !important;
+    font-weight: 700;
+}
+
+.dark-theme .text-danger-bold {
+    color: #f87171 !important;
+}
+
+.action-column {
+    text-align: right !important;
+    padding-right: 24px !important;
+}
+
+.action-cell {
+    text-align: right !important;
+    padding-right: 24px !important;
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.btn-approve, .btn-reject {
+    border: none;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-approve {
+    background-color: #4f6b9c; /* Slate Blue matching user screenshot buttons */
+    color: #ffffff;
+}
+
+.btn-approve:hover {
+    background-color: #3b537c;
+    transform: translateY(-1px);
+}
+
+.btn-reject {
+    background-color: #ef4444; /* Clean Red */
+    color: #ffffff;
+}
+
+.btn-reject:hover {
+    background-color: #dc2626;
+    transform: translateY(-1px);
+}
+
+/* Two Column Bottom Layout */
+.bottom-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 30px;
+    align-items: start;
+}
+
+.flex-section {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.flex-table {
+    flex: 1;
+}
+
+/* System Summary Card */
+.summary-card {
+    background-color: var(--card-bg);
+    border-radius: 20px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+    border: 1px solid var(--border-color) !important;
+    padding: 24px !important;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.summary-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.summary-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.summary-list li:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.summary-label {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+.summary-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+}
+
+.summary-badge.success {
+    background-color: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
+.summary-badge.danger {
+    background-color: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+.summary-badge.warning {
+    background-color: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+}
+
+/* Admin Profile Dropdown Menu */
+.user-profile {
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 12px;
+    transition: background-color 0.2s;
+}
+
+.user-profile:hover {
+    background-color: var(--primary-light);
+}
+
+.profile-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    width: 160px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-10px);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 100;
+    padding: 6px;
+}
+
+.profile-dropdown-menu.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.profile-dropdown-menu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-main);
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.profile-dropdown-menu a:hover {
+    background-color: var(--bg-color);
+}
+
+.profile-dropdown-menu a i {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+/* Toast Success Notification styles */
+.toast-notification {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(20px);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.toast-notification.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.toast-content {
+    background: var(--card-bg);
+    border-left: 4px solid #10b981;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+    border: 1px solid var(--border-color);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 325px;
+}
+
+.toast-icon {
+    color: #10b981;
+    font-size: 24px;
+}
+
+.toast-message {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.toast-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 2px;
+}
+
+.toast-desc {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .bottom-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-table-card {
+        overflow-x: auto;
+    }
+    
+    .admin-table-card table {
+        min-width: 600px;
+    }
+    
+    .stats-scroll-container {
+        padding-bottom: 15px;
+    }
+}

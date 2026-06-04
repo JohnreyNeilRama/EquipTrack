@@ -1,0 +1,417 @@
+/* Design layout styling for My Request page */
+
+.track-status-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--section-title-color); /* Sleek dark blue matching header in screenshot */
+    margin-bottom: 24px;
+    letter-spacing: -0.2px;
+}
+
+/* Search & Filter Row */
+.search-filter-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    width: 100%;
+}
+
+.search-wrapper {
+    position: relative;
+    width: 320px;
+}
+
+.search-wrapper input {
+    width: 100%;
+    padding: 10px 40px 10px 20px;
+    font-size: 14px;
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    outline: none;
+    background-color: var(--card-bg);
+    transition: border-color 0.2s;
+}
+
+.search-wrapper input:focus {
+    border-color: var(--primary-color);
+}
+
+.search-wrapper .search-icon {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 16px;
+    pointer-events: none;
+}
+
+.filter-wrapper {
+    position: relative;
+}
+
+.filter-select {
+    appearance: none;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px 45px 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-main);
+    outline: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='%23333333'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 18px center;
+}
+
+/* Requests Table Container */
+.requests-table-card {
+    background-color: var(--card-bg);
+    border-radius: 20px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+    border: 1px solid var(--border-color) !important;
+    overflow: hidden;
+    width: 100%;
+    margin-bottom: 40px;
+}
+
+.requests-table-card table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.requests-table-card th {
+    background-color: var(--table-header) !important; /* #8AA4D2 matching screenshot */
+    color: #ffffff !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    padding: 16px 24px !important;
+    text-align: left;
+    border: none !important;
+}
+
+.requests-table-card td {
+    padding: 16px 24px !important;
+    font-size: 14px !important;
+    color: var(--text-main) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    background: transparent !important;
+}
+
+.requests-table-card tr:last-child td {
+    border-bottom: none !important;
+}
+
+.requests-table-card tbody tr:hover td {
+    background-color: var(--bg-color) !important;
+}
+
+/* Status text styling */
+.status-text {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.status-pending {
+    color: #333333; /* Dark/charcoal text */
+}
+
+.status-approved {
+    color: #10b981; /* Green */
+}
+
+.status-rejected {
+    color: #ef4444; /* Red */
+}
+
+/* Action button and placeholders */
+.btn-view-request {
+    background-color: #4f6b9c; /* Soft blue matching view buttons in screenshot */
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-view-request:hover {
+    background-color: #3b537c;
+}
+
+.action-placeholder {
+    color: var(--text-muted);
+    padding-left: 10px;
+}
+
+/* ========================================== */
+/* Floating Request Details Modal Styles      */
+/* ========================================== */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow-y: auto;
+    padding: 40px 20px;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.details-modal-card {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 680px !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.95) translateY(-20px);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+}
+
+.modal-overlay.show .details-modal-card {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+}
+
+.modal-inner-card {
+    background-color: var(--card-bg);
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+    border: 1px solid var(--border-color);
+    position: relative;
+    width: 100%;
+}
+
+.modal-title-center {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--section-title-color);
+    text-align: center;
+    margin: 0 0 6px 0;
+}
+
+.modal-subtitle-center {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: center;
+    margin: 0 0 24px 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Close button inside modal inner card */
+.modal-inner-card .modal-close {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: var(--bg-color);
+    border: none;
+    font-size: 20px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding-bottom: 3px;
+}
+
+.modal-inner-card .modal-close:hover {
+    background-color: #fee2e2;
+    color: var(--danger-color);
+    transform: rotate(90deg);
+}
+
+/* Modal Body Split Content */
+.detail-main-content {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 20px;
+    align-items: stretch;
+}
+
+.detail-left-side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.detail-img-container {
+    height: 190px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+}
+
+.detail-img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.detail-right-side {
+    flex: 1.3;
+}
+
+.detail-form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Clean, structured form layout */
+.detail-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.detail-form-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+}
+
+.detail-form-control {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-main);
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    outline: none;
+    font-family: inherit;
+}
+
+.detail-form-control[readonly] {
+    cursor: default;
+}
+
+.textarea-control {
+    resize: none;
+    line-height: 1.5;
+}
+
+/* Status Badge Container */
+.status-badge-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.detail-status-badge {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 16px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+}
+
+.detail-status-badge.status-pending {
+    background-color: #e2e8f0;
+    color: #475569;
+}
+
+.detail-status-badge.status-approved {
+    background-color: #d1fae5;
+    color: #10b981;
+}
+
+.detail-status-badge.status-rejected {
+    background-color: #fef2f2;
+    color: #ef4444;
+}
+
+/* Lower Section: Purpose & Notes */
+.detail-lower-section {
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.text-danger-control {
+    background-color: #fef2f2 !important;
+    border-color: #fca5a5 !important;
+    color: #ef4444 !important;
+}
+
+/* ========================================== */
+/* Responsive adjustments                     */
+/* ========================================== */
+@media (max-width: 768px) {
+    .search-filter-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .search-wrapper {
+        width: 100%;
+    }
+    
+    .filter-select {
+        width: 100%;
+    }
+    
+    .requests-table-card {
+        overflow-x: auto;
+        border-radius: 12px !important;
+    }
+    
+    .requests-table-card th,
+    .requests-table-card td {
+        padding: 12px 16px !important;
+    }
+
+    .detail-main-content {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .detail-img-container {
+        height: 150px;
+    }
+}
