@@ -1,19 +1,36 @@
 /* Admin Dashboard CSS Stylesheet */
 
+/*
+  Refinement notes:
+  - Keep existing theme tokens/colors unchanged.
+  - Improve spacing/typography/alignment to feel SaaS-quality.
+*/
+
+:root {
+    --admin-gutter-y: 28px;
+    --admin-section-gap: 26px;
+    --admin-heading-size: 15.5px;
+    --admin-heading-weight: 800;
+    --admin-card-radius: 20px;
+    --admin-table-pad-y: 14px;
+    --admin-table-pad-x: 20px;
+}
+
 .admin-section {
-    margin-bottom: 32px;
+    margin-bottom: var(--admin-section-gap);
 }
 
 .admin-section-heading {
-    font-size: 16px;
-    font-weight: 700;
+    font-size: var(--admin-heading-size);
+    font-weight: var(--admin-heading-weight);
     color: var(--section-title-color);
-    margin-bottom: 16px;
-    letter-spacing: -0.2px;
+    margin-bottom: 14px;
+    letter-spacing: -0.25px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
+
 
 .admin-section-heading .warning-icon {
     color: #fbbf24;
@@ -22,13 +39,15 @@
 /* Quick Stats Row with Horizontal Scroll */
 .stats-scroll-container {
     display: flex;
-    gap: 20px;
+    gap: 16px;
     overflow-x: auto;
-    padding-bottom: 10px;
-    margin-bottom: 10px;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
     scrollbar-width: thin;
     scrollbar-color: var(--border-color) transparent;
+    scroll-behavior: smooth;
 }
+
 
 /* Scrollbar customization for webkit browsers */
 .stats-scroll-container::-webkit-scrollbar {
@@ -46,19 +65,20 @@
 
 .stat-card-mini {
     flex: 1;
-    min-width: 180px;
+    min-width: 172px;
     background-color: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 22px 16px;
+    border-radius: var(--admin-card-radius);
+    padding: 20px 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+    gap: 10px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.03);
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.22s ease;
 }
+
 
 .stat-card-mini:hover {
     transform: translateY(-2px);
@@ -97,12 +117,13 @@
     background-color: var(--table-header) !important;
     color: #ffffff !important;
     font-size: 13.5px !important;
-    font-weight: 500 !important;
-    padding: 14px 20px !important;
+    font-weight: 600 !important;
+    padding: var(--admin-table-pad-y) var(--admin-table-pad-x) !important;
     text-align: left;
     border: none !important;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.15px;
 }
+
 
 .admin-table-card td {
     padding: 16px 20px !important;
@@ -124,8 +145,14 @@
 /* Row states & actions */
 .text-danger-bold {
     color: #ef4444 !important;
-    font-weight: 700;
+    font-weight: 800;
 }
+
+.action-cell,
+.action-column {
+    vertical-align: middle;
+}
+
 
 .dark-theme .text-danger-bold {
     color: #f87171 !important;
@@ -144,8 +171,10 @@
 .action-buttons {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 10px;
+    align-items: center;
 }
+
 
 .btn-approve, .btn-reject {
     border: none;
@@ -180,10 +209,11 @@
 /* Two Column Bottom Layout */
 .bottom-grid {
     display: grid;
-    grid-template-columns: 1.2fr 1fr;
-    gap: 30px;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 26px;
     align-items: start;
 }
+
 
 .flex-section {
     display: flex;
@@ -380,7 +410,12 @@
         grid-template-columns: 1fr;
         gap: 20px;
     }
+
+    .stat-card-mini {
+        min-width: 160px;
+    }
 }
+
 
 @media (max-width: 768px) {
     .admin-table-card {
