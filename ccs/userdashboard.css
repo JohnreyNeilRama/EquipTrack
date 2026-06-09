@@ -125,6 +125,13 @@ body {
     background: linear-gradient(to bottom, rgba(255, 255, 255, 0.015), transparent);
 }
 
+.sidebar-logo-img {
+    height: 34px;
+    max-width: 100%;
+    object-fit: contain;
+    transition: all 0.3s ease;
+}
+
 .sidebar-logo i {
     font-size: 22px;
     color: #ffffff;
@@ -749,6 +756,12 @@ tbody tr:hover td {
         padding: 20px;
         border-bottom: none;
         background: transparent;
+    }
+    .sidebar-logo-img {
+        width: 32px;
+        height: 32px;
+        object-fit: cover;
+        object-position: left center;
     }
     .sidebar-logo i {
         font-size: 28px;

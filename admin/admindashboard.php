@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EquipTrack - Admin Dashboard</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="../images/logo_only.png">
+    <link rel="apple-touch-icon" href="../images/logo_only.png">
     <!-- Base Layout Stylesheet -->
     <link rel="stylesheet" href="../ccs/userdashboard.css">
     <!-- Admin Specific Stylesheet -->
@@ -24,7 +27,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-logo">
-            <i class="fa-solid fa-backpack"></i> <span>EQUIPTRACK</span>
+            <img src="../images/EquipTrack_logo.png" alt="EquipTrack Logo" class="sidebar-logo-img">
         </div>
         <nav class="sidebar-nav">
             <div class="sidebar-section-label">General</div>
@@ -58,21 +61,27 @@
     <main class="main-content">
         <!-- Top Navbar -->
         <header class="top-navbar profile-navbar">
-            <div class="nav-line"></div>
             <div class="navbar-right">
+                <span class="navbar-divider"></span>
                 <div class="icon-btn" id="themeToggleBtn">
                     <i class="fa-solid fa-moon" id="themeToggleIcon"></i>
                 </div>
                 <div class="icon-btn notification">
                     <i class="fa-solid fa-bell"></i>
                 </div>
+                <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <img src="https://ui-avatars.com/api/?name=Admin&background=random" alt="Admin Avatar" class="avatar">
+                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80" alt="Admin Avatar" class="avatar">
                     <span class="user-name">Admin</span>
-                    <i class="fa-solid fa-chevron-down"></i>
+                    <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
                     <!-- Dropdown Menu -->
                     <div class="profile-dropdown-menu" id="dropdownMenu">
+                        <div class="dropdown-profile-header">
+                            <span class="header-name">Admin</span>
+                            <span class="header-email">admin@equiptrack.edu</span>
+                        </div>
+                        <div class="dropdown-divider"></div>
                         <a href="admindashboard.php"><i class="fa-solid fa-sliders"></i> Settings</a>
                         <a href="../login.php"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
                     </div>
@@ -81,9 +90,13 @@
         </header>
 
         <!-- Welcome Banner -->
-        <div class="welcome-banner card">
-            <h3>Welcome back, Admin!</h3>
-            <p>Here's an overview of equipment requests, borrowings, and system activity.</p>
+        <div class="welcome-banner card" style="margin-top: 24px;">
+            <div class="welcome-text">
+                <span class="welcome-pill">Dashboard Overview</span>
+                <h3>Welcome back, Admin!</h3>
+                <p>Here's an overview of equipment requests, borrowings, and system activity.</p>
+            </div>
+            <img src="../images/admin_design1.png" alt="Admin Illustration" class="welcome-banner-img">
         </div>
 
         <!-- Quick Stats Section -->
@@ -91,23 +104,48 @@
             <h4 class="admin-section-heading">Quick Stats</h4>
             <div class="stats-scroll-container">
                 <div class="stat-card-mini">
-                    <span class="stat-card-title">Total Equipments</span>
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Total Equipments</span>
+                        <div class="stat-icon-wrapper info">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                        </div>
+                    </div>
                     <span class="stat-card-value" id="statTotalEq">120</span>
                 </div>
                 <div class="stat-card-mini">
-                    <span class="stat-card-title">Available</span>
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Available</span>
+                        <div class="stat-icon-wrapper success">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                    </div>
                     <span class="stat-card-value" id="statAvailable">85</span>
                 </div>
                 <div class="stat-card-mini">
-                    <span class="stat-card-title">Pending Requests</span>
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Pending Requests</span>
+                        <div class="stat-icon-wrapper warning">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </div>
+                    </div>
                     <span class="stat-card-value" id="statPending">12</span>
                 </div>
                 <div class="stat-card-mini">
-                    <span class="stat-card-title">Borrowed Items</span>
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Borrowed Items</span>
+                        <div class="stat-icon-wrapper primary">
+                            <i class="fa-solid fa-hand-holding-hand"></i>
+                        </div>
+                    </div>
                     <span class="stat-card-value" id="statBorrowed">25</span>
                 </div>
                 <div class="stat-card-mini">
-                    <span class="stat-card-title">Overdue Items</span>
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Overdue Alerts</span>
+                        <div class="stat-icon-wrapper danger">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                    </div>
                     <span class="stat-card-value" id="statOverdue">2</span>
                 </div>
             </div>
@@ -132,7 +170,7 @@
                             <td>Gabriel F.</td>
                             <td>Laptop Dell</td>
                             <td>May 1</td>
-                            <td class="status-cell">Pending</td>
+                            <td>Pending</td>
                             <td class="action-cell">
                                 <div class="action-buttons">
                                     <button class="btn-approve" onclick="handleRequestAction(this, 'Gabriel F.', 'Laptop Dell', 'approved')">Approve</button>
@@ -144,7 +182,7 @@
                             <td>Anna Mae S.</td>
                             <td>Camera Canon</td>
                             <td>May 11</td>
-                            <td class="status-cell">Pending</td>
+                            <td>Pending</td>
                             <td class="action-cell">
                                 <div class="action-buttons">
                                     <button class="btn-approve" onclick="handleRequestAction(this, 'Anna Mae S.', 'Camera Canon', 'approved')">Approve</button>
@@ -159,8 +197,8 @@
 
         <!-- Overdue Alerts Section -->
         <div class="admin-section">
-            <h4 class="admin-section-heading"><i class="fa-solid fa-triangle-exclamation warning-icon"></i> Overdue Alerts</h4>
-            <div class="table-container card admin-table-card overdue-table-card">
+            <h4 class="admin-section-heading"><i class="fa-solid fa-triangle-exclamation warning-icon" style="color: #fbbf24;"></i> Overdue Alerts</h4>
+            <div class="table-container card admin-table-card">
                 <table>
                     <thead>
                         <tr>
@@ -175,13 +213,13 @@
                             <td>Gabriel F.</td>
                             <td>Calculator</td>
                             <td>May 1</td>
-                            <td class="text-danger-bold">2 Days</td>
+                            <td><span class="days-late">2 Days</span></td>
                         </tr>
                         <tr class="admin-table-row">
                             <td>Johnrey Neil R.</td>
                             <td>Laptop Dell</td>
                             <td>April 30</td>
-                            <td class="text-danger-bold">5 Days</td>
+                            <td><span class="days-late">5 Days</span></td>
                         </tr>
                     </tbody>
                 </table>
@@ -193,50 +231,76 @@
             <!-- Left Column: Low Stock -->
             <div class="admin-section flex-section">
                 <h4 class="admin-section-heading">Low Stock</h4>
-                <div class="table-container card admin-table-card flex-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Equipment</th>
-                                <th>Available</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="admin-table-row">
-                                <td>Mouse</td>
-                                <td>1</td>
-                            </tr>
-                            <tr class="admin-table-row">
-                                <td>Projector</td>
-                                <td>2</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="low-stock-card card flex-table">
+                    <div class="stock-item-row">
+                        <div class="stock-item-left">
+                            <div class="stock-item-icon-box critical">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <div class="stock-item-meta">
+                                <span class="stock-item-name">Mouse</span>
+                                <span class="stock-status-label text-critical">Critical Level</span>
+                            </div>
+                        </div>
+                        <span class="stock-pill pill-critical">1 left</span>
+                    </div>
+                    <div class="stock-item-divider"></div>
+                    <div class="stock-item-row">
+                        <div class="stock-item-left">
+                            <div class="stock-item-icon-box warning">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <div class="stock-item-meta">
+                                <span class="stock-item-name">Projector</span>
+                                <span class="stock-status-label text-warning">Low Stock</span>
+                            </div>
+                        </div>
+                        <span class="stock-pill pill-warning">2 left</span>
+                    </div>
                 </div>
             </div>
 
             <!-- Right Column: System Summary -->
             <div class="admin-section flex-section">
                 <h4 class="admin-section-heading">System Summary</h4>
-                <div class="summary-card card">
-                    <ul class="summary-list">
-                        <li>
-                            <span class="summary-label">Requests This Month</span>
-                            <span class="summary-badge">45</span>
-                        </li>
-                        <li>
-                            <span class="summary-label">Approved</span>
-                            <span class="summary-badge success">30</span>
-                        </li>
-                        <li>
-                            <span class="summary-label">Rejected</span>
-                            <span class="summary-badge danger">10</span>
-                        </li>
-                        <li>
-                            <span class="summary-label">Pending</span>
-                            <span class="summary-badge warning" id="summaryPendingCount">5</span>
-                        </li>
-                    </ul>
+                <div class="system-summary-card card">
+                    <div class="summary-hero">
+                        <div class="summary-hero-meta">
+                            <span class="summary-hero-label">Requests This Month</span>
+                            <p class="summary-hero-desc">Total borrowing activity processed</p>
+                        </div>
+                        <span class="summary-hero-value">45</span>
+                    </div>
+                    
+                    <div class="summary-segment-bar">
+                        <div class="segment-fill approved" style="width: 66.7%;"></div>
+                        <div class="segment-fill rejected" style="width: 22.2%;"></div>
+                        <div class="segment-fill pending" style="width: 11.1%;"></div>
+                    </div>
+                    
+                    <div class="summary-details-grid">
+                        <div class="summary-detail-item">
+                            <span class="detail-dot approved"></span>
+                            <div class="detail-meta">
+                                <span class="detail-label">Approved</span>
+                                <span class="detail-value">30</span>
+                            </div>
+                        </div>
+                        <div class="summary-detail-item">
+                            <span class="detail-dot rejected"></span>
+                            <div class="detail-meta">
+                                <span class="detail-label">Rejected</span>
+                                <span class="detail-value">10</span>
+                            </div>
+                        </div>
+                        <div class="summary-detail-item">
+                            <span class="detail-dot pending"></span>
+                            <div class="detail-meta">
+                                <span class="detail-label">Pending</span>
+                                <span class="detail-value" id="summaryPendingCount">5</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

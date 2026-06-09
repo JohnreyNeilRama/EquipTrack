@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EquipTrack - Available Equipment</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="../images/logo_only.png">
+    <link rel="apple-touch-icon" href="../images/logo_only.png">
     <link rel="stylesheet" href="../ccs/userdashboard.css">
     <link rel="stylesheet" href="../ccs/useravailequipment.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,7 +24,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-logo">
-            <i class="fa-solid fa-backpack"></i> <span>EQUIPTRACK</span>
+            <img src="../images/EquipTrack_logo.png" alt="EquipTrack Logo" class="sidebar-logo-img">
         </div>
         <nav class="sidebar-nav">
             <div class="sidebar-section-label">General</div>
