@@ -166,30 +166,7 @@
                         </tr>
                     </thead>
                     <tbody id="requestsTableBody">
-                        <tr class="admin-table-row">
-                            <td>Gabriel F.</td>
-                            <td>Laptop Dell</td>
-                            <td>May 1</td>
-                            <td>Pending</td>
-                            <td class="action-cell">
-                                <div class="action-buttons">
-                                    <button class="btn-approve" onclick="handleRequestAction(this, 'Gabriel F.', 'Laptop Dell', 'approved')">Approve</button>
-                                    <button class="btn-reject" onclick="handleRequestAction(this, 'Gabriel F.', 'Laptop Dell', 'rejected')">Reject</button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr class="admin-table-row">
-                            <td>Anna Mae S.</td>
-                            <td>Camera Canon</td>
-                            <td>May 11</td>
-                            <td>Pending</td>
-                            <td class="action-cell">
-                                <div class="action-buttons">
-                                    <button class="btn-approve" onclick="handleRequestAction(this, 'Anna Mae S.', 'Camera Canon', 'approved')">Approve</button>
-                                    <button class="btn-reject" onclick="handleRequestAction(this, 'Anna Mae S.', 'Camera Canon', 'rejected')">Reject</button>
-                                </div>
-                            </td>
-                        </tr>
+                        <!-- Loaded dynamically via JavaScript -->
                     </tbody>
                 </table>
             </div>
@@ -269,13 +246,13 @@
                             <span class="summary-hero-label">Requests This Month</span>
                             <p class="summary-hero-desc">Total borrowing activity processed</p>
                         </div>
-                        <span class="summary-hero-value">45</span>
+                        <span class="summary-hero-value" id="summaryTotalCount">0</span>
                     </div>
                     
-                    <div class="summary-segment-bar">
-                        <div class="segment-fill approved" style="width: 66.7%;"></div>
-                        <div class="segment-fill rejected" style="width: 22.2%;"></div>
-                        <div class="segment-fill pending" style="width: 11.1%;"></div>
+                    <div class="summary-segment-bar" id="summarySegmentBar">
+                        <div class="segment-fill approved" style="width: 0%;"></div>
+                        <div class="segment-fill rejected" style="width: 0%;"></div>
+                        <div class="segment-fill pending" style="width: 0%;"></div>
                     </div>
                     
                     <div class="summary-details-grid">
@@ -283,21 +260,21 @@
                             <span class="detail-dot approved"></span>
                             <div class="detail-meta">
                                 <span class="detail-label">Approved</span>
-                                <span class="detail-value">30</span>
+                                <span class="detail-value" id="summaryApprovedCount">0</span>
                             </div>
                         </div>
                         <div class="summary-detail-item">
                             <span class="detail-dot rejected"></span>
                             <div class="detail-meta">
                                 <span class="detail-label">Rejected</span>
-                                <span class="detail-value">10</span>
+                                <span class="detail-value" id="summaryRejectedCount">0</span>
                             </div>
                         </div>
                         <div class="summary-detail-item">
                             <span class="detail-dot pending"></span>
                             <div class="detail-meta">
                                 <span class="detail-label">Pending</span>
-                                <span class="detail-value" id="summaryPendingCount">5</span>
+                                <span class="detail-value" id="summaryPendingCount">0</span>
                             </div>
                         </div>
                     </div>
@@ -333,6 +310,214 @@
         const statPending = document.getElementById('statPending');
         const statBorrowed = document.getElementById('statBorrowed');
         const summaryPendingCount = document.getElementById('summaryPendingCount');
+        const summaryApprovedCount = document.getElementById('summaryApprovedCount');
+        const summaryRejectedCount = document.getElementById('summaryRejectedCount');
+        const summaryTotalCount = document.getElementById('summaryTotalCount');
+        const summarySegmentBar = document.getElementById('summarySegmentBar');
+
+        // Requests Data Sync
+        const defaultRequestsList = [
+            {
+                id: 1,
+                user: "Gabriel F.",
+                role: "Student",
+                avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80",
+                equipment: "Laptop Dell",
+                category: "Laptop",
+                date: "May 1",
+                fullDate: "May 1, 2026",
+                borrowDate: "May 2, 2026",
+                dueDate: "May 5, 2026",
+                status: "Pending",
+                purpose: "Class Presentation",
+                notes: "Need a high-performance laptop for my Software Engineering presentation.",
+                img: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                rejectReason: ""
+            },
+            {
+                id: 2,
+                user: "Anna Mae S.",
+                role: "Teacher",
+                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
+                equipment: "Camera Canon",
+                category: "Camera",
+                date: "May 11",
+                fullDate: "May 11, 2026",
+                borrowDate: "May 12, 2026",
+                dueDate: "May 15, 2026",
+                status: "Pending",
+                purpose: "Field Research Documentation",
+                notes: "Will document plant samples in biology forestry campus lab.",
+                img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                rejectReason: ""
+            },
+            {
+                id: 3,
+                user: "Anna Mae S.",
+                role: "Teacher",
+                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
+                equipment: "Camera Canon",
+                category: "Camera",
+                date: "May 11",
+                fullDate: "May 11, 2026",
+                borrowDate: "May 13, 2026",
+                dueDate: "May 16, 2026",
+                status: "Pending",
+                purpose: "Classroom Activity",
+                notes: "Needed for photography lighting demonstration in multimedia lab.",
+                img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                rejectReason: ""
+            },
+            {
+                id: 4,
+                user: "Anna Mae S.",
+                role: "Teacher",
+                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
+                equipment: "Camera Canon",
+                category: "Camera",
+                date: "May 11",
+                fullDate: "May 11, 2026",
+                borrowDate: "May 14, 2026",
+                dueDate: "May 17, 2026",
+                status: "Pending",
+                purpose: "Event Documentation",
+                notes: "Documenting the school's intra-mural sports activities.",
+                img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                rejectReason: ""
+            },
+            {
+                id: 5,
+                user: "Anna Mae S.",
+                role: "Teacher",
+                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
+                equipment: "Camera Canon",
+                category: "Camera",
+                date: "May 11",
+                fullDate: "May 11, 2026",
+                borrowDate: "May 15, 2026",
+                dueDate: "May 18, 2026",
+                status: "Pending",
+                purpose: "Class Activity",
+                notes: "Visual arts photography workshop session.",
+                img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                rejectReason: ""
+            },
+            {
+                id: 6,
+                user: "Anna Mae S.",
+                role: "Teacher",
+                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
+                equipment: "Camera Canon",
+                category: "Camera",
+                date: "May 11",
+                fullDate: "May 11, 2026",
+                borrowDate: "May 16, 2026",
+                dueDate: "May 19, 2026",
+                status: "Pending",
+                purpose: "Research Project",
+                notes: "Gathering high resolution visuals for the regional science fair project.",
+                img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                rejectReason: ""
+            }
+        ];
+
+        let requests = JSON.parse(localStorage.getItem('equip-track-requests'));
+        if (!requests) {
+            requests = defaultRequestsList;
+            localStorage.setItem('equip-track-requests', JSON.stringify(requests));
+        }
+
+        // Render Dashboard Stats and Table
+        function renderDashboard() {
+            // Calculate Stats
+            const pendingRequests = requests.filter(r => r.status.toLowerCase() === 'pending');
+            const approvedRequests = requests.filter(r => r.status.toLowerCase() === 'approved');
+            const rejectedRequests = requests.filter(r => r.status.toLowerCase() === 'rejected');
+            
+            const totalPending = pendingRequests.length;
+            const totalApproved = approvedRequests.length;
+            const totalRejected = rejectedRequests.length;
+            
+            // Base dummy totals for other items to make statistics look realistic
+            const baseApproved = 30; 
+            const baseRejected = 10;
+            const finalApproved = baseApproved + totalApproved;
+            const finalRejected = baseRejected + totalRejected;
+            const finalTotal = finalApproved + finalRejected + totalPending;
+
+            // Update DOM Stats
+            if (statPending) statPending.textContent = totalPending;
+            if (statBorrowed) statBorrowed.textContent = 25 + totalApproved; // approved requests are borrowed items
+            
+            if (summaryPendingCount) summaryPendingCount.textContent = totalPending;
+            if (summaryApprovedCount) summaryApprovedCount.textContent = finalApproved;
+            if (summaryRejectedCount) summaryRejectedCount.textContent = finalRejected;
+            if (summaryTotalCount) summaryTotalCount.textContent = finalTotal;
+
+            // Render Segment Bar
+            if (summarySegmentBar) {
+                const appPct = finalTotal > 0 ? (finalApproved / finalTotal) * 100 : 0;
+                const rejPct = finalTotal > 0 ? (finalRejected / finalTotal) * 100 : 0;
+                const penPct = finalTotal > 0 ? (totalPending / finalTotal) * 100 : 0;
+
+                summarySegmentBar.innerHTML = `
+                    <div class="segment-fill approved" style="width: ${appPct}%;"></div>
+                    <div class="segment-fill rejected" style="width: ${rejPct}%;"></div>
+                    <div class="segment-fill pending" style="width: ${penPct}%;"></div>
+                `;
+            }
+
+            // Render Table (maximum 2 pending rows shown on dashboard recent section)
+            const tableBody = document.getElementById('requestsTableBody');
+            if (tableBody) {
+                tableBody.innerHTML = '';
+                const recent = pendingRequests.slice(0, 2);
+
+                if (recent.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                                <i class="fa-solid fa-check-double" style="color: #10b981; font-size: 20px; margin-bottom: 8px; display: block;"></i>
+                                All pending requests processed!
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                recent.forEach(req => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'admin-table-row';
+                    tr.innerHTML = `
+                        <td>${escapeHTML(req.user)}</td>
+                        <td>${escapeHTML(req.equipment)}</td>
+                        <td>${escapeHTML(req.date)}</td>
+                        <td>Pending</td>
+                        <td class="action-cell">
+                            <div class="action-buttons">
+                                <button class="btn-approve" onclick="handleRequestAction(this, ${req.id}, 'approved')">Approve</button>
+                                <button class="btn-reject" onclick="handleRequestAction(this, ${req.id}, 'rejected')">Reject</button>
+                            </div>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            }
+        }
+
+        // Helper to escape HTML values
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
 
         // Dark Mode Logic
         if (themeToggleBtn && themeToggleIcon) {
@@ -391,51 +576,36 @@
         }
 
         // Handle Approve/Reject Actions
-        function handleRequestAction(button, user, equipment, action) {
+        window.handleRequestAction = function(button, id, action) {
             const row = button.closest('.admin-table-row');
-            
+            const req = requests.find(r => r.id === id);
+            if (!req) return;
+
             // Apply a nice fade-out animation
             row.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
             row.style.opacity = '0';
             row.style.transform = 'translateX(-20px)';
             
             setTimeout(() => {
-                row.remove();
-                
-                // Update stats counter values dynamically
-                let pendingVal = parseInt(statPending.textContent);
-                if (pendingVal > 0) {
-                    statPending.textContent = pendingVal - 1;
-                }
-                
-                let summaryPendingVal = parseInt(summaryPendingCount.textContent);
-                if (summaryPendingVal > 0) {
-                    summaryPendingCount.textContent = summaryPendingVal - 1;
-                }
-
                 if (action === 'approved') {
-                    let borrowedVal = parseInt(statBorrowed.textContent);
-                    statBorrowed.textContent = borrowedVal + 1;
-                    
-                    showNotification('Approved', `Request for ${equipment} by ${user} has been approved.`, 'success');
+                    req.status = 'Approved';
+                    req.rejectReason = '';
+                    localStorage.setItem('equip-track-requests', JSON.stringify(requests));
+                    showNotification('Approved', `Request for ${req.equipment} by ${req.user} has been approved.`, 'success');
                 } else {
-                    showNotification('Rejected', `Request for ${equipment} by ${user} has been rejected.`, 'error');
+                    req.status = 'Rejected';
+                    req.rejectReason = 'Rejected from Dashboard';
+                    localStorage.setItem('equip-track-requests', JSON.stringify(requests));
+                    showNotification('Rejected', `Request for ${req.equipment} by ${req.user} has been rejected.`, 'error');
                 }
 
-                // Check if all rows are processed in the table
-                const tableBody = document.getElementById('requestsTableBody');
-                if (tableBody.querySelectorAll('.admin-table-row').length === 0) {
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">
-                                <i class="fa-solid fa-check-double" style="color: #10b981; font-size: 20px; margin-bottom: 8px; display: block;"></i>
-                                All pending requests processed!
-                            </td>
-                        </tr>
-                    `;
-                }
+                // Re-render whole dashboard stats and items lists
+                renderDashboard();
             }, 500);
         }
+
+        // Initial rendering of dashboard items
+        renderDashboard();
     </script>
 </body>
 </html>
