@@ -57,21 +57,25 @@
         const togglePassword = document.querySelector('#togglePassword');
         const password = document.querySelector('#password');
 
-        togglePassword.addEventListener('click', function (e) {
-            // toggle the type attribute
-            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
-            password.setAttribute('type', type);
-            // toggle the eye / eye-slash icon
-            this.classList.toggle('fa-eye-slash');
-        });
+        if (togglePassword && password) {
+            togglePassword.addEventListener('click', function (e) {
+                // toggle the type attribute
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                // toggle the eye / eye-slash icon
+                this.classList.toggle('fa-eye-slash');
+            });
+        }
 
         // Smooth transition to Registration page
         const registerLink = document.getElementById('registerLink');
-        if(registerLink) {
+        if (registerLink) {
             registerLink.addEventListener('click', function(e) {
                 e.preventDefault();
                 const panel = document.querySelector('.login-panel');
-                panel.style.animation = 'slideOutRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+                if (panel) {
+                    panel.style.animation = 'slideOutRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+                }
                 
                 setTimeout(() => {
                     window.location.href = this.href;

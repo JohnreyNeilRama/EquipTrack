@@ -36,8 +36,8 @@
             </a>
             
             <div class="register-header">
-                <h1 id="registerTitle">Welcome to EquipTrack!</h1>
-                <p id="registerSubtitle">Register an account.</p>
+                <h1 id="registerTitle"></h1>
+                <p id="registerSubtitle"></p>
             </div>
             
             <form action="registration.php" method="POST" class="register-form">
@@ -102,18 +102,9 @@
     </div>
     
     <script>
+        // DOM Elements
         const togglePassword = document.querySelector('#togglePassword');
         const password = document.querySelector('#password');
-
-        togglePassword.addEventListener('click', function (e) {
-            // toggle the type attribute
-            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
-            password.setAttribute('type', type);
-            // toggle the eye / eye-slash icon
-            this.classList.toggle('fa-eye-slash');
-        });
-
-        // Role Selection Logic
         const roleSelectionContainer = document.getElementById('roleSelectionContainer');
         const registerPanel = document.getElementById('registerPanel');
         const selectedRoleInput = document.getElementById('selected_role');
@@ -122,28 +113,50 @@
         const yearLevelGroup = document.getElementById('yearLevelGroup');
         const yearLevelSelect = document.getElementById('year_level');
         const backToRole = document.getElementById('backToRole');
+        const roleStudentBtn = document.getElementById('roleStudent');
+        const roleTeacherBtn = document.getElementById('roleTeacher');
+        const loginLink = document.getElementById('loginLink');
+        const registerForm = document.querySelector('.register-form');
+        const registerBtn = document.getElementById('registerBtn');
+        const roleCloseBtn = document.getElementById('roleCloseBtn');
 
+        // Toggle Password Visibility
+        if (togglePassword && password) {
+            togglePassword.addEventListener('click', function (e) {
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                this.classList.toggle('fa-eye-slash');
+            });
+        }
+
+        // Role Selection Logic
         function selectRole(role) {
             // Set role value in form
-            selectedRoleInput.value = role;
+            if (selectedRoleInput) {
+                selectedRoleInput.value = role;
+            }
 
             if (role === 'student') {
-                registerTitle.textContent = 'Register as a Student';
-                registerSubtitle.textContent = 'Enter your student credentials to register.';
-                yearLevelGroup.style.display = 'block';
-                yearLevelSelect.setAttribute('required', 'required');
+                if (registerTitle) registerTitle.textContent = 'Register as a Student';
+                if (registerSubtitle) registerSubtitle.textContent = 'Enter your student credentials to register.';
+                if (yearLevelGroup) yearLevelGroup.style.display = 'block';
+                if (yearLevelSelect) {
+                    yearLevelSelect.setAttribute('required', 'required');
+                }
             } else if (role === 'teacher') {
-                registerTitle.textContent = 'Register as a Teacher';
-                registerSubtitle.textContent = 'Enter your teacher credentials to register.';
-                yearLevelGroup.style.display = 'none';
-                yearLevelSelect.removeAttribute('required');
-                yearLevelSelect.value = ''; // clear selection
+                if (registerTitle) registerTitle.textContent = 'Register as a Teacher';
+                if (registerSubtitle) registerSubtitle.textContent = 'Enter your teacher credentials to register.';
+                if (yearLevelGroup) yearLevelGroup.style.display = 'none';
+                if (yearLevelSelect) {
+                    yearLevelSelect.removeAttribute('required');
+                    yearLevelSelect.value = ''; // clear selection
+                }
             }
 
             // Animate transition
-            roleSelectionContainer.classList.add('hidden');
+            if (roleSelectionContainer) roleSelectionContainer.classList.add('hidden');
             setTimeout(() => {
-                registerPanel.classList.add('active');
+                if (registerPanel) registerPanel.classList.add('active');
             }, 100);
         }
 
@@ -155,54 +168,50 @@
             }
         };
 
-        const roleStudentBtn = document.getElementById('roleStudent');
-        const roleTeacherBtn = document.getElementById('roleTeacher');
-
-        roleStudentBtn.addEventListener('click', () => selectRole('student'));
-        roleStudentBtn.addEventListener('keydown', (e) => handleRoleKeydown(e, 'student'));
+        if (roleStudentBtn) {
+            roleStudentBtn.addEventListener('click', () => selectRole('student'));
+            roleStudentBtn.addEventListener('keydown', (e) => handleRoleKeydown(e, 'student'));
+        }
         
-        roleTeacherBtn.addEventListener('click', () => selectRole('teacher'));
-        roleTeacherBtn.addEventListener('keydown', (e) => handleRoleKeydown(e, 'teacher'));
+        if (roleTeacherBtn) {
+            roleTeacherBtn.addEventListener('click', () => selectRole('teacher'));
+            roleTeacherBtn.addEventListener('keydown', (e) => handleRoleKeydown(e, 'teacher'));
+        }
 
         // Back button navigation
         if (backToRole) {
             backToRole.addEventListener('click', function(e) {
                 e.preventDefault();
-                registerPanel.classList.remove('active');
+                if (registerPanel) registerPanel.classList.remove('active');
                 setTimeout(() => {
-                    roleSelectionContainer.classList.remove('hidden');
+                    if (roleSelectionContainer) roleSelectionContainer.classList.remove('hidden');
                 }, 300);
             });
         }
 
         // Smooth transition to Login page
-        const loginLink = document.getElementById('loginLink');
-        if(loginLink) {
+        if (loginLink) {
             loginLink.addEventListener('click', function(e) {
                 e.preventDefault();
-                const panel = document.querySelector('.register-panel');
-                panel.classList.remove('active');
+                if (registerPanel) registerPanel.classList.remove('active');
                 
                 setTimeout(() => {
                     window.location.href = this.href;
-                }, 400); // Redirect slightly before animation completely finishes
+                }, 400);
             });
         }
 
         // Fix missing panel when using browser back button (bfcache restore)
         window.addEventListener('pageshow', function (event) {
             if (event.persisted) {
-                registerPanel.classList.remove('active');
-                roleSelectionContainer.classList.remove('hidden');
-                
-                // Reset submitting state if restored from back cache
+                if (registerPanel) registerPanel.classList.remove('active');
+                if (roleSelectionContainer) roleSelectionContainer.classList.remove('hidden');
                 if (registerBtn) registerBtn.classList.remove('submitting');
                 if (registerForm) registerForm.classList.remove('form-submitting');
             }
         });
 
         // Form submission loading state
-        const registerForm = document.querySelector('.register-form');
         if (registerForm && registerBtn) {
             registerForm.addEventListener('submit', function () {
                 if (registerForm.checkValidity()) {
@@ -213,14 +222,13 @@
         }
 
         // Close button redirect animation
-        const roleCloseBtn = document.getElementById('roleCloseBtn');
         if (roleCloseBtn) {
             roleCloseBtn.addEventListener('click', function (e) {
                 e.preventDefault();
-                roleSelectionContainer.classList.add('hidden');
+                if (roleSelectionContainer) roleSelectionContainer.classList.add('hidden');
                 setTimeout(() => {
                     window.location.href = this.href;
-                }, 500); // Wait for fade-out and scale-down animations to complete
+                }, 500);
             });
         }
     </script>
