@@ -62,7 +62,7 @@
     </aside>
 
     <!-- Main Content Area -->
-    <main class="main-content">
+    <main class="main-content" style="min-width: 0;">
         <!-- Top Navbar -->
         <header class="top-navbar profile-navbar">
             <div class="navbar-right">
@@ -93,11 +93,72 @@
             </div>
         </header>
 
-        <div class="users-container">
+        <div class="users-container" style="min-width: 0; max-width: 100%;">
             <!-- Header Section -->
             <div class="equipment-header-section">
-                <h2>User Accounts</h2>
-                <p>Monitor, search, and manage registered student and department accounts</p>
+                <h2>User Management</h2>
+                <p>Manage registered users and departments.</p>
+            </div>
+
+            <!-- Summary Cards Section -->
+            <div class="admin-section" style="margin-bottom: 8px; min-width: 0; width: 100%; overflow: hidden;">
+                <h4 class="admin-section-heading">Summary Cards</h4>
+                <div class="stats-scroll-container">
+                <div class="stat-card-mini">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Total Users</span>
+                        <div class="stat-icon-wrapper info">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                    </div>
+                    <span class="stat-card-value" id="statTotalUsers">0</span>
+                </div>
+                <div class="stat-card-mini">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Students</span>
+                        <div class="stat-icon-wrapper success">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                    </div>
+                    <span class="stat-card-value" id="statStudents">0</span>
+                </div>
+                <div class="stat-card-mini">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Faculty Members</span>
+                        <div class="stat-icon-wrapper warning">
+                            <i class="fa-solid fa-chalkboard-user"></i>
+                        </div>
+                    </div>
+                    <span class="stat-card-value" id="statFaculty">0</span>
+                </div>
+                <div class="stat-card-mini">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Departments</span>
+                        <div class="stat-icon-wrapper primary">
+                            <i class="fa-solid fa-building"></i>
+                        </div>
+                    </div>
+                    <span class="stat-card-value" id="statDepartments">0</span>
+                </div>
+                <div class="stat-card-mini">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Active Accounts</span>
+                        <div class="stat-icon-wrapper info" style="background-color: rgba(16, 185, 129, 0.08); color: #10b981;">
+                            <i class="fa-solid fa-user-check"></i>
+                        </div>
+                    </div>
+                    <span class="stat-card-value" id="statActive">0</span>
+                </div>
+                <div class="stat-card-mini">
+                    <div class="stat-card-header">
+                        <span class="stat-card-title">Deactivated Accounts</span>
+                        <div class="stat-icon-wrapper danger">
+                            <i class="fa-solid fa-user-slash"></i>
+                        </div>
+                    </div>
+                    <span class="stat-card-value" id="statDeactivated">0</span>
+                </div>
+            </div>
             </div>
 
             <!-- Controls bar (Search, Filters & Actions) -->
@@ -111,6 +172,7 @@
                         <select id="filterRole">
                             <option value="all">All Roles</option>
                             <option value="student">Student</option>
+                            <option value="teacher">Faculty Member</option>
                             <option value="department">Department</option>
                         </select>
                         <i class="fa-solid fa-chevron-down"></i>
@@ -134,8 +196,8 @@
                             <th>User</th>
                             <th>ID Number</th>
                             <th>Role</th>
-                            <th>Details</th>
-                            <th>Address / Location</th>
+                            <th>Academic Info</th>
+                            <th>Department</th>
                             <th>Status</th>
                             <th class="action-column" style="text-align: center;">Action</th>
                         </tr>
@@ -344,7 +406,7 @@
 
                 <!-- Address / Location Info Section -->
                 <div class="detail-form-group" style="margin-bottom: 16px;">
-                    <label class="detail-form-label">Address / Location</label>
+                    <label class="detail-form-label">Department</label>
                     <input type="text" id="modalAddress" class="detail-form-control" readonly>
                 </div>
 
@@ -585,7 +647,10 @@
 
                         const isStudent = user.role.toLowerCase() === 'student';
                         const details = isStudent ? user.year_level : 'N/A';
-                        const roleLabel = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+                        let roleLabel = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+                        if (user.role.toLowerCase() === 'teacher') {
+                            roleLabel = 'Faculty Member';
+                        }
                         const statusClass = 'status-' + user.status.toLowerCase();
                         const toggleText = user.status.toLowerCase() === 'active' ? 'Deactivate' : 'Activate';
                         const fullName = user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
@@ -615,6 +680,31 @@
                     paginationInfo.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${totalEntries} entries`;
                     renderPaginationButtons(totalPages);
                 }
+                updateSummaryStats();
+            }
+
+            // Update Summary Stats Section Cards dynamically
+            function updateSummaryStats() {
+                const totalUsers = users.length;
+                const students = users.filter(u => u.role.toLowerCase() === 'student').length;
+                const faculty = users.filter(u => u.role.toLowerCase() === 'teacher' || u.role.toLowerCase() === 'faculty').length;
+                const departments = users.filter(u => u.role.toLowerCase() === 'department').length;
+                const active = users.filter(u => u.status.toLowerCase() === 'active').length;
+                const deactivated = users.filter(u => u.status.toLowerCase() === 'inactive' || u.status.toLowerCase() === 'deactivated').length;
+
+                const statTotalUsers = document.getElementById('statTotalUsers');
+                const statStudents = document.getElementById('statStudents');
+                const statFaculty = document.getElementById('statFaculty');
+                const statDepartments = document.getElementById('statDepartments');
+                const statActive = document.getElementById('statActive');
+                const statDeactivated = document.getElementById('statDeactivated');
+
+                if (statTotalUsers) statTotalUsers.textContent = totalUsers;
+                if (statStudents) statStudents.textContent = students;
+                if (statFaculty) statFaculty.textContent = faculty;
+                if (statDepartments) statDepartments.textContent = departments;
+                if (statActive) statActive.textContent = active;
+                if (statDeactivated) statDeactivated.textContent = deactivated;
             }
 
             // Render pagination buttons dynamically
@@ -692,7 +782,10 @@
                 if (!user) return;
 
                 const fullName = user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
-                const roleLabel = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+                let roleLabel = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+                if (user.role.toLowerCase() === 'teacher') {
+                    roleLabel = 'Faculty Member';
+                }
                 
                 const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random&size=200`;
                 modalUserAvatar.src = avatarUrl;
