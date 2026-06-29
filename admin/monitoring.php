@@ -97,13 +97,29 @@
         <!-- Main container matching users-container exactly -->
         <div class="users-container" style="min-width: 0; max-width: 100%;">
             <!-- Header Title Block -->
-            <div class="equipment-header-section">
+            <div class="equipment-header-section" id="monitoringHeaderSection">
                 <h2>Equipment Monitoring</h2>
                 <p>Monitor borrowed equipment, return requests, and overdue records.</p>
             </div>
 
+            <!-- Back to Departments Button -->
+            <button class="btn-back-depts" id="backToDeptsBtn" style="display: none;">
+                <i class="fa-solid fa-arrow-left"></i> Back to Departments
+            </button>
+
+            <!-- Selected Department Header Card -->
+            <div id="selectedDeptHeaderCard" class="selected-dept-header-card" style="display: none;"></div>
+
+            <!-- Department Selection Section -->
+            <div id="departmentSelectorSection">
+                <h3 class="dept-selection-title">Select a Department to Monitor</h3>
+                <div class="dept-grid" id="deptGrid">
+                    <!-- Loaded dynamically via JavaScript -->
+                </div>
+            </div>
+
             <!-- Summary Cards Section matching Users page exactly -->
-            <div class="admin-section" style="margin-bottom: 8px; min-width: 0; width: 100%; overflow: hidden;">
+            <div class="admin-section" style="margin-bottom: 8px; min-width: 0; width: 100%; overflow: hidden; display: none;">
                 <h4 class="admin-section-heading">Summary Cards</h4>
                 <div class="stats-scroll-container">
                     <!-- Card 1: Total Monitored -->
@@ -175,11 +191,11 @@
             </div>
 
             <!-- Controls bar matching Users page exactly -->
-            <div class="controls-bar">
+            <div class="controls-bar" style="display: none;">
                 <div class="controls-left">
                     <!-- Search Bar -->
                     <div class="search-box-wrapper">
-                        <input type="text" id="monitoringSearch" placeholder="Search by borrower, equipment, or ID...">
+                        <input type="text" id="monitoringSearch" placeholder="Search by equipment, borrower, or ID...">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </div>
 
@@ -192,8 +208,6 @@
                             <option value="Reserved">Reserved</option>
                             <option value="Overdue">Overdue</option>
                             <option value="Maintenance">Maintenance</option>
-                            <option value="Return Pending">Return Pending</option>
-                            <option value="Returned">Returned</option>
                         </select>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
@@ -207,6 +221,7 @@
                             <option value="Camera">Camera</option>
                             <option value="Laboratory Equipment">Laboratory Equipment</option>
                             <option value="Audio Equipment">Audio Equipment</option>
+                            <option value="Others">Others</option>
                         </select>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
@@ -214,17 +229,17 @@
             </div>
 
             <!-- Table Card matching Users page exactly -->
-            <div class="table-container card admin-table-card">
+            <div class="table-container card admin-table-card" style="display: none;">
                 <table style="width: 100%;">
                     <thead>
                         <tr>
-                            <th>Borrower</th>
-                            <th>ID Number</th>
-                            <th>Equipment</th>
-                            <th>Borrow Date</th>
-                            <th>Due Date</th>
-                            <th>Status</th>
-                            <th class="action-column" style="text-align: center;">Action</th>
+                            <th class="col-equipment">Equipment</th>
+                            <th class="col-borrowed">Borrower</th>
+                            <th class="col-role">Role</th>
+                            <th class="col-borrow-date">Borrow Date</th>
+                            <th class="col-return-date">Return Date</th>
+                            <th class="col-status">Status</th>
+                            <th class="col-actions">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="monitoringTableBody">
@@ -294,6 +309,10 @@
                                 <input type="text" id="modalEqCategory" class="detail-form-control" readonly>
                             </div>
                             <div class="detail-form-group">
+                                <label class="detail-form-label">Request Date</label>
+                                <input type="text" id="modalRequestDate" class="detail-form-control" readonly>
+                            </div>
+                            <div class="detail-form-group">
                                 <label class="detail-form-label">Borrow Date</label>
                                 <input type="text" id="modalBorrowDate" class="detail-form-control" readonly>
                             </div>
@@ -337,14 +356,15 @@
     <!-- Interactivity Script -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Seeding monitoring requests with comprehensive representation of all statuses
+            // Seeding monitoring requests with comprehensive representation of all statuses and departments
             const monitoringSeed = [
+                // Information Technology Department (CCS)
                 {
                     id: 20,
-                    user: "Gabriel Fernandez",
-                    id_number: "20230123",
+                    user: "Johnrey Neil Rama",
+                    id_number: "20230456",
                     role: "Student",
-                    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80",
+                    avatar: "https://ui-avatars.com/api/?name=Johnrey+Neil+Rama&background=random",
                     equipment: "Laptop Dell XPS",
                     category: "Laptop",
                     date: "Jun 1",
@@ -355,50 +375,15 @@
                     purpose: "Software Engineering Class",
                     notes: "Group coding project in school library.",
                     img: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
-                },
-                {
-                    id: 21,
-                    user: "Anna Mae Santos",
-                    id_number: "T-00987",
-                    role: "Teacher",
-                    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
-                    equipment: "Projector Epson",
-                    category: "Projector",
-                    date: "Jun 2",
-                    fullDate: "June 2, 2026",
-                    borrowDate: "June 2, 2026",
-                    dueDate: "June 6, 2026",
-                    status: "Borrowed",
-                    purpose: "Visual Arts Lecture",
-                    notes: "Need for showing slideshow presentation in room 203.",
-                    img: "https://images.unsplash.com/photo-1588696860356-0eaee7d7c67c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
-                },
-                {
-                    id: 22,
-                    user: "Johnrey Neil Rama",
-                    id_number: "20230456",
-                    role: "Student",
-                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80",
-                    equipment: "Camera Canon EOS",
-                    category: "Camera",
-                    date: "Jun 4",
-                    fullDate: "June 4, 2026",
-                    borrowDate: "June 4, 2026",
-                    dueDate: "June 8, 2026",
-                    status: "Return Pending",
-                    purpose: "Photography Assignment",
-                    notes: "Submitted photo essay to the professor.",
-                    img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
+                    rejectReason: "",
+                    department: "Information Technology Department"
                 },
                 {
                     id: 23,
-                    user: "Information Technology Department",
-                    id_number: "D-IT-200",
-                    role: "Department",
-                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80",
+                    user: "Gabriel Fernandez",
+                    id_number: "20230123",
+                    role: "Student",
+                    avatar: "https://ui-avatars.com/api/?name=Gabriel+Fernandez&background=random",
                     equipment: "Lenovo ThinkPad",
                     category: "Laptop",
                     date: "May 15",
@@ -409,46 +394,70 @@
                     purpose: "IT Support Lab",
                     notes: "Urgent troubleshooting laptop setup.",
                     img: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
+                    rejectReason: "",
+                    department: "Information Technology Department"
                 },
                 {
-                    id: 24,
-                    user: "Engineering Department",
-                    id_number: "D-ENG-300",
-                    role: "Department",
-                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80",
-                    equipment: "Projector Epson",
-                    category: "Projector",
-                    date: "Jun 26",
-                    fullDate: "June 26, 2026",
-                    borrowDate: "June 26, 2026",
-                    dueDate: "June 30, 2026",
-                    status: "Returned",
-                    purpose: "Department Meeting",
-                    notes: "Annual research conference presentation.",
-                    img: "https://images.unsplash.com/photo-1588696860356-0eaee7d7c67c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
-                },
-                {
-                    id: 25,
-                    user: "Gabriel Fernandez",
-                    id_number: "20230123",
-                    role: "Student",
-                    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80",
+                    id: 29,
+                    user: "—",
+                    id_number: "—",
+                    role: "—",
+                    avatar: "",
                     equipment: "Wireless Microphone Set",
                     category: "Audio Equipment",
-                    date: "Jun 3",
-                    fullDate: "June 3, 2026",
-                    borrowDate: "June 3, 2026",
-                    dueDate: "June 7, 2026",
-                    status: "Borrowed",
-                    purpose: "Debate Competition",
-                    notes: "Need for auditorium microphone system.",
+                    date: "—",
+                    fullDate: "—",
+                    borrowDate: "—",
+                    dueDate: "—",
+                    status: "Available",
+                    purpose: "—",
+                    notes: "In excellent working condition.",
                     img: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
+                    rejectReason: "",
+                    department: "Information Technology Department"
                 },
                 {
-                    id: 26,
+                    id: 31,
+                    user: "Jeffrey Gaviola",
+                    id_number: "20230789",
+                    role: "Student",
+                    avatar: "https://ui-avatars.com/api/?name=Jeffrey+Gaviola&background=random",
+                    equipment: "Projector Epson",
+                    category: "Projector",
+                    date: "Jun 28",
+                    fullDate: "June 28, 2026",
+                    borrowDate: "June 28, 2026",
+                    dueDate: "July 2, 2026",
+                    status: "Reserved",
+                    purpose: "Math Seminar",
+                    notes: "Reserved for the upcoming national seminar.",
+                    img: "https://images.unsplash.com/photo-1588696860356-0eaee7d7c67c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Information Technology Department"
+                },
+                {
+                    id: 32,
+                    user: "—",
+                    id_number: "—",
+                    role: "—",
+                    avatar: "",
+                    equipment: "Camera Canon EOS",
+                    category: "Camera",
+                    date: "—",
+                    fullDate: "—",
+                    borrowDate: "—",
+                    dueDate: "—",
+                    status: "Maintenance",
+                    purpose: "—",
+                    notes: "Lens cleaning and sensor check in progress.",
+                    img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Information Technology Department"
+                },
+
+                // Education Department (CTE)
+                {
+                    id: 101,
                     user: "Anna Mae Santos",
                     id_number: "T-00987",
                     role: "Teacher",
@@ -459,135 +468,528 @@
                     fullDate: "June 10, 2026",
                     borrowDate: "June 10, 2026",
                     dueDate: "June 14, 2026",
-                    status: "Returned",
+                    status: "Borrowed",
                     purpose: "Exam Session",
                     notes: "To be used for mathematics exam.",
                     img: "https://images.unsplash.com/photo-1587145820266-a5951ee6f620?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
+                    rejectReason: "",
+                    department: "Education Department"
                 },
                 {
-                    id: 27,
+                    id: 102,
+                    user: "Anna Mae Santos",
+                    id_number: "T-00987",
+                    role: "Teacher",
+                    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
+                    equipment: "Epson Projector",
+                    category: "Projector",
+                    date: "May 20",
+                    fullDate: "May 20, 2026",
+                    borrowDate: "May 20, 2026",
+                    dueDate: "May 25, 2026",
+                    status: "Overdue",
+                    purpose: "Audio-visual session",
+                    notes: "History class slides.",
+                    img: "https://images.unsplash.com/photo-1588696860356-0eaee7d7c67c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Education Department"
+                },
+                {
+                    id: 103,
+                    user: "—",
+                    id_number: "—",
+                    role: "—",
+                    avatar: "",
+                    equipment: "HP Laptop",
+                    category: "Laptop",
+                    date: "—",
+                    fullDate: "—",
+                    borrowDate: "—",
+                    dueDate: "—",
+                    status: "Available",
+                    purpose: "—",
+                    notes: "Checked and cleaned.",
+                    img: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Education Department"
+                },
+                {
+                    id: 104,
+                    user: "Jeffrey Gaviola",
+                    id_number: "20230789",
+                    role: "Student",
+                    avatar: "https://ui-avatars.com/api/?name=Jeffrey+Gaviola&background=random",
+                    equipment: "iPad Pro",
+                    category: "Others",
+                    date: "Jun 25",
+                    fullDate: "June 25, 2026",
+                    borrowDate: "June 25, 2026",
+                    dueDate: "July 03, 2026",
+                    status: "Reserved",
+                    purpose: "Presentation",
+                    notes: "Art history demonstration.",
+                    img: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Education Department"
+                },
+                {
+                    id: 105,
+                    user: "—",
+                    id_number: "—",
+                    role: "—",
+                    avatar: "",
+                    equipment: "Smart TV",
+                    category: "Others",
+                    date: "—",
+                    fullDate: "—",
+                    borrowDate: "—",
+                    dueDate: "—",
+                    status: "Maintenance",
+                    purpose: "—",
+                    notes: "Screen flickering issue.",
+                    img: "https://images.unsplash.com/photo-1593305841991-05c297ba4575?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Education Department"
+                },
+
+                // Engineering Department (COE)
+                {
+                    id: 201,
                     user: "Johnrey Neil Rama",
                     id_number: "20230456",
                     role: "Student",
-                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80",
-                    equipment: "Laptop Dell XPS",
-                    category: "Laptop",
+                    avatar: "https://ui-avatars.com/api/?name=Johnrey+Neil+Rama&background=random",
+                    equipment: "Digital Multimeter",
+                    category: "Laboratory Equipment",
+                    date: "Jun 2",
+                    fullDate: "June 2, 2026",
+                    borrowDate: "June 2, 2026",
+                    dueDate: "June 8, 2026",
+                    status: "Borrowed",
+                    purpose: "Circuit Lab",
+                    notes: "Basic diagnostics lab class.",
+                    img: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Engineering Department"
+                },
+                {
+                    id: 202,
+                    user: "Gabriel Fernandez",
+                    id_number: "20230123",
+                    role: "Student",
+                    avatar: "https://ui-avatars.com/api/?name=Gabriel+Fernandez&background=random",
+                    equipment: "Oscilloscope",
+                    category: "Laboratory Equipment",
                     date: "May 10",
                     fullDate: "May 10, 2026",
                     borrowDate: "May 10, 2026",
                     dueDate: "May 15, 2026",
                     status: "Overdue",
-                    purpose: "Midterm Exam Preparation",
-                    notes: "Borrowed for exam review.",
+                    purpose: "Signal Analysis",
+                    notes: "Testing frequency response.",
+                    img: "https://images.unsplash.com/photo-1517420712762-15e1f9708ab1?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Engineering Department"
+                },
+                {
+                    id: 203,
+                    user: "—",
+                    id_number: "—",
+                    role: "—",
+                    avatar: "",
+                    equipment: "Engineering Workstation",
+                    category: "Laptop",
+                    date: "—",
+                    fullDate: "—",
+                    borrowDate: "—",
+                    dueDate: "—",
+                    status: "Available",
+                    purpose: "—",
+                    notes: "High performance desktop.",
                     img: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
+                    rejectReason: "",
+                    department: "Engineering Department"
                 },
                 {
-                    id: 28,
-                    user: "Information Technology Department",
-                    id_number: "D-IT-200",
-                    role: "Department",
-                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80",
-                    equipment: "Wireless Microphone Set",
-                    category: "Audio Equipment",
-                    date: "Jun 25",
-                    fullDate: "June 25, 2026",
-                    borrowDate: "June 25, 2026",
-                    dueDate: "June 29, 2026",
-                    status: "Return Pending",
-                    purpose: "Orientation Day",
-                    notes: "Sound system testing and setup.",
-                    img: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
+                    id: 204,
+                    user: "Jeffrey Gaviola",
+                    id_number: "20230789",
+                    role: "Student",
+                    avatar: "https://ui-avatars.com/api/?name=Jeffrey+Gaviola&background=random",
+                    equipment: "Surveying Transit",
+                    category: "Laboratory Equipment",
+                    date: "Jun 27",
+                    fullDate: "June 27, 2026",
+                    borrowDate: "June 27, 2026",
+                    dueDate: "July 04, 2026",
+                    status: "Reserved",
+                    purpose: "Civil Surveying",
+                    notes: "Field measurements training.",
+                    img: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Engineering Department"
                 },
                 {
-                    id: 29,
-                    user: "N/A",
-                    id_number: "N/A",
-                    role: "N/A",
-                    avatar: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&h=100&q=80",
-                    equipment: "Wireless Microphone Set",
-                    category: "Audio Equipment",
-                    date: "N/A",
-                    fullDate: "N/A",
-                    borrowDate: "N/A",
-                    dueDate: "N/A",
+                    id: 205,
+                    user: "—",
+                    id_number: "—",
+                    role: "—",
+                    avatar: "",
+                    equipment: "Soldering Station",
+                    category: "Laboratory Equipment",
+                    date: "—",
+                    fullDate: "—",
+                    borrowDate: "—",
+                    dueDate: "—",
+                    status: "Maintenance",
+                    purpose: "—",
+                    notes: "Heating element replacement.",
+                    img: "https://images.unsplash.com/photo-1558137623-ce93397657bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Engineering Department"
+                },
+
+                // Customs Administration Department (CCA)
+                {
+                    id: 301,
+                    user: "Gabriel Fernandez",
+                    id_number: "20230123",
+                    role: "Student",
+                    avatar: "https://ui-avatars.com/api/?name=Gabriel+Fernandez&background=random",
+                    equipment: "Barcode Scanner",
+                    category: "Others",
+                    date: "Jun 12",
+                    fullDate: "June 12, 2026",
+                    borrowDate: "June 12, 2026",
+                    dueDate: "June 16, 2026",
+                    status: "Borrowed",
+                    purpose: "Logistics Simulation",
+                    notes: "Cargo scanning training.",
+                    img: "https://images.unsplash.com/photo-1614014077743-30fa4622c97e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Customs Administration Department"
+                },
+                {
+                    id: 302,
+                    user: "Johnrey Neil Rama",
+                    id_number: "20230456",
+                    role: "Student",
+                    avatar: "https://ui-avatars.com/api/?name=Johnrey+Neil+Rama&background=random",
+                    equipment: "Document Scanner",
+                    category: "Others",
+                    date: "May 05",
+                    fullDate: "May 5, 2026",
+                    borrowDate: "May 05, 2026",
+                    dueDate: "May 12, 2026",
+                    status: "Overdue",
+                    purpose: "Tariff Classification",
+                    notes: "Scanning manifest records.",
+                    img: "https://images.unsplash.com/photo-1562408590-e32931084e23?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Customs Administration Department"
+                },
+                {
+                    id: 303,
+                    user: "—",
+                    id_number: "—",
+                    role: "—",
+                    avatar: "",
+                    equipment: "Desktop PC",
+                    category: "Others",
+                    date: "—",
+                    fullDate: "—",
+                    borrowDate: "—",
+                    dueDate: "—",
                     status: "Available",
-                    purpose: "N/A",
-                    notes: "In excellent working condition.",
-                    img: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
+                    purpose: "—",
+                    notes: "Available in room 405.",
+                    img: "https://images.unsplash.com/photo-1587831990711-23ca6441447b?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Customs Administration Department"
                 },
                 {
-                    id: 30,
-                    user: "N/A",
-                    id_number: "N/A",
-                    role: "N/A",
-                    avatar: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&h=100&q=80",
-                    equipment: "Camera Canon EOS",
-                    category: "Camera",
-                    date: "N/A",
-                    fullDate: "N/A",
-                    borrowDate: "N/A",
-                    dueDate: "N/A",
-                    status: "Available",
-                    purpose: "N/A",
-                    notes: "Fully charged battery, ready to use.",
-                    img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
+                    id: 304,
+                    user: "Jeffrey Gaviola",
+                    id_number: "20230789",
+                    role: "Student",
+                    avatar: "https://ui-avatars.com/api/?name=Jeffrey+Gaviola&background=random",
+                    equipment: "Label Printer",
+                    category: "Others",
+                    date: "Jun 26",
+                    fullDate: "June 26, 2026",
+                    borrowDate: "June 26, 2026",
+                    dueDate: "July 01, 2026",
+                    status: "Reserved",
+                    purpose: "Warehousing Project",
+                    notes: "Printing inventory barcode tags.",
+                    img: "https://images.unsplash.com/photo-1616401784845-180882ba9ba8?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Customs Administration Department"
                 },
                 {
-                    id: 31,
+                    id: 305,
+                    user: "—",
+                    id_number: "—",
+                    role: "—",
+                    avatar: "",
+                    equipment: "Radio Transceiver",
+                    category: "Others",
+                    date: "—",
+                    fullDate: "—",
+                    borrowDate: "—",
+                    dueDate: "—",
+                    status: "Maintenance",
+                    purpose: "—",
+                    notes: "Battery replacement required.",
+                    img: "https://images.unsplash.com/photo-1615486511487-12ee3c2a4c07?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Customs Administration Department"
+                },
+
+                // Business and Accountancy Department (CBA)
+                {
+                    id: 401,
                     user: "Anna Mae Santos",
                     id_number: "T-00987",
                     role: "Teacher",
                     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
-                    equipment: "Scientific Calculator",
+                    equipment: "Financial Calculator",
                     category: "Others",
-                    date: "Jun 28",
-                    fullDate: "June 28, 2026",
-                    borrowDate: "June 30, 2026",
-                    dueDate: "July 2, 2026",
-                    status: "Reserved",
-                    purpose: "Math Seminar",
-                    notes: "Reserved for the upcoming national seminar.",
-                    img: "https://images.unsplash.com/photo-1587145820266-a5951ee6f620?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
+                    date: "Jun 15",
+                    fullDate: "June 15, 2026",
+                    borrowDate: "June 15, 2026",
+                    dueDate: "June 19, 2026",
+                    status: "Borrowed",
+                    purpose: "Corporate Finance",
+                    notes: "NPV and IRR calculation workshop.",
+                    img: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Business and Accountancy Department"
                 },
                 {
-                    id: 32,
-                    user: "Information Technology Department",
-                    id_number: "D-IT-200",
-                    role: "Department",
-                    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80",
-                    equipment: "Lenovo ThinkPad",
-                    category: "Laptop",
-                    date: "N/A",
-                    fullDate: "N/A",
-                    borrowDate: "N/A",
-                    dueDate: "N/A",
+                    id: 402,
+                    user: "Johnrey Neil Rama",
+                    id_number: "20230456",
+                    role: "Student",
+                    avatar: "https://ui-avatars.com/api/?name=Johnrey+Neil+Rama&background=random",
+                    equipment: "Projector Sony",
+                    category: "Projector",
+                    date: "May 08",
+                    fullDate: "May 8, 2026",
+                    borrowDate: "May 08, 2026",
+                    dueDate: "May 14, 2026",
+                    status: "Overdue",
+                    purpose: "Business Plan Pitch",
+                    notes: "Interactive presentation.",
+                    img: "https://images.unsplash.com/photo-1535016120720-40c646be5580?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Business and Accountancy Department"
+                },
+                {
+                    id: 403,
+                    user: "—",
+                    id_number: "—",
+                    role: "—",
+                    avatar: "",
+                    equipment: "Whiteboard Easel",
+                    category: "Others",
+                    date: "—",
+                    fullDate: "—",
+                    borrowDate: "—",
+                    dueDate: "—",
+                    status: "Available",
+                    purpose: "—",
+                    notes: "Ready for brainstorming.",
+                    img: "https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Business and Accountancy Department"
+                },
+                {
+                    id: 404,
+                    user: "Jeffrey Gaviola",
+                    id_number: "20230789",
+                    role: "Student",
+                    avatar: "https://ui-avatars.com/api/?name=Jeffrey+Gaviola&background=random",
+                    equipment: "Laser Printer",
+                    category: "Others",
+                    date: "Jun 24",
+                    fullDate: "June 24, 2026",
+                    borrowDate: "June 24, 2026",
+                    dueDate: "June 30, 2026",
+                    status: "Reserved",
+                    purpose: "Report Printing",
+                    notes: "Annual audited report files.",
+                    img: "https://images.unsplash.com/photo-1612815154858-60aa4c59edd6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Business and Accountancy Department"
+                },
+                {
+                    id: 405,
+                    user: "—",
+                    id_number: "—",
+                    role: "—",
+                    avatar: "",
+                    equipment: "Paper Shredder",
+                    category: "Others",
+                    date: "—",
+                    fullDate: "—",
+                    borrowDate: "—",
+                    dueDate: "—",
                     status: "Maintenance",
-                    purpose: "N/A",
-                    notes: "Keyboard replacement in progress.",
+                    purpose: "—",
+                    notes: "Paper jam repairs.",
+                    img: "https://images.unsplash.com/photo-1595225476474-87563907a212?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Business and Accountancy Department"
+                },
+
+                // Criminal Justice Department (CCJ)
+                {
+                    id: 501,
+                    user: "Gabriel Fernandez",
+                    id_number: "20230123",
+                    role: "Student",
+                    avatar: "https://ui-avatars.com/api/?name=Gabriel+Fernandez&background=random",
+                    equipment: "DSLR Camera Nikon",
+                    category: "Camera",
+                    date: "Jun 20",
+                    fullDate: "June 20, 2026",
+                    borrowDate: "June 20, 2026",
+                    dueDate: "June 24, 2026",
+                    status: "Borrowed",
+                    purpose: "Crime Scene Photography",
+                    notes: "Documenting simulated evidence.",
+                    img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Criminal Justice Department"
+                },
+                {
+                    id: 502,
+                    user: "Johnrey Neil Rama",
+                    id_number: "20230456",
+                    role: "Student",
+                    avatar: "https://ui-avatars.com/api/?name=Johnrey+Neil+Rama&background=random",
+                    equipment: "Fingerprint Scanner",
+                    category: "Others",
+                    date: "May 12",
+                    fullDate: "May 12, 2026",
+                    borrowDate: "May 12, 2026",
+                    dueDate: "May 18, 2026",
+                    status: "Overdue",
+                    purpose: "Dactyloscopy Lab",
+                    notes: "Ridge matching assignment.",
+                    img: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Criminal Justice Department"
+                },
+                {
+                    id: 503,
+                    user: "—",
+                    id_number: "—",
+                    role: "—",
+                    avatar: "",
+                    equipment: "Forensic Kit",
+                    category: "Others",
+                    date: "—",
+                    fullDate: "—",
+                    borrowDate: "—",
+                    dueDate: "—",
+                    status: "Available",
+                    purpose: "—",
+                    notes: "Fully stocked fingerprinting powder and tapes.",
+                    img: "https://images.unsplash.com/photo-1582719508461-905c673771fd?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Criminal Justice Department"
+                },
+                {
+                    id: 504,
+                    user: "Jeffrey Gaviola",
+                    id_number: "20230789",
+                    role: "Student",
+                    avatar: "https://ui-avatars.com/api/?name=Jeffrey+Gaviola&background=random",
+                    equipment: "Evidence Scale",
+                    category: "Others",
+                    date: "Jun 22",
+                    fullDate: "June 22, 2026",
+                    borrowDate: "June 22, 2026",
+                    dueDate: "June 29, 2026",
+                    status: "Reserved",
+                    purpose: "Forensics Class Demonstration",
+                    notes: "Weighing trace materials.",
                     img: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
+                    rejectReason: "",
+                    department: "Criminal Justice Department"
+                },
+                {
+                    id: 505,
+                    user: "—",
+                    id_number: "—",
+                    role: "—",
+                    avatar: "",
+                    equipment: "Handheld Metal Detector",
+                    category: "Others",
+                    date: "—",
+                    fullDate: "—",
+                    borrowDate: "—",
+                    dueDate: "—",
+                    status: "Maintenance",
+                    purpose: "—",
+                    notes: "Sensor calibration.",
+                    img: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+                    rejectReason: "",
+                    department: "Criminal Justice Department"
                 }
             ];
 
             let requests = JSON.parse(localStorage.getItem('equip-track-requests'));
-            const isOutdated = !requests || requests.some(r => r.user === "Science Department" || r.id_number === "2023-00123" || r.user === "IT Department" || r.user === "College of IT Department");
+            const isOutdated = !requests || !requests.some(r => r.user === "Jeffrey Gaviola") || !requests.some(r => r.hasOwnProperty('department'));
             if (isOutdated) {
                 requests = monitoringSeed;
                 localStorage.setItem('equip-track-requests', JSON.stringify(requests));
-            } else {
-                // Ensure all standard monitoring seed statuses are merged if not present
-                const hasSeedStatus = requests.some(r => r.status === 'Available' || r.status === 'Reserved' || r.status === 'Maintenance');
-                if (!hasSeedStatus) {
-                    requests = [...requests, ...monitoringSeed.filter(s => s.id >= 29)];
-                    localStorage.setItem('equip-track-requests', JSON.stringify(requests));
-                }
             }
+
+            // Department metadata configuration
+            const departments = [
+                {
+                    id: "it",
+                    name: "Information Technology Department",
+                    title: "College of Computer Studies",
+                    image: "../images/it_department.png"
+                },
+                {
+                    id: "education",
+                    name: "Education Department",
+                    title: "College of Teacher Education",
+                    image: "../images/educ_department.jpg"
+                },
+                {
+                    id: "engineering",
+                    name: "Engineering Department",
+                    title: "College of Engineering",
+                    image: "../images/engineering_department.jpg"
+                },
+                {
+                    id: "customs",
+                    name: "Customs Administration Department",
+                    title: "College of Customs Administration",
+                    image: "../images/custom_department.jpg"
+                },
+                {
+                    id: "business",
+                    name: "Business and Accountancy Department",
+                    title: "College of Business and Accountancy",
+                    image: "../images/accountancy_department.jpg"
+                },
+                {
+                    id: "criminal",
+                    name: "Criminal Justice Department",
+                    title: "College of Criminal Justice",
+                    image: "../images/crim_department.jpg"
+                }
+            ];
+
+            // State management
+            let selectedDept = sessionStorage.getItem('equip-track-selected-monitoring-dept') || null;
 
             // DOM elements selection
             const tableBody = document.getElementById('monitoringTableBody');
@@ -608,6 +1010,15 @@
             const paginationInfo = document.getElementById('paginationInfo');
             const paginationButtons = document.getElementById('paginationButtons');
 
+            // View management elements
+            const deptSelectorSection = document.getElementById('departmentSelectorSection');
+            const backToDeptsBtn = document.getElementById('backToDeptsBtn');
+            const selectedDeptHeaderCard = document.getElementById('selectedDeptHeaderCard');
+            const deptGrid = document.getElementById('deptGrid');
+            const adminSection = document.querySelector('.admin-section');
+            const controlsBar = document.querySelector('.controls-bar');
+            const tableCard = document.querySelector('.table-container.card.admin-table-card');
+
             // Pagination state
             let currentPage = 1;
             const pageSize = 25;
@@ -616,6 +1027,100 @@
             const themeToggleIcon = document.getElementById('themeToggleIcon');
             const userProfileDropdown = document.getElementById('userProfileDropdown');
             const dropdownMenu = document.getElementById('dropdownMenu');
+
+            // Render Department Selection Cards Grid
+            function renderDepartmentGrid() {
+                deptGrid.innerHTML = '';
+                departments.forEach(dept => {
+                    const card = document.createElement('div');
+                    card.className = 'dept-card';
+                    card.setAttribute('title', dept.title);
+                    card.innerHTML = `
+                        <img src="${dept.image}" alt="${dept.title}" class="dept-logo-img">
+                    `;
+                    card.addEventListener('click', () => {
+                        selectDepartment(dept.name);
+                    });
+                    deptGrid.appendChild(card);
+                });
+            }
+
+            // Select a department and swap views
+            function selectDepartment(deptName) {
+                selectedDept = deptName;
+                sessionStorage.setItem('equip-track-selected-monitoring-dept', deptName);
+                currentPage = 1;
+                updateView();
+            }
+
+            // Go back to the department selector screen
+            function deselectDepartment() {
+                selectedDept = null;
+                sessionStorage.removeItem('equip-track-selected-monitoring-dept');
+                updateView();
+            }
+
+            // Sync layout view based on state
+            function updateView() {
+                const headerSection = document.getElementById('monitoringHeaderSection');
+                if (selectedDept) {
+                    const deptMeta = departments.find(d => d.name === selectedDept);
+                    
+                    deptSelectorSection.style.display = 'none';
+                    backToDeptsBtn.style.display = 'inline-flex';
+                    if (headerSection) headerSection.style.display = 'none';
+                    
+                    // Display department card
+                    selectedDeptHeaderCard.style.display = 'flex';
+                    
+                    const logoSrc = deptMeta ? deptMeta.image : '../images/logo_only.png';
+                    
+                    // Translate standard department name to exact program/degree name as requested
+                    let customTitle = deptMeta ? deptMeta.title : selectedDept;
+                    if (selectedDept === "Information Technology Department") {
+                        customTitle = "Bachelor of Science in Information Technology";
+                    } else if (selectedDept === "Education Department") {
+                        customTitle = "Bachelor of Science in Education";
+                    } else if (selectedDept === "Engineering Department") {
+                        customTitle = "Bachelor of Science in Engineering";
+                    } else if (selectedDept === "Customs Administration Department") {
+                        customTitle = "Bachelor of Science in Customs Administration";
+                    } else if (selectedDept === "Business and Accountancy Department") {
+                        customTitle = "Bachelor of Science in Business and Accountancy";
+                    } else if (selectedDept === "Criminal Justice Department") {
+                        customTitle = "Bachelor of Science in Criminal Justice";
+                    }
+                    
+                    selectedDeptHeaderCard.innerHTML = `
+                        <div class="selected-dept-logo-box">
+                            <img src="${logoSrc}" alt="${escapeHTML(customTitle)} Logo">
+                        </div>
+                        <div class="selected-dept-info">
+                            <h3 class="selected-dept-name">${escapeHTML(customTitle)}</h3>
+                            <p class="selected-dept-subtitle">Monitor borrowed equipment, return requests, and overdue records.</p>
+                        </div>
+                    `;
+                    
+                    adminSection.style.display = 'block';
+                    controlsBar.style.display = 'flex';
+                    tableCard.style.display = 'block';
+                    
+                    renderTable();
+                } else {
+                    deptSelectorSection.style.display = 'block';
+                    backToDeptsBtn.style.display = 'none';
+                    selectedDeptHeaderCard.style.display = 'none';
+                    if (headerSection) headerSection.style.display = 'block';
+                    
+                    adminSection.style.display = 'none';
+                    controlsBar.style.display = 'none';
+                    tableCard.style.display = 'none';
+                    
+                    renderDepartmentGrid();
+                }
+            }
+
+            backToDeptsBtn.addEventListener('click', deselectDepartment);
 
             // Dark Mode toggle logic
             if (themeToggleBtn && themeToggleIcon) {
@@ -667,14 +1172,37 @@
                 }, 3500);
             }
 
+            // Send notification return reminder action
+            window.sendReminder = function(id, event) {
+                if (event) event.stopPropagation();
+                const req = requests.find(r => r.id === id);
+                if (req) {
+                    showNotification('Reminder Sent', `Return reminder notification successfully sent to ${req.user} for "${req.equipment}".`, 'success');
+                    
+                    // Store reminder alerts in localStorage for user profiles integration
+                    let alerts = JSON.parse(localStorage.getItem('equip-track-alerts')) || [];
+                    alerts.push({
+                        id: Date.now(),
+                        user: req.user,
+                        equipment: req.equipment,
+                        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        message: `Reminder: Please return the borrowed "${req.equipment}" as soon as possible.`
+                    });
+                    localStorage.setItem('equip-track-alerts', JSON.stringify(alerts));
+                }
+            };
+
             // Render stats cards values dynamically
             function updateSummaryCards() {
-                const total = requests.length;
-                const available = requests.filter(r => r.status === 'Available').length;
-                const borrowed = requests.filter(r => r.status === 'Borrowed').length;
-                const reserved = requests.filter(r => r.status === 'Reserved').length;
-                const overdue = requests.filter(r => r.status === 'Overdue').length;
-                const maintenance = requests.filter(r => r.status === 'Maintenance').length;
+                if (!selectedDept) return;
+                const deptRequests = requests.filter(r => r.department === selectedDept);
+                
+                const total = deptRequests.length;
+                const available = deptRequests.filter(r => r.status === 'Available').length;
+                const borrowed = deptRequests.filter(r => r.status === 'Borrowed').length;
+                const reserved = deptRequests.filter(r => r.status === 'Reserved').length;
+                const overdue = deptRequests.filter(r => r.status === 'Overdue').length;
+                const maintenance = deptRequests.filter(r => r.status === 'Maintenance').length;
 
                 document.getElementById('statTotalMonitored').textContent = total;
                 document.getElementById('statAvailable').textContent = available;
@@ -686,6 +1214,8 @@
 
             // Render Table function
             function renderTable() {
+                if (!selectedDept) return;
+
                 const query = searchInput.value.toLowerCase().trim();
                 const selectedStatus = filterStatusSelect.value;
                 const selectedCategory = filterCategorySelect.value;
@@ -693,16 +1223,21 @@
                 tableBody.innerHTML = '';
 
                 const filtered = requests.filter(req => {
+                    // Department filter
+                    if (req.department !== selectedDept) return false;
+
                     // Search term filter
-                    const matchesSearch = req.user.toLowerCase().includes(query) || 
-                                          req.equipment.toLowerCase().includes(query) ||
+                    const matchesSearch = (req.user && req.user.toLowerCase().includes(query)) || 
+                                          (req.equipment && req.equipment.toLowerCase().includes(query)) ||
                                           (req.id_number && req.id_number.toLowerCase().includes(query));
 
                     // Category filter
                     const matchesCategory = selectedCategory === 'all' || req.category.toLowerCase() === selectedCategory.toLowerCase();
 
                     // Status filter
-                    const matchesStatus = selectedStatus === 'all' || req.status.toLowerCase() === selectedStatus.toLowerCase();
+                    const matchesStatus = selectedStatus === 'all' || 
+                        (selectedStatus.toLowerCase() === 'maintenance' && req.status.toLowerCase() === 'under maintenance') ||
+                        req.status.toLowerCase() === selectedStatus.toLowerCase();
 
                     return matchesSearch && matchesCategory && matchesStatus;
                 });
@@ -734,16 +1269,18 @@
                         // Click row opens details modal (excluding clicking action button itself)
                         tr.addEventListener('click', (e) => {
                             if (!e.target.closest('button')) {
-                                openDetailsModal(req.id);
+                                openDetailsModal(req.id, e);
                             }
                         });
 
-                        // Action buttons cells
+                        // Action buttons cell
                         let actionHtml = '';
-                        if (req.status === 'Return Pending') {
+                        if (req.status === 'Overdue') {
+                            actionHtml = `<button class="btn-action-remind" title="Send Return Reminder" onclick="sendReminder(${req.id}, event)"><i class="fa-solid fa-bell"></i></button>`;
+                        } else if (req.status === 'Return Pending') {
                             actionHtml = `<button class="btn-action-confirm" onclick="confirmReturn(${req.id}, event)"><i class="fa-solid fa-circle-check"></i> Return</button>`;
                         } else {
-                            actionHtml = `<button class="btn-action-view" onclick="openDetailsModal(${req.id})"><i class="fa-solid fa-eye"></i> View</button>`;
+                            actionHtml = `<button class="btn-action-view" onclick="openDetailsModal(${req.id}, event)"><i class="fa-solid fa-eye"></i> View</button>`;
                         }
 
                         // Format due date indicator if overdue
@@ -752,23 +1289,25 @@
                             dueDateStyle = 'style="color: #ef4444; font-weight: 600;"';
                         }
 
-                        const statusClass = 'status-' + req.status.toLowerCase().replace(' ', '-');
-                        const borrowDateText = req.borrowDate || 'N/A';
-                        const dueDateText = req.dueDate || 'N/A';
-                        const idNumberText = req.id_number || 'N/A';
+                        const statusBadgeClass = 'status-' + req.status.toLowerCase().replace(/\s+/g, '-');
+                        
+                        const hasBorrower = req.status === 'Borrowed' || req.status === 'Overdue' || req.status === 'Return Pending' || req.status === 'Reserved';
+                        
+                        const borrowerText = hasBorrower ? req.user : '—';
+                        const borrowerRole = hasBorrower ? req.role : '—';
+                        const borrowDateText = hasBorrower ? req.borrowDate : '—';
+                        const returnDateText = hasBorrower ? req.dueDate : '—';
 
                         tr.innerHTML = `
                             <td>
-                                <div class="user-details-cell">
-                                    <span class="user-name-text">${escapeHTML(req.user)}</span>
-                                </div>
+                                <strong class="eq-name-text" title="${escapeHTML(req.equipment)}">${escapeHTML(req.equipment)}</strong>
                             </td>
-                            <td><strong>${escapeHTML(idNumberText)}</strong></td>
-                            <td>${escapeHTML(req.equipment)}</td>
+                            <td title="${escapeHTML(borrowerText)}">${escapeHTML(borrowerText)}</td>
+                            <td>${escapeHTML(borrowerRole)}</td>
                             <td>${escapeHTML(borrowDateText)}</td>
-                            <td ${dueDateStyle}>${escapeHTML(dueDateText)}</td>
+                            <td ${dueDateStyle}>${escapeHTML(returnDateText)}</td>
                             <td>
-                                <span class="status-badge ${statusClass}">${req.status}</span>
+                                <span class="status-badge ${statusBadgeClass}">${req.status}</span>
                             </td>
                             <td class="action-cell" style="text-align: center;">
                                 <div class="action-buttons" style="justify-content: center; gap: 8px;">
@@ -831,13 +1370,21 @@
                 const reqIndex = requests.findIndex(r => r.id === id);
                 if (reqIndex > -1) {
                     const req = requests[reqIndex];
-                    req.status = 'Returned';
+                    req.status = 'Available';
+                    req.user = '—';
+                    req.id_number = '—';
+                    req.role = '—';
+                    req.borrowDate = '—';
+                    req.dueDate = '—';
+                    req.date = '—';
+                    req.purpose = '—';
+                    req.notes = 'In excellent working condition.';
                     
                     // Save to localStorage
                     localStorage.setItem('equip-track-requests', JSON.stringify(requests));
                     
                     // Update layout
-                    showNotification('Return Confirmed', `Equipment ${req.equipment} returned successfully by ${req.user}`, 'success');
+                    showNotification('Return Confirmed', `Equipment "${req.equipment}" returned successfully.`, 'success');
                     
                     // Close details modal if open
                     detailsModal.classList.remove('show');
@@ -847,28 +1394,30 @@
             };
 
             // Open Details View Modal
-            window.openDetailsModal = function(id) {
+            window.openDetailsModal = function(id, event) {
+                if (event) event.stopPropagation();
                 const req = requests.find(r => r.id === id);
                 if (!req) return;
 
                 // Set content values
-                document.getElementById('modalBorrowerAvatar').src = req.avatar || "https://ui-avatars.com/api/?name=" + encodeURIComponent(req.user);
-                document.getElementById('modalBorrowerName').textContent = req.user;
-                document.getElementById('modalBorrowerRole').textContent = req.role;
+                document.getElementById('modalBorrowerAvatar').src = req.avatar || "https://ui-avatars.com/api/?name=" + encodeURIComponent(req.user || 'N/A');
+                document.getElementById('modalBorrowerName').textContent = req.user || '—';
+                document.getElementById('modalBorrowerRole').textContent = req.role || '—';
                 document.getElementById('modalBorrowerId').textContent = req.id_number || 'N/A';
 
                 document.getElementById('modalEqImg').src = req.img || "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60";
                 
                 const statusBadge = document.getElementById('modalStatusBadge');
                 statusBadge.textContent = req.status;
-                statusBadge.className = 'status-badge status-' + req.status.toLowerCase().replace(' ', '-');
+                statusBadge.className = 'status-badge status-' + req.status.toLowerCase().replace(/\s+/g, '-');
 
                 document.getElementById('modalEqName').value = req.equipment;
                 document.getElementById('modalEqCategory').value = req.category;
-                document.getElementById('modalBorrowDate').value = req.borrowDate || req.date + ', 2026';
-                document.getElementById('modalDueDate').value = req.dueDate || 'N/A';
-                document.getElementById('modalPurpose').value = req.purpose || 'N/A';
-                document.getElementById('modalNotes').value = req.notes || 'N/A';
+                document.getElementById('modalRequestDate').value = req.date || '—';
+                document.getElementById('modalBorrowDate').value = req.borrowDate || '—';
+                document.getElementById('modalDueDate').value = req.dueDate || '—';
+                document.getElementById('modalPurpose').value = req.purpose || '—';
+                document.getElementById('modalNotes').value = req.notes || '—';
 
                 // Setup footer buttons based on status
                 const footer = document.getElementById('modalActionsFooter');
@@ -876,6 +1425,11 @@
                     footer.innerHTML = `
                         <button class="btn-modal-close" style="background-color: var(--border-color, #e2e8f0); color: var(--text-main); margin-right: 12px;" onclick="closeModal()">Close</button>
                         <button class="btn-action-confirm" style="height: 40px; padding: 0 20px;" onclick="confirmReturn(${req.id})"><i class="fa-solid fa-circle-check"></i> Confirm Return</button>
+                    `;
+                } else if (req.status === 'Overdue') {
+                    footer.innerHTML = `
+                        <button class="btn-modal-close" style="background-color: var(--border-color, #e2e8f0); color: var(--text-main); margin-right: 12px;" onclick="closeModal()">Close</button>
+                        <button class="btn-action-confirm" style="height: 40px; padding: 0 20px; background-color: #f59e0b; border-color: #d97706;" onclick="sendReminder(${req.id}); closeModal();"><i class="fa-solid fa-bell"></i> Send Reminder</button>
                     `;
                 } else {
                     footer.innerHTML = `
@@ -911,8 +1465,8 @@
                 renderTable();
             });
 
-            // Initial renders
-            renderTable();
+            // Initial renders based on state
+            updateView();
         });
 
         // Helper to escape HTML characters
