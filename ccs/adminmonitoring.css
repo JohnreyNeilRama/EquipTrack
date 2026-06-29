@@ -1,0 +1,140 @@
+/* Admin Equipment Monitoring Stylesheet */
+
+/* Status Badges styled consistent with Users page status badges */
+.status-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Available & Returned (Success Colors) */
+.status-badge.status-available, 
+.status-badge.status-returned {
+    background-color: rgba(16, 185, 129, 0.08) !important;
+    color: #10b981 !important;
+}
+
+.dark-theme .status-badge.status-available, 
+.dark-theme .status-badge.status-returned {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    color: #34d399 !important;
+}
+
+/* Borrowed (Primary Blue Colors) */
+.status-badge.status-borrowed {
+    background-color: rgba(56, 85, 133, 0.08) !important;
+    color: #385585 !important;
+}
+
+.dark-theme .status-badge.status-borrowed {
+    background-color: rgba(96, 165, 250, 0.15) !important;
+    color: #60a5fa !important;
+}
+
+/* Reserved & Return Pending (Warning Orange Colors) */
+.status-badge.status-reserved, 
+.status-badge.status-return-pending {
+    background-color: rgba(245, 158, 11, 0.08) !important;
+    color: #d97706 !important;
+}
+
+.dark-theme .status-badge.status-reserved, 
+.dark-theme .status-badge.status-return-pending {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    color: #fbbf24 !important;
+}
+
+/* Overdue (Danger Red Colors) */
+.status-badge.status-overdue {
+    background-color: rgba(239, 68, 68, 0.08) !important;
+    color: #ef4444 !important;
+}
+
+.dark-theme .status-badge.status-overdue {
+    background-color: rgba(248, 113, 113, 0.15) !important;
+    color: #f87171 !important;
+}
+
+/* Maintenance (Slate Neutral Colors) */
+.status-badge.status-maintenance {
+    background-color: rgba(100, 116, 139, 0.08) !important;
+    color: #64748b !important;
+}
+
+.dark-theme .status-badge.status-maintenance {
+    background-color: rgba(148, 163, 184, 0.15) !important;
+    color: #cbd5e1 !important;
+}
+
+/* Row hover matching Users page */
+.admin-table-row:hover td {
+    background-color: rgba(56, 85, 133, 0.03) !important;
+}
+
+.dark-theme .admin-table-row:hover td {
+    background-color: rgba(96, 165, 250, 0.05) !important;
+}
+
+/* Confirm Action Button styled identically to Users page's btn-action-toggle */
+.btn-action-confirm {
+    background-color: transparent;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+    padding: 6px 12px;
+    border-radius: 17px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-action-confirm:hover {
+    background-color: rgba(16, 185, 129, 0.08);
+}
+
+.dark-theme .btn-action-confirm {
+    border-color: rgba(52, 211, 153, 0.3);
+    color: #34d399;
+}
+
+.dark-theme .btn-action-confirm:hover {
+    background-color: rgba(52, 211, 153, 0.15);
+}
+
+/* View Action Button styled identically to Users page's btn-action-toggle */
+.btn-action-view {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 17px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-action-view:hover {
+    background-color: var(--hover-color);
+    color: var(--text-main);
+}
+
+.dark-theme .btn-action-view {
+    border-color: #334155;
+    color: #94a3b8;
+}
+
+.dark-theme .btn-action-view:hover {
+    background-color: #1e293b;
+    color: #f8fafc;
+}

@@ -250,7 +250,7 @@
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group-flat">
                             <label>Student ID Number</label>
-                            <input type="text" id="studIdNumber" class="form-control-flat" required placeholder="2023-00123">
+                            <input type="text" id="studIdNumber" class="form-control-flat" required placeholder="e.g., 20230123" pattern="\d{8}" title="Student ID must be exactly 8 digits." maxlength="8" inputmode="numeric">
                         </div>
                         <div class="form-group-flat">
                             <label>Year & Level</label>
@@ -262,6 +262,18 @@
                                     <option value="4th Year">4th Year</option>
                                 </select>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group-flat">
+                        <label>Department</label>
+                        <div class="flat-select-wrapper" style="width: 100%;">
+                            <select id="studDepartment" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                                <option value="" disabled selected>Select Department</option>
+                                <option value="Information Technology Department">Information Technology Department</option>
+                                <option value="Engineering Department">Engineering Department</option>
+                                <option value="Education Department">Education Department</option>
+                            </select>
                         </div>
                     </div>
 
@@ -301,7 +313,14 @@
                 <form id="departmentForm" class="new-modal-form" style="padding-top: 10px;">
                     <div class="form-group-flat">
                         <label>Department Name</label>
-                        <input type="text" id="deptName" class="form-control-flat" required placeholder="e.g., IT Department">
+                        <div class="flat-select-wrapper" style="width: 100%;">
+                            <select id="deptName" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                                <option value="" disabled selected>Select Department</option>
+                                <option value="Information Technology Department">Information Technology Department</option>
+                                <option value="Engineering Department">Engineering Department</option>
+                                <option value="Education Department">Education Department</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -406,7 +425,7 @@
 
                 <!-- Address / Location Info Section -->
                 <div class="detail-form-group" style="margin-bottom: 16px;">
-                    <label class="detail-form-label">Department</label>
+                    <label class="detail-form-label">Address / Location</label>
                     <input type="text" id="modalAddress" class="detail-form-control" readonly>
                 </div>
 
@@ -489,11 +508,12 @@
                     id: 1,
                     first_name: "Gabriel",
                     last_name: "Fernandez",
-                    id_number: "2023-00123",
+                    id_number: "20230123",
                     role: "student",
                     year_level: "3rd Year",
                     email: "gabriel.fernandez@example.com",
                     address: "123 University Ave, Tech City",
+                    department: "Information Technology Department",
                     status: "Active",
                     username: "gfernandez",
                     created_at: "May 10, 2026",
@@ -503,11 +523,12 @@
                     id: 2,
                     first_name: "Johnrey Neil",
                     last_name: "Rama",
-                    id_number: "2023-00456",
+                    id_number: "20230456",
                     role: "student",
                     year_level: "4th Year",
                     email: "johnrey.rama@example.com",
                     address: "456 College Lane, Tech City",
+                    department: "Engineering Department",
                     status: "Active",
                     username: "johnrey.rama",
                     created_at: "May 12, 2026",
@@ -515,13 +536,14 @@
                 },
                 {
                     id: 3,
-                    first_name: "IT",
-                    last_name: "Department",
+                    first_name: "Information Technology Department",
+                    last_name: "",
                     id_number: "D-IT-200",
                     role: "department",
                     year_level: "N/A",
                     email: "it.dept@equiptrack.edu",
                     address: "Tech Building Room 302",
+                    department: "Information Technology Department",
                     status: "Active",
                     username: "it.dept",
                     created_at: "May 01, 2026",
@@ -529,15 +551,16 @@
                 },
                 {
                     id: 4,
-                    first_name: "Science",
-                    last_name: "Department",
-                    id_number: "D-SCI-300",
+                    first_name: "Engineering Department",
+                    last_name: "",
+                    id_number: "D-ENG-300",
                     role: "department",
                     year_level: "N/A",
-                    email: "science.dept@equiptrack.edu",
-                    address: "Science Hall Room 204",
+                    email: "engineering.dept@equiptrack.edu",
+                    address: "Engineering Building Room 101",
+                    department: "Engineering Department",
                     status: "Active",
-                    username: "science.dept",
+                    username: "engineering.dept",
                     created_at: "May 02, 2026",
                     last_login: "June 15, 2026, 11:20 AM"
                 },
@@ -550,15 +573,33 @@
                     year_level: "N/A",
                     email: "anna.mae@example.com",
                     address: "Science Hall Room 102",
+                    department: "Education Department",
                     status: "Active",
                     username: "anna.mae",
                     created_at: "May 15, 2026",
                     last_login: "June 17, 2026, 09:10 AM"
+                },
+                {
+                    id: 6,
+                    first_name: "Education Department",
+                    last_name: "",
+                    id_number: "D-EDU-400",
+                    role: "department",
+                    year_level: "N/A",
+                    email: "education.dept@equiptrack.edu",
+                    address: "Education Hall Room 105",
+                    department: "Education Department",
+                    status: "Active",
+                    username: "education.dept",
+                    created_at: "May 03, 2026",
+                    last_login: "June 14, 2026, 02:15 PM"
                 }
             ];
 
             let users = JSON.parse(localStorage.getItem('equip-track-users'));
-            if (!users) {
+            const isOutdated = !users || users.some(u => u.first_name === "Science" || u.first_name === "College of IT Department" || u.id_number === "2023-00123" || !users.some(dept => dept.first_name === "Education Department") || !users.some(dept => dept.first_name === "Information Technology Department") || users.some(u => !u.department));
+            
+            if (isOutdated) {
                 users = defaultUsers;
                 localStorage.setItem('equip-track-users', JSON.stringify(users));
             }
@@ -664,7 +705,7 @@
                             <td><strong>${escapeHTML(user.id_number)}</strong></td>
                             <td><span style="font-weight: 500;">${roleLabel}</span></td>
                             <td>${escapeHTML(details)}</td>
-                            <td>${escapeHTML(user.address)}</td>
+                            <td>${escapeHTML(user.department || 'N/A')}</td>
                             <td><span class="status-badge ${statusClass}">${user.status}</span></td>
                             <td class="action-cell" style="text-align: center;">
                                 <div class="action-buttons" style="justify-content: center; gap: 8px;">
@@ -803,13 +844,13 @@
                 modalRole.value = roleLabel;
                 
                 if (user.role.toLowerCase() === 'student') {
-                    modalDepartment.value = 'N/A';
+                    modalDepartment.value = user.department || 'N/A';
                     modalStudentId.value = user.id_number;
                 } else if (user.role.toLowerCase() === 'department') {
-                    modalDepartment.value = fullName;
+                    modalDepartment.value = user.department || fullName;
                     modalStudentId.value = 'N/A';
                 } else {
-                    modalDepartment.value = 'N/A';
+                    modalDepartment.value = user.department || 'N/A';
                     modalStudentId.value = 'N/A';
                 }
 
@@ -879,7 +920,14 @@
                 const yearLevel = document.getElementById('studYearLevel').value;
                 const email = document.getElementById('studEmail').value.trim();
                 const address = document.getElementById('studAddress').value.trim();
+                const department = document.getElementById('studDepartment').value;
                 const password = document.getElementById('studPassword').value;
+
+                // Validate Student ID (exactly 8 digits)
+                if (!/^\d{8}$/.test(idNumber)) {
+                    showNotification('Validation Error', 'Student ID must be exactly 8 digits.', 'error');
+                    return;
+                }
 
                 // Validate if email or ID already exists
                 const exists = users.some(u => u.id_number.toLowerCase() === idNumber.toLowerCase() || u.email.toLowerCase() === email.toLowerCase());
@@ -897,6 +945,7 @@
                     year_level: yearLevel,
                     email: email,
                     address: address,
+                    department: department,
                     status: 'Active',
                     username: email.split('@')[0],
                     created_at: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
@@ -939,6 +988,7 @@
                     year_level: 'N/A',
                     email: email,
                     address: address,
+                    department: name,
                     status: 'Active',
                     username: email.split('@')[0],
                     created_at: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),

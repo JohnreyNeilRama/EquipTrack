@@ -317,6 +317,133 @@
     color: #ef4444;
 }
 
+/* Quick Stats Redesign - Dashboard Specific */
+.quick-stat-card {
+    flex: 1;
+    min-width: 220px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px; /* border radius of 14-16px */
+    padding: 24px; /* internal padding of 20-24px */
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02); /* soft subtle shadow */
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.quick-stat-card:hover {
+    transform: translateY(-4px); /* slight upward lift */
+    box-shadow: 0 12px 24px rgba(56, 85, 133, 0.08); /* stronger shadow for interactivity */
+    border-color: rgba(56, 85, 133, 0.15);
+}
+
+.quick-stat-card-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.quick-stat-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.quick-stat-card-title {
+    font-size: 13px;
+    font-weight: 500; /* Inter Medium */
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.2;
+}
+
+.quick-stat-card-value {
+    font-size: 24px;
+    font-weight: 700; /* Inter Bold */
+    color: var(--text-main);
+    font-family: 'Inter', sans-serif;
+    line-height: 1;
+}
+
+.quick-stat-card-desc {
+    font-size: 12px;
+    font-weight: 400; /* Inter Regular */
+    color: var(--text-muted); /* gray */
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Circular icon container with soft tinted background matching the color */
+.quick-stat-icon-wrapper {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%; /* circular */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.quick-stat-card:hover .quick-stat-icon-wrapper {
+    transform: scale(1.05);
+}
+
+/* Color palettes for soft tinted backgrounds */
+/* Blue */
+.quick-stat-icon-wrapper.color-blue {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+.dark-theme .quick-stat-icon-wrapper.color-blue {
+    background-color: rgba(96, 165, 250, 0.15);
+    color: #60a5fa;
+}
+
+/* Indigo / Navy Blue */
+.quick-stat-icon-wrapper.color-indigo {
+    background-color: rgba(79, 70, 229, 0.1);
+    color: #4f46e5;
+}
+.dark-theme .quick-stat-icon-wrapper.color-indigo {
+    background-color: rgba(129, 140, 248, 0.15);
+    color: #818cf8;
+}
+
+/* Orange */
+.quick-stat-icon-wrapper.color-orange {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+.dark-theme .quick-stat-icon-wrapper.color-orange {
+    background-color: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+}
+
+/* Green */
+.quick-stat-icon-wrapper.color-green {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+.dark-theme .quick-stat-icon-wrapper.color-green {
+    background-color: rgba(52, 211, 153, 0.15);
+    color: #34d199;
+}
+
+/* Red */
+.quick-stat-icon-wrapper.color-red {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+.dark-theme .quick-stat-icon-wrapper.color-red {
+    background-color: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+}
+
 /* Table Card - Modern Pastel Header style matching Screenshot */
 .admin-table-card {
     background-color: var(--card-bg);

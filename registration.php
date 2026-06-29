@@ -136,12 +136,20 @@
                 selectedRoleInput.value = role;
             }
 
+            const idInput = document.getElementById('id_number');
+
             if (role === 'student') {
                 if (registerTitle) registerTitle.textContent = 'Register as a Student';
                 if (registerSubtitle) registerSubtitle.textContent = 'Enter your student credentials to register.';
                 if (yearLevelGroup) yearLevelGroup.style.display = 'block';
                 if (yearLevelSelect) {
                     yearLevelSelect.setAttribute('required', 'required');
+                }
+                if (idInput) {
+                    idInput.placeholder = 'e.g., 20230123';
+                    idInput.pattern = '\\d{8}';
+                    idInput.title = 'Student ID must be exactly 8 digits.';
+                    idInput.maxLength = 8;
                 }
             } else if (role === 'teacher') {
                 if (registerTitle) registerTitle.textContent = 'Register as a Teacher';
@@ -150,6 +158,12 @@
                 if (yearLevelSelect) {
                     yearLevelSelect.removeAttribute('required');
                     yearLevelSelect.value = ''; // clear selection
+                }
+                if (idInput) {
+                    idInput.placeholder = 'e.g., T-00987';
+                    idInput.removeAttribute('pattern');
+                    idInput.removeAttribute('title');
+                    idInput.removeAttribute('maxlength');
                 }
             }
 

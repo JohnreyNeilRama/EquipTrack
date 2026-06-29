@@ -122,185 +122,7 @@
 
             <!-- Equipment cards grid -->
             <div class="equipment-grid" id="equipmentGrid">
-                <!-- Laptop Dell XPS -->
-                <div class="eq-card-admin" data-category="laptop" data-id="1">
-                    <div class="eq-card-img-wrapper">
-                        <img src="https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Laptop Dell XPS">
-                    </div>
-                    <div class="eq-card-details">
-                        <h4 class="eq-card-title">Laptop Dell XPS</h4>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Category :</span>
-                            <span class="value cat-val">Laptop</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Available :</span>
-                            <span class="value avail-val">4</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Total Quantity :</span>
-                            <span class="value total-val">10</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Status :</span>
-                            <span class="value status-val">Available</span>
-                        </div>
-                    </div>
-                    <div class="eq-card-actions">
-                        <button class="btn-card-edit" onclick="openEditModal(1)"><i class="fa-regular fa-edit"></i> Edit</button>
-                        <button class="btn-card-delete" onclick="deleteEquipment(1)"><i class="fa-regular fa-trash-can"></i> Delete</button>
-                    </div>
-                </div>
-
-                <!-- Camera Canon EOS -->
-                <div class="eq-card-admin" data-category="camera" data-id="2">
-                    <div class="eq-card-img-wrapper">
-                        <img src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Camera Canon EOS">
-                    </div>
-                    <div class="eq-card-details">
-                        <h4 class="eq-card-title">Camera Canon EOS</h4>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Category :</span>
-                            <span class="value cat-val">Camera</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Available :</span>
-                            <span class="value avail-val">5</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Total Quantity :</span>
-                            <span class="value total-val">10</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Status :</span>
-                            <span class="value status-val">Available</span>
-                        </div>
-                    </div>
-                    <div class="eq-card-actions">
-                        <button class="btn-card-edit" onclick="openEditModal(2)"><i class="fa-regular fa-edit"></i> Edit</button>
-                        <button class="btn-card-delete" onclick="deleteEquipment(2)"><i class="fa-regular fa-trash-can"></i> Delete</button>
-                    </div>
-                </div>
-
-                <!-- Wireless Microphone Set -->
-                <div class="eq-card-admin" data-category="audio" data-id="3">
-                    <div class="eq-card-img-wrapper">
-                        <img src="https://images.unsplash.com/photo-1590602847861-f357a9332bbc?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Wireless Microphone Set">
-                    </div>
-                    <div class="eq-card-details">
-                        <h4 class="eq-card-title">Wireless Microphone Set</h4>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Category :</span>
-                            <span class="value cat-val">Audio</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Available :</span>
-                            <span class="value avail-val">10</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Total Quantity :</span>
-                            <span class="value total-val">10</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Status :</span>
-                            <span class="value status-val">Available</span>
-                        </div>
-                    </div>
-                    <div class="eq-card-actions">
-                        <button class="btn-card-edit" onclick="openEditModal(3)"><i class="fa-regular fa-edit"></i> Edit</button>
-                        <button class="btn-card-delete" onclick="deleteEquipment(3)"><i class="fa-regular fa-trash-can"></i> Delete</button>
-                    </div>
-                </div>
-
-                <!-- Lenovo ThinkPad -->
-                <div class="eq-card-admin" data-category="laptop" data-id="4">
-                    <div class="eq-card-img-wrapper">
-                        <img src="https://images.unsplash.com/photo-1603302576837-37561b2e2302?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Lenovo ThinkPad">
-                    </div>
-                    <div class="eq-card-details">
-                        <h4 class="eq-card-title">Lenovo ThinkPad</h4>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Category :</span>
-                            <span class="value cat-val">Laptop</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Available :</span>
-                            <span class="value avail-val">2</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Total Quantity :</span>
-                            <span class="value total-val">5</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Status :</span>
-                            <span class="value status-val">Available</span>
-                        </div>
-                    </div>
-                    <div class="eq-card-actions">
-                        <button class="btn-card-edit" onclick="openEditModal(4)"><i class="fa-regular fa-edit"></i> Edit</button>
-                        <button class="btn-card-delete" onclick="deleteEquipment(4)"><i class="fa-regular fa-trash-can"></i> Delete</button>
-                    </div>
-                </div>
-
-                <!-- Projector Epson -->
-                <div class="eq-card-admin" data-category="projector" data-id="5">
-                    <div class="eq-card-img-wrapper">
-                        <img src="https://images.unsplash.com/photo-1588696860356-0eaee7d7c67c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Projector Epson">
-                    </div>
-                    <div class="eq-card-details">
-                        <h4 class="eq-card-title">Projector Epson</h4>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Category :</span>
-                            <span class="value cat-val">Projector</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Available :</span>
-                            <span class="value avail-val">10</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Total Quantity :</span>
-                            <span class="value total-val">10</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Status :</span>
-                            <span class="value status-val">Available</span>
-                        </div>
-                    </div>
-                    <div class="eq-card-actions">
-                        <button class="btn-card-edit" onclick="openEditModal(5)"><i class="fa-regular fa-edit"></i> Edit</button>
-                        <button class="btn-card-delete" onclick="deleteEquipment(5)"><i class="fa-regular fa-trash-can"></i> Delete</button>
-                    </div>
-                </div>
-
-                <!-- Scientific Calculator -->
-                <div class="eq-card-admin" data-category="others" data-id="6">
-                    <div class="eq-card-img-wrapper">
-                        <img src="https://images.unsplash.com/photo-1587145820266-a5951ee6f620?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Scientific Calculator">
-                    </div>
-                    <div class="eq-card-details">
-                        <h4 class="eq-card-title">Scientific Calculator</h4>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Category :</span>
-                            <span class="value cat-val">Others</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Available :</span>
-                            <span class="value avail-val">4</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Total Quantity :</span>
-                            <span class="value total-val">5</span>
-                        </div>
-                        <div class="eq-card-meta-line">
-                            <span class="label">Status :</span>
-                            <span class="value status-val">Available</span>
-                        </div>
-                    </div>
-                    <div class="eq-card-actions">
-                        <button class="btn-card-edit" onclick="openEditModal(6)"><i class="fa-regular fa-edit"></i> Edit</button>
-                        <button class="btn-card-delete" onclick="deleteEquipment(6)"><i class="fa-regular fa-trash-can"></i> Delete</button>
-                    </div>
-                </div>
+                <!-- Loaded dynamically via JavaScript -->
             </div>
         </div>
     </main>
@@ -462,8 +284,76 @@
             const toastTitle = document.getElementById('toastTitle');
             const toastMsg = document.getElementById('toastMsg');
 
-            // Global state variable for tracking items
-            let itemIdCounter = 7;
+            // Global state variable for tracking items loaded from localStorage
+            const defaultEquipmentList = [
+                { id: 1, name: "Laptop Dell XPS", category: "Laptop", imgUrl: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 4, total: 10, status: "Available" },
+                { id: 2, name: "Camera Canon EOS", category: "Camera", imgUrl: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 5, total: 10, status: "Available" },
+                { id: 3, name: "Wireless Microphone Set", category: "Audio", imgUrl: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 10, total: 10, status: "Available" },
+                { id: 4, name: "Lenovo ThinkPad", category: "Laptop", imgUrl: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 2, total: 5, status: "Available" },
+                { id: 5, name: "Projector Epson", category: "Projector", imgUrl: "https://images.unsplash.com/photo-1588696860356-0eaee7d7c67c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 10, total: 10, status: "Available" },
+                { id: 6, name: "Scientific Calculator", category: "Others", imgUrl: "https://images.unsplash.com/photo-1587145820266-a5951ee6f620?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 4, total: 5, status: "Available" }
+            ];
+
+            let equipment = JSON.parse(localStorage.getItem('equip-track-equipment'));
+            if (!equipment) {
+                equipment = defaultEquipmentList;
+                localStorage.setItem('equip-track-equipment', JSON.stringify(equipment));
+            }
+
+            let itemIdCounter = equipment.length > 0 ? Math.max(...equipment.map(e => e.id)) + 1 : 1;
+
+            // Render equipment cards dynamically
+            function renderEquipment() {
+                grid.innerHTML = '';
+                equipment.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'eq-card-admin';
+                    card.setAttribute('data-category', item.category.toLowerCase());
+                    card.setAttribute('data-id', item.id);
+                    card.innerHTML = `
+                        <div class="eq-card-img-wrapper">
+                            <img src="${escapeHTML(item.imgUrl)}" alt="${escapeHTML(item.name)}">
+                        </div>
+                        <div class="eq-card-details">
+                            <h4 class="eq-card-title">${escapeHTML(item.name)}</h4>
+                            <div class="eq-card-meta-line">
+                                <span class="label">Category :</span>
+                                <span class="value cat-val">${escapeHTML(item.category)}</span>
+                            </div>
+                            <div class="eq-card-meta-line">
+                                <span class="label">Available :</span>
+                                <span class="value avail-val">${escapeHTML(item.available)}</span>
+                            </div>
+                            <div class="eq-card-meta-line">
+                                <span class="label">Total Quantity :</span>
+                                <span class="value total-val">${escapeHTML(item.total)}</span>
+                            </div>
+                            <div class="eq-card-meta-line">
+                                <span class="label">Status :</span>
+                                <span class="value status-val">${escapeHTML(item.status)}</span>
+                            </div>
+                        </div>
+                        <div class="eq-card-actions">
+                            <button class="btn-card-edit" onclick="openEditModal(${item.id})"><i class="fa-regular fa-edit"></i> Edit</button>
+                            <button class="btn-card-delete" onclick="deleteEquipment(${item.id})"><i class="fa-regular fa-trash-can"></i> Delete</button>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+
+            function escapeHTML(str) {
+                if (!str) return '';
+                return String(str).replace(/[&<>'"]/g, 
+                    tag => ({
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        "'": '&#39;',
+                        '"': '&quot;'
+                    }[tag] || tag)
+                );
+            }
 
             // Helper to show the preview state
             function showPreview(url) {
@@ -653,26 +543,19 @@
 
             // Open Edit Modal
             window.openEditModal = function(id) {
-                const card = grid.querySelector(`.eq-card-admin[data-id="${id}"]`);
-                if (!card) return;
-
-                const name = card.querySelector('.eq-card-title').textContent;
-                const category = card.querySelector('.cat-val').textContent;
-                const imgUrl = card.querySelector('.eq-card-img-wrapper img').src;
-                const available = card.querySelector('.avail-val').textContent;
-                const total = card.querySelector('.total-val').textContent;
-                const status = card.querySelector('.status-val').textContent;
+                const item = equipment.find(e => e.id == id);
+                if (!item) return;
 
                 // Fill inputs
-                editItemIdInput.value = id;
-                eqNameField.value = name;
-                eqCategoryField.value = category;
-                eqAvailField.value = available;
-                eqTotalField.value = total;
-                eqStatusField.value = status;
+                editItemIdInput.value = item.id;
+                eqNameField.value = item.name;
+                eqCategoryField.value = item.category;
+                eqAvailField.value = item.available;
+                eqTotalField.value = item.total;
+                eqStatusField.value = item.status;
                 
                 // Show actual preview
-                showPreview(imgUrl);
+                showPreview(item.imgUrl);
 
                 modalTitle.textContent = "Edit Equipment";
                 modalSubtitle.textContent = "Update inventory details for this item";
@@ -683,18 +566,28 @@
 
             // Delete Equipment
             window.deleteEquipment = function(id) {
-                const card = grid.querySelector(`.eq-card-admin[data-id="${id}"]`);
-                if (!card) return;
+                const item = equipment.find(e => e.id == id);
+                if (!item) return;
 
-                const name = card.querySelector('.eq-card-title').textContent;
-                if (confirm(`Are you sure you want to delete "${name}"?`)) {
-                    card.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-                    card.style.opacity = '0';
-                    card.style.transform = 'translateY(10px) scale(0.95)';
-                    setTimeout(() => {
-                        card.remove();
-                        showNotification('Deleted Successfully', `Removed ${name} from inventory.`, 'success');
-                    }, 500);
+                if (confirm(`Are you sure you want to delete "${item.name}"?`)) {
+                    equipment = equipment.filter(e => e.id != id);
+                    localStorage.setItem('equip-track-equipment', JSON.stringify(equipment));
+                    
+                    const card = grid.querySelector(`.eq-card-admin[data-id="${id}"]`);
+                    if (card) {
+                        card.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+                        card.style.opacity = '0';
+                        card.style.transform = 'translateY(10px) scale(0.95)';
+                        setTimeout(() => {
+                            renderEquipment();
+                            filterEquipment();
+                            showNotification('Deleted Successfully', `Removed ${item.name} from inventory.`, 'success');
+                        }, 500);
+                    } else {
+                        renderEquipment();
+                        filterEquipment();
+                        showNotification('Deleted Successfully', `Removed ${item.name} from inventory.`, 'success');
+                    }
                 }
             };
 
@@ -703,13 +596,12 @@
                 e.preventDefault();
                 
                 const id = editItemIdInput.value;
-                const name = eqNameField.value;
+                const name = eqNameField.value.trim();
                 const category = eqCategoryField.value;
-                const imgUrl = eqImgField.value;
-                const available = eqAvailField.value;
-                const total = eqTotalField.value;
+                const imgUrl = eqImgField.value.trim();
+                const available = parseInt(eqAvailField.value) || 0;
+                const total = parseInt(eqTotalField.value) || 0;
                 const status = eqStatusField.value;
-                const lowerCategory = category.toLowerCase();
 
                 if (!imgUrl) {
                     showNotification('Image Required', 'Please upload an image or enter a URL first.', 'error');
@@ -718,63 +610,42 @@
 
                 if (id) {
                     // Editing existing item
-                    const card = grid.querySelector(`.eq-card-admin[data-id="${id}"]`);
-                    if (card) {
-                        card.setAttribute('data-category', lowerCategory);
-                        card.querySelector('.eq-card-title').textContent = name;
-                        card.querySelector('.eq-card-img-wrapper img').src = imgUrl;
-                        card.querySelector('.eq-card-img-wrapper img').alt = name;
-                        card.querySelector('.cat-val').textContent = category;
-                        card.querySelector('.avail-val').textContent = available;
-                        card.querySelector('.total-val').textContent = total;
-                        card.querySelector('.status-val').textContent = status;
+                    const item = equipment.find(e => e.id == id);
+                    if (item) {
+                        item.name = name;
+                        item.category = category;
+                        item.imgUrl = imgUrl;
+                        item.available = available;
+                        item.total = total;
+                        item.status = status;
                         
+                        localStorage.setItem('equip-track-equipment', JSON.stringify(equipment));
                         showNotification('Updated Successfully', `Saved changes for ${name}.`, 'success');
                     }
                 } else {
                     // Adding new item
-                    const newCard = document.createElement('div');
-                    newCard.className = 'eq-card-admin';
-                    newCard.setAttribute('data-category', lowerCategory);
-                    newCard.setAttribute('data-id', itemIdCounter);
-
-                    newCard.innerHTML = `
-                        <div class="eq-card-img-wrapper">
-                            <img src="${imgUrl}" alt="${name}">
-                        </div>
-                        <div class="eq-card-details">
-                            <h4 class="eq-card-title">${name}</h4>
-                            <div class="eq-card-meta-line">
-                                <span class="label">Category :</span>
-                                <span class="value cat-val">${category}</span>
-                            </div>
-                            <div class="eq-card-meta-line">
-                                <span class="label">Available :</span>
-                                <span class="value avail-val">${available}</span>
-                            </div>
-                            <div class="eq-card-meta-line">
-                                <span class="label">Total Quantity :</span>
-                                <span class="value total-val">${total}</span>
-                            </div>
-                            <div class="eq-card-meta-line">
-                                <span class="label">Status :</span>
-                                <span class="value status-val">${status}</span>
-                            </div>
-                        </div>
-                        <div class="eq-card-actions">
-                            <button class="btn-card-edit" onclick="openEditModal(${itemIdCounter})"><i class="fa-regular fa-edit"></i> Edit</button>
-                            <button class="btn-card-delete" onclick="deleteEquipment(${itemIdCounter})"><i class="fa-regular fa-trash-can"></i> Delete</button>
-                        </div>
-                    `;
-
-                    grid.appendChild(newCard);
-                    itemIdCounter++;
+                    const newItem = {
+                        id: itemIdCounter++,
+                        name: name,
+                        category: category,
+                        imgUrl: imgUrl,
+                        available: available,
+                        total: total,
+                        status: status
+                    };
+                    equipment.push(newItem);
+                    localStorage.setItem('equip-track-equipment', JSON.stringify(equipment));
                     showNotification('Added Successfully', `Registered ${name} in equipment inventory.`, 'success');
                 }
 
                 closeModal();
+                renderEquipment();
                 filterEquipment(); // Re-apply current search/filter
             });
+
+            // Initial rendering
+            renderEquipment();
+            filterEquipment();
         });
     </script>
 </body>
