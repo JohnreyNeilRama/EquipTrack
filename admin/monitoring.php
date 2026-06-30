@@ -1034,9 +1034,12 @@
                 departments.forEach(dept => {
                     const card = document.createElement('div');
                     card.className = 'dept-card';
-                    card.setAttribute('title', dept.title);
                     card.innerHTML = `
-                        <img src="${dept.image}" alt="${dept.title}" class="dept-logo-img">
+                        <div class="dept-logo-wrapper">
+                            <img src="${dept.image}" alt="${escapeHTML(dept.title)}" class="dept-logo-img">
+                        </div>
+                        <h4 class="dept-card-title">${escapeHTML(dept.title)}</h4>
+                        <p class="dept-card-subtitle">${escapeHTML(dept.name)}</p>
                     `;
                     card.addEventListener('click', () => {
                         selectDepartment(dept.name);
@@ -1228,8 +1231,8 @@
 
                     // Search term filter
                     const matchesSearch = (req.user && req.user.toLowerCase().includes(query)) || 
-                                          (req.equipment && req.equipment.toLowerCase().includes(query)) ||
-                                          (req.id_number && req.id_number.toLowerCase().includes(query));
+                                           (req.equipment && req.equipment.toLowerCase().includes(query)) ||
+                                           (req.id_number && req.id_number.toLowerCase().includes(query));
 
                     // Category filter
                     const matchesCategory = selectedCategory === 'all' || req.category.toLowerCase() === selectedCategory.toLowerCase();
@@ -1276,7 +1279,7 @@
                         // Action buttons cell
                         let actionHtml = '';
                         if (req.status === 'Overdue') {
-                            actionHtml = `<button class="btn-action-remind" title="Send Return Reminder" onclick="sendReminder(${req.id}, event)"><i class="fa-solid fa-bell"></i></button>`;
+                            actionHtml = `<button class="btn-action-remind" title="Send Return Reminder" onclick="sendReminder(${req.id}, event)"><i class="fa-solid fa-bell"></i> Remind</button>`;
                         } else if (req.status === 'Return Pending') {
                             actionHtml = `<button class="btn-action-confirm" onclick="confirmReturn(${req.id}, event)"><i class="fa-solid fa-circle-check"></i> Return</button>`;
                         } else {
@@ -1300,9 +1303,17 @@
 
                         tr.innerHTML = `
                             <td>
-                                <strong class="eq-name-text" title="${escapeHTML(req.equipment)}">${escapeHTML(req.equipment)}</strong>
+                                <div class="eq-name-cell">
+                                    <strong class="eq-name-text" title="${escapeHTML(req.equipment)}">${escapeHTML(req.equipment)}</strong>
+                                    <span class="eq-category-text">${escapeHTML(req.category)}</span>
+                                </div>
                             </td>
-                            <td title="${escapeHTML(borrowerText)}">${escapeHTML(borrowerText)}</td>
+                            <td>
+                                <div class="borrower-cell">
+                                    <span class="borrower-name-text" title="${escapeHTML(borrowerText)}">${escapeHTML(borrowerText)}</span>
+                                    ${hasBorrower ? `<span class="borrower-id-text">ID: ${escapeHTML(req.id_number)}</span>` : ''}
+                                </div>
+                            </td>
                             <td>${escapeHTML(borrowerRole)}</td>
                             <td>${escapeHTML(borrowDateText)}</td>
                             <td ${dueDateStyle}>${escapeHTML(returnDateText)}</td>
@@ -1423,13 +1434,13 @@
                 const footer = document.getElementById('modalActionsFooter');
                 if (req.status === 'Return Pending') {
                     footer.innerHTML = `
-                        <button class="btn-modal-close" style="background-color: var(--border-color, #e2e8f0); color: var(--text-main); margin-right: 12px;" onclick="closeModal()">Close</button>
-                        <button class="btn-action-confirm" style="height: 40px; padding: 0 20px;" onclick="confirmReturn(${req.id})"><i class="fa-solid fa-circle-check"></i> Confirm Return</button>
+                        <button class="btn-modal-close" onclick="closeModal()">Close</button>
+                        <button class="btn-action-confirm" onclick="confirmReturn(${req.id})"><i class="fa-solid fa-circle-check"></i> Confirm Return</button>
                     `;
                 } else if (req.status === 'Overdue') {
                     footer.innerHTML = `
-                        <button class="btn-modal-close" style="background-color: var(--border-color, #e2e8f0); color: var(--text-main); margin-right: 12px;" onclick="closeModal()">Close</button>
-                        <button class="btn-action-confirm" style="height: 40px; padding: 0 20px; background-color: #f59e0b; border-color: #d97706;" onclick="sendReminder(${req.id}); closeModal();"><i class="fa-solid fa-bell"></i> Send Reminder</button>
+                        <button class="btn-modal-close" onclick="closeModal()">Close</button>
+                        <button class="btn-action-remind" onclick="sendReminder(${req.id}); closeModal();"><i class="fa-solid fa-bell"></i> Send Reminder</button>
                     `;
                 } else {
                     footer.innerHTML = `

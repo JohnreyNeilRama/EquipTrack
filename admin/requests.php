@@ -280,8 +280,9 @@
         <!-- Requests Content Container -->
         <div class="requests-container">
             <!-- Header Section -->
-            <div class="requests-header-section">
-                <h2 class="requests-page-title">Request</h2>
+            <div class="equipment-header-section">
+                <h2>Requests</h2>
+                <p>Review, approve, or reject student and faculty borrowing requests.</p>
             </div>
 
             <!-- Controls bar (Search & Filters) -->
