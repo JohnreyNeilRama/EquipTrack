@@ -57,8 +57,8 @@
                 <div class="icon-btn" id="themeToggleBtn"><i class="fa-solid fa-moon" id="themeToggleIcon"></i></div>
                 <div class="icon-btn notification"><i class="fa-solid fa-bell"></i></div>
                 <div class="user-profile">
-                    <img src="https://ui-avatars.com/api/?name=Gabriel+Fernandez&background=random" alt="Gabriel Fernandez" class="avatar">
-                    <span class="user-name">Gabriel Fernandez</span>
+                    <img src="https://ui-avatars.com/api/?name=User&background=random" alt="User" class="avatar">
+                    <span class="user-name">User</span>
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
             </div>
@@ -70,8 +70,8 @@
                 <!-- Welcome Banner -->
                 <div class="welcome-banner card">
                     <div class="banner-text">
-                        <span class="banner-date">Monday, June 1, 2026</span>
-                        <h2>Welcome back, Gabriel!</h2>
+                        <span class="banner-date">Today</span>
+                        <h2>Welcome back!</h2>
                         <p>Here's your equipment activity overview for today.</p>
                     </div>
                     <img src="../images/user_design1.png" alt="User Illustration" class="banner-img">
@@ -85,21 +85,21 @@
                         <div class="stat-card card">
                             <div class="stat-icon info"><i class="fa-solid fa-box-open"></i></div>
                             <div class="stat-details">
-                                <div class="stat-value">1</div>
+                                <div class="stat-value">0</div>
                                 <div class="stat-title">Active Borrows</div>
                             </div>
                         </div>
                         <div class="stat-card card">
                             <div class="stat-icon warning"><i class="fa-solid fa-clock-rotate-left"></i></div>
                             <div class="stat-details">
-                                <div class="stat-value">3</div>
+                                <div class="stat-value">0</div>
                                 <div class="stat-title">Pending Requests</div>
                             </div>
                         </div>
                         <div class="stat-card card">
                             <div class="stat-icon danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
                             <div class="stat-details">
-                                <div class="stat-value">1</div>
+                                <div class="stat-value">0</div>
                                 <div class="stat-title">Overdue Items</div>
                             </div>
                         </div>
@@ -109,7 +109,7 @@
                 <div class="dashboard-section">
                     <div class="section-header">
                         <h3 class="section-title">Active Borrow Items</h3>
-                        <a href="#" class="view-all">View All</a>
+                        <a href="userhistory.php" class="view-all">View All</a>
                     </div>
                     <div class="table-container card">
                         <table>
@@ -123,16 +123,7 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>Laptop</td>
-                                    <td>May 1</td>
-                                    <td>May 5</td>
-                                    <td>Borrowed</td>
-                                </tr>
-                                <tr>
-                                    <td>Calculator</td>
-                                    <td>May 10</td>
-                                    <td>May 11</td>
-                                    <td class="text-danger">Over Due</td>
+                                    <td colspan="4" style="text-align: center; color: var(--text-muted, #64748b); padding: 24px;">No active borrow items.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -154,14 +145,7 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>Projector</td>
-                                    <td>May 2</td>
-                                    <td>Pending</td>
-                                </tr>
-                                <tr>
-                                    <td>Camera</td>
-                                    <td>May 3</td>
-                                    <td>Approved</td>
+                                    <td colspan="3" style="text-align: center; color: var(--text-muted, #64748b); padding: 24px;">No recent requests found.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -212,23 +196,8 @@
                         <h3 class="card-title">Reminders</h3>
                     </div>
                     <ul class="reminder-list">
-                        <li class="reminder-item warning">
-                            <div class="reminder-icon">
-                                <i class="fa-solid fa-clock"></i>
-                            </div>
-                            <div class="reminder-content">
-                                <span class="reminder-title">Due Tomorrow</span>
-                                <span class="reminder-desc">Your laptop is due to be returned.</span>
-                            </div>
-                        </li>
-                        <li class="reminder-item danger">
-                            <div class="reminder-icon">
-                                <i class="fa-solid fa-triangle-exclamation"></i>
-                            </div>
-                            <div class="reminder-content">
-                                <span class="reminder-title">Overdue Item</span>
-                                <span class="reminder-desc">You have 1 overdue calculator.</span>
-                            </div>
+                        <li class="reminder-item" style="justify-content: center; text-align: center; color: var(--text-muted, #64748b); padding: 16px;">
+                            <span style="font-size: 13px;">No active reminders at this time.</span>
                         </li>
                     </ul>
                 </div>
@@ -237,6 +206,12 @@
     </main>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const bannerDate = document.querySelector('.banner-date');
+            if (bannerDate) {
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                bannerDate.textContent = new Date().toLocaleDateString('en-US', options);
+            }
+
             const themeToggleBtn = document.getElementById('themeToggleBtn');
             const themeToggleIcon = document.getElementById('themeToggleIcon');
 

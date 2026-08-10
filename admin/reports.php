@@ -38,7 +38,12 @@
             <div class="sidebar-section-label">General</div>
             <a href="admindashboard.php" class="nav-item">
                 <i class="fa-solid fa-table-cells-large"></i> <span>Dashboard</span>
-              </a>
+            </a>
+            <a href="profile.php" class="nav-item">
+                <i class="fa-solid fa-user"></i> <span>Profile</span>
+            </a>
+            
+            <div class="sidebar-section-label">Monitoring</div>
             <a href="equipment.php" class="nav-item">
                 <i class="fa-solid fa-toolbox"></i> <span>Equipment Management</span>
             </a>
@@ -48,8 +53,6 @@
             <a href="users.php" class="nav-item">
                 <i class="fa-solid fa-users"></i> <span>Users</span>
             </a>
-            
-            <div class="sidebar-section-label">Monitoring</div>
             <a href="monitoring.php" class="nav-item">
                 <i class="fa-solid fa-desktop"></i> <span>Equipment Monitoring</span>
             </a>
@@ -63,7 +66,7 @@
     </aside>
 
     <!-- Main Content Area -->
-    <main class="main-content" style="min-width: 0;">
+    <main class="main-content">
         <!-- Top Navbar -->
         <header class="top-navbar profile-navbar">
             <div class="navbar-right">
@@ -107,7 +110,7 @@
         <div class="reports-stats-row">
             <div class="report-stat-card">
                 <div class="report-stat-header">
-                    <div class="report-stat-value">235</div>
+                    <div class="report-stat-value">0</div>
                     <div class="report-stat-icon-box blue">
                         <i class="fa-solid fa-chart-simple"></i>
                     </div>
@@ -120,7 +123,7 @@
 
             <div class="report-stat-card">
                 <div class="report-stat-header">
-                    <div class="report-stat-value">210</div>
+                    <div class="report-stat-value">0</div>
                     <div class="report-stat-icon-box green">
                         <i class="fa-solid fa-circle-check"></i>
                     </div>
@@ -133,7 +136,7 @@
 
             <div class="report-stat-card">
                 <div class="report-stat-header">
-                    <div class="report-stat-value">18</div>
+                    <div class="report-stat-value">0</div>
                     <div class="report-stat-icon-box indigo">
                         <i class="fa-solid fa-box"></i>
                     </div>
@@ -146,7 +149,7 @@
 
             <div class="report-stat-card">
                 <div class="report-stat-header">
-                    <div class="report-stat-value">7</div>
+                    <div class="report-stat-value">0</div>
                     <div class="report-stat-icon-box orange">
                         <i class="fa-solid fa-triangle-exclamation"></i>
                     </div>
@@ -159,7 +162,7 @@
 
             <div class="report-stat-card">
                 <div class="report-stat-header">
-                    <div class="report-stat-value">35</div>
+                    <div class="report-stat-value">0</div>
                     <div class="report-stat-icon-box teal">
                         <i class="fa-solid fa-file-invoice"></i>
                     </div>
@@ -197,8 +200,8 @@
 
                 <div class="analytics-section most-borrowed">
                     <div class="analytics-section-title-centered">Most Borrowed Equipment</div>
-                    <div style="font-size: 18px; font-weight: 700; color: var(--primary-color); margin-top: 6px;">Laptop Dell XPS</div>
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">42 borrowings this month</div>
+                    <div style="font-size: 18px; font-weight: 700; color: var(--primary-color); margin-top: 6px;">—</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">0 borrowings this month</div>
                 </div>
             </div>
 
@@ -334,43 +337,9 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td><strong style="color: var(--text-main);"><i class="fa-solid fa-file-pdf" style="color: #ef4444; margin-right: 8px;"></i>Borrowing_Report_June_2026.pdf</strong></td>
-                                <td>Admin User</td>
-                                <td>June 28, 2026, 09:14 AM</td>
-                                <td><span class="status-pill returned" style="background-color: rgba(239, 68, 68, 0.08); color: #ef4444; text-transform: uppercase; font-size: 11px;">PDF</span></td>
-                                <td style="text-align: right;">
-                                    <button class="btn-action-outline" onclick="triggerFileAction('Borrowing_Report_June_2026.pdf', 'download')"><i class="fa-solid fa-download"></i> Download</button>
-                                    <button class="btn-action-outline view" onclick="triggerFileAction('Borrowing_Report_June_2026.pdf', 'view')"><i class="fa-solid fa-eye"></i> View</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong style="color: var(--text-main);"><i class="fa-solid fa-file-excel" style="color: #10b981; margin-right: 8px;"></i>Inventory_Status_Q2_2026.xlsx</strong></td>
-                                <td>Admin User</td>
-                                <td>June 25, 2026, 04:30 PM</td>
-                                <td><span class="status-pill returned" style="background-color: rgba(16, 185, 129, 0.08); color: #10b981; text-transform: uppercase; font-size: 11px;">Excel</span></td>
-                                <td style="text-align: right;">
-                                    <button class="btn-action-outline" onclick="triggerFileAction('Inventory_Status_Q2_2026.xlsx', 'download')"><i class="fa-solid fa-download"></i> Download</button>
-                                    <button class="btn-action-outline view" onclick="triggerFileAction('Inventory_Status_Q2_2026.xlsx', 'view')"><i class="fa-solid fa-eye"></i> View</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong style="color: var(--text-main);"><i class="fa-solid fa-file-pdf" style="color: #ef4444; margin-right: 8px;"></i>Overdue_Alerts_June2026.pdf</strong></td>
-                                <td>Admin User</td>
-                                <td>June 18, 2026, 11:05 AM</td>
-                                <td><span class="status-pill returned" style="background-color: rgba(239, 68, 68, 0.08); color: #ef4444; text-transform: uppercase; font-size: 11px;">PDF</span></td>
-                                <td style="text-align: right;">
-                                    <button class="btn-action-outline" onclick="triggerFileAction('Overdue_Alerts_June2026.pdf', 'download')"><i class="fa-solid fa-download"></i> Download</button>
-                                    <button class="btn-action-outline view" onclick="triggerFileAction('Overdue_Alerts_June2026.pdf', 'view')"><i class="fa-solid fa-eye"></i> View</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong style="color: var(--text-main);"><i class="fa-solid fa-file-excel" style="color: #10b981; margin-right: 8px;"></i>User_Activities_Q2.xlsx</strong></td>
-                                <td>System Scheduler</td>
-                                <td>June 10, 2026, 12:00 AM</td>
-                                <td><span class="status-pill returned" style="background-color: rgba(16, 185, 129, 0.08); color: #10b981; text-transform: uppercase; font-size: 11px;">Excel</span></td>
-                                <td style="text-align: right;">
-                                    <button class="btn-action-outline" onclick="triggerFileAction('User_Activities_Q2.xlsx', 'download')"><i class="fa-solid fa-download"></i> Download</button>
-                                    <button class="btn-action-outline view" onclick="triggerFileAction('User_Activities_Q2.xlsx', 'view')"><i class="fa-solid fa-eye"></i> View</button>
+                                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 32px !important;">
+                                    <i class="fa-solid fa-folder-open" style="font-size: 24px; margin-bottom: 8px; display: block; color: var(--border-color);"></i>
+                                    No generated reports found.
                                 </td>
                             </tr>
                         </tbody>
@@ -440,28 +409,8 @@
                 showNotification('System Messages', 'No new reports alerts at the moment.', 'info');
             });
 
-            // Sample database records for reports filtering
-            const reportRecords = [
-                { borrower: "Johnrey Neil Rama", id: "20230456", equipment: "Laptop Dell XPS", category: "Laptop", borrowDate: "2026-06-01", returnDate: "2026-06-05", status: "Borrowed" },
-                { borrower: "Gabriel Fernandez", id: "20230123", equipment: "Lenovo ThinkPad", category: "Laptop", borrowDate: "2026-05-15", returnDate: "2026-05-20", status: "Overdue" },
-                { borrower: "Jeffrey Gaviola", id: "20230789", equipment: "Projector Epson", category: "Projector", borrowDate: "2026-06-28", returnDate: "2026-07-02", status: "Pending" },
-                { borrower: "Anna Mae Santos", id: "T-00987", equipment: "Scientific Calculator", category: "Laboratory Equipment", borrowDate: "2026-06-10", returnDate: "2026-06-14", status: "Returned" },
-                { borrower: "Jeffrey Gaviola", id: "20230789", equipment: "iPad Pro", category: "Others", borrowDate: "2026-06-25", returnDate: "2026-07-03", status: "Approved" },
-                { borrower: "Gabriel Fernandez", id: "20230123", equipment: "Oscilloscope", category: "Laboratory Equipment", borrowDate: "2026-05-10", returnDate: "2026-05-15", status: "Overdue" },
-                { borrower: "Johnrey Neil Rama", id: "20230456", equipment: "Digital Multimeter", category: "Laboratory Equipment", borrowDate: "2026-06-02", returnDate: "2026-06-08", status: "Borrowed" },
-                { borrower: "Anna Mae Santos", id: "T-00987", equipment: "Epson Projector", category: "Projector", borrowDate: "2026-05-20", returnDate: "2026-05-25", status: "Overdue" },
-                { borrower: "Jeffrey Gaviola", id: "20230789", equipment: "Surveying Transit", category: "Laboratory Equipment", borrowDate: "2026-06-27", returnDate: "2026-07-04", status: "Approved" },
-                { borrower: "Gabriel Fernandez", id: "20230123", equipment: "Barcode Scanner", category: "Others", borrowDate: "2026-06-12", returnDate: "2026-06-16", status: "Returned" },
-                { borrower: "Johnrey Neil Rama", id: "20230456", equipment: "Document Scanner", category: "Others", borrowDate: "2026-05-05", returnDate: "2026-05-12", status: "Returned" },
-                { borrower: "Anna Mae Santos", id: "T-00987", equipment: "Financial Calculator", category: "Others", borrowDate: "2026-06-15", returnDate: "2026-06-19", status: "Returned" },
-                { borrower: "Johnrey Neil Rama", id: "20230456", equipment: "Projector Sony", category: "Projector", borrowDate: "2026-05-08", returnDate: "2026-05-14", status: "Returned" },
-                { borrower: "Gabriel Fernandez", id: "20230123", equipment: "DSLR Camera Nikon", category: "Camera", borrowDate: "2026-06-20", returnDate: "2026-06-24", status: "Borrowed" },
-                { borrower: "Jeffrey Gaviola", id: "20230789", equipment: "Evidence Scale", category: "Others", borrowDate: "2026-06-22", returnDate: "2026-06-29", status: "Pending" },
-                { borrower: "Anna Mae Santos", id: "T-00987", equipment: "HP Laptop", category: "Laptop", borrowDate: "2026-06-18", returnDate: "2026-06-23", status: "Returned" },
-                { borrower: "Johnrey Neil Rama", id: "20230456", equipment: "DSLR Camera Canon", category: "Camera", borrowDate: "2026-06-12", returnDate: "2026-06-18", status: "Borrowed" },
-                { borrower: "Gabriel Fernandez", id: "20230123", equipment: "Sony Audio Console", category: "Audio Equipment", borrowDate: "2026-06-05", returnDate: "2026-06-10", status: "Returned" },
-                { borrower: "Jeffrey Gaviola", id: "20230789", equipment: "Sennheiser Mic", category: "Audio Equipment", borrowDate: "2026-06-14", returnDate: "2026-06-19", status: "Borrowed" },
-            ];
+            // Sample database records for reports filtering initialized to empty
+            const reportRecords = [];
 
             let filteredRecords = [...reportRecords];
             let currentPage = 1;
@@ -689,7 +638,7 @@
                     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
                     datasets: [{
                         label: 'Borrowings',
-                        data: [65, 85, 120, 95, 150, 235],
+                        data: [0, 0, 0, 0, 0, 0],
                         backgroundColor: '#385585',
                         borderRadius: 6,
                         borderSkipped: false
@@ -729,7 +678,7 @@
                 data: {
                     labels: ['Laptops', 'Projectors', 'Cameras', 'Lab Equip', 'Audio'],
                     datasets: [{
-                        data: [40, 25, 15, 12, 8],
+                        data: [0, 0, 0, 0, 0],
                         backgroundColor: ['#385585', '#4f46e5', '#10b981', '#f59e0b', '#ef4444'],
                         borderWidth: 0,
                         hoverOffset: 4

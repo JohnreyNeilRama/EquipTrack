@@ -41,6 +41,11 @@
             <a href="departmentdashboard.php" class="nav-item">
                 <i class="fa-solid fa-table-cells-large"></i> <span>Dashboard</span>
             </a>
+            <a href="profile.php" class="nav-item">
+                <i class="fa-solid fa-user"></i> <span>Profile</span>
+            </a>
+            
+            <div class="sidebar-section-label">Monitoring</div>
             <a href="equipment.php" class="nav-item">
                 <i class="fa-solid fa-box"></i> <span>Department Equipment</span>
             </a>
@@ -50,21 +55,11 @@
             <a href="users.php" class="nav-item">
                 <i class="fa-solid fa-users"></i> <span>Department Users</span>
             </a>
-            
-            <div class="sidebar-section-label">Monitoring</div>
             <a href="monitoring.php" class="nav-item">
                 <i class="fa-solid fa-desktop"></i> <span>Equipment Monitoring</span>
             </a>
             <a href="history.php" class="nav-item">
                 <i class="fa-solid fa-clock-rotate-left"></i> <span>Borrowing History</span>
-            </a>
-
-            <div class="sidebar-section-label">Account</div>
-            <a href="profile.php" class="nav-item">
-                <i class="fa-solid fa-user"></i> <span>Profile</span>
-            </a>
-            <a href="../login.php" class="nav-item logout">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i> <span>Logout</span>
             </a>
         </nav>
     </aside>
@@ -85,15 +80,15 @@
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">CCS</div>
-                    <span class="user-name">CCS</span>
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">DP</div>
+                    <span class="user-name">Department</span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
                     <!-- Dropdown Menu -->
                     <div class="profile-dropdown-menu" id="dropdownMenu">
                         <div class="dropdown-profile-header">
-                            <span class="header-name">CCS Department</span>
-                            <span class="header-email">ccs.dept@equiptrack.edu</span>
+                            <span class="header-name">Department</span>
+                            <span class="header-email">department@equiptrack.edu</span>
                         </div>
                         <div class="dropdown-divider"></div>
                         <a href="profile.php"><i class="fa-solid fa-user"></i> My Profile</a>
@@ -116,7 +111,7 @@
                 <!-- Card 1: Pending Request -->
                 <div class="summary-card-item">
                     <div class="summary-card-header">
-                        <span class="summary-card-val" id="sumPending">5</span>
+                        <span class="summary-card-val" id="sumPending">0</span>
                         <div class="summary-card-icon icon-blue">
                             <i class="fa-solid fa-clock"></i>
                         </div>
@@ -127,7 +122,7 @@
                 <!-- Card 2: Approved -->
                 <div class="summary-card-item">
                     <div class="summary-card-header">
-                        <span class="summary-card-val" id="sumApproved">5</span>
+                        <span class="summary-card-val" id="sumApproved">0</span>
                         <div class="summary-card-icon icon-green">
                             <i class="fa-solid fa-circle-check"></i>
                         </div>
@@ -138,7 +133,7 @@
                 <!-- Card 3: Rejected -->
                 <div class="summary-card-item">
                     <div class="summary-card-header">
-                        <span class="summary-card-val" id="sumRejected">3</span>
+                        <span class="summary-card-val" id="sumRejected">0</span>
                         <div class="summary-card-icon icon-red">
                             <i class="fa-solid fa-circle-xmark"></i>
                         </div>
@@ -296,23 +291,14 @@
             const toastTitle = document.getElementById('toastTitle');
             const toastMsg = document.getElementById('toastMsg');
 
-            // Default Requests matching reference mockup
-            const defaultRequestsList = [
-                { id: "21432132", user: "Gabriel F...", role: "Student", equipment: "Laptop Dell", category: "Laptop", date: "May 1", status: "Pending" },
-                { id: "FAC-2023", user: "Jeff Gav...", role: "Faculty...", equipment: "Laptop Dell", category: "Laptop", date: "May 1", status: "Pending" },
-                { id: "20230456", user: "Johnrey...", role: "Student", equipment: "Laptop Dell", category: "Laptop", date: "May 1", status: "Pending" },
-                { id: "20230812", user: "Michael...", role: "Student", equipment: "Laptop Dell", category: "Laptop", date: "May 1", status: "Pending" },
-                { id: "20230944", user: "Sarah Jenkins", role: "Faculty", equipment: "Camera Canon EOS", category: "Camera", date: "Apr 28", status: "Approved" },
-                { id: "20230112", user: "David Miller", role: "Student", equipment: "Projector Epson", category: "Projector", date: "Apr 25", status: "Rejected" },
-                { id: "20230554", user: "Elena Rostova", role: "Student", equipment: "Wireless Microphone Set", category: "Audio Equipment", date: "Apr 24", status: "Approved" },
-                { id: "20230788", user: "Mark Anthony", role: "Faculty", equipment: "Scientific Calculator", category: "Others", date: "Apr 20", status: "Approved" }
-            ];
-
+            // Storage Management
             let requests = JSON.parse(localStorage.getItem('equip-track-borrow-requests'));
-            if (!requests || !Array.isArray(requests) || requests.length === 0) {
-                requests = defaultRequestsList;
-                localStorage.setItem('equip-track-borrow-requests', JSON.stringify(requests));
+            if (!requests || !Array.isArray(requests)) {
+                requests = [];
+            } else {
+                requests = requests.filter(r => !['21432132', 'FAC-2023', '20230456', '20230812', '20230944', '20230112', '20230554', '20230788'].includes(r.id));
             }
+            localStorage.setItem('equip-track-borrow-requests', JSON.stringify(requests));
 
             function updateSummaryCards() {
                 const pendingCount = requests.filter(r => r.status === 'Pending').length;

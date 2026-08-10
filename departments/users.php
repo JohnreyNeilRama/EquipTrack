@@ -41,6 +41,11 @@
             <a href="departmentdashboard.php" class="nav-item">
                 <i class="fa-solid fa-table-cells-large"></i> <span>Dashboard</span>
             </a>
+            <a href="profile.php" class="nav-item">
+                <i class="fa-solid fa-user"></i> <span>Profile</span>
+            </a>
+            
+            <div class="sidebar-section-label">Monitoring</div>
             <a href="equipment.php" class="nav-item">
                 <i class="fa-solid fa-box"></i> <span>Department Equipment</span>
             </a>
@@ -50,21 +55,11 @@
             <a href="users.php" class="nav-item active">
                 <i class="fa-solid fa-users"></i> <span>Department Users</span>
             </a>
-            
-            <div class="sidebar-section-label">Monitoring</div>
             <a href="monitoring.php" class="nav-item">
                 <i class="fa-solid fa-desktop"></i> <span>Equipment Monitoring</span>
             </a>
             <a href="history.php" class="nav-item">
                 <i class="fa-solid fa-clock-rotate-left"></i> <span>Borrowing History</span>
-            </a>
-
-            <div class="sidebar-section-label">Account</div>
-            <a href="profile.php" class="nav-item">
-                <i class="fa-solid fa-user"></i> <span>Profile</span>
-            </a>
-            <a href="../login.php" class="nav-item logout">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i> <span>Logout</span>
             </a>
         </nav>
     </aside>
@@ -85,15 +80,15 @@
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">CCS</div>
-                    <span class="user-name">CCS</span>
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">DP</div>
+                    <span class="user-name">Department</span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
                     <!-- Dropdown Menu -->
                     <div class="profile-dropdown-menu" id="dropdownMenu">
                         <div class="dropdown-profile-header">
-                            <span class="header-name">CCS Department</span>
-                            <span class="header-email">ccs.dept@equiptrack.edu</span>
+                            <span class="header-name">Department</span>
+                            <span class="header-email">department@equiptrack.edu</span>
                         </div>
                         <div class="dropdown-divider"></div>
                         <a href="profile.php"><i class="fa-solid fa-user"></i> My Profile</a>
@@ -116,7 +111,7 @@
                 <!-- Card 1: Total Users -->
                 <div class="summary-card-item">
                     <div class="summary-card-header">
-                        <span class="summary-card-val" id="sumTotalUsers">4</span>
+                        <span class="summary-card-val" id="sumTotalUsers">0</span>
                         <div class="summary-card-icon icon-blue">
                             <i class="fa-solid fa-users"></i>
                         </div>
@@ -127,7 +122,7 @@
                 <!-- Card 2: Students -->
                 <div class="summary-card-item">
                     <div class="summary-card-header">
-                        <span class="summary-card-val" id="sumStudents">3</span>
+                        <span class="summary-card-val" id="sumStudents">0</span>
                         <div class="summary-card-icon icon-green">
                             <i class="fa-solid fa-graduation-cap"></i>
                         </div>
@@ -138,7 +133,7 @@
                 <!-- Card 3: Faculty Members -->
                 <div class="summary-card-item">
                     <div class="summary-card-header">
-                        <span class="summary-card-val" id="sumFaculty">1</span>
+                        <span class="summary-card-val" id="sumFaculty">0</span>
                         <div class="summary-card-icon icon-amber">
                             <i class="fa-solid fa-chalkboard-user"></i>
                         </div>
@@ -149,7 +144,7 @@
                 <!-- Card 4: Active Accounts -->
                 <div class="summary-card-item">
                     <div class="summary-card-header">
-                        <span class="summary-card-val" id="sumActive">4</span>
+                        <span class="summary-card-val" id="sumActive">0</span>
                         <div class="summary-card-icon icon-green">
                             <i class="fa-solid fa-user-check"></i>
                         </div>
@@ -216,7 +211,7 @@
 
             <!-- Table Footer Pagination Matching Reference Image -->
             <div class="table-footer-pagination">
-                <span class="pagination-info" id="paginationInfo">Showing 1 to 4 of 4 entries</span>
+                <span class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 entries</span>
                 <div class="pagination-controls">
                     <button class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></button>
                     <button class="page-btn active">1</button>
@@ -350,19 +345,14 @@
             const viewUserModal = document.getElementById('viewUserModal');
             const closeViewUserModalBtn = document.getElementById('closeViewUserModalBtn');
 
-            // Exact Default Users List matching Reference Image
-            const defaultUsersList = [
-                { fullName: "Johnrey Neil Rama", idNumber: "20230456", userType: "Student", attainment: "4th Year", status: "Active", dateRegistered: "May 12, 2026" },
-                { fullName: "Gabriel Fernandez", idNumber: "20230123", userType: "Student", attainment: "3rd Year", status: "Active", dateRegistered: "May 10, 2026" },
-                { fullName: "Michael John Silva", idNumber: "20230812", userType: "Student", attainment: "2nd Year", status: "Active", dateRegistered: "June 20, 2026" },
-                { fullName: "Jeffrey Gaviola", idNumber: "FAC-2023-014", userType: "Faculty Member", attainment: "Master's Degree", status: "Active", dateRegistered: "May 20, 2026" }
-            ];
-
+            // Storage Management
             let users = JSON.parse(localStorage.getItem('equip-track-table-users'));
-            if (!users || !Array.isArray(users) || users.length === 0) {
-                users = defaultUsersList;
-                localStorage.setItem('equip-track-table-users', JSON.stringify(users));
+            if (!users || !Array.isArray(users)) {
+                users = [];
+            } else {
+                users = users.filter(u => !['Johnrey Neil Rama', 'Gabriel Fernandez', 'Michael John Silva', 'Jeffrey Gaviola'].includes(u.fullName));
             }
+            localStorage.setItem('equip-track-table-users', JSON.stringify(users));
 
             function updateSummaryCards() {
                 const totalCount = users.length;

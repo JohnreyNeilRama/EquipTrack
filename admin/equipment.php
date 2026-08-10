@@ -34,6 +34,11 @@
             <a href="admindashboard.php" class="nav-item">
                 <i class="fa-solid fa-table-cells-large"></i> <span>Dashboard</span>
             </a>
+            <a href="profile.php" class="nav-item">
+                <i class="fa-solid fa-user"></i> <span>Profile</span>
+            </a>
+            
+            <div class="sidebar-section-label">Monitoring</div>
             <a href="equipment.php" class="nav-item active">
                 <i class="fa-solid fa-toolbox"></i> <span>Equipment Management</span>
             </a>
@@ -43,8 +48,6 @@
             <a href="users.php" class="nav-item">
                 <i class="fa-solid fa-users"></i> <span>Users</span>
             </a>
-            
-            <div class="sidebar-section-label">Monitoring</div>
             <a href="monitoring.php" class="nav-item">
                 <i class="fa-solid fa-desktop"></i> <span>Equipment Monitoring</span>
             </a>
@@ -198,11 +201,11 @@
                     <div class="form-row-flat">
                         <div class="form-group-flat">
                             <label>Available Quantity</label>
-                            <input type="number" id="eqFormAvail" class="form-control-flat" min="0" required value="5">
+                            <input type="number" id="eqFormAvail" class="form-control-flat" min="0" required value="0">
                         </div>
                         <div class="form-group-flat">
                             <label>Total Quantity</label>
-                            <input type="number" id="eqFormTotal" class="form-control-flat" min="0" required value="10">
+                            <input type="number" id="eqFormTotal" class="form-control-flat" min="0" required value="0">
                         </div>
                     </div>
 
@@ -285,19 +288,12 @@
             const toastMsg = document.getElementById('toastMsg');
 
             // Global state variable for tracking items loaded from localStorage
-            const defaultEquipmentList = [
-                { id: 1, name: "Laptop Dell XPS", category: "Laptop", imgUrl: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 4, total: 10, status: "Available" },
-                { id: 2, name: "Camera Canon EOS", category: "Camera", imgUrl: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 5, total: 10, status: "Available" },
-                { id: 3, name: "Wireless Microphone Set", category: "Audio", imgUrl: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 10, total: 10, status: "Available" },
-                { id: 4, name: "Lenovo ThinkPad", category: "Laptop", imgUrl: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 2, total: 5, status: "Available" },
-                { id: 5, name: "Projector Epson", category: "Projector", imgUrl: "https://images.unsplash.com/photo-1588696860356-0eaee7d7c67c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 10, total: 10, status: "Available" },
-                { id: 6, name: "Scientific Calculator", category: "Others", imgUrl: "https://images.unsplash.com/photo-1587145820266-a5951ee6f620?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 4, total: 5, status: "Available" }
-            ];
+            const defaultEquipmentList = [];
 
             let equipment = JSON.parse(localStorage.getItem('equip-track-equipment'));
-            if (!equipment) {
-                equipment = defaultEquipmentList;
-                localStorage.setItem('equip-track-equipment', JSON.stringify(equipment));
+            if (!equipment || (Array.isArray(equipment) && equipment.some(e => e.name === "Laptop Dell XPS" || e.name === "Camera Canon EOS" || e.name === "Wireless Microphone Set" || e.name === "Lenovo ThinkPad" || e.name === "Projector Epson" || e.name === "Scientific Calculator"))) {
+                equipment = [];
+                localStorage.setItem('equip-track-equipment', JSON.stringify([]));
             }
 
             let itemIdCounter = equipment.length > 0 ? Math.max(...equipment.map(e => e.id)) + 1 : 1;
@@ -305,6 +301,16 @@
             // Render equipment cards dynamically
             function renderEquipment() {
                 grid.innerHTML = '';
+                if (!equipment || equipment.length === 0) {
+                    grid.innerHTML = `
+                        <div class="empty-state-container" style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 48px 24px; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color);">
+                            <i class="fa-solid fa-boxes-stacked" style="font-size: 32px; color: var(--text-muted); margin-bottom: 12px; display: block;"></i>
+                            <h4 style="font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">No Equipment Registered</h4>
+                            <p style="font-size: 14px; color: var(--text-muted); margin: 0;">Click "Add Equipment" above to populate the equipment inventory.</p>
+                        </div>
+                    `;
+                    return;
+                }
                 equipment.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'eq-card-admin';
@@ -522,8 +528,7 @@
                 modalSubtitle.textContent = "Provide details for the inventory item";
                 submitBtn.textContent = "Add Item";
                 
-                // Show default placeholder preview
-                showPreview("https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60");
+                resetUploader();
                 
                 modal.classList.add('show');
             });

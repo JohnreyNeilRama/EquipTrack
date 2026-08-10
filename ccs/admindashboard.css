@@ -223,6 +223,7 @@
     display: flex;
     gap: 20px;
     overflow-x: auto;
+    max-width: 100%;
     padding: 4px 4px 12px 4px;
     scrollbar-width: thin;
     scrollbar-color: var(--border-color) transparent;
@@ -450,8 +451,9 @@
     border-radius: var(--admin-card-radius) !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04) !important;
     border: 1px solid var(--border-color) !important;
-    overflow: hidden;
+    overflow-x: auto;
     width: 100%;
+    max-width: 100%;
 }
 
 .admin-table-card table {
@@ -544,6 +546,8 @@
     grid-template-columns: 1fr 1fr;
     gap: 24px;
     align-items: start;
+    width: 100%;
+    min-width: 0;
 }
 
 .flex-section {

@@ -14,10 +14,6 @@ body {
     background-color: var(--bg-color-reports) !important;
 }
 
-.sidebar {
-    background-color: var(--sidebar-bg-reports) !important;
-}
-
 /* Main Layout Grid */
 .reports-layout-grid {
     display: flex;

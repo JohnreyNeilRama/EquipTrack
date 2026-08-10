@@ -59,8 +59,8 @@
                 <div class="icon-btn" id="themeToggleBtn"><i class="fa-solid fa-moon" id="themeToggleIcon"></i></div>
                 <div class="icon-btn notification"><i class="fa-solid fa-bell"></i></div>
                 <div class="user-profile">
-                    <img src="https://ui-avatars.com/api/?name=Gabriel+Fernandez&background=random" alt="Gabriel Fernandez" class="avatar">
-                    <span class="user-name">Gabriel Fernandez</span>
+                    <img src="https://ui-avatars.com/api/?name=User&background=random" alt="User" class="avatar">
+                    <span class="user-name">User</span>
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
             </div>
@@ -72,7 +72,7 @@
                 <div class="profile-banner"></div>
                 <div class="profile-img-wrapper">
                     <div class="profile-img-container">
-                        <img src="https://ui-avatars.com/api/?name=Gabriel+Fernandez&background=random&size=200" alt="Gabriel Fernandez" class="profile-img">
+                        <img src="https://ui-avatars.com/api/?name=User&background=random&size=200" alt="User" class="profile-img">
                     </div>
                     <button type="button" class="btn-upload-icon" onclick="document.getElementById('profilePicInput').click()" title="Upload Picture">
                         <i class="fa-solid fa-camera"></i>
@@ -80,17 +80,17 @@
                     <input type="file" id="profilePicInput" style="display: none;" accept="image/*">
                 </div>
                 <div class="profile-info">
-                    <h3 class="profile-name">Gabriel Fernandez</h3>
+                    <h3 class="profile-name">User</h3>
                     <p class="profile-role">Student</p>
                     <div class="profile-divider"></div>
                     <ul class="profile-stats">
                         <li>
                             <span class="stat-label">Active Borrows</span>
-                            <span class="stat-num">1</span>
+                            <span class="stat-num">0</span>
                         </li>
                         <li>
                             <span class="stat-label">Total Requests</span>
-                            <span class="stat-num">12</span>
+                            <span class="stat-num">0</span>
                         </li>
                     </ul>
                     <a href="../login.php" class="btn-logout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
@@ -109,14 +109,14 @@
                             <label>First Name</label>
                             <div class="input-wrapper">
                                 <i class="fa-regular fa-user input-icon"></i>
-                                <input type="text" class="form-control" value="Gabriel" placeholder="Enter first name">
+                                <input type="text" class="form-control" value="" placeholder="Enter first name">
                             </div>
                         </div>
                         <div class="form-group">
                             <label>Last Name</label>
                             <div class="input-wrapper">
                                 <i class="fa-regular fa-user input-icon"></i>
-                                <input type="text" class="form-control" value="Fernandez" placeholder="Enter last name">
+                                <input type="text" class="form-control" value="" placeholder="Enter last name">
                             </div>
                         </div>
                     </div>
@@ -125,7 +125,7 @@
                         <label>Email Address</label>
                         <div class="input-wrapper">
                             <i class="fa-regular fa-envelope input-icon"></i>
-                            <input type="email" class="form-control" value="gabriel.fernandez@example.com" placeholder="Enter email address">
+                            <input type="email" class="form-control" value="" placeholder="Enter email address">
                         </div>
                     </div>
                     
@@ -134,10 +134,11 @@
                         <div class="input-wrapper">
                             <i class="fa-solid fa-graduation-cap input-icon"></i>
                             <select class="form-control form-select">
+                                <option value="" disabled selected>Select Year & Level</option>
+                                <option>1st Year - College</option>
+                                <option>2nd Year - College</option>
                                 <option>3rd Year - College</option>
                                 <option>4th Year - College</option>
-                                <option>2nd Year - College</option>
-                                <option>1st Year - College</option>
                             </select>
                         </div>
                     </div>
@@ -146,7 +147,7 @@
                         <label>Home Address</label>
                         <div class="input-wrapper">
                             <i class="fa-solid fa-map-pin input-icon"></i>
-                            <input type="text" class="form-control" value="123 University Ave, Tech City" placeholder="Enter full address">
+                            <input type="text" class="form-control" value="" placeholder="Enter full address">
                         </div>
                     </div>
 

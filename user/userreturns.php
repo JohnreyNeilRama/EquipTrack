@@ -59,8 +59,8 @@
                 <div class="icon-btn" id="themeToggleBtn"><i class="fa-solid fa-moon" id="themeToggleIcon"></i></div>
                 <div class="icon-btn notification"><i class="fa-solid fa-bell"></i></div>
                 <div class="user-profile">
-                    <img src="https://ui-avatars.com/api/?name=Gabriel+Fernandez&background=random" alt="Gabriel Fernandez" class="avatar">
-                    <span class="user-name">Gabriel Fernandez</span>
+                    <img src="https://ui-avatars.com/api/?name=User&background=random" alt="User" class="avatar">
+                    <span class="user-name">User</span>
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
             </div>
@@ -79,7 +79,7 @@
 
         <!-- Table Container -->
         <div class="table-container card returns-table-card">
-            <table>
+            <table style="display: none;">
                 <thead>
                     <tr>
                         <th class="col-no">No.</th>
@@ -91,49 +91,11 @@
                     </tr>
                 </thead>
                 <tbody id="returnsTableBody">
-                    <tr class="return-row" 
-                        data-equipment="Laptop"
-                        data-category="Gadgets / Devices"
-                        data-borrow-date="May 2, 2026"
-                        data-due-date="May 5, 2026"
-                        data-img="https://images.unsplash.com/photo-1496181130204-7552cc15745e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60">
-                        <td class="row-index">1</td>
-                        <td class="col-eq">Laptop</td>
-                        <td>May 2</td>
-                        <td>May 5</td>
-                        <td><span class="status-text status-borrowed">Borrowed</span></td>
-                        <td><button class="btn-return-action" onclick="openReturnModal(this)">Return</button></td>
-                    </tr>
-                    <tr class="return-row" 
-                        data-equipment="Calculator"
-                        data-category="Others"
-                        data-borrow-date="May 8, 2026"
-                        data-due-date="May 9, 2026"
-                        data-img="https://images.unsplash.com/photo-1587145820266-a5951ee6f620?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60">
-                        <td class="row-index">2</td>
-                        <td class="col-eq">Calculator</td>
-                        <td>May 8</td>
-                        <td>May 9</td>
-                        <td><span class="status-text status-borrowed">Borrowed</span></td>
-                        <td><button class="btn-return-action" onclick="openReturnModal(this)">Return</button></td>
-                    </tr>
-                    <tr class="return-row" 
-                        data-equipment="Projector"
-                        data-category="Gadgets / Devices"
-                        data-borrow-date="May 11, 2026"
-                        data-due-date="May 11, 2026"
-                        data-img="https://images.unsplash.com/photo-1535016120720-40c646be5580?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60">
-                        <td class="row-index">3</td>
-                        <td class="col-eq">Projector</td>
-                        <td>May 11</td>
-                        <td>May 11</td>
-                        <td><span class="status-text status-borrowed">Borrowed</span></td>
-                        <td><button class="btn-return-action" onclick="openReturnModal(this)">Return</button></td>
-                    </tr>
+                    <!-- Dynamic return items -->
                 </tbody>
             </table>
             <!-- Empty state illustration if all items returned -->
-            <div id="emptyState" class="empty-state-container" style="display: none;">
+            <div id="emptyState" class="empty-state-container" style="display: flex;">
                 <i class="fa-solid fa-circle-check empty-state-icon"></i>
                 <h4>All items returned!</h4>
                 <p>You currently do not have any borrowed equipment to return.</p>

@@ -222,6 +222,11 @@
             <a href="admindashboard.php" class="nav-item">
                 <i class="fa-solid fa-table-cells-large"></i> <span>Dashboard</span>
             </a>
+            <a href="profile.php" class="nav-item">
+                <i class="fa-solid fa-user"></i> <span>Profile</span>
+            </a>
+            
+            <div class="sidebar-section-label">Monitoring</div>
             <a href="equipment.php" class="nav-item">
                 <i class="fa-solid fa-toolbox"></i> <span>Equipment Management</span>
             </a>
@@ -231,8 +236,6 @@
             <a href="users.php" class="nav-item">
                 <i class="fa-solid fa-users"></i> <span>Users</span>
             </a>
-            
-            <div class="sidebar-section-label">Monitoring</div>
             <a href="monitoring.php" class="nav-item">
                 <i class="fa-solid fa-desktop"></i> <span>Equipment Monitoring</span>
             </a>
@@ -445,117 +448,11 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Default seeding requests if not present in localStorage
-            const defaultRequestsList = [
-                {
-                    id: 1,
-                    user: "Gabriel F.",
-                    role: "Student",
-                    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80",
-                    equipment: "Laptop Dell",
-                    category: "Laptop",
-                    date: "May 1",
-                    fullDate: "May 1, 2026",
-                    borrowDate: "May 2, 2026",
-                    dueDate: "May 5, 2026",
-                    status: "Pending",
-                    purpose: "Class Presentation",
-                    notes: "Need a high-performance laptop for my Software Engineering presentation.",
-                    img: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
-                },
-                {
-                    id: 2,
-                    user: "Anna Mae S.",
-                    role: "Teacher",
-                    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
-                    equipment: "Camera Canon",
-                    category: "Camera",
-                    date: "May 11",
-                    fullDate: "May 11, 2026",
-                    borrowDate: "May 12, 2026",
-                    dueDate: "May 15, 2026",
-                    status: "Pending",
-                    purpose: "Field Research Documentation",
-                    notes: "Will document plant samples in biology forestry campus lab.",
-                    img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
-                },
-                {
-                    id: 3,
-                    user: "Anna Mae S.",
-                    role: "Teacher",
-                    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
-                    equipment: "Camera Canon",
-                    category: "Camera",
-                    date: "May 11",
-                    fullDate: "May 11, 2026",
-                    borrowDate: "May 13, 2026",
-                    dueDate: "May 16, 2026",
-                    status: "Pending",
-                    purpose: "Classroom Activity",
-                    notes: "Needed for photography lighting demonstration in multimedia lab.",
-                    img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
-                },
-                {
-                    id: 4,
-                    user: "Anna Mae S.",
-                    role: "Teacher",
-                    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
-                    equipment: "Camera Canon",
-                    category: "Camera",
-                    date: "May 11",
-                    fullDate: "May 11, 2026",
-                    borrowDate: "May 14, 2026",
-                    dueDate: "May 17, 2026",
-                    status: "Pending",
-                    purpose: "Event Documentation",
-                    notes: "Documenting the school's intra-mural sports activities.",
-                    img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
-                },
-                {
-                    id: 5,
-                    user: "Anna Mae S.",
-                    role: "Teacher",
-                    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
-                    equipment: "Camera Canon",
-                    category: "Camera",
-                    date: "May 11",
-                    fullDate: "May 11, 2026",
-                    borrowDate: "May 15, 2026",
-                    dueDate: "May 18, 2026",
-                    status: "Pending",
-                    purpose: "Class Activity",
-                    notes: "Visual arts photography workshop session.",
-                    img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
-                },
-                {
-                    id: 6,
-                    user: "Anna Mae S.",
-                    role: "Teacher",
-                    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
-                    equipment: "Camera Canon",
-                    category: "Camera",
-                    date: "May 11",
-                    fullDate: "May 11, 2026",
-                    borrowDate: "May 16, 2026",
-                    dueDate: "May 19, 2026",
-                    status: "Pending",
-                    purpose: "Research Project",
-                    notes: "Gathering high resolution visuals for the regional science fair project.",
-                    img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                    rejectReason: ""
-                }
-            ];
+            const defaultRequestsList = [];
 
-            // LocalStorage loading
-            let requests = JSON.parse(localStorage.getItem('equip-track-requests'));
-            if (!requests) {
-                requests = defaultRequestsList;
-                localStorage.setItem('equip-track-requests', JSON.stringify(requests));
-            }
+            // LocalStorage loading - ensure clean empty state for initial system setup
+            let requests = [];
+            localStorage.setItem('equip-track-requests', JSON.stringify([]));
 
             // DOM Elements
             const tableBody = document.getElementById('requestsTableBody');

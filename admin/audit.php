@@ -37,6 +37,11 @@
             <a href="admindashboard.php" class="nav-item">
                 <i class="fa-solid fa-table-cells-large"></i> <span>Dashboard</span>
             </a>
+            <a href="profile.php" class="nav-item">
+                <i class="fa-solid fa-user"></i> <span>Profile</span>
+            </a>
+            
+            <div class="sidebar-section-label">Monitoring</div>
             <a href="equipment.php" class="nav-item">
                 <i class="fa-solid fa-toolbox"></i> <span>Equipment Management</span>
             </a>
@@ -46,8 +51,6 @@
             <a href="users.php" class="nav-item">
                 <i class="fa-solid fa-users"></i> <span>Users</span>
             </a>
-            
-            <div class="sidebar-section-label">Monitoring</div>
             <a href="monitoring.php" class="nav-item">
                 <i class="fa-solid fa-desktop"></i> <span>Equipment Monitoring</span>
             </a>
@@ -61,7 +64,7 @@
     </aside>
 
     <!-- Main Content Area -->
-    <main class="main-content" style="min-width: 0;">
+    <main class="main-content">
         <!-- Top Navbar -->
         <header class="top-navbar profile-navbar">
             <div class="navbar-right">
@@ -104,7 +107,7 @@
             <div class="audit-stats-row">
                 <div class="audit-stat-card">
                     <div class="audit-stat-header">
-                        <div class="audit-stat-value" id="statToday">42</div>
+                        <div class="audit-stat-value" id="statToday">0</div>
                         <div class="audit-stat-icon-box blue">
                             <i class="fa-solid fa-bolt"></i>
                         </div>
@@ -117,7 +120,7 @@
 
                 <div class="audit-stat-card">
                     <div class="audit-stat-header">
-                        <div class="audit-stat-value" id="statWeek">218</div>
+                        <div class="audit-stat-value" id="statWeek">0</div>
                         <div class="audit-stat-icon-box green">
                             <i class="fa-solid fa-calendar-days"></i>
                         </div>
@@ -130,7 +133,7 @@
 
                 <div class="audit-stat-card">
                     <div class="audit-stat-header">
-                        <div class="audit-stat-value" id="statMonth">945</div>
+                        <div class="audit-stat-value" id="statMonth">0</div>
                         <div class="audit-stat-icon-box orange">
                             <i class="fa-solid fa-chart-column"></i>
                         </div>
@@ -143,7 +146,7 @@
 
                 <div class="audit-stat-card">
                     <div class="audit-stat-header">
-                        <div class="audit-stat-value" id="statAdmins">3</div>
+                        <div class="audit-stat-value" id="statAdmins">0</div>
                         <div class="audit-stat-icon-box purple">
                             <i class="fa-solid fa-users-gear"></i>
                         </div>
@@ -316,19 +319,8 @@
                 });
             }
 
-            // Mock Audit Trail database logs
-            const auditRecords = [
-                { date: "June 30, 2026 • 9:15 AM", admin: "John Cruz", module: "Requests", action: "Approved Request", details: "Approved Borrow Request #102", ip: "192.168.1.12" },
-                { date: "June 30, 2026 • 10:05 AM", admin: "Sarah Reyes", module: "Equipment Management", action: "Added Equipment", details: "Dell Latitude 5420 Laptop", ip: "192.168.1.18" },
-                { date: "June 30, 2026 • 10:42 AM", admin: "John Cruz", module: "Equipment Monitoring", action: "Confirmed Return", details: "Borrow Transaction #058", ip: "192.168.1.12" },
-                { date: "June 30, 2026 • 11:30 AM", admin: "Sarah Reyes", module: "Users", action: "Deactivated User", details: "Student ID 2023-00125", ip: "192.168.1.18" },
-                { date: "June 30, 2026 • 1:15 PM", admin: "John Cruz", module: "Reports", action: "Exported Borrowing Report", details: "Monthly Report (PDF)", ip: "192.168.1.12" },
-                { date: "June 29, 2026 • 8:45 AM", admin: "Sarah Reyes", module: "Users", action: "Added User", details: "Teacher Maria Santos", ip: "192.168.1.18" },
-                { date: "June 29, 2026 • 11:20 AM", admin: "Sarah Reyes", module: "Requests", action: "Rejected Request", details: "Rejected Borrow Request #099", ip: "192.168.1.18" },
-                { date: "June 29, 2026 • 3:00 PM", admin: "John Cruz", module: "Equipment Management", action: "Updated Equipment", details: "Updated quantity for Epson Projector", ip: "192.168.1.12" },
-                { date: "June 29, 2026 • 4:10 PM", admin: "Sarah Reyes", module: "Users", action: "Login", details: "Administrator logged in", ip: "192.168.1.18" },
-                { date: "June 29, 2026 • 5:00 PM", admin: "Sarah Reyes", module: "Users", action: "Logout", details: "Administrator logged out", ip: "192.168.1.18" }
-            ];
+            // Audit Trail records initialized to empty
+            const auditRecords = [];
 
             let filteredRecords = [...auditRecords];
             const recordsPerPage = 5;

@@ -13,10 +13,6 @@ body {
     background-color: var(--bg-color-audit) !important;
 }
 
-.sidebar {
-    background-color: var(--sidebar-bg-audit) !important;
-}
-
 /* Page Header & Subtitle Styling */
 .audit-header-section {
     margin-bottom: 24px;

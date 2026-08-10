@@ -59,8 +59,8 @@
                 <div class="icon-btn" id="themeToggleBtn"><i class="fa-solid fa-moon" id="themeToggleIcon"></i></div>
                 <div class="icon-btn notification"><i class="fa-solid fa-bell"></i></div>
                 <div class="user-profile">
-                    <img src="https://ui-avatars.com/api/?name=Gabriel+Fernandez&background=random" alt="Gabriel Fernandez" class="avatar">
-                    <span class="user-name">Gabriel Fernandez</span>
+                    <img src="https://ui-avatars.com/api/?name=User&background=random" alt="User" class="avatar">
+                    <span class="user-name">User</span>
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
             </div>
@@ -97,7 +97,7 @@
 
         <!-- Table Container -->
         <div class="table-container card history-table-card">
-            <table>
+            <table style="display: none;">
                 <thead>
                     <tr>
                         <th class="col-no">No.</th>
@@ -109,70 +109,14 @@
                     </tr>
                 </thead>
                 <tbody id="historyTableBody">
-                    <tr class="history-row" 
-                        data-equipment="Laptop"
-                        data-category="Gadgets / Devices"
-                        data-borrow-date="May 2, 2026"
-                        data-return-date="May 5, 2026"
-                        data-due-date="May 5, 2026"
-                        data-status="Returned"
-                        data-remarks="On Time"
-                        data-condition="Good / Working"
-                        data-handled-by="Admin Alexis"
-                        data-img="https://images.unsplash.com/photo-1496181130204-7552cc15745e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60"
-                        data-timestamp="2026-05-02">
-                        <td class="row-index">1</td>
-                        <td class="col-eq">Laptop</td>
-                        <td>May 2</td>
-                        <td>May 5</td>
-                        <td><span class="status-text status-returned">Returned</span></td>
-                        <td class="col-remarks">On Time</td>
-                    </tr>
-                    <tr class="history-row" 
-                        data-equipment="Calculator"
-                        data-category="Others"
-                        data-borrow-date="May 8, 2026"
-                        data-return-date="May 11, 2026"
-                        data-due-date="May 9, 2026"
-                        data-status="Late Return"
-                        data-remarks="Returned 2 days late"
-                        data-condition="Good / Working"
-                        data-handled-by="Admin Alexis"
-                        data-img="https://images.unsplash.com/photo-1587145820266-a5951ee6f620?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60"
-                        data-timestamp="2026-05-08">
-                        <td class="row-index">2</td>
-                        <td class="col-eq">Calculator</td>
-                        <td>May 8</td>
-                        <td>May 9</td>
-                        <td><span class="status-text status-late">Late Return</span></td>
-                        <td class="col-remarks">Returned 2 days late</td>
-                    </tr>
-                    <tr class="history-row" 
-                        data-equipment="Projector"
-                        data-category="Gadgets / Devices"
-                        data-borrow-date="May 11, 2026"
-                        data-return-date="May 11, 2026"
-                        data-due-date="May 11, 2026"
-                        data-status="Returned"
-                        data-remarks="Good Condition"
-                        data-condition="Good / Working"
-                        data-handled-by="Admin Alexis"
-                        data-img="https://images.unsplash.com/photo-1535016120720-40c646be5580?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60"
-                        data-timestamp="2026-05-11">
-                        <td class="row-index">3</td>
-                        <td class="col-eq">Projector</td>
-                        <td>May 11</td>
-                        <td>May 11</td>
-                        <td><span class="status-text status-returned">Returned</span></td>
-                        <td class="col-remarks">Good Condition</td>
-                    </tr>
+                    <!-- Dynamic transaction rows -->
                 </tbody>
             </table>
-            <!-- Empty state illustration if search yields nothing -->
-            <div id="historyEmptyState" class="empty-state-container" style="display: none;">
-                <i class="fa-solid fa-magnifying-glass empty-state-icon"></i>
-                <h4>No transactions found</h4>
-                <p>Try refining your search term or selection filters.</p>
+            <!-- Empty state illustration if search yields nothing or no data -->
+            <div id="historyEmptyState" class="empty-state-container" style="display: flex;">
+                <i class="fa-solid fa-clock-rotate-left empty-state-icon"></i>
+                <h4>No transaction history</h4>
+                <p>Your past borrowing history and transaction logs will appear here.</p>
             </div>
         </div>
     </main>

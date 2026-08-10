@@ -41,6 +41,11 @@
             <a href="departmentdashboard.php" class="nav-item">
                 <i class="fa-solid fa-table-cells-large"></i> <span>Dashboard</span>
             </a>
+            <a href="profile.php" class="nav-item">
+                <i class="fa-solid fa-user"></i> <span>Profile</span>
+            </a>
+            
+            <div class="sidebar-section-label">Monitoring</div>
             <a href="equipment.php" class="nav-item active">
                 <i class="fa-solid fa-box"></i> <span>Department Equipment</span>
             </a>
@@ -50,21 +55,11 @@
             <a href="users.php" class="nav-item">
                 <i class="fa-solid fa-users"></i> <span>Department Users</span>
             </a>
-            
-            <div class="sidebar-section-label">Monitoring</div>
             <a href="monitoring.php" class="nav-item">
                 <i class="fa-solid fa-desktop"></i> <span>Equipment Monitoring</span>
             </a>
             <a href="history.php" class="nav-item">
                 <i class="fa-solid fa-clock-rotate-left"></i> <span>Borrowing History</span>
-            </a>
-
-            <div class="sidebar-section-label">Account</div>
-            <a href="profile.php" class="nav-item">
-                <i class="fa-solid fa-user"></i> <span>Profile</span>
-            </a>
-            <a href="../login.php" class="nav-item logout">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i> <span>Logout</span>
             </a>
         </nav>
     </aside>
@@ -85,15 +80,15 @@
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">CCS</div>
-                    <span class="user-name">CCS</span>
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">DP</div>
+                    <span class="user-name">Department</span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
                     <!-- Dropdown Menu -->
                     <div class="profile-dropdown-menu" id="dropdownMenu">
                         <div class="dropdown-profile-header">
-                            <span class="header-name">CCS Department</span>
-                            <span class="header-email">ccs.dept@equiptrack.edu</span>
+                            <span class="header-name">Department</span>
+                            <span class="header-email">department@equiptrack.edu</span>
                         </div>
                         <div class="dropdown-divider"></div>
                         <a href="profile.php"><i class="fa-solid fa-user"></i> My Profile</a>
@@ -116,7 +111,7 @@
                 <!-- Card 1: Registered Equipment -->
                 <div class="summary-card-item">
                     <div class="summary-card-header">
-                        <span class="summary-card-val" id="sumRegistered">80</span>
+                        <span class="summary-card-val" id="sumRegistered">0</span>
                         <div class="summary-card-icon icon-gray">
                             <i class="fa-solid fa-laptop"></i>
                         </div>
@@ -127,7 +122,7 @@
                 <!-- Card 2: Ready for Borrowing -->
                 <div class="summary-card-item">
                     <div class="summary-card-header">
-                        <span class="summary-card-val" id="sumReady">50</span>
+                        <span class="summary-card-val" id="sumReady">0</span>
                         <div class="summary-card-icon icon-green">
                             <i class="fa-solid fa-hand-holding"></i>
                         </div>
@@ -138,7 +133,7 @@
                 <!-- Card 3: Currently Borrowed -->
                 <div class="summary-card-item">
                     <div class="summary-card-header">
-                        <span class="summary-card-val" id="sumBorrowed">23</span>
+                        <span class="summary-card-val" id="sumBorrowed">0</span>
                         <div class="summary-card-icon icon-blue">
                             <i class="fa-solid fa-box"></i>
                         </div>
@@ -149,7 +144,7 @@
                 <!-- Card 4: Unavailable -->
                 <div class="summary-card-item">
                     <div class="summary-card-header">
-                        <span class="summary-card-val" id="sumUnavailable">7</span>
+                        <span class="summary-card-val" id="sumUnavailable">0</span>
                         <div class="summary-card-icon icon-red">
                             <i class="fa-solid fa-ban"></i>
                         </div>
@@ -225,14 +220,15 @@
 
                     <div class="form-group-flat">
                         <label>Category</label>
-                        <div class="flat-select-wrapper" style="width: 100%;">
-                            <select id="eqFormCategory" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                        <div class="flat-select-wrapper" style="width: 100%; position: relative;">
+                            <select id="eqFormCategory" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 36px 8px 14px; border-radius: 8px;">
                                 <option value="Laptop">Laptop</option>
                                 <option value="Camera">Camera</option>
                                 <option value="Audio Equipment">Audio Equipment</option>
                                 <option value="Projector">Projector</option>
                                 <option value="Others">Others</option>
                             </select>
+                            <i class="fa-solid fa-chevron-down" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted); font-size: 13px;"></i>
                         </div>
                     </div>
 
@@ -286,11 +282,12 @@
 
                     <div class="form-group-flat">
                         <label>Status</label>
-                        <div class="flat-select-wrapper" style="width: 100%;">
-                            <select id="eqFormStatus" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                        <div class="flat-select-wrapper" style="width: 100%; position: relative;">
+                            <select id="eqFormStatus" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 36px 8px 14px; border-radius: 8px;">
                                 <option value="Available">Available</option>
                                 <option value="Unavailable">Unavailable</option>
                             </select>
+                            <i class="fa-solid fa-chevron-down" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted); font-size: 13px;"></i>
                         </div>
                     </div>
 
@@ -336,7 +333,7 @@
                         </div>
                         <div class="view-detail-item full">
                             <span class="label">Department Assignment</span>
-                            <span class="val">College of Computer Studies (CCS)</span>
+                            <span class="val">Assigned Department</span>
                         </div>
                     </div>
                 </div>
@@ -476,21 +473,15 @@
             const toastTitle = document.getElementById('toastTitle');
             const toastMsg = document.getElementById('toastMsg');
 
-            // Default Equipment List
-            const defaultEquipmentList = [
-                { id: 1, name: "Laptop Dell XPS", category: "Laptop", imgUrl: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 4, total: 10, status: "Available" },
-                { id: 2, name: "Camera Canon EOS", category: "Camera", imgUrl: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 5, total: 10, status: "Available" },
-                { id: 3, name: "Projector Epson", category: "Projector", imgUrl: "https://images.unsplash.com/photo-1588696860356-0eaee7d7c67c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 10, total: 15, status: "Available" },
-                { id: 4, name: "Wireless Microphone Set", category: "Audio Equipment", imgUrl: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 10, total: 20, status: "Available" },
-                { id: 5, name: "Scientific Calculator", category: "Others", imgUrl: "https://images.unsplash.com/photo-1587145820266-a5951ee6f620?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 4, total: 10, status: "Available" },
-                { id: 6, name: "Lenovo ThinkPad", category: "Laptop", imgUrl: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 5, total: 10, status: "Available" }
-            ];
-
+            // Equipment Storage Management
             let equipment = JSON.parse(localStorage.getItem('equip-track-equipment'));
-            if (!equipment || !Array.isArray(equipment) || equipment.length === 0) {
-                equipment = defaultEquipmentList;
-                localStorage.setItem('equip-track-equipment', JSON.stringify(equipment));
+            if (!equipment || !Array.isArray(equipment)) {
+                equipment = [];
+            } else {
+                // Filter out fake demo items if stored in localStorage
+                equipment = equipment.filter(e => !['Laptop Dell XPS', 'Camera Canon EOS', 'Projector Epson', 'Wireless Microphone Set', 'Scientific Calculator', 'Lenovo ThinkPad'].includes(e.name));
             }
+            localStorage.setItem('equip-track-equipment', JSON.stringify(equipment));
 
             let itemIdCounter = equipment.length > 0 ? Math.max(...equipment.map(e => e.id || 0)) + 1 : 1;
 
@@ -498,13 +489,13 @@
             function updateSummaryCards() {
                 const totalRegistered = equipment.reduce((acc, curr) => acc + (parseInt(curr.total) || 0), 0);
                 const totalReady = equipment.reduce((acc, curr) => acc + (parseInt(curr.available) || 0), 0);
-                const totalBorrowed = totalRegistered - totalReady;
+                const totalBorrowed = Math.max(0, totalRegistered - totalReady);
                 const totalUnavailable = equipment.filter(e => e.status === 'Unavailable').length;
 
-                sumRegistered.textContent = totalRegistered > 0 ? totalRegistered : 80;
-                sumReady.textContent = totalReady > 0 ? totalReady : 50;
-                sumBorrowed.textContent = totalBorrowed >= 0 ? totalBorrowed : 23;
-                sumUnavailable.textContent = totalUnavailable > 0 ? totalUnavailable : 7;
+                sumRegistered.textContent = totalRegistered;
+                sumReady.textContent = totalReady;
+                sumBorrowed.textContent = totalBorrowed;
+                sumUnavailable.textContent = totalUnavailable;
             }
 
             // Render equipment cards

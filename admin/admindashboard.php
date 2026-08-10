@@ -34,6 +34,11 @@
             <a href="admindashboard.php" class="nav-item active">
                 <i class="fa-solid fa-table-cells-large"></i> <span>Dashboard</span>
             </a>
+            <a href="profile.php" class="nav-item">
+                <i class="fa-solid fa-user"></i> <span>Profile</span>
+            </a>
+            
+            <div class="sidebar-section-label">Monitoring</div>
             <a href="equipment.php" class="nav-item">
                 <i class="fa-solid fa-toolbox"></i> <span>Equipment Management</span>
             </a>
@@ -43,8 +48,6 @@
             <a href="users.php" class="nav-item">
                 <i class="fa-solid fa-users"></i> <span>Users</span>
             </a>
-            
-            <div class="sidebar-section-label">Monitoring</div>
             <a href="monitoring.php" class="nav-item">
                 <i class="fa-solid fa-desktop"></i> <span>Equipment Monitoring</span>
             </a>
@@ -216,31 +219,10 @@
             <!-- Left Column: Low Stock -->
             <div class="admin-section flex-section">
                 <h4 class="admin-section-heading">Low Stock</h4>
-                <div class="low-stock-card card flex-table">
-                    <div class="stock-item-row">
-                        <div class="stock-item-left">
-                            <div class="stock-item-icon-box critical">
-                                <i class="fa-solid fa-triangle-exclamation"></i>
-                            </div>
-                            <div class="stock-item-meta">
-                                <span class="stock-item-name">Mouse</span>
-                                <span class="stock-status-label text-critical">Critical Level</span>
-                            </div>
-                        </div>
-                        <span class="stock-pill pill-critical">1 left</span>
-                    </div>
-                    <div class="stock-item-divider"></div>
-                    <div class="stock-item-row">
-                        <div class="stock-item-left">
-                            <div class="stock-item-icon-box warning">
-                                <i class="fa-solid fa-triangle-exclamation"></i>
-                            </div>
-                            <div class="stock-item-meta">
-                                <span class="stock-item-name">Projector</span>
-                                <span class="stock-status-label text-warning">Low Stock</span>
-                            </div>
-                        </div>
-                        <span class="stock-pill pill-warning">2 left</span>
+                <div class="low-stock-card card flex-table" id="lowStockCard">
+                    <div style="text-align: center; color: var(--text-muted); padding: 24px 16px;">
+                        <i class="fa-solid fa-box-open" style="color: var(--text-muted); font-size: 20px; margin-bottom: 8px; display: block;"></i>
+                        No low stock equipment.
                     </div>
                 </div>
             </div>
@@ -327,282 +309,35 @@
         const summarySegmentBar = document.getElementById('summarySegmentBar');
 
         // Requests Data Sync
-        const defaultRequestsList = [
-            {
-                id: 1,
-                user: "Gabriel F.",
-                role: "Student",
-                avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80",
-                equipment: "Laptop Dell",
-                category: "Laptop",
-                date: "May 1",
-                fullDate: "May 1, 2026",
-                borrowDate: "May 2, 2026",
-                dueDate: "May 5, 2026",
-                status: "Pending",
-                purpose: "Class Presentation",
-                notes: "Need a high-performance laptop for my Software Engineering presentation.",
-                img: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                rejectReason: ""
-            },
-            {
-                id: 2,
-                user: "Anna Mae S.",
-                role: "Teacher",
-                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
-                equipment: "Camera Canon",
-                category: "Camera",
-                date: "May 11",
-                fullDate: "May 11, 2026",
-                borrowDate: "May 12, 2026",
-                dueDate: "May 15, 2026",
-                status: "Pending",
-                purpose: "Field Research Documentation",
-                notes: "Will document plant samples in biology forestry campus lab.",
-                img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                rejectReason: ""
-            },
-            {
-                id: 3,
-                user: "Anna Mae S.",
-                role: "Teacher",
-                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
-                equipment: "Camera Canon",
-                category: "Camera",
-                date: "May 11",
-                fullDate: "May 11, 2026",
-                borrowDate: "May 13, 2026",
-                dueDate: "May 16, 2026",
-                status: "Pending",
-                purpose: "Classroom Activity",
-                notes: "Needed for photography lighting demonstration in multimedia lab.",
-                img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                rejectReason: ""
-            },
-            {
-                id: 4,
-                user: "Anna Mae S.",
-                role: "Teacher",
-                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
-                equipment: "Camera Canon",
-                category: "Camera",
-                date: "May 11",
-                fullDate: "May 11, 2026",
-                borrowDate: "May 14, 2026",
-                dueDate: "May 17, 2026",
-                status: "Pending",
-                purpose: "Event Documentation",
-                notes: "Documenting the school's intra-mural sports activities.",
-                img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                rejectReason: ""
-            },
-            {
-                id: 5,
-                user: "Anna Mae S.",
-                role: "Teacher",
-                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
-                equipment: "Camera Canon",
-                category: "Camera",
-                date: "May 11",
-                fullDate: "May 11, 2026",
-                borrowDate: "May 15, 2026",
-                dueDate: "May 18, 2026",
-                status: "Pending",
-                purpose: "Class Activity",
-                notes: "Visual arts photography workshop session.",
-                img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                rejectReason: ""
-            },
-            {
-                id: 6,
-                user: "Anna Mae S.",
-                role: "Teacher",
-                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
-                equipment: "Camera Canon",
-                category: "Camera",
-                date: "May 11",
-                fullDate: "May 11, 2026",
-                borrowDate: "May 16, 2026",
-                dueDate: "May 19, 2026",
-                status: "Pending",
-                purpose: "Research Project",
-                notes: "Gathering high resolution visuals for the regional science fair project.",
-                img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                rejectReason: ""
-            },
-            {
-                id: 7,
-                user: "Johnrey Neil R.",
-                role: "Student",
-                avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100&q=80",
-                equipment: "Lenovo ThinkPad",
-                category: "Laptop",
-                date: "May 12",
-                fullDate: "May 12, 2026",
-                borrowDate: "May 13, 2026",
-                dueDate: "May 16, 2026",
-                status: "Pending",
-                purpose: "Software Development",
-                notes: "Developing database prototype for final project.",
-                img: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                rejectReason: ""
-            },
-            {
-                id: 8,
-                user: "Johnrey Neil R.",
-                role: "Student",
-                avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100&q=80",
-                equipment: "Projector Epson",
-                category: "Projector",
-                date: "May 12",
-                fullDate: "May 12, 2026",
-                borrowDate: "May 14, 2026",
-                dueDate: "May 15, 2026",
-                status: "Pending",
-                purpose: "Group Study",
-                notes: "Needed for interactive group presentation in study hall.",
-                img: "https://images.unsplash.com/photo-1588696860356-0eaee7d7c67c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                rejectReason: ""
-            },
-            {
-                id: 9,
-                user: "Engineering Department",
-                role: "Department",
-                avatar: "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=100&h=100&q=80",
-                equipment: "Wireless Microphone Set",
-                category: "Audio",
-                date: "May 13",
-                fullDate: "May 13, 2026",
-                borrowDate: "May 14, 2026",
-                dueDate: "May 17, 2026",
-                status: "Pending",
-                purpose: "Seminar Event",
-                notes: "Audio amplification for the guest lecture series.",
-                img: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                rejectReason: ""
-            },
-            {
-                id: 10,
-                user: "Information Technology Department",
-                role: "Department",
-                avatar: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=100&h=100&q=80",
-                equipment: "Laptop Dell",
-                category: "Laptop",
-                date: "May 13",
-                fullDate: "May 13, 2026",
-                borrowDate: "May 15, 2026",
-                dueDate: "May 18, 2026",
-                status: "Pending",
-                purpose: "Lab Exam Setup",
-                notes: "Additional laptop for students with hardware issues.",
-                img: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                rejectReason: ""
-            },
-            {
-                id: 11,
-                user: "Gabriel F.",
-                role: "Student",
-                avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80",
-                equipment: "Camera Canon",
-                category: "Camera",
-                date: "May 14",
-                fullDate: "May 14, 2026",
-                borrowDate: "May 15, 2026",
-                dueDate: "May 16, 2026",
-                status: "Pending",
-                purpose: "Club Activity",
-                notes: "Taking photos for the Student Council newsletter.",
-                img: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                rejectReason: ""
-            },
-            {
-                id: 12,
-                user: "Anna Mae S.",
-                role: "Teacher",
-                avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80",
-                equipment: "Scientific Calculator",
-                category: "Others",
-                date: "May 14",
-                fullDate: "May 14, 2026",
-                borrowDate: "May 15, 2026",
-                dueDate: "May 16, 2026",
-                status: "Pending",
-                purpose: "Math Olympiad Training",
-                notes: "Providing calculators for selected trainees during mock quiz.",
-                img: "https://images.unsplash.com/photo-1587145820266-a5951ee6f620?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-                rejectReason: ""
-            }
-        ];
+        const defaultRequestsList = [];
 
         // Overdue Items default list
-        const defaultOverdueList = [
-            { user: "Gabriel F.", equipment: "Scientific Calculator", dueDate: "May 1", daysLate: "2 Days" },
-            { user: "Johnrey Neil R.", equipment: "Laptop Dell", dueDate: "April 30", daysLate: "5 Days" },
-            { user: "Anna Mae S.", equipment: "Camera Canon", dueDate: "May 10", daysLate: "15 Days" },
-            { user: "Information Technology Department", equipment: "Projector Epson", dueDate: "May 12", daysLate: "13 Days" },
-            { user: "Gabriel F.", equipment: "Lenovo ThinkPad", dueDate: "May 14", daysLate: "11 Days" }
-        ];
+        const defaultOverdueList = [];
 
-        // Initialize Users if not present
-        const defaultUsers = [
-            { id: 1, first_name: "Gabriel", last_name: "Fernandez", id_number: "20230123", role: "student", year_level: "3rd Year", email: "gabriel.fernandez@example.com", address: "123 University Ave, Tech City", department: "Information Technology Department", status: "Active", username: "gfernandez", created_at: "May 10, 2026", last_login: "June 17, 2026, 10:15 AM" },
-            { id: 2, first_name: "Johnrey Neil", last_name: "Rama", id_number: "20230456", role: "student", year_level: "4th Year", email: "johnrey.rama@example.com", address: "456 College Lane, Tech City", department: "Engineering Department", status: "Active", username: "johnrey.rama", created_at: "May 12, 2026", last_login: "June 16, 2026, 02:45 PM" },
-            { id: 3, first_name: "Information Technology Department", last_name: "", id_number: "D-IT-200", role: "department", year_level: "N/A", email: "it.dept@example.com", address: "IT Building Room 301", department: "Information Technology Department", status: "Active", username: "it.dept", created_at: "May 8, 2026", last_login: "June 15, 2026, 08:30 AM" },
-            { id: 4, first_name: "Engineering Department", last_name: "", id_number: "D-ENG-300", role: "department", year_level: "N/A", email: "engineering.dept@example.com", address: "Engineering Building Room 101", department: "Engineering Department", status: "Active", username: "engineering.dept", created_at: "May 9, 2026", last_login: "June 14, 2026, 11:20 AM" },
-            { id: 5, first_name: "Anna Mae", last_name: "S.", id_number: "T-00987", role: "teacher", year_level: "N/A", email: "anna.mae@example.com", address: "Science Hall Room 102", department: "Education Department", status: "Active", username: "anna.mae", created_at: "May 15, 2026", last_login: "June 17, 2026, 09:10 AM" },
-            { id: 6, first_name: "Education Department", last_name: "", id_number: "D-EDU-400", role: "department", year_level: "N/A", email: "education.dept@example.com", address: "Education Hall Room 105", department: "Education Department", status: "Active", username: "education.dept", created_at: "May 3, 2026", last_login: "June 14, 2026, 02:15 PM" }
-        ];
-        let users = JSON.parse(localStorage.getItem('equip-track-users'));
-        const isOutdated = !users || users.some(u => u.first_name === "Science" || u.first_name === "College of IT Department" || u.id_number === "2023-00123" || !users.some(dept => dept.first_name === "Education Department") || !users.some(dept => dept.first_name === "Information Technology Department") || users.some(u => !u.department));
-        if (isOutdated) {
-            users = defaultUsers;
-            localStorage.setItem('equip-track-users', JSON.stringify(users));
-        }
+        // Initialize Users
+        const defaultUsers = [];
+        let users = JSON.parse(localStorage.getItem('equip-track-users')) || [];
 
-        // Initialize Equipment if not present
-        const defaultEquipmentList = [
-            { id: 1, name: "Laptop Dell XPS", category: "laptop", imgUrl: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 4, total: 10, status: "Available" },
-            { id: 2, name: "Camera Canon EOS", category: "camera", imgUrl: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 5, total: 10, status: "Available" },
-            { id: 3, name: "Wireless Microphone Set", category: "audio", imgUrl: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 10, total: 10, status: "Available" },
-            { id: 4, name: "Lenovo ThinkPad", category: "laptop", imgUrl: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 2, total: 5, status: "Available" },
-            { id: 5, name: "Projector Epson", category: "projector", imgUrl: "https://images.unsplash.com/photo-1588696860356-0eaee7d7c67c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 10, total: 10, status: "Available" },
-            { id: 6, name: "Scientific Calculator", category: "others", imgUrl: "https://images.unsplash.com/photo-1587145820266-a5951ee6f620?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60", available: 4, total: 5, status: "Available" }
-        ];
-        let equipment = JSON.parse(localStorage.getItem('equip-track-equipment'));
-        if (!equipment) {
-            equipment = defaultEquipmentList;
-            localStorage.setItem('equip-track-equipment', JSON.stringify(equipment));
-        }
+        // Initialize Equipment
+        const defaultEquipmentList = [];
+        let equipment = JSON.parse(localStorage.getItem('equip-track-equipment')) || [];
 
-        let requests = JSON.parse(localStorage.getItem('equip-track-requests'));
-        const requestsOutdated = !requests || requests.some(r => r.user === "Science Department" || r.user === "IT Department" || r.user === "College of IT Department");
-        if (requestsOutdated) {
-            // Set first 8 to Pending and last 4 to Approved
-            defaultRequestsList.forEach((req, index) => {
-                if (index >= 8) {
-                    req.status = 'Approved';
-                } else {
-                    req.status = 'Pending';
-                }
-            });
-            requests = defaultRequestsList;
-            localStorage.setItem('equip-track-requests', JSON.stringify(requests));
-        }
+        let requests = JSON.parse(localStorage.getItem('equip-track-requests')) || [];
 
         // Render Dashboard Stats and Table
         function renderDashboard() {
             // Calculate Stats
-            const pendingRequests = requests.filter(r => r.status.toLowerCase() === 'pending');
-            const approvedRequests = requests.filter(r => r.status.toLowerCase() === 'approved');
-            const rejectedRequests = requests.filter(r => r.status.toLowerCase() === 'rejected');
+            const pendingRequests = requests.filter(r => r.status && r.status.toLowerCase() === 'pending');
+            const approvedRequests = requests.filter(r => r.status && r.status.toLowerCase() === 'approved');
+            const rejectedRequests = requests.filter(r => r.status && r.status.toLowerCase() === 'rejected');
             
             const totalPending = pendingRequests.length;
             const totalApproved = approvedRequests.length;
             const totalRejected = rejectedRequests.length;
             
             // System summary totals
-            const baseApproved = 30; 
-            const baseRejected = 10;
+            const baseApproved = 0; 
+            const baseRejected = 0;
             const finalApproved = baseApproved + totalApproved;
             const finalRejected = baseRejected + totalRejected;
             const finalTotal = finalApproved + finalRejected + totalPending;
@@ -650,8 +385,8 @@
                     tableBody.innerHTML = `
                         <tr>
                             <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">
-                                <i class="fa-solid fa-check-double" style="color: #10b981; font-size: 20px; margin-bottom: 8px; display: block;"></i>
-                                All pending requests processed!
+                                <i class="fa-solid fa-inbox" style="color: var(--text-muted); font-size: 20px; margin-bottom: 8px; display: block;"></i>
+                                No recent requests found.
                             </td>
                         </tr>
                     `;
@@ -680,17 +415,28 @@
             const overdueTableBody = document.getElementById('overdueTableBody');
             if (overdueTableBody) {
                 overdueTableBody.innerHTML = '';
-                defaultOverdueList.forEach(item => {
-                    const tr = document.createElement('tr');
-                    tr.className = 'admin-table-row';
-                    tr.innerHTML = `
-                        <td>${escapeHTML(item.user)}</td>
-                        <td>${escapeHTML(item.equipment)}</td>
-                        <td>${escapeHTML(item.dueDate)}</td>
-                        <td><span class="days-late">${escapeHTML(item.daysLate)}</span></td>
+                if (defaultOverdueList.length === 0) {
+                    overdueTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                                <i class="fa-solid fa-check-circle" style="color: #10b981; font-size: 20px; margin-bottom: 8px; display: block;"></i>
+                                No overdue items recorded.
+                            </td>
+                        </tr>
                     `;
-                    overdueTableBody.appendChild(tr);
-                });
+                } else {
+                    defaultOverdueList.forEach(item => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'admin-table-row';
+                        tr.innerHTML = `
+                            <td>${escapeHTML(item.user)}</td>
+                            <td>${escapeHTML(item.equipment)}</td>
+                            <td>${escapeHTML(item.dueDate)}</td>
+                            <td><span class="days-late">${escapeHTML(item.daysLate)}</span></td>
+                        `;
+                        overdueTableBody.appendChild(tr);
+                    });
+                }
             }
         }
 

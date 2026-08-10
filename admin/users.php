@@ -38,6 +38,11 @@
             <a href="admindashboard.php" class="nav-item">
                 <i class="fa-solid fa-table-cells-large"></i> <span>Dashboard</span>
             </a>
+            <a href="profile.php" class="nav-item">
+                <i class="fa-solid fa-user"></i> <span>Profile</span>
+            </a>
+            
+            <div class="sidebar-section-label">Monitoring</div>
             <a href="equipment.php" class="nav-item">
                 <i class="fa-solid fa-toolbox"></i> <span>Equipment Management</span>
             </a>
@@ -47,8 +52,6 @@
             <a href="users.php" class="nav-item active">
                 <i class="fa-solid fa-users"></i> <span>Users</span>
             </a>
-            
-            <div class="sidebar-section-label">Monitoring</div>
             <a href="monitoring.php" class="nav-item">
                 <i class="fa-solid fa-desktop"></i> <span>Equipment Monitoring</span>
             </a>
@@ -62,7 +65,7 @@
     </aside>
 
     <!-- Main Content Area -->
-    <main class="main-content" style="min-width: 0;">
+    <main class="main-content">
         <!-- Top Navbar -->
         <header class="top-navbar profile-navbar">
             <div class="navbar-right">
@@ -503,106 +506,11 @@
             const paginationButtons = document.getElementById('paginationButtons');
 
             // Initial defaults for user list in local storage
-            const defaultUsers = [
-                {
-                    id: 1,
-                    first_name: "Gabriel",
-                    last_name: "Fernandez",
-                    id_number: "20230123",
-                    role: "student",
-                    year_level: "3rd Year",
-                    email: "gabriel.fernandez@example.com",
-                    address: "123 University Ave, Tech City",
-                    department: "Information Technology Department",
-                    status: "Active",
-                    username: "gfernandez",
-                    created_at: "May 10, 2026",
-                    last_login: "June 17, 2026, 10:15 AM"
-                },
-                {
-                    id: 2,
-                    first_name: "Johnrey Neil",
-                    last_name: "Rama",
-                    id_number: "20230456",
-                    role: "student",
-                    year_level: "4th Year",
-                    email: "johnrey.rama@example.com",
-                    address: "456 College Lane, Tech City",
-                    department: "Engineering Department",
-                    status: "Active",
-                    username: "johnrey.rama",
-                    created_at: "May 12, 2026",
-                    last_login: "June 16, 2026, 02:45 PM"
-                },
-                {
-                    id: 3,
-                    first_name: "Information Technology Department",
-                    last_name: "",
-                    id_number: "D-IT-200",
-                    role: "department",
-                    year_level: "N/A",
-                    email: "it.dept@equiptrack.edu",
-                    address: "Tech Building Room 302",
-                    department: "Information Technology Department",
-                    status: "Active",
-                    username: "it.dept",
-                    created_at: "May 01, 2026",
-                    last_login: "June 17, 2026, 08:30 AM"
-                },
-                {
-                    id: 4,
-                    first_name: "Engineering Department",
-                    last_name: "",
-                    id_number: "D-ENG-300",
-                    role: "department",
-                    year_level: "N/A",
-                    email: "engineering.dept@equiptrack.edu",
-                    address: "Engineering Building Room 101",
-                    department: "Engineering Department",
-                    status: "Active",
-                    username: "engineering.dept",
-                    created_at: "May 02, 2026",
-                    last_login: "June 15, 2026, 11:20 AM"
-                },
-                {
-                    id: 5,
-                    first_name: "Anna Mae",
-                    last_name: "S.",
-                    id_number: "T-2021-001",
-                    role: "teacher",
-                    year_level: "N/A",
-                    email: "anna.mae@example.com",
-                    address: "Science Hall Room 102",
-                    department: "Education Department",
-                    status: "Active",
-                    username: "anna.mae",
-                    created_at: "May 15, 2026",
-                    last_login: "June 17, 2026, 09:10 AM"
-                },
-                {
-                    id: 6,
-                    first_name: "Education Department",
-                    last_name: "",
-                    id_number: "D-EDU-400",
-                    role: "department",
-                    year_level: "N/A",
-                    email: "education.dept@equiptrack.edu",
-                    address: "Education Hall Room 105",
-                    department: "Education Department",
-                    status: "Active",
-                    username: "education.dept",
-                    created_at: "May 03, 2026",
-                    last_login: "June 14, 2026, 02:15 PM"
-                }
-            ];
+            const defaultUsers = [];
 
-            let users = JSON.parse(localStorage.getItem('equip-track-users'));
-            const isOutdated = !users || users.some(u => u.first_name === "Science" || u.first_name === "College of IT Department" || u.id_number === "2023-00123" || !users.some(dept => dept.first_name === "Education Department") || !users.some(dept => dept.first_name === "Information Technology Department") || users.some(u => !u.department));
-            
-            if (isOutdated) {
-                users = defaultUsers;
-                localStorage.setItem('equip-track-users', JSON.stringify(users));
-            }
+            // Force clean empty state for initial system setup
+            let users = [];
+            localStorage.setItem('equip-track-users', JSON.stringify([]));
 
             // Pagination state
             let currentPage = 1;

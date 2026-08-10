@@ -59,8 +59,8 @@
                 <div class="icon-btn" id="themeToggleBtn"><i class="fa-solid fa-moon" id="themeToggleIcon"></i></div>
                 <div class="icon-btn notification"><i class="fa-solid fa-bell"></i></div>
                 <div class="user-profile">
-                    <img src="https://ui-avatars.com/api/?name=Gabriel+Fernandez&background=random" alt="Gabriel Fernandez" class="avatar">
-                    <span class="user-name">Gabriel Fernandez</span>
+                    <img src="https://ui-avatars.com/api/?name=User&background=random" alt="User" class="avatar">
+                    <span class="user-name">User</span>
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
             </div>
@@ -75,42 +75,42 @@
                         <i class="fa-solid fa-table-cells-large"></i>
                         <div class="cat-info">
                             <span class="cat-name">All</span>
-                            <span class="cat-count">678</span>
+                            <span class="cat-count">0</span>
                         </div>
                     </div>
                     <div class="category-card" data-category="laptop">
                         <i class="fa-solid fa-laptop"></i>
                         <div class="cat-info">
                             <span class="cat-name">Laptops</span>
-                            <span class="cat-count">90</span>
+                            <span class="cat-count">0</span>
                         </div>
                     </div>
                     <div class="category-card" data-category="projector">
                         <i class="fa-solid fa-video"></i>
                         <div class="cat-info">
                             <span class="cat-name">Projectors</span>
-                            <span class="cat-count">50</span>
+                            <span class="cat-count">0</span>
                         </div>
                     </div>
                     <div class="category-card" data-category="camera">
                         <i class="fa-solid fa-flask"></i>
                         <div class="cat-info">
                             <span class="cat-name">Lab Equipment</span>
-                            <span class="cat-count">300</span>
+                            <span class="cat-count">0</span>
                         </div>
                     </div>
                     <div class="category-card" data-category="audio">
                         <i class="fa-solid fa-music"></i>
                         <div class="cat-info">
                             <span class="cat-name">Audio Equipment</span>
-                            <span class="cat-count">238</span>
+                            <span class="cat-count">0</span>
                         </div>
                     </div>
                     <div class="category-card" data-category="others">
                         <i class="fa-solid fa-box"></i>
                         <div class="cat-info">
                             <span class="cat-name">Others</span>
-                            <span class="cat-count">145</span>
+                            <span class="cat-count">0</span>
                         </div>
                     </div>
                 </div>
@@ -126,96 +126,13 @@
                     </div>
                 </div>
 
-                <div class="equipment-grid">
-                    <!-- Item 1 -->
-                    <div class="equipment-card" data-category="laptop">
-                        <div class="eq-img-container">
-                            <img src="https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Laptop Dell XPS">
-                        </div>
-                        <div class="eq-details">
-                            <h4 class="eq-name">Laptop Dell XPS</h4>
-                            <div class="eq-meta">
-                                <span class="eq-category"><i class="fa-solid fa-laptop"></i> Laptop</span>
-                                <span class="eq-available"><i class="fa-solid fa-circle-check"></i> 4 Left</span>
-                            </div>
-                        </div>
-                        <button class="btn-request">Request</button>
+                <div class="equipment-grid" id="equipmentGrid">
+                    <div class="empty-state-card" style="grid-column: 1 / -1; text-align: center; padding: 48px 24px; color: var(--text-muted, #64748b);">
+                        <i class="fa-solid fa-box-open" style="font-size: 36px; margin-bottom: 12px; opacity: 0.5; display: block;"></i>
+                        <h4 style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">No available equipment</h4>
+                        <p style="font-size: 13px;">Equipment items will appear here once added to the system inventory.</p>
                     </div>
-
-                    <!-- Item 2 -->
-                    <div class="equipment-card" data-category="camera">
-                        <div class="eq-img-container">
-                            <img src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Camera Canon EOS">
-                        </div>
-                        <div class="eq-details">
-                            <h4 class="eq-name">Camera Canon EOS</h4>
-                            <div class="eq-meta">
-                                <span class="eq-category"><i class="fa-solid fa-camera"></i> Camera</span>
-                                <span class="eq-available"><i class="fa-solid fa-circle-check"></i> 5 Left</span>
-                            </div>
-                        </div>
-                        <button class="btn-request">Request</button>
-                    </div>
-
-                    <!-- Item 3 -->
-                    <div class="equipment-card" data-category="audio">
-                        <div class="eq-img-container" style="background-color: #f8f8f8;">
-                            <img src="https://images.unsplash.com/photo-1590602847861-f357a9332bbc?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Wireless Microphone Set" style="object-fit: contain;">
-                        </div>
-                        <div class="eq-details">
-                            <h4 class="eq-name">Wireless Microphone Set</h4>
-                            <div class="eq-meta">
-                                <span class="eq-category"><i class="fa-solid fa-microphone"></i> Audio</span>
-                                <span class="eq-available"><i class="fa-solid fa-circle-check"></i> 10 Left</span>
-                            </div>
-                        </div>
-                        <button class="btn-request">Request</button>
-                    </div>
-
-                    <!-- Item 4 -->
-                    <div class="equipment-card" data-category="laptop">
-                        <div class="eq-img-container">
-                            <img src="https://images.unsplash.com/photo-1603302576837-37561b2e2302?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Lenovo ThinkPad">
-                        </div>
-                        <div class="eq-details">
-                            <h4 class="eq-name">Lenovo ThinkPad</h4>
-                            <div class="eq-meta">
-                                <span class="eq-category"><i class="fa-solid fa-laptop"></i> Laptop</span>
-                                <span class="eq-available low-stock"><i class="fa-solid fa-triangle-exclamation"></i> 2 Left</span>
-                            </div>
-                        </div>
-                        <button class="btn-request">Request</button>
-                    </div>
-
-                    <!-- Item 5 -->
-                    <div class="equipment-card" data-category="projector">
-                        <div class="eq-img-container" style="background-color: #ffffff;">
-                            <img src="https://images.unsplash.com/photo-1588696860356-0eaee7d7c67c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Projector Epson" style="object-fit: contain; padding: 10px;">
-                        </div>
-                        <div class="eq-details">
-                            <h4 class="eq-name">Projector Epson</h4>
-                            <div class="eq-meta">
-                                <span class="eq-category"><i class="fa-solid fa-video"></i> Projector</span>
-                                <span class="eq-available"><i class="fa-solid fa-circle-check"></i> 10 Left</span>
-                            </div>
-                        </div>
-                        <button class="btn-request">Request</button>
-                    </div>
-
-                    <!-- Item 6 -->
-                    <div class="equipment-card" data-category="others">
-                        <div class="eq-img-container">
-                            <img src="https://images.unsplash.com/photo-1587145820266-a5951ee6f620?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60" alt="Scientific Calculator" style="object-fit: contain; background: white;">
-                        </div>
-                        <div class="eq-details">
-                            <h4 class="eq-name">Scientific Calculator</h4>
-                            <div class="eq-meta">
-                                <span class="eq-category"><i class="fa-solid fa-calculator"></i> Others</span>
-                                <span class="eq-available"><i class="fa-solid fa-circle-check"></i> 4 Left</span>
-                            </div>
-                        </div>
-                        <button class="btn-request">Request</button>
-                    </div>
+                </div>
             </div>
         </div>
 

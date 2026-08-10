@@ -59,8 +59,8 @@
                 <div class="icon-btn" id="themeToggleBtn"><i class="fa-solid fa-moon" id="themeToggleIcon"></i></div>
                 <div class="icon-btn notification"><i class="fa-solid fa-bell"></i></div>
                 <div class="user-profile">
-                    <img src="https://ui-avatars.com/api/?name=Gabriel+Fernandez&background=random" alt="Gabriel Fernandez" class="avatar">
-                    <span class="user-name">Gabriel Fernandez</span>
+                    <img src="https://ui-avatars.com/api/?name=User&background=random" alt="User" class="avatar">
+                    <span class="user-name">User</span>
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
             </div>
@@ -100,115 +100,10 @@
                     </tr>
                 </thead>
                 <tbody id="requestsTableBody">
-                    <tr class="request-row" 
-                        data-equipment="Laptop" 
-                        data-category="Gadgets / Devices"
-                        data-req-date="May 1, 2026"
-                        data-borrow-date="May 2, 2026"
-                        data-due-date="May 5, 2026"
-                        data-status="Pending"
-                        data-purpose="Class Project / Presentation"
-                        data-notes="Required for Software Engineering presentation and demonstration."
-                        data-img="https://images.unsplash.com/photo-1496181130204-7552cc15745e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60">
-                        <td>1</td>
-                        <td>Laptop</td>
-                        <td>May 1</td>
-                        <td>May 2</td>
-                        <td>May 5</td>
-                        <td><span class="status-text status-pending">Pending</span></td>
-                        <td><span class="action-placeholder">---</span></td>
-                    </tr>
-                    <tr class="request-row" 
-                        data-equipment="Calculator" 
-                        data-category="Others"
-                        data-req-date="May 7, 2026"
-                        data-borrow-date="May 8, 2026"
-                        data-due-date="May 9, 2026"
-                        data-status="Approved"
-                        data-purpose="Laboratory Activity"
-                        data-notes="Required for final engineering calculus exam."
-                        data-img="https://images.unsplash.com/photo-1587145820266-a5951ee6f620?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60">
-                        <td>2</td>
-                        <td>Calculator</td>
-                        <td>May 7</td>
-                        <td>May 8</td>
-                        <td>May 9</td>
-                        <td><span class="status-text status-approved">Approved</span></td>
-                        <td><button class="btn-view-request" onclick="openRequestDetails(this)">View</button></td>
-                    </tr>
-                    <tr class="request-row" 
-                        data-equipment="Projector" 
-                        data-category="Gadgets / Devices"
-                        data-req-date="May 11, 2026"
-                        data-borrow-date="May 11, 2026"
-                        data-due-date="May 13, 2026"
-                        data-status="Rejected"
-                        data-purpose="School Event / Organization"
-                        data-notes="Student organization general assembly presentation."
-                        data-img="https://images.unsplash.com/photo-1535016120720-40c646be5580?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60"
-                        data-reject-reason="Requested equipment is currently reserved by another department for a priority event.">
-                        <td>3</td>
-                        <td>Projector</td>
-                        <td>May 11</td>
-                        <td>May 11</td>
-                        <td>May 13</td>
-                        <td><span class="status-text status-rejected">Rejected</span></td>
-                        <td><button class="btn-view-request" onclick="openRequestDetails(this)">View</button></td>
-                    </tr>
-                    <tr class="request-row" 
-                        data-equipment="Laptop" 
-                        data-category="Gadgets / Devices"
-                        data-req-date="May 1, 2026"
-                        data-borrow-date="May 2, 2026"
-                        data-due-date="May 5, 2026"
-                        data-status="Pending"
-                        data-purpose="Class Project / Presentation"
-                        data-notes="Term project programming tasks."
-                        data-img="https://images.unsplash.com/photo-1496181130204-7552cc15745e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60">
-                        <td>1</td>
-                        <td>Laptop</td>
-                        <td>May 1</td>
-                        <td>May 2</td>
-                        <td>May 5</td>
-                        <td><span class="status-text status-pending">Pending</span></td>
-                        <td><span class="action-placeholder">---</span></td>
-                    </tr>
-                    <tr class="request-row" 
-                        data-equipment="Calculator" 
-                        data-category="Others"
-                        data-req-date="May 7, 2026"
-                        data-borrow-date="May 8, 2026"
-                        data-due-date="May 9, 2026"
-                        data-status="Approved"
-                        data-purpose="Laboratory Activity"
-                        data-notes="Midterm calculus assessment."
-                        data-img="https://images.unsplash.com/photo-1587145820266-a5951ee6f620?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60">
-                        <td>2</td>
-                        <td>Calculator</td>
-                        <td>May 7</td>
-                        <td>May 8</td>
-                        <td>May 9</td>
-                        <td><span class="status-text status-approved">Approved</span></td>
-                        <td><button class="btn-view-request" onclick="openRequestDetails(this)">View</button></td>
-                    </tr>
-                    <tr class="request-row" 
-                        data-equipment="Projector" 
-                        data-category="Gadgets / Devices"
-                        data-req-date="May 11, 2026"
-                        data-borrow-date="May 11, 2026"
-                        data-due-date="May 13, 2026"
-                        data-status="Rejected"
-                        data-purpose="School Event / Organization"
-                        data-notes="Org general assembly."
-                        data-img="https://images.unsplash.com/photo-1535016120720-40c646be5580?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60"
-                        data-reject-reason="Required items are under scheduled maintenance.">
-                        <td>3</td>
-                        <td>Projector</td>
-                        <td>May 11</td>
-                        <td>May 11</td>
-                        <td>May 13</td>
-                        <td><span class="status-text status-rejected">Rejected</span></td>
-                        <td><button class="btn-view-request" onclick="openRequestDetails(this)">View</button></td>
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted, #64748b); padding: 32px;">
+                            No equipment requests found.
+                        </td>
                     </tr>
                 </tbody>
             </table>
