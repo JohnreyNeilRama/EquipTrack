@@ -88,7 +88,7 @@
     background-color: var(--card-bg);
     border-radius: 20px !important;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
-    border: 1px solid var(--border-color) !important;
+    border: 1px solid var(--table-border, #718096) !important;
     overflow: hidden;
     width: 100%;
     margin-bottom: 40px;
@@ -99,6 +99,11 @@
     border-collapse: collapse;
 }
 
+.history-table-card thead {
+    background-color: var(--table-header) !important;
+    border-bottom: 1px solid var(--table-border, #718096) !important;
+}
+
 .history-table-card th {
     background-color: var(--table-header) !important; /* #8AA4D2 matching screenshot */
     color: #ffffff !important;
@@ -107,13 +112,14 @@
     padding: 16px 24px !important;
     text-align: left;
     border: none !important;
+    border-bottom: 1px solid var(--table-border, #718096) !important;
 }
 
 .history-table-card td {
     padding: 16px 24px !important;
     font-size: 14px !important;
     color: var(--text-main) !important;
-    border-bottom: 1px solid var(--border-color) !important;
+    border-bottom: 1px solid var(--table-border, #718096) !important;
     background: transparent !important;
 }
 

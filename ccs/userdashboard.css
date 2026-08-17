@@ -524,6 +524,7 @@ th {
     color: #ffffff;
     text-transform: none;
     letter-spacing: normal;
+    border-bottom: 1px solid var(--table-border);
 }
 
 td {
@@ -531,8 +532,12 @@ td {
     font-size: 14px;
     font-weight: 500;
     color: var(--text-main);
-    border-bottom: none;
+    border-bottom: 1px solid var(--table-border);
     vertical-align: middle;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
 }
 
 tbody tr {
