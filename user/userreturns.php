@@ -7,8 +7,8 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="../images/logo_only.png">
     <link rel="apple-touch-icon" href="../images/logo_only.png">
-    <link rel="stylesheet" href="../ccs/userdashboard.css">
-    <link rel="stylesheet" href="../ccs/userreturns.css">
+    <link rel="stylesheet" href="../ccs/global.css">
+    <link rel="stylesheet" href="css/userreturns.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -54,14 +54,30 @@
     <main class="main-content">
         <!-- Top Navbar -->
         <header class="top-navbar profile-navbar">
-            <div class="nav-line"></div>
             <div class="navbar-right">
-                <div class="icon-btn" id="themeToggleBtn"><i class="fa-solid fa-moon" id="themeToggleIcon"></i></div>
-                <div class="icon-btn notification"><i class="fa-solid fa-bell"></i></div>
-                <div class="user-profile">
-                    <img src="https://ui-avatars.com/api/?name=User&background=random" alt="User" class="avatar">
+                <span class="navbar-divider"></span>
+                <div class="icon-btn" id="themeToggleBtn" title="Toggle theme">
+                    <i class="fa-solid fa-moon" id="themeToggleIcon"></i>
+                </div>
+                <div class="icon-btn notification" id="notifBtn" title="Notifications">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <span class="navbar-divider"></span>
+                <div class="user-profile" id="userProfileDropdown">
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">US</div>
                     <span class="user-name">User</span>
-                    <i class="fa-solid fa-chevron-down"></i>
+                    <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+                    
+                    <!-- Dropdown Menu -->
+                    <div class="profile-dropdown-menu" id="dropdownMenu">
+                        <div class="dropdown-profile-header">
+                            <span class="header-name">User</span>
+                            <span class="header-email">user@equiptrack.edu</span>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a href="userprofile.php"><i class="fa-solid fa-user"></i> My Profile</a>
+                        <a href="../login.php" class="danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+                    </div>
                 </div>
             </div>
         </header>
@@ -215,6 +231,21 @@
                     themeToggleIcon.className = 'fa-solid fa-moon';
                     localStorage.setItem('dashboard-theme', 'light');
                 }
+            });
+        }
+
+        // Profile dropdown
+        const userProfileDropdown = document.getElementById('userProfileDropdown');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+
+        if (userProfileDropdown && dropdownMenu) {
+            userProfileDropdown.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdownMenu.classList.toggle('show');
+            });
+
+            document.addEventListener('click', () => {
+                dropdownMenu.classList.remove('show');
             });
         }
 

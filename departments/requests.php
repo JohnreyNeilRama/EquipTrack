@@ -12,7 +12,7 @@
     <link rel="icon" type="image/png" href="../images/logo_only.png">
     <link rel="apple-touch-icon" href="../images/logo_only.png">
     <!-- Base Layout Stylesheet -->
-    <link rel="stylesheet" href="../ccs/userdashboard.css">
+    <link rel="stylesheet" href="../ccs/global.css">
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">

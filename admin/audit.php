@@ -11,9 +11,9 @@
     <link rel="icon" type="image/png" href="../images/logo_only.png">
     <link rel="apple-touch-icon" href="../images/logo_only.png">
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="../ccs/userdashboard.css?v=<?php echo time(); ?>">
-    <link rel="stylesheet" href="../ccs/admindashboard.css?v=<?php echo time(); ?>">
-    <link rel="stylesheet" href="../ccs/adminaudit.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../ccs/global.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="css/admindashboard.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="css/adminaudit.css?v=<?php echo time(); ?>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -69,15 +69,15 @@
         <header class="top-navbar profile-navbar">
             <div class="navbar-right">
                 <span class="navbar-divider"></span>
-                <div class="icon-btn" id="themeToggleBtn">
+                <div class="icon-btn" id="themeToggleBtn" title="Toggle theme">
                     <i class="fa-solid fa-moon" id="themeToggleIcon"></i>
                 </div>
-                <div class="icon-btn notification" id="notificationBtn">
+                <div class="icon-btn notification" id="notificationBtn" title="Notifications">
                     <i class="fa-solid fa-bell"></i>
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80" alt="Admin Avatar" class="avatar">
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">AD</div>
                     <span class="user-name">Admin</span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
@@ -88,8 +88,8 @@
                             <span class="header-email">admin@equiptrack.edu</span>
                         </div>
                         <div class="dropdown-divider"></div>
-                        <a href="admindashboard.php"><i class="fa-solid fa-sliders"></i> Settings</a>
-                        <a href="../login.php" style="color: #ef4444;"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+                        <a href="profile.php"><i class="fa-solid fa-user"></i> My Profile</a>
+                        <a href="../login.php" class="danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
                     </div>
                 </div>
             </div>

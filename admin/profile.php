@@ -11,9 +11,9 @@
     <link rel="icon" type="image/png" href="../images/logo_only.png">
     <link rel="apple-touch-icon" href="../images/logo_only.png">
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="../ccs/userdashboard.css?v=<?php echo time(); ?>">
-    <link rel="stylesheet" href="../ccs/admindashboard.css?v=<?php echo time(); ?>">
-    <link rel="stylesheet" href="../ccs/adminprofile.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../ccs/global.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="css/admindashboard.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="css/adminprofile.css?v=<?php echo time(); ?>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -72,23 +72,23 @@
                 <div class="icon-btn" id="themeToggleBtn" title="Toggle theme">
                     <i class="fa-solid fa-moon" id="themeToggleIcon"></i>
                 </div>
-                <div class="icon-btn notification" title="Notifications">
+                <div class="icon-btn notification" id="notifBtn" title="Notifications">
                     <i class="fa-solid fa-bell"></i>
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <img src="../images/uc_logo.png" alt="Admin Avatar" class="avatar profile-top-avatar" style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover;">
-                    <span class="user-name" id="topNavName">Admin</span>
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">AD</div>
+                    <span class="user-name">Admin</span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
                     <!-- Dropdown Menu -->
                     <div class="profile-dropdown-menu" id="dropdownMenu">
                         <div class="dropdown-profile-header">
-                            <span class="header-name" id="dropdownHeaderName">—</span>
-                            <span class="header-email" id="dropdownHeaderEmail">—</span>
+                            <span class="header-name" id="dropdownHeaderName">Admin</span>
+                            <span class="header-email" id="dropdownHeaderEmail">admin@equiptrack.edu</span>
                         </div>
                         <div class="dropdown-divider"></div>
-                        <a href="profile.php"><i class="fa-solid fa-user"></i> Profile</a>
+                        <a href="profile.php"><i class="fa-solid fa-user"></i> My Profile</a>
                         <a href="../login.php" class="danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
                     </div>
                 </div>

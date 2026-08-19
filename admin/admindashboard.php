@@ -8,9 +8,9 @@
     <link rel="icon" type="image/png" href="../images/logo_only.png">
     <link rel="apple-touch-icon" href="../images/logo_only.png">
     <!-- Base Layout Stylesheet -->
-    <link rel="stylesheet" href="../ccs/userdashboard.css">
+    <link rel="stylesheet" href="../ccs/global.css">
     <!-- Admin Specific Stylesheet -->
-    <link rel="stylesheet" href="../ccs/admindashboard.css">
+    <link rel="stylesheet" href="css/admindashboard.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -66,15 +66,15 @@
         <header class="top-navbar profile-navbar">
             <div class="navbar-right">
                 <span class="navbar-divider"></span>
-                <div class="icon-btn" id="themeToggleBtn">
+                <div class="icon-btn" id="themeToggleBtn" title="Toggle theme">
                     <i class="fa-solid fa-moon" id="themeToggleIcon"></i>
                 </div>
-                <div class="icon-btn notification">
+                <div class="icon-btn notification" id="notifBtn" title="Notifications">
                     <i class="fa-solid fa-bell"></i>
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100&q=80" alt="Admin Avatar" class="avatar">
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">AD</div>
                     <span class="user-name">Admin</span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
@@ -85,8 +85,8 @@
                             <span class="header-email">admin@equiptrack.edu</span>
                         </div>
                         <div class="dropdown-divider"></div>
-                        <a href="admindashboard.php"><i class="fa-solid fa-sliders"></i> Settings</a>
-                        <a href="../login.php"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+                        <a href="profile.php"><i class="fa-solid fa-user"></i> My Profile</a>
+                        <a href="../login.php" class="danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
                     </div>
                 </div>
             </div>
@@ -95,7 +95,7 @@
         <!-- Welcome Banner -->
         <div class="welcome-banner card" style="margin-top: 24px;">
             <div class="welcome-text">
-                <span class="welcome-pill">Dashboard Overview</span>
+                <span class="banner-date">Today</span>
                 <h3>Welcome back, Admin!</h3>
                 <p>Here's an overview of equipment requests, borrowings, and system activity.</p>
             </div>
@@ -286,6 +286,14 @@
 
     <!-- Scripting for Toggles and Interactivity -->
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const bannerDate = document.querySelector('.banner-date');
+            if (bannerDate) {
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                bannerDate.textContent = new Date().toLocaleDateString('en-US', options);
+            }
+        });
+
         // DOM Elements
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const themeToggleIcon = document.getElementById('themeToggleIcon');

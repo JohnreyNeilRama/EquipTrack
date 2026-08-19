@@ -12,9 +12,11 @@
     <link rel="icon" type="image/png" href="../images/logo_only.png">
     <link rel="apple-touch-icon" href="../images/logo_only.png">
     <!-- Base Layout Stylesheet -->
-    <link rel="stylesheet" href="../ccs/userdashboard.css">
+    <link rel="stylesheet" href="../ccs/global.css">
     <!-- Admin Specific Stylesheet -->
-    <link rel="stylesheet" href="../ccs/admindashboard.css">
+    <link rel="stylesheet" href="../admin/css/admindashboard.css">
+    <!-- Page Stylesheet -->
+    <link rel="stylesheet" href="css/departmentdashboard.css">
     <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -97,7 +99,7 @@
         <!-- Welcome Banner -->
         <div class="welcome-banner card" style="margin-top: 24px;">
             <div class="banner-text">
-                <span class="banner-date">Dashboard Overview</span>
+                <span class="banner-date">Today</span>
                 <h2>Welcome back, Department Personnel! 👋</h2>
                 <p>Manage your department's equipment, monitor borrowing activities, and review requests efficiently.</p>
             </div>
@@ -269,6 +271,14 @@
 
     <!-- Interactivity -->
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const bannerDate = document.querySelector('.banner-date');
+            if (bannerDate) {
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                bannerDate.textContent = new Date().toLocaleDateString('en-US', options);
+            }
+        });
+
         // Dark mode toggle
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const themeToggleIcon = document.getElementById('themeToggleIcon');
