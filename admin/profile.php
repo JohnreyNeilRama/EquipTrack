@@ -1,5 +1,80 @@
 <?php
-// EquipTrack — Admin Account Profile Page
+require_once __DIR__ . '/auth_check.php';
+
+
+$admin_id = (int)$_SESSION['admin_id'];
+$success_msg = '';
+$error_msg = '';
+
+// Handle Profile Updates via POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $full_name   = trim($_POST['admin_full_name'] ?? '');
+    $email       = trim($_POST['admin_email'] ?? '');
+    $employee_id = trim($_POST['admin_employee_id'] ?? '');
+    $current_pwd = $_POST['current_password'] ?? '';
+    $new_pwd     = $_POST['new_password'] ?? '';
+    $confirm_pwd = $_POST['confirm_password'] ?? '';
+
+    if (empty($full_name) || empty($email)) {
+        $error_msg = 'Full Name and Email are required.';
+    } else {
+        $stmtCurrent = $conn->prepare("SELECT * FROM admin WHERE admin_id = ?");
+        $stmtCurrent->bind_param("i", $admin_id);
+        $stmtCurrent->execute();
+        $currAdmin = $stmtCurrent->get_result()->fetch_assoc();
+
+        $update_pwd_ok = true;
+        if (!empty($new_pwd)) {
+            if ($new_pwd !== $confirm_pwd) {
+                $error_msg = 'New password and confirm password do not match.';
+                $update_pwd_ok = false;
+            } elseif (!empty($current_pwd) && !password_verify($current_pwd, $currAdmin['password']) && $current_pwd !== $currAdmin['password']) {
+                $error_msg = 'Current password is incorrect.';
+                $update_pwd_ok = false;
+            }
+        }
+
+        if ($update_pwd_ok && empty($error_msg)) {
+            if (!empty($new_pwd)) {
+                $hashed_pwd = password_hash($new_pwd, PASSWORD_DEFAULT);
+                $stmtUpdate = $conn->prepare("UPDATE admin SET name = ?, username = ?, email = ?, employee_id = ?, password = ? WHERE admin_id = ?");
+                $stmtUpdate->bind_param("sssssi", $full_name, $email, $email, $employee_id, $hashed_pwd, $admin_id);
+            } else {
+                $stmtUpdate = $conn->prepare("UPDATE admin SET name = ?, username = ?, email = ?, employee_id = ? WHERE admin_id = ?");
+                $stmtUpdate->bind_param("ssssi", $full_name, $email, $email, $employee_id, $admin_id);
+            }
+
+            if ($stmtUpdate->execute()) {
+                $_SESSION['admin_name']        = $full_name;
+                $_SESSION['admin_email']       = $email;
+                $_SESSION['admin_employee_id'] = $employee_id;
+                $success_msg = 'Profile changes saved successfully!';
+            } else {
+                $error_msg = 'Failed to update profile: ' . $conn->error;
+            }
+        }
+    }
+}
+
+// Fetch current admin info from database
+$stmtFetch = $conn->prepare("SELECT * FROM admin WHERE admin_id = ?");
+$stmtFetch->bind_param("i", $admin_id);
+$stmtFetch->execute();
+$adminData = $stmtFetch->get_result()->fetch_assoc();
+
+$admin_name        = $adminData['name'] ?? ($_SESSION['admin_name'] ?? 'System Admin');
+$admin_email       = !empty($adminData['email']) ? $adminData['email'] : ($adminData['username'] ?? ($_SESSION['admin_email'] ?? 'admin@equiptrack.edu'));
+$admin_employee_id = !empty($adminData['employee_id']) ? $adminData['employee_id'] : ($_SESSION['admin_employee_id'] ?? 'ADM-0001');
+
+// Compute initials for profile picture
+$nameParts = explode(' ', trim($admin_name));
+$initials = '';
+foreach ($nameParts as $part) {
+    if (!empty($part)) {
+        $initials .= strtoupper($part[0]);
+    }
+}
+$admin_initials = !empty($initials) ? substr($initials, 0, 2) : 'AD';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -77,19 +152,19 @@
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">AD</div>
-                    <span class="user-name">Admin</span>
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;"><?php echo htmlspecialchars($admin_initials); ?></div>
+                    <span class="user-name"><?php echo htmlspecialchars($admin_name); ?></span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
                     <!-- Dropdown Menu -->
                     <div class="profile-dropdown-menu" id="dropdownMenu">
                         <div class="dropdown-profile-header">
-                            <span class="header-name" id="dropdownHeaderName">Admin</span>
-                            <span class="header-email" id="dropdownHeaderEmail">admin@equiptrack.edu</span>
+                            <span class="header-name" id="dropdownHeaderName"><?php echo htmlspecialchars($admin_name); ?></span>
+                            <span class="header-email" id="dropdownHeaderEmail"><?php echo htmlspecialchars($admin_email); ?></span>
                         </div>
                         <div class="dropdown-divider"></div>
                         <a href="profile.php"><i class="fa-solid fa-user"></i> My Profile</a>
-                        <a href="../login.php" class="danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+                        <a href="../logout.php" class="danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
                     </div>
                 </div>
             </div>
@@ -102,13 +177,25 @@
                 <p class="profile-page-subtitle">Manage your administrator account information and security settings.</p>
             </div>
 
+            <?php if (!empty($success_msg)): ?>
+                <div style="color: #065f46; background: #d1fae5; padding: 12px 18px; border-radius: 10px; font-size: 0.95rem; margin-bottom: 20px; border: 1px solid #6ee7b7; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-circle-check" style="color: #059669; font-size: 1.1rem;"></i> <?php echo htmlspecialchars($success_msg); ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!empty($error_msg)): ?>
+                <div style="color: #ef4444; background: #fee2e2; padding: 12px 18px; border-radius: 10px; font-size: 0.95rem; margin-bottom: 20px; border: 1px solid #fca5a5; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-circle-exclamation" style="color: #dc2626; font-size: 1.1rem;"></i> <?php echo htmlspecialchars($error_msg); ?>
+                </div>
+            <?php endif; ?>
+
             <!-- Two-Column Profile Grid -->
             <div class="profile-layout-grid">
                 <!-- Left Overview Card -->
                 <div class="profile-card profile-sidebar-card">
                     <div class="avatar-upload-container">
                         <div class="avatar-image-ring">
-                            <img src="../images/logo_only.png" id="profileAvatarImg" alt="Admin Avatar">
+                            <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($admin_name); ?>&background=5C74A8&color=fff&size=200" id="profileAvatarImg" alt="Admin Avatar">
                         </div>
                         <button type="button" class="btn-avatar-camera" id="btnUploadAvatar" title="Change Profile Picture">
                             <i class="fa-solid fa-camera"></i>
@@ -116,40 +203,40 @@
                         <input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
                     </div>
 
-                    <h3 class="profile-card-name" id="cardProfileName">—</h3>
+                    <h3 class="profile-card-name" id="cardProfileName"><?php echo htmlspecialchars($admin_name); ?></h3>
                     <p class="profile-card-role">System Administrator</p>
-                    <p class="profile-card-email" id="cardProfileEmail">—</p>
+                    <p class="profile-card-email" id="cardProfileEmail"><?php echo htmlspecialchars($admin_email); ?></p>
 
                     <div class="profile-status-wrapper">
                         <span class="profile-status-badge">ACTIVE</span>
                     </div>
 
                     <div class="profile-card-footer">
-                        <a href="../login.php" class="btn-profile-logout">LOGOUT</a>
+                        <a href="../logout.php" class="btn-profile-logout">LOGOUT</a>
                     </div>
                 </div>
 
                 <!-- Right Form Card -->
                 <div class="profile-card profile-details-card">
-                    <form id="adminProfileForm" onsubmit="return false;">
+                    <form id="adminProfileForm" action="profile.php" method="POST">
                         <!-- Personal Information Block -->
                         <div class="form-section-block">
                             <h2 class="form-section-title">Personal Information</h2>
                             
                             <div class="profile-form-group">
                                 <label for="adminFullName">Full Name</label>
-                                <input type="text" id="adminFullName" class="profile-input" value="" placeholder="Enter full name" required>
+                                <input type="text" id="adminFullName" name="admin_full_name" class="profile-input" value="<?php echo htmlspecialchars($admin_name); ?>" placeholder="Enter full name" required>
                             </div>
 
                             <div class="profile-form-group">
                                 <label for="adminEmail">Email</label>
-                                <input type="email" id="adminEmail" class="profile-input" value="" placeholder="Enter email address" required>
+                                <input type="email" id="adminEmail" name="admin_email" class="profile-input" value="<?php echo htmlspecialchars($admin_email); ?>" placeholder="Enter email address" required>
                             </div>
 
                             <div class="profile-form-row">
                                 <div class="profile-form-group">
                                     <label for="adminEmployeeId">Employee ID</label>
-                                    <input type="text" id="adminEmployeeId" class="profile-input" value="" placeholder="Enter employee ID">
+                                    <input type="text" id="adminEmployeeId" name="admin_employee_id" class="profile-input" value="<?php echo htmlspecialchars($admin_employee_id); ?>" placeholder="Enter employee ID">
                                 </div>
                                 <div class="profile-form-group">
                                     <label for="adminRole">Role</label>
@@ -167,7 +254,7 @@
                             <div class="profile-form-group">
                                 <label for="currentPassword">Current Password</label>
                                 <div class="password-field-container">
-                                    <input type="password" id="currentPassword" class="profile-input" placeholder="Enter current password">
+                                    <input type="password" id="currentPassword" name="current_password" class="profile-input" placeholder="Enter current password">
                                     <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('currentPassword', this)" title="Toggle password visibility">
                                         <i class="fa-regular fa-eye"></i>
                                     </button>
@@ -177,7 +264,7 @@
                             <div class="profile-form-group">
                                 <label for="newPassword">New Password</label>
                                 <div class="password-field-container">
-                                    <input type="password" id="newPassword" class="profile-input" placeholder="Enter new password">
+                                    <input type="password" id="newPassword" name="new_password" class="profile-input" placeholder="Enter new password">
                                     <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('newPassword', this)" title="Toggle password visibility">
                                         <i class="fa-regular fa-eye"></i>
                                     </button>
@@ -187,7 +274,7 @@
                             <div class="profile-form-group">
                                 <label for="confirmPassword">Confirm Password</label>
                                 <div class="password-field-container">
-                                    <input type="password" id="confirmPassword" class="profile-input" placeholder="Confirm new password">
+                                    <input type="password" id="confirmPassword" name="confirm_password" class="profile-input" placeholder="Confirm new password">
                                     <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('confirmPassword', this)" title="Toggle password visibility">
                                         <i class="fa-regular fa-eye"></i>
                                     </button>
@@ -274,34 +361,15 @@
                 });
             }
 
-            // Load Saved Profile Data if available
-            const savedName = localStorage.getItem('admin-fullname');
-            const savedEmail = localStorage.getItem('admin-email');
-            const savedEmpId = localStorage.getItem('admin-employee-id');
-            const savedAvatar = localStorage.getItem('admin-avatar-src');
-
-            if (savedName) {
-                document.getElementById('adminFullName').value = savedName;
-                document.getElementById('cardProfileName').textContent = savedName;
-                document.getElementById('dropdownHeaderName').textContent = savedName;
-            }
-            if (savedEmail) {
-                document.getElementById('adminEmail').value = savedEmail;
-                document.getElementById('cardProfileEmail').textContent = savedEmail;
-                document.getElementById('dropdownHeaderEmail').textContent = savedEmail;
-            }
-            if (savedEmpId) {
-                document.getElementById('adminEmployeeId').value = savedEmpId;
-            }
-            if (savedAvatar) {
-                document.getElementById('profileAvatarImg').src = savedAvatar;
-                document.querySelectorAll('.profile-top-avatar').forEach(img => img.src = savedAvatar);
-            }
-
             // Avatar Upload Trigger & Handler
             const btnUploadAvatar = document.getElementById('btnUploadAvatar');
             const avatarFileInput = document.getElementById('avatarFileInput');
             const profileAvatarImg = document.getElementById('profileAvatarImg');
+
+            const savedAvatar = localStorage.getItem('admin-avatar-src');
+            if (savedAvatar && profileAvatarImg) {
+                profileAvatarImg.src = savedAvatar;
+            }
 
             if (btnUploadAvatar && avatarFileInput) {
                 btnUploadAvatar.addEventListener('click', function() {
@@ -315,9 +383,8 @@
                         reader.onload = function(evt) {
                             const newSrc = evt.target.result;
                             profileAvatarImg.src = newSrc;
-                            document.querySelectorAll('.profile-top-avatar').forEach(img => img.src = newSrc);
                             localStorage.setItem('admin-avatar-src', newSrc);
-                            showToast('Profile picture updated successfully!');
+                            showToast('Profile picture preview updated!');
                         };
                         reader.readAsDataURL(file);
                     }
@@ -337,43 +404,20 @@
                 }
             }
 
-            // Form Submission Handler
+            // Form Validation on submit
             const adminProfileForm = document.getElementById('adminProfileForm');
             if (adminProfileForm) {
                 adminProfileForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    
-                    const fullName = document.getElementById('adminFullName').value.trim();
-                    const email = document.getElementById('adminEmail').value.trim();
-                    const empId = document.getElementById('adminEmployeeId').value.trim();
-                    const currentPwd = document.getElementById('currentPassword').value;
                     const newPwd = document.getElementById('newPassword').value;
                     const confirmPwd = document.getElementById('confirmPassword').value;
 
                     if (newPwd || confirmPwd) {
                         if (newPwd !== confirmPwd) {
+                            e.preventDefault();
                             alert('New password and confirm password do not match!');
-                            return;
+                            return false;
                         }
                     }
-
-                    // Save data
-                    localStorage.setItem('admin-fullname', fullName);
-                    localStorage.setItem('admin-email', email);
-                    localStorage.setItem('admin-employee-id', empId);
-
-                    // Update UI text
-                    document.getElementById('cardProfileName').textContent = fullName;
-                    document.getElementById('cardProfileEmail').textContent = email;
-                    document.getElementById('dropdownHeaderName').textContent = fullName;
-                    document.getElementById('dropdownHeaderEmail').textContent = email;
-
-                    // Clear password fields
-                    document.getElementById('currentPassword').value = '';
-                    document.getElementById('newPassword').value = '';
-                    document.getElementById('confirmPassword').value = '';
-
-                    showToast('Profile changes saved successfully!');
                 });
             }
 
@@ -381,16 +425,7 @@
             const btnCancelProfile = document.getElementById('btnCancelProfile');
             if (btnCancelProfile) {
                 btnCancelProfile.addEventListener('click', function() {
-                    const currentSavedName = localStorage.getItem('admin-fullname') || '';
-                    const currentSavedEmail = localStorage.getItem('admin-email') || '';
-                    const currentSavedEmpId = localStorage.getItem('admin-employee-id') || '';
-
-                    document.getElementById('adminFullName').value = currentSavedName;
-                    document.getElementById('adminEmail').value = currentSavedEmail;
-                    document.getElementById('adminEmployeeId').value = currentSavedEmpId;
-                    document.getElementById('currentPassword').value = '';
-                    document.getElementById('newPassword').value = '';
-                    document.getElementById('confirmPassword').value = '';
+                    window.location.reload();
                 });
             }
         });

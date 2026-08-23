@@ -1,3 +1,41 @@
+<?php
+session_start();
+require_once __DIR__ . '/../db.php';
+
+$user_id = $_SESSION['user_id'] ?? null;
+$first_name = 'User';
+$full_name = $_SESSION['user_name'] ?? 'User';
+$user_email = $_SESSION['email'] ?? 'user@equiptrack.edu';
+
+if ($user_id) {
+    $stmt = $conn->prepare("SELECT s.first_name AS s_fname, f.first_name AS f_fname, u.email, u.role 
+                            FROM user_account u 
+                            LEFT JOIN student s ON u.user_id = s.user_id 
+                            LEFT JOIN faculty_member f ON u.user_id = f.user_id 
+                            WHERE u.user_id = ?");
+    if ($stmt) {
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res && $userData = $res->fetch_assoc()) {
+            $fetched_first = ($userData['role'] === 'Student') 
+                ? ($userData['s_fname'] ?? '') 
+                : ($userData['f_fname'] ?? '');
+            if (!empty($fetched_first)) {
+                $first_name = $fetched_first;
+            }
+            if (!empty($userData['email'])) {
+                $user_email = $userData['email'];
+            }
+        }
+    }
+}
+
+if ($first_name === 'User' && !empty($_SESSION['user_name'])) {
+    $parts = explode(' ', trim($_SESSION['user_name']));
+    $first_name = $parts[0] ?? 'User';
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -64,15 +102,17 @@
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">US</div>
-                    <span class="user-name">User</span>
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">
+                        <?php echo htmlspecialchars(strtoupper(substr($first_name, 0, 2))); ?>
+                    </div>
+                    <span class="user-name"><?php echo htmlspecialchars($first_name); ?></span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
                     <!-- Dropdown Menu -->
                     <div class="profile-dropdown-menu" id="dropdownMenu">
                         <div class="dropdown-profile-header">
-                            <span class="header-name">User</span>
-                            <span class="header-email">user@equiptrack.edu</span>
+                            <span class="header-name"><?php echo htmlspecialchars($full_name); ?></span>
+                            <span class="header-email"><?php echo htmlspecialchars($user_email); ?></span>
                         </div>
                         <div class="dropdown-divider"></div>
                         <a href="userprofile.php"><i class="fa-solid fa-user"></i> My Profile</a>
@@ -89,7 +129,7 @@
                 <div class="welcome-banner card">
                     <div class="banner-text">
                         <span class="banner-date">Today</span>
-                        <h2>Welcome back!</h2>
+                        <h2>Welcome back, <?php echo htmlspecialchars($first_name); ?>!</h2>
                         <p>Here's your equipment activity overview for today.</p>
                     </div>
                     <img src="../images/user_design1.png" alt="User Illustration" class="banner-img">
