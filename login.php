@@ -3,17 +3,15 @@ session_start();
 require_once __DIR__ . '/db.php';
 
 // If user is already authenticated, redirect to their corresponding dashboard
-if (!empty($_SESSION['user_role'])) {
-    if ($_SESSION['user_role'] === 'Admin' && !empty($_SESSION['admin_id'])) {
-        header("Location: admin/admindashboard.php");
-        exit;
-    } elseif ($_SESSION['user_role'] === 'Department' && !empty($_SESSION['dept_acc_id'])) {
-        header("Location: departments/departmentdashboard.php");
-        exit;
-    } elseif (!empty($_SESSION['user_id'])) {
-        header("Location: user/userdashboard.php");
-        exit;
-    }
+if (!empty($_SESSION['admin_id'])) {
+    header("Location: admin/admindashboard.php");
+    exit;
+} elseif (!empty($_SESSION['dept_acc_id'])) {
+    header("Location: departments/departmentdashboard.php");
+    exit;
+} elseif (!empty($_SESSION['user_id'])) {
+    header("Location: user/userdashboard.php");
+    exit;
 }
 
 $error = '';
@@ -39,6 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($resUser && $user = $resUser->fetch_assoc()) {
             if (password_verify($password, $user['password']) || $password === $user['password']) {
+                session_unset();
+                session_regenerate_id(true);
                 $_SESSION['user_id']   = $user['user_id'];
                 $_SESSION['user_role'] = $user['role'];
                 $_SESSION['user_name'] = ($user['role'] === 'Student') 
@@ -59,12 +59,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($resAdmin && $admin = $resAdmin->fetch_assoc()) {
             if (password_verify($password, $admin['password']) || $password === $admin['password']) {
+                session_unset();
+                session_regenerate_id(true);
                 $_SESSION['admin_id']          = $admin['admin_id'];
                 $_SESSION['admin_name']        = $admin['name'];
                 $_SESSION['admin_email']       = !empty($admin['email']) ? $admin['email'] : $admin['username'];
                 $_SESSION['admin_username']    = $admin['username'];
                 $_SESSION['admin_employee_id'] = $admin['employee_id'] ?? '';
-                $_SESSION['user_role']         = 'Admin';
+                $_SESSION['admin_role']        = 'Admin';
 
                 header("Location: admin/admindashboard.php");
                 exit;
@@ -79,9 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($resDept && $dept = $resDept->fetch_assoc()) {
             if (password_verify($password, $dept['password']) || $password === $dept['password']) {
+                session_unset();
+                session_regenerate_id(true);
                 $_SESSION['dept_acc_id'] = $dept['dept_acc_id'];
                 $_SESSION['dept_name']   = $dept['full_name'];
-                $_SESSION['user_role']   = 'Department';
+                $_SESSION['dept_email']  = $dept['email'] ?? '';
+                $_SESSION['dept_role']   = 'Department';
 
                 header("Location: departments/departmentdashboard.php");
                 exit;

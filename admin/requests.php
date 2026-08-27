@@ -450,6 +450,26 @@ require_once __DIR__ . '/auth_check.php';
     <!-- Interactivity Script -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Navbar Avatar Sync Helper
+            function syncNavbarAvatar() {
+                const savedAvatar = localStorage.getItem('admin-avatar-src');
+                const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
+                navAvatars.forEach(navAvatar => {
+                    if (savedAvatar) {
+                        navAvatar.innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                        navAvatar.style.padding = '0';
+                        navAvatar.style.background = 'transparent';
+                    }
+                });
+            }
+            syncNavbarAvatar();
+
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'admin-avatar-src') {
+                    syncNavbarAvatar();
+                }
+            });
+
             // Default seeding requests if not present in localStorage
             const defaultRequestsList = [];
 

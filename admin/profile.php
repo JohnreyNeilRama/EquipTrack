@@ -361,6 +361,26 @@ $admin_initials = !empty($initials) ? substr($initials, 0, 2) : 'AD';
                 });
             }
 
+            // Navbar Avatar Sync Helper
+            function syncNavbarAvatar() {
+                const savedAvatar = localStorage.getItem('admin-avatar-src');
+                const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
+                navAvatars.forEach(navAvatar => {
+                    if (savedAvatar) {
+                        navAvatar.innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                        navAvatar.style.padding = '0';
+                        navAvatar.style.background = 'transparent';
+                    }
+                });
+            }
+            syncNavbarAvatar();
+
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'admin-avatar-src') {
+                    syncNavbarAvatar();
+                }
+            });
+
             // Avatar Upload Trigger & Handler
             const btnUploadAvatar = document.getElementById('btnUploadAvatar');
             const avatarFileInput = document.getElementById('avatarFileInput');
@@ -384,7 +404,8 @@ $admin_initials = !empty($initials) ? substr($initials, 0, 2) : 'AD';
                             const newSrc = evt.target.result;
                             profileAvatarImg.src = newSrc;
                             localStorage.setItem('admin-avatar-src', newSrc);
-                            showToast('Profile picture preview updated!');
+                            syncNavbarAvatar();
+                            showToast('Profile picture updated successfully!');
                         };
                         reader.readAsDataURL(file);
                     }

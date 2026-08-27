@@ -11,34 +11,25 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../db.php';
 
-// Function to safely clear session & redirect to login page
+// Function to safely clear admin session keys & redirect to login page
 function redirect_unauthorized_admin() {
     if (session_status() === PHP_SESSION_ACTIVE) {
-        $_SESSION = array();
-        if (ini_get("session.use_cookies")) {
-            $params = session_get_cookie_params();
-            setcookie(
-                session_name(),
-                '',
-                time() - 42000,
-                $params["path"],
-                $params["domain"],
-                $params["secure"],
-                $params["httponly"]
-            );
-        }
-        @session_destroy();
+        unset($_SESSION['admin_id']);
+        unset($_SESSION['admin_name']);
+        unset($_SESSION['admin_email']);
+        unset($_SESSION['admin_username']);
+        unset($_SESSION['admin_employee_id']);
+        unset($_SESSION['admin_role']);
     }
     header("Location: ../login.php");
     exit;
 }
 
-// 1. Strict Session Check: User MUST have a valid positive integer admin_id and 'Admin' role
+// 1. Strict Session Check: User MUST have a valid positive integer admin_id
 if (
     empty($_SESSION['admin_id']) || 
     !is_numeric($_SESSION['admin_id']) || 
-    (int)$_SESSION['admin_id'] <= 0 || 
-    ($_SESSION['user_role'] ?? '') !== 'Admin'
+    (int)$_SESSION['admin_id'] <= 0
 ) {
     redirect_unauthorized_admin();
 }
@@ -60,12 +51,15 @@ if (!$adminRes || $adminRes->num_rows === 0) {
 }
 
 // 3. Refresh & Sync Admin Session State
+unset($_SESSION['user_id'], $_SESSION['user_role'], $_SESSION['user_name'], $_SESSION['email']);
+unset($_SESSION['dept_acc_id'], $_SESSION['dept_name'], $_SESSION['dept_email'], $_SESSION['dept_role']);
+
 $currentAdminData = $adminRes->fetch_assoc();
 $_SESSION['admin_name']        = $currentAdminData['name'];
 $_SESSION['admin_email']       = !empty($currentAdminData['email']) ? $currentAdminData['email'] : $currentAdminData['username'];
 $_SESSION['admin_username']    = $currentAdminData['username'];
 $_SESSION['admin_employee_id'] = $currentAdminData['employee_id'] ?? '';
-$_SESSION['user_role']         = 'Admin';
+$_SESSION['admin_role']        = 'Admin';
 
 // Variables available to admin page views
 $admin_name     = $_SESSION['admin_name'];
@@ -78,3 +72,4 @@ foreach ($nameParts as $part) {
     }
 }
 $admin_initials = !empty($initials) ? substr($initials, 0, 2) : 'AD';
+

@@ -1,5 +1,217 @@
 <?php
 require_once __DIR__ . '/auth_check.php';
+
+// Ensure department_account table structure exists
+$conn->query("CREATE TABLE IF NOT EXISTS department_account (
+    dept_acc_id INT AUTO_INCREMENT PRIMARY KEY,
+    department_name VARCHAR(255) NULL,
+    department_code VARCHAR(50) NULL,
+    full_name VARCHAR(255) NOT NULL,
+    username VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    office_location VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)");
+
+$serverMsg = null;
+$serverMsgType = 'success';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+    
+    if ($action === 'add_student') {
+        $firstName = trim($_POST['first_name'] ?? '');
+        $lastName  = trim($_POST['last_name'] ?? '');
+        $idNumber  = trim($_POST['id_number'] ?? '');
+        $yearLevel = trim($_POST['year_level'] ?? '1st Year');
+        $email     = trim($_POST['email'] ?? '');
+        $address   = trim($_POST['address'] ?? '');
+        $deptName  = trim($_POST['department'] ?? 'Information Technology Department');
+        $password  = $_POST['password'] ?? 'student123';
+        
+        $deptId = 1;
+        $stmtDept = $conn->prepare("SELECT department_id FROM department WHERE department_name = ? LIMIT 1");
+        if ($stmtDept) {
+            $stmtDept->bind_param("s", $deptName);
+            $stmtDept->execute();
+            $resD = $stmtDept->get_result();
+            if ($resD && $rowD = $resD->fetch_assoc()) {
+                $deptId = (int)$rowD['department_id'];
+            }
+        }
+        
+        $stmtChk = $conn->prepare("SELECT user_id FROM user_account WHERE email = ?");
+        $stmtChk->bind_param("s", $email);
+        $stmtChk->execute();
+        if ($stmtChk->get_result()->num_rows > 0) {
+            $serverMsg = "An account with email '$email' already exists.";
+            $serverMsgType = "error";
+        } else {
+            $hashedPass = password_hash($password, PASSWORD_DEFAULT);
+            $role = "Student";
+            $stmtInsUser = $conn->prepare("INSERT INTO user_account (role, email, password, department_id) VALUES (?, ?, ?, ?)");
+            $stmtInsUser->bind_param("sssi", $role, $email, $hashedPass, $deptId);
+            if ($stmtInsUser->execute()) {
+                $newUserId = $conn->insert_id;
+                $stmtInsStud = $conn->prepare("INSERT INTO student (user_id, first_name, last_name, id_number, year_level, address) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmtInsStud->bind_param("isssss", $newUserId, $firstName, $lastName, $idNumber, $yearLevel, $address);
+                $stmtInsStud->execute();
+                $serverMsg = "Student account for '$firstName $lastName' created successfully!";
+                $serverMsgType = "success";
+            } else {
+                $serverMsg = "Failed to create student account: " . $conn->error;
+                $serverMsgType = "error";
+            }
+        }
+    } elseif ($action === 'add_department') {
+        $deptName = trim($_POST['dept_name'] ?? '');
+        $idNumber = trim($_POST['dept_id_number'] ?? '');
+        $address  = trim($_POST['dept_address'] ?? '');
+        $email    = trim($_POST['dept_email'] ?? '');
+        $password = $_POST['dept_password'] ?? 'dept123';
+        $username = explode('@', $email)[0];
+        
+        $stmtChk = $conn->prepare("SELECT dept_acc_id FROM department_account WHERE email = ? OR username = ?");
+        $stmtChk->bind_param("ss", $email, $username);
+        $stmtChk->execute();
+        if ($stmtChk->get_result()->num_rows > 0) {
+            $serverMsg = "A department account with this email or username already exists.";
+            $serverMsgType = "error";
+        } else {
+            $hashedPass = password_hash($password, PASSWORD_DEFAULT);
+            $stmtInsDept = $conn->prepare("INSERT INTO department_account (department_name, department_code, full_name, username, email, password, office_location) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmtInsDept->bind_param("sssssss", $deptName, $idNumber, $deptName, $username, $email, $hashedPass, $address);
+            if ($stmtInsDept->execute()) {
+                $serverMsg = "Department account for '$deptName' created successfully!";
+                $serverMsgType = "success";
+            } else {
+                $serverMsg = "Failed to create department account: " . $conn->error;
+                $serverMsgType = "error";
+            }
+        }
+    } elseif ($action === 'delete_user') {
+        $deleteId = (int)($_POST['user_id'] ?? 0);
+        $userType = $_POST['user_type'] ?? 'user';
+        if ($userType === 'department') {
+            $actualId = $deleteId > 100000 ? ($deleteId - 100000) : $deleteId;
+            $stmtDel = $conn->prepare("DELETE FROM department_account WHERE dept_acc_id = ?");
+            $stmtDel->bind_param("i", $actualId);
+            $stmtDel->execute();
+            $serverMsg = "Department account deleted successfully.";
+            $serverMsgType = "success";
+        } else {
+            $stmtDelS = $conn->prepare("DELETE FROM student WHERE user_id = ?");
+            $stmtDelS->bind_param("i", $deleteId);
+            $stmtDelS->execute();
+
+            $stmtDelF = $conn->prepare("DELETE FROM faculty_member WHERE user_id = ?");
+            $stmtDelF->bind_param("i", $deleteId);
+            $stmtDelF->execute();
+
+            $stmtDelU = $conn->prepare("DELETE FROM user_account WHERE user_id = ?");
+            $stmtDelU->bind_param("i", $deleteId);
+            $stmtDelU->execute();
+            $serverMsg = "User account deleted successfully.";
+            $serverMsgType = "success";
+        }
+    }
+}
+
+// Fetch all database users
+$dbUsers = [];
+
+// 1. Fetch Students & Faculty from user_account
+$sqlUsers = "
+    SELECT 
+        u.user_id AS id,
+        u.role,
+        u.email,
+        u.department_id,
+        s.first_name AS s_first_name,
+        s.last_name AS s_last_name,
+        s.id_number AS s_id_number,
+        s.year_level AS s_year_level,
+        s.address AS s_address,
+        f.first_name AS f_first_name,
+        f.last_name AS f_lname,
+        f.faculty_id_number AS f_id_number,
+        f.address AS f_address,
+        d.department_name
+    FROM user_account u
+    LEFT JOIN student s ON u.user_id = s.user_id
+    LEFT JOIN faculty_member f ON u.user_id = f.user_id
+    LEFT JOIN department d ON u.department_id = d.department_id
+    ORDER BY u.user_id DESC
+";
+
+$resUsers = $conn->query($sqlUsers);
+if ($resUsers) {
+    while ($row = $resUsers->fetch_assoc()) {
+        $isStudent = (strtolower($row['role']) === 'student');
+        $firstName = $isStudent ? ($row['s_first_name'] ?? '') : ($row['f_first_name'] ?? '');
+        $lastName  = $isStudent ? ($row['s_last_name'] ?? '') : ($row['f_lname'] ?? '');
+        $idNumber  = $isStudent ? ($row['s_id_number'] ?? '') : ($row['f_id_number'] ?? '');
+        $address   = $isStudent ? ($row['s_address'] ?? '') : ($row['f_address'] ?? '');
+        $yearLevel = $isStudent ? ($row['s_year_level'] ?? 'N/A') : 'N/A';
+        $departmentName = !empty($row['department_name']) ? $row['department_name'] : 'College of Computer Studies';
+
+        if (empty($firstName) && empty($lastName)) {
+            $nameParts = explode('@', $row['email']);
+            $firstName = ucfirst($nameParts[0]);
+            $lastName  = '';
+        }
+        if (empty($idNumber)) {
+            $idNumber = 'USR-' . sprintf('%04d', $row['id']);
+        }
+
+        $dbUsers[] = [
+            'id'          => (int)$row['id'],
+            'db_type'     => 'user_account',
+            'first_name'  => $firstName,
+            'last_name'   => $lastName,
+            'id_number'   => $idNumber,
+            'role'        => strtolower($row['role']) === 'faculty' ? 'teacher' : strtolower($row['role']),
+            'year_level'  => $yearLevel,
+            'email'       => $row['email'],
+            'address'     => $address,
+            'department'  => $departmentName,
+            'status'      => 'Active',
+            'username'    => explode('@', $row['email'])[0],
+            'created_at'  => 'Database Record',
+            'last_login'  => 'N/A'
+        ];
+    }
+}
+
+// 2. Fetch Department accounts from department_account
+$sqlDepts = "SELECT * FROM department_account ORDER BY dept_acc_id DESC";
+$resDepts = $conn->query($sqlDepts);
+if ($resDepts) {
+    while ($row = $resDepts->fetch_assoc()) {
+        $deptName = !empty($row['department_name']) ? $row['department_name'] : (!empty($row['full_name']) ? $row['full_name'] : 'Department Office');
+        $deptCode = !empty($row['department_code']) ? $row['department_code'] : (!empty($row['username']) ? strtoupper($row['username']) : 'D-' . $row['dept_acc_id']);
+        $email    = !empty($row['email']) ? $row['email'] : ($row['username'] ?? 'dept@equiptrack.edu');
+        $address  = $row['office_location'] ?? ($row['address'] ?? 'University Campus');
+
+        $dbUsers[] = [
+            'id'          => 100000 + (int)$row['dept_acc_id'],
+            'db_type'     => 'department',
+            'first_name'  => $deptName,
+            'last_name'   => '',
+            'id_number'   => $deptCode,
+            'role'        => 'department',
+            'year_level'  => 'N/A',
+            'email'       => $email,
+            'address'     => $address,
+            'department'  => $deptName,
+            'status'      => 'Active',
+            'username'    => $row['username'] ?? explode('@', $email)[0],
+            'created_at'  => 'Database Record',
+            'last_login'  => 'N/A'
+        ];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -238,27 +450,28 @@ require_once __DIR__ . '/auth_check.php';
                 <button class="modal-close" id="closeStudentModalBtn">&times;</button>
                 <h3 class="modal-title-center">Add Student Account</h3>
                 
-                <form id="studentForm" class="new-modal-form" style="padding-top: 10px;">
+                <form id="studentForm" action="users.php" method="POST" class="new-modal-form" style="padding-top: 10px;">
+                    <input type="hidden" name="action" value="add_student">
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group-flat">
                             <label>First Name</label>
-                            <input type="text" id="studFirstName" class="form-control-flat" required placeholder="Gabriel">
+                            <input type="text" id="studFirstName" name="first_name" class="form-control-flat" required placeholder="Gabriel">
                         </div>
                         <div class="form-group-flat">
                             <label>Last Name</label>
-                            <input type="text" id="studLastName" class="form-control-flat" required placeholder="Fernandez">
+                            <input type="text" id="studLastName" name="last_name" class="form-control-flat" required placeholder="Fernandez">
                         </div>
                     </div>
 
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group-flat">
                             <label>Student ID Number</label>
-                            <input type="text" id="studIdNumber" class="form-control-flat" required placeholder="e.g., 20230123" pattern="\d{8}" title="Student ID must be exactly 8 digits." maxlength="8" inputmode="numeric">
+                            <input type="text" id="studIdNumber" name="id_number" class="form-control-flat" required placeholder="e.g., 20230123" pattern="\d{8}" title="Student ID must be exactly 8 digits." maxlength="8" inputmode="numeric">
                         </div>
                         <div class="form-group-flat">
                             <label>Year & Level</label>
                             <div class="flat-select-wrapper" style="width: 100%;">
-                                <select id="studYearLevel" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                                <select id="studYearLevel" name="year_level" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
                                     <option value="1st Year">1st Year</option>
                                     <option value="2nd Year">2nd Year</option>
                                     <option value="3rd Year" selected>3rd Year</option>
@@ -271,7 +484,7 @@ require_once __DIR__ . '/auth_check.php';
                     <div class="form-group-flat">
                         <label>Department</label>
                         <div class="flat-select-wrapper" style="width: 100%;">
-                            <select id="studDepartment" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                            <select id="studDepartment" name="department" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
                                 <option value="" disabled selected>Select Department</option>
                                 <option value="Information Technology Department">Information Technology Department</option>
                                 <option value="Engineering Department">Engineering Department</option>
@@ -282,17 +495,17 @@ require_once __DIR__ . '/auth_check.php';
 
                     <div class="form-group-flat">
                         <label>Email Address</label>
-                        <input type="email" id="studEmail" class="form-control-flat" required placeholder="gabriel.fernandez@example.com">
+                        <input type="email" id="studEmail" name="email" class="form-control-flat" required placeholder="gabriel.fernandez@example.com">
                     </div>
 
                     <div class="form-group-flat">
                         <label>Home Address</label>
-                        <input type="text" id="studAddress" class="form-control-flat" required placeholder="123 University Ave, Tech City">
+                        <input type="text" id="studAddress" name="address" class="form-control-flat" required placeholder="123 University Ave, Tech City">
                     </div>
 
                     <div class="form-group-flat">
                         <label>Password</label>
-                        <input type="password" id="studPassword" class="form-control-flat" required placeholder="••••••••" minlength="6">
+                        <input type="password" id="studPassword" name="password" class="form-control-flat" required placeholder="••••••••" minlength="6">
                     </div>
 
                     <button type="submit" class="btn-submit-request" style="margin-top: 10px;">
@@ -313,11 +526,12 @@ require_once __DIR__ . '/auth_check.php';
                 <button class="modal-close" id="closeDeptModalBtn">&times;</button>
                 <h3 class="modal-title-center">Add Department Account</h3>
                 
-                <form id="departmentForm" class="new-modal-form" style="padding-top: 10px;">
+                <form id="departmentForm" action="users.php" method="POST" class="new-modal-form" style="padding-top: 10px;">
+                    <input type="hidden" name="action" value="add_department">
                     <div class="form-group-flat">
                         <label>Department Name</label>
                         <div class="flat-select-wrapper" style="width: 100%;">
-                            <select id="deptName" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                            <select id="deptName" name="dept_name" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
                                 <option value="" disabled selected>Select Department</option>
                                 <option value="Information Technology Department">Information Technology Department</option>
                                 <option value="Engineering Department">Engineering Department</option>
@@ -329,22 +543,22 @@ require_once __DIR__ . '/auth_check.php';
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group-flat">
                             <label>Department Code / ID</label>
-                            <input type="text" id="deptIdNumber" class="form-control-flat" required placeholder="e.g., D-IT-200">
+                            <input type="text" id="deptIdNumber" name="dept_id_number" class="form-control-flat" required placeholder="e.g., D-IT-200">
                         </div>
                         <div class="form-group-flat">
                             <label>Room / Office Location</label>
-                            <input type="text" id="deptAddress" class="form-control-flat" required placeholder="e.g., Tech Building Room 302">
+                            <input type="text" id="deptAddress" name="dept_address" class="form-control-flat" required placeholder="e.g., Tech Building Room 302">
                         </div>
                     </div>
 
                     <div class="form-group-flat">
                         <label>Department Email</label>
-                        <input type="email" id="deptEmail" class="form-control-flat" required placeholder="e.g., it.dept@equiptrack.edu">
+                        <input type="email" id="deptEmail" name="dept_email" class="form-control-flat" required placeholder="e.g., it.dept@equiptrack.edu">
                     </div>
 
                     <div class="form-group-flat">
                         <label>Password</label>
-                        <input type="password" id="deptPassword" class="form-control-flat" required placeholder="••••••••" minlength="6">
+                        <input type="password" id="deptPassword" name="dept_password" class="form-control-flat" required placeholder="••••••••" minlength="6">
                     </div>
 
                     <button type="submit" class="btn-submit-request" style="margin-top: 10px;">
@@ -454,6 +668,26 @@ require_once __DIR__ . '/auth_check.php';
     <!-- JavaScript logic -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Navbar Avatar Sync Helper
+            function syncNavbarAvatar() {
+                const savedAvatar = localStorage.getItem('admin-avatar-src');
+                const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
+                navAvatars.forEach(navAvatar => {
+                    if (savedAvatar) {
+                        navAvatar.innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                        navAvatar.style.padding = '0';
+                        navAvatar.style.background = 'transparent';
+                    }
+                });
+            }
+            syncNavbarAvatar();
+
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'admin-avatar-src') {
+                    syncNavbarAvatar();
+                }
+            });
+
             // DOM Elements
             const themeToggleBtn = document.getElementById('themeToggleBtn');
             const themeToggleIcon = document.getElementById('themeToggleIcon');
@@ -505,12 +739,8 @@ require_once __DIR__ . '/auth_check.php';
             const paginationInfo = document.getElementById('paginationInfo');
             const paginationButtons = document.getElementById('paginationButtons');
 
-            // Initial defaults for user list in local storage
-            const defaultUsers = [];
-
-            // Force clean empty state for initial system setup
-            let users = [];
-            localStorage.setItem('equip-track-users', JSON.stringify([]));
+            // Initial users loaded directly from MySQL database tables
+            let users = <?php echo json_encode($dbUsers, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 
             // Pagination state
             let currentPage = 1;
@@ -537,6 +767,14 @@ require_once __DIR__ . '/auth_check.php';
                     toast.classList.remove('show');
                 }, 3500);
             }
+
+            <?php if (!empty($serverMsg)): ?>
+            showNotification(
+                <?php echo json_encode($serverMsgType === 'success' ? 'Success' : 'Error'); ?>,
+                <?php echo json_encode($serverMsg); ?>,
+                <?php echo json_encode($serverMsgType); ?>
+            );
+            <?php endif; ?>
 
             // Render table based on current page, search, filter and sort
             function renderUsersTable() {
@@ -702,7 +940,6 @@ require_once __DIR__ . '/auth_check.php';
 
                 const originalStatus = user.status;
                 user.status = originalStatus.toLowerCase() === 'active' ? 'Inactive' : 'Active';
-                localStorage.setItem('equip-track-users', JSON.stringify(users));
                 
                 showNotification(
                     user.status === 'Active' ? 'Activated Account' : 'Deactivated Account',
@@ -717,11 +954,32 @@ require_once __DIR__ . '/auth_check.php';
                 const user = users.find(u => u.id === id);
                 if (!user) return;
 
-                if (confirm(`Are you sure you want to permanently delete the account of ${user.first_name} ${user.last_name}?`)) {
-                    users = users.filter(u => u.id !== id);
-                    localStorage.setItem('equip-track-users', JSON.stringify(users));
-                    showNotification('User Deleted', `Successfully removed account from the system.`, 'success');
-                    renderUsersTable();
+                const fullName = user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
+                if (confirm(`Are you sure you want to permanently delete the account of ${fullName}?`)) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = 'users.php';
+                    
+                    const actInput = document.createElement('input');
+                    actInput.type = 'hidden';
+                    actInput.name = 'action';
+                    actInput.value = 'delete_user';
+                    form.appendChild(actInput);
+
+                    const idInput = document.createElement('input');
+                    idInput.type = 'hidden';
+                    idInput.name = 'user_id';
+                    idInput.value = id;
+                    form.appendChild(idInput);
+
+                    const typeInput = document.createElement('input');
+                    typeInput.type = 'hidden';
+                    typeInput.name = 'user_type';
+                    typeInput.value = user.db_type || user.role;
+                    form.appendChild(typeInput);
+
+                    document.body.appendChild(form);
+                    form.submit();
                 }
             };
 
@@ -764,8 +1022,8 @@ require_once __DIR__ . '/auth_check.php';
 
                 modalUsername.value = user.username || user.email.split('@')[0];
                 modalEmail.value = user.email;
-                modalDateCreated.value = user.created_at || 'June 1, 2026';
-                modalLastLogin.value = user.last_login || 'June 17, 2026, 10:30 AM';
+                modalDateCreated.value = user.created_at || 'Database Record';
+                modalLastLogin.value = user.last_login || 'N/A';
                 modalAddress.value = user.address || 'N/A';
 
                 userDetailsModal.classList.add('show');
@@ -820,97 +1078,37 @@ require_once __DIR__ . '/auth_check.php';
             // Form Submissions & Validations
             // Add Student Submit Handler
             studentForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-
-                const firstName = document.getElementById('studFirstName').value.trim();
-                const lastName = document.getElementById('studLastName').value.trim();
                 const idNumber = document.getElementById('studIdNumber').value.trim();
-                const yearLevel = document.getElementById('studYearLevel').value;
                 const email = document.getElementById('studEmail').value.trim();
-                const address = document.getElementById('studAddress').value.trim();
-                const department = document.getElementById('studDepartment').value;
-                const password = document.getElementById('studPassword').value;
 
                 // Validate Student ID (exactly 8 digits)
                 if (!/^\d{8}$/.test(idNumber)) {
+                    e.preventDefault();
                     showNotification('Validation Error', 'Student ID must be exactly 8 digits.', 'error');
                     return;
                 }
 
-                // Validate if email or ID already exists
+                // Validate if email or ID already exists in current loaded database users
                 const exists = users.some(u => u.id_number.toLowerCase() === idNumber.toLowerCase() || u.email.toLowerCase() === email.toLowerCase());
                 if (exists) {
+                    e.preventDefault();
                     showNotification('Registration Error', 'A user with this ID number or email already exists.', 'error');
                     return;
                 }
-
-                const newStudent = {
-                    id: Date.now(),
-                    first_name: firstName,
-                    last_name: lastName,
-                    id_number: idNumber,
-                    role: 'student',
-                    year_level: yearLevel,
-                    email: email,
-                    address: address,
-                    department: department,
-                    status: 'Active',
-                    username: email.split('@')[0],
-                    created_at: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-                    last_login: 'Never'
-                };
-
-                users.push(newStudent);
-                localStorage.setItem('equip-track-users', JSON.stringify(users));
-                
-                showNotification('Account Created', `Successfully registered student account for ${firstName} ${lastName}.`, 'success');
-                
-                studentForm.reset();
-                studentModal.classList.remove('show');
-                renderUsersTable();
             });
 
             // Add Department Submit Handler
             departmentForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-
-                const name = document.getElementById('deptName').value.trim();
                 const idNumber = document.getElementById('deptIdNumber').value.trim();
-                const address = document.getElementById('deptAddress').value.trim();
                 const email = document.getElementById('deptEmail').value.trim();
-                const password = document.getElementById('deptPassword').value;
 
                 // Validate if email or ID already exists
                 const exists = users.some(u => u.id_number.toLowerCase() === idNumber.toLowerCase() || u.email.toLowerCase() === email.toLowerCase());
                 if (exists) {
+                    e.preventDefault();
                     showNotification('Registration Error', 'A department with this Code or Email already exists.', 'error');
                     return;
                 }
-
-                const newDept = {
-                    id: Date.now(),
-                    first_name: name,
-                    last_name: '',
-                    id_number: idNumber,
-                    role: 'department',
-                    year_level: 'N/A',
-                    email: email,
-                    address: address,
-                    department: name,
-                    status: 'Active',
-                    username: email.split('@')[0],
-                    created_at: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
-                    last_login: 'Never'
-                };
-
-                users.push(newDept);
-                localStorage.setItem('equip-track-users', JSON.stringify(users));
-
-                showNotification('Account Created', `Successfully registered department account for ${name}.`, 'success');
-
-                departmentForm.reset();
-                departmentModal.classList.remove('show');
-                renderUsersTable();
             });
 
             // Listeners for inputs

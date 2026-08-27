@@ -1,40 +1,5 @@
 <?php
-session_start();
-require_once __DIR__ . '/../db.php';
-
-$user_id = $_SESSION['user_id'] ?? null;
-$first_name = 'User';
-$full_name = $_SESSION['user_name'] ?? 'User';
-$user_email = $_SESSION['email'] ?? 'user@equiptrack.edu';
-
-if ($user_id) {
-    $stmt = $conn->prepare("SELECT s.first_name AS s_fname, f.first_name AS f_fname, u.email, u.role 
-                            FROM user_account u 
-                            LEFT JOIN student s ON u.user_id = s.user_id 
-                            LEFT JOIN faculty_member f ON u.user_id = f.user_id 
-                            WHERE u.user_id = ?");
-    if ($stmt) {
-        $stmt->bind_param("i", $user_id);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($res && $userData = $res->fetch_assoc()) {
-            $fetched_first = ($userData['role'] === 'Student') 
-                ? ($userData['s_fname'] ?? '') 
-                : ($userData['f_fname'] ?? '');
-            if (!empty($fetched_first)) {
-                $first_name = $fetched_first;
-            }
-            if (!empty($userData['email'])) {
-                $user_email = $userData['email'];
-            }
-        }
-    }
-}
-
-if ($first_name === 'User' && !empty($_SESSION['user_name'])) {
-    $parts = explode(' ', trim($_SESSION['user_name']));
-    $first_name = $parts[0] ?? 'User';
-}
+require_once __DIR__ . '/auth_check.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -103,7 +68,7 @@ if ($first_name === 'User' && !empty($_SESSION['user_name'])) {
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
                     <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">
-                        <?php echo htmlspecialchars(strtoupper(substr($first_name, 0, 2))); ?>
+                        <?php echo htmlspecialchars($user_initials); ?>
                     </div>
                     <span class="user-name"><?php echo htmlspecialchars($first_name); ?></span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
@@ -116,7 +81,7 @@ if ($first_name === 'User' && !empty($_SESSION['user_name'])) {
                         </div>
                         <div class="dropdown-divider"></div>
                         <a href="userprofile.php"><i class="fa-solid fa-user"></i> My Profile</a>
-                        <a href="../login.php" class="danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+                        <a href="../logout.php" class="danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
                     </div>
                 </div>
             </div>
@@ -305,6 +270,26 @@ if ($first_name === 'User' && !empty($_SESSION['user_name'])) {
                     dropdownMenu.classList.remove('show');
                 });
             }
+
+            // Navbar Avatar Sync Helper
+            function syncNavbarAvatar() {
+                const savedAvatar = localStorage.getItem('user-avatar-src');
+                const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
+                navAvatars.forEach(navAvatar => {
+                    if (savedAvatar) {
+                        navAvatar.innerHTML = `<img src="${savedAvatar}" alt="User Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                        navAvatar.style.padding = '0';
+                        navAvatar.style.background = 'transparent';
+                    }
+                });
+            }
+            syncNavbarAvatar();
+
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'user-avatar-src') {
+                    syncNavbarAvatar();
+                }
+            });
         });
     </script>
 </body>

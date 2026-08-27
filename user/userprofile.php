@@ -1,3 +1,6 @@
+<?php
+require_once __DIR__ . '/auth_check.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -64,19 +67,19 @@
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">US</div>
-                    <span class="user-name">User</span>
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;"><?php echo htmlspecialchars($user_initials); ?></div>
+                    <span class="user-name"><?php echo htmlspecialchars($first_name); ?></span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
                     <!-- Dropdown Menu -->
                     <div class="profile-dropdown-menu" id="dropdownMenu">
                         <div class="dropdown-profile-header">
-                            <span class="header-name">User</span>
-                            <span class="header-email">user@equiptrack.edu</span>
+                            <span class="header-name"><?php echo htmlspecialchars($full_name); ?></span>
+                            <span class="header-email"><?php echo htmlspecialchars($user_email); ?></span>
                         </div>
                         <div class="dropdown-divider"></div>
                         <a href="userprofile.php"><i class="fa-solid fa-user"></i> My Profile</a>
-                        <a href="../login.php" class="danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+                        <a href="../logout.php" class="danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
                     </div>
                 </div>
             </div>
@@ -88,7 +91,7 @@
                 <div class="profile-banner"></div>
                 <div class="profile-img-wrapper">
                     <div class="profile-img-container">
-                        <img src="https://ui-avatars.com/api/?name=User&background=random&size=200" alt="User" class="profile-img">
+                        <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($full_name); ?>&background=random&size=200" alt="User" class="profile-img">
                     </div>
                     <button type="button" class="btn-upload-icon" onclick="document.getElementById('profilePicInput').click()" title="Upload Picture">
                         <i class="fa-solid fa-camera"></i>
@@ -96,8 +99,8 @@
                     <input type="file" id="profilePicInput" style="display: none;" accept="image/*">
                 </div>
                 <div class="profile-info">
-                    <h3 class="profile-name">User</h3>
-                    <p class="profile-role">Student</p>
+                    <h3 class="profile-name"><?php echo htmlspecialchars($full_name); ?></h3>
+                    <p class="profile-role"><?php echo htmlspecialchars($user_role); ?></p>
                     <div class="profile-divider"></div>
                     <ul class="profile-stats">
                         <li>
@@ -109,7 +112,7 @@
                             <span class="stat-num">0</span>
                         </li>
                     </ul>
-                    <a href="../login.php" class="btn-logout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+                    <a href="../logout.php" class="btn-logout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
                 </div>
             </div>
 
@@ -125,14 +128,14 @@
                             <label>First Name</label>
                             <div class="input-wrapper">
                                 <i class="fa-regular fa-user input-icon"></i>
-                                <input type="text" class="form-control" value="" placeholder="Enter first name">
+                                <input type="text" class="form-control" value="<?php echo htmlspecialchars($first_name); ?>" placeholder="Enter first name">
                             </div>
                         </div>
                         <div class="form-group">
                             <label>Last Name</label>
                             <div class="input-wrapper">
                                 <i class="fa-regular fa-user input-icon"></i>
-                                <input type="text" class="form-control" value="" placeholder="Enter last name">
+                                <input type="text" class="form-control" value="<?php echo htmlspecialchars($last_name); ?>" placeholder="Enter last name">
                             </div>
                         </div>
                     </div>
@@ -141,7 +144,7 @@
                         <label>Email Address</label>
                         <div class="input-wrapper">
                             <i class="fa-regular fa-envelope input-icon"></i>
-                            <input type="email" class="form-control" value="" placeholder="Enter email address">
+                            <input type="email" class="form-control" value="<?php echo htmlspecialchars($user_email); ?>" placeholder="Enter email address">
                         </div>
                     </div>
                     
@@ -176,6 +179,13 @@
             </div>
         </div>
     </main>
+
+    <!-- Toast Notification -->
+    <div class="toast-notification" id="toastNotif" style="position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px; opacity: 0; visibility: hidden; transition: all 0.3s ease; z-index: 9999;">
+        <i class="fa-solid fa-circle-check" style="color: #10b981;"></i>
+        <span id="toastMsg">Profile picture updated successfully!</span>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -213,6 +223,67 @@
                 document.addEventListener('click', () => {
                     dropdownMenu.classList.remove('show');
                 });
+            }
+
+            // Navbar Avatar Sync Helper
+            function syncNavbarAvatar() {
+                const savedAvatar = localStorage.getItem('user-avatar-src');
+                const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
+                navAvatars.forEach(navAvatar => {
+                    if (savedAvatar) {
+                        navAvatar.innerHTML = `<img src="${savedAvatar}" alt="User Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                        navAvatar.style.padding = '0';
+                        navAvatar.style.background = 'transparent';
+                    }
+                });
+            }
+            syncNavbarAvatar();
+
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'user-avatar-src') {
+                    syncNavbarAvatar();
+                }
+            });
+
+            // Profile Avatar Image Upload & Sync
+            const profilePicInput = document.getElementById('profilePicInput');
+            const profileImg = document.querySelector('.profile-img-container .profile-img');
+
+            const savedAvatar = localStorage.getItem('user-avatar-src');
+            if (savedAvatar && profileImg) {
+                profileImg.src = savedAvatar;
+            }
+
+            if (profilePicInput && profileImg) {
+                profilePicInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(evt) {
+                            const newSrc = evt.target.result;
+                            profileImg.src = newSrc;
+                            localStorage.setItem('user-avatar-src', newSrc);
+                            syncNavbarAvatar();
+                            showToast('Profile picture updated successfully!');
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+
+            // Toast Helper
+            function showToast(msg) {
+                const toast = document.getElementById('toastNotif');
+                const toastMsg = document.getElementById('toastMsg');
+                if (toast && toastMsg) {
+                    toastMsg.textContent = msg;
+                    toast.style.opacity = '1';
+                    toast.style.visibility = 'visible';
+                    setTimeout(() => {
+                        toast.style.opacity = '0';
+                        toast.style.visibility = 'hidden';
+                    }, 3500);
+                }
             }
         });
     </script>

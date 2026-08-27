@@ -1,6 +1,5 @@
 <?php
-// EquipTrack — Department Personnel Dashboard
-// Department Profile Page
+require_once __DIR__ . '/auth_check.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -80,19 +79,19 @@
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;">DP</div>
-                    <span class="user-name">Department</span>
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;"><?php echo htmlspecialchars($dept_initials); ?></div>
+                    <span class="user-name"><?php echo htmlspecialchars($dept_name); ?></span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
                     <!-- Dropdown Menu -->
                     <div class="profile-dropdown-menu" id="dropdownMenu">
                         <div class="dropdown-profile-header">
-                            <span class="header-name">Department</span>
-                            <span class="header-email">department@equiptrack.edu</span>
+                            <span class="header-name"><?php echo htmlspecialchars($dept_name); ?></span>
+                            <span class="header-email"><?php echo htmlspecialchars($dept_email); ?></span>
                         </div>
                         <div class="dropdown-divider"></div>
                         <a href="profile.php"><i class="fa-solid fa-user"></i> My Profile</a>
-                        <a href="../login.php" class="danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
+                        <a href="../logout.php" class="danger"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</a>
                     </div>
                 </div>
             </div>
@@ -115,15 +114,16 @@
                         <button class="avatar-camera-btn" id="changeAvatarBtn" title="Upload new photo">
                             <i class="fa-solid fa-camera"></i>
                         </button>
+                        <input type="file" id="deptAvatarInput" style="display: none;" accept="image/*">
                     </div>
 
-                    <h3 class="account-name" id="displayAccountName">DEPARTMENT PERSONNEL</h3>
+                    <h3 class="account-name" id="displayAccountName"><?php echo htmlspecialchars(strtoupper($dept_name)); ?></h3>
                     <p class="account-role">Department Equipment Personnel</p>
 
                     <span class="badge-active-status">ACTIVE</span>
                 </div>
 
-                <a href="../login.php" class="btn-profile-logout">LOGOUT</a>
+                <a href="../logout.php" class="btn-profile-logout">LOGOUT</a>
             </div>
 
             <!-- Right Profile Form Card -->
@@ -295,6 +295,26 @@
             }
         }
 
+        // Navbar Avatar Sync Helper
+        function syncNavbarAvatar() {
+            const savedAvatar = localStorage.getItem('dept-avatar-src');
+            const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
+            navAvatars.forEach(navAvatar => {
+                if (savedAvatar) {
+                    navAvatar.innerHTML = `<img src="${savedAvatar}" alt="Department Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                    navAvatar.style.padding = '0';
+                    navAvatar.style.background = 'transparent';
+                }
+            });
+        }
+        syncNavbarAvatar();
+
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'dept-avatar-src') {
+                syncNavbarAvatar();
+            }
+        });
+
         // Toast message display
         function showToast(msg) {
             const toastNotif = document.getElementById('toastNotif');
@@ -312,14 +332,42 @@
         function handleProfileSubmit(e) {
             e.preventDefault();
             const fullNameVal = document.getElementById('fullName').value;
-            document.getElementById('displayAccountName').textContent = fullNameVal.toUpperCase();
+            if (fullNameVal) {
+                document.getElementById('displayAccountName').textContent = fullNameVal.toUpperCase();
+            }
             showToast('Account details updated successfully.');
         }
 
-        // Avatar change simulator
-        document.getElementById('changeAvatarBtn').addEventListener('click', () => {
-            showToast('Avatar upload option opened.');
-        });
+        // Avatar change & upload handler
+        const changeAvatarBtn = document.getElementById('changeAvatarBtn');
+        const deptAvatarInput = document.getElementById('deptAvatarInput');
+        const avatarImage = document.getElementById('avatarImage');
+
+        const savedAvatar = localStorage.getItem('dept-avatar-src');
+        if (savedAvatar && avatarImage) {
+            avatarImage.src = savedAvatar;
+        }
+
+        if (changeAvatarBtn && deptAvatarInput) {
+            changeAvatarBtn.addEventListener('click', () => {
+                deptAvatarInput.click();
+            });
+
+            deptAvatarInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        const newSrc = evt.target.result;
+                        if (avatarImage) avatarImage.src = newSrc;
+                        localStorage.setItem('dept-avatar-src', newSrc);
+                        syncNavbarAvatar();
+                        showToast('Profile picture updated successfully!');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
     </script>
 </body>
 </html>
