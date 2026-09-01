@@ -34,7 +34,7 @@ if (
 
 // 2. Database Verification: Check that the department account record actually exists
 $dept_acc_id = (int)$_SESSION['dept_acc_id'];
-$stmtCheckDept = $conn->prepare("SELECT dept_acc_id, username, email, full_name FROM department_account WHERE dept_acc_id = ?");
+$stmtCheckDept = $conn->prepare("SELECT dept_acc_id, email, full_name FROM department_account WHERE dept_acc_id = ?");
 if (!$stmtCheckDept) {
     redirect_unauthorized_dept();
 }
@@ -49,7 +49,7 @@ if (!$deptRes || $deptRes->num_rows === 0) {
 
 // 3. Refresh & Sync Department Session State
 $currentDeptData = $deptRes->fetch_assoc();
-$dept_name  = !empty($currentDeptData['full_name']) ? $currentDeptData['full_name'] : ($currentDeptData['username'] ?? 'Department');
+$dept_name  = !empty($currentDeptData['full_name']) ? $currentDeptData['full_name'] : 'Department';
 $dept_email = !empty($currentDeptData['email']) ? $currentDeptData['email'] : 'department@equiptrack.edu';
 
 unset($_SESSION['admin_id'], $_SESSION['admin_name'], $_SESSION['admin_email'], $_SESSION['admin_username'], $_SESSION['admin_employee_id'], $_SESSION['admin_role']);

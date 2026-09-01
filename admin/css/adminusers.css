@@ -140,6 +140,11 @@
     color: #f87171 !important;
 }
 
+/* User Details Modal Sizing & Layout Override */
+#userDetailsModal .eq-modal-card {
+    max-width: 800px !important;
+}
+
 /* Modal Details Form layout (consistent with requests.php) */
 .detail-main-content {
     display: flex;
@@ -148,10 +153,11 @@
 }
 
 .detail-left-side {
-    width: 180px;
+    width: 200px;
     display: flex;
     flex-direction: column;
     gap: 16px;
+    flex-shrink: 0;
 }
 
 .detail-right-side {
@@ -159,12 +165,13 @@
 }
 
 .detail-img-container {
-    width: 180px;
-    height: 140px;
-    border-radius: 12px;
+    width: 200px;
+    height: 200px;
+    border-radius: 14px;
     overflow: hidden;
     border: 1px solid var(--border-color);
     background-color: var(--bg-color, #f8fafc);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .dark-theme .detail-img-container {
@@ -181,7 +188,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
-    margin-bottom: 20px;
+    margin-bottom: 0;
 }
 
 .detail-form-group {

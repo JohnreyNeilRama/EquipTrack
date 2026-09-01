@@ -15,6 +15,9 @@ if (!empty($_SESSION['admin_id'])) {
 }
 
 $error = '';
+if (isset($_GET['error']) && $_GET['error'] === 'deactivated') {
+    $error = 'Your account has been deactivated by the Administrator. Please contact support.';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login_input = trim($_POST['email'] ?? '');
@@ -37,17 +40,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($resUser && $user = $resUser->fetch_assoc()) {
             if (password_verify($password, $user['password']) || $password === $user['password']) {
-                session_unset();
-                session_regenerate_id(true);
-                $_SESSION['user_id']   = $user['user_id'];
-                $_SESSION['user_role'] = $user['role'];
-                $_SESSION['user_name'] = ($user['role'] === 'Student') 
-                    ? trim(($user['s_fname'] ?? '') . ' ' . ($user['s_lname'] ?? ''))
-                    : trim(($user['f_fname'] ?? '') . ' ' . ($user['f_lname'] ?? ''));
-                $_SESSION['email']     = $user['email'];
+                if (!empty($user['status']) && strtolower($user['status']) === 'deactivated') {
+                    $error = 'Your account has been deactivated by the Administrator.';
+                } else {
+                    session_unset();
+                    session_regenerate_id(true);
+                    $_SESSION['user_id']   = $user['user_id'];
+                    $_SESSION['user_role'] = $user['role'];
+                    $_SESSION['user_name'] = ($user['role'] === 'Student') 
+                        ? trim(($user['s_fname'] ?? '') . ' ' . ($user['s_lname'] ?? ''))
+                        : trim(($user['f_fname'] ?? '') . ' ' . ($user['f_lname'] ?? ''));
+                    $_SESSION['email']     = $user['email'];
 
-                header("Location: user/userdashboard.php");
-                exit;
+                    header("Location: user/userdashboard.php");
+                    exit;
+                }
             }
         }
 
@@ -74,26 +81,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // 3. Check Department Account
-        $stmtDept = $conn->prepare("SELECT * FROM department_account WHERE username = ? OR email = ?");
-        $stmtDept->bind_param("ss", $login_input, $login_input);
+        $stmtDept = $conn->prepare("SELECT * FROM department_account WHERE email = ?");
+        $stmtDept->bind_param("s", $login_input);
         $stmtDept->execute();
         $resDept = $stmtDept->get_result();
 
         if ($resDept && $dept = $resDept->fetch_assoc()) {
             if (password_verify($password, $dept['password']) || $password === $dept['password']) {
-                session_unset();
-                session_regenerate_id(true);
-                $_SESSION['dept_acc_id'] = $dept['dept_acc_id'];
-                $_SESSION['dept_name']   = $dept['full_name'];
-                $_SESSION['dept_email']  = $dept['email'] ?? '';
-                $_SESSION['dept_role']   = 'Department';
+                if (!empty($dept['status']) && strtolower($dept['status']) === 'deactivated') {
+                    $error = 'This department account has been deactivated by the Administrator.';
+                } else {
+                    session_unset();
+                    session_regenerate_id(true);
+                    $_SESSION['dept_acc_id'] = $dept['dept_acc_id'];
+                    $_SESSION['dept_name']   = $dept['full_name'];
+                    $_SESSION['dept_email']  = $dept['email'] ?? '';
+                    $_SESSION['dept_role']   = 'Department';
 
-                header("Location: departments/departmentdashboard.php");
-                exit;
+                    header("Location: departments/departmentdashboard.php");
+                    exit;
+                }
             }
         }
 
-        $error = 'Invalid email/username or password.';
+        if (empty($error)) {
+            $error = 'Invalid email/username or password.';
+        }
     }
 }
 ?>

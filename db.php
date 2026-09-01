@@ -38,6 +38,30 @@ try {
         $pdo = null;
     }
 
+    // Helper: Ensure department table exists
+    $conn->query("CREATE TABLE IF NOT EXISTS department (
+        department_id INT AUTO_INCREMENT PRIMARY KEY,
+        department_name VARCHAR(255) NOT NULL,
+        department_code VARCHAR(50) NOT NULL,
+        college VARCHAR(255) NULL,
+        department_head VARCHAR(255) NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    $deptColsRes = $conn->query("SHOW COLUMNS FROM department");
+    $existingDeptCols = [];
+    if ($deptColsRes) {
+        while ($col = $deptColsRes->fetch_assoc()) {
+            $existingDeptCols[] = $col['Field'];
+        }
+    }
+    if (!in_array('college', $existingDeptCols)) {
+        $conn->query("ALTER TABLE department ADD COLUMN college VARCHAR(255) NULL AFTER department_code");
+    }
+    if (!in_array('department_head', $existingDeptCols)) {
+        $conn->query("ALTER TABLE department ADD COLUMN department_head VARCHAR(255) NULL AFTER college");
+    }
+
     // Helper: Ensure at least one default department exists for user registration
     $deptCheck = $conn->query("SELECT department_id FROM department LIMIT 1");
     if ($deptCheck && $deptCheck->num_rows === 0) {

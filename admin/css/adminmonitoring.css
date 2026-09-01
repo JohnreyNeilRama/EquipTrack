@@ -587,3 +587,259 @@
     border-color: #f59e0b !important;
 }
 
+/* Add Department Card (matching reference grid) */
+.add-dept-card-container {
+    display: flex;
+    justify-content: flex-start;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 0 12px;
+}
+
+.add-dept-card {
+    min-height: 220px;
+    width: 100%;
+    background-color: var(--card-bg, #ffffff);
+    border: 2px dashed var(--border-color, #cbd5e1);
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 5;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.add-dept-card:hover {
+    transform: translateY(-6px);
+    background-color: var(--primary-light, #f0f4f8);
+    border-color: var(--primary-color, #385585);
+    box-shadow: 0 16px 28px rgba(56, 85, 133, 0.08);
+}
+
+.dark-theme .add-dept-card {
+    background-color: rgba(30, 41, 59, 0.8);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dark-theme .add-dept-card:hover {
+    background-color: rgba(51, 65, 85, 0.9);
+    border-color: var(--primary-color);
+}
+
+.add-dept-icon {
+    font-size: 46px;
+    font-weight: 200;
+    color: #475569;
+    pointer-events: none !important;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.dark-theme .add-dept-icon {
+    color: #94a3b8;
+}
+
+.add-dept-card:hover .add-dept-icon {
+    color: var(--primary-color);
+    transform: scale(1.08);
+}
+
+/* Add Department Modal Styling & Contrast Fixes */
+#addDeptModal {
+    background-color: rgba(15, 23, 42, 0.65) !important;
+    backdrop-filter: blur(6px) !important;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#addDeptModal.show {
+    display: flex !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    visibility: visible !important;
+}
+
+#addDeptModal .add-dept-modal-box {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 20px !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35) !important;
+    width: 90% !important;
+    max-width: 520px !important;
+    overflow: hidden !important;
+    margin: auto !important;
+}
+
+.dark-theme #addDeptModal .add-dept-modal-box {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important;
+}
+
+#addDeptModal .modal-outer-header {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 20px 24px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+.dark-theme #addDeptModal .modal-outer-header {
+    background-color: #1e293b !important;
+    border-bottom-color: #334155 !important;
+}
+
+#addDeptModal .add-dept-modal-title {
+    color: #0f172a !important;
+    font-size: 19px !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+}
+
+.dark-theme #addDeptModal .add-dept-modal-title {
+    color: #f8fafc !important;
+}
+
+#addDeptModal .add-dept-modal-desc {
+    color: #64748b !important;
+    font-size: 13.5px !important;
+    margin: 4px 0 0 0 !important;
+}
+
+.dark-theme #addDeptModal .add-dept-modal-desc {
+    color: #94a3b8 !important;
+}
+
+#addDeptModal .add-dept-close-btn {
+    color: #64748b !important;
+    font-size: 24px !important;
+    background: none !important;
+    border: none !important;
+    cursor: pointer !important;
+    padding: 4px 8px !important;
+    line-height: 1 !important;
+    transition: color 0.2s ease !important;
+}
+
+#addDeptModal .add-dept-close-btn:hover {
+    color: #ef4444 !important;
+}
+
+#addDeptModal .add-dept-form-group {
+    margin-bottom: 18px !important;
+}
+
+#addDeptModal .add-dept-label {
+    display: block !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    margin-bottom: 6px !important;
+}
+
+.dark-theme #addDeptModal .add-dept-label {
+    color: #e2e8f0 !important;
+}
+
+#addDeptModal .add-dept-input {
+    width: 100% !important;
+    padding: 12px 16px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 12px !important;
+    font-size: 14px !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    outline: none !important;
+    transition: all 0.2s ease !important;
+}
+
+#addDeptModal .add-dept-input::placeholder {
+    color: #94a3b8 !important;
+}
+
+#addDeptModal .add-dept-input:focus {
+    border-color: #385585 !important;
+    box-shadow: 0 0 0 3px rgba(56, 85, 133, 0.15) !important;
+}
+
+.dark-theme #addDeptModal .add-dept-input {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+.dark-theme #addDeptModal .add-dept-input::placeholder {
+    color: #64748b !important;
+}
+
+.dark-theme #addDeptModal .add-dept-input:focus {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2) !important;
+}
+
+#addDeptModal .add-dept-footer {
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+    border-top: 1px solid #e2e8f0 !important;
+    padding-top: 20px !important;
+    margin-top: 24px !important;
+}
+
+.dark-theme #addDeptModal .add-dept-footer {
+    border-top-color: #334155 !important;
+}
+
+#addDeptModal .btn-add-dept-cancel {
+    padding: 12px 24px !important;
+    background-color: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+    color: #475569 !important;
+    transition: all 0.2s ease !important;
+}
+
+#addDeptModal .btn-add-dept-cancel:hover {
+    background-color: #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+.dark-theme #addDeptModal .btn-add-dept-cancel {
+    background-color: #334155 !important;
+    border-color: #475569 !important;
+    color: #cbd5e1 !important;
+}
+
+.dark-theme #addDeptModal .btn-add-dept-cancel:hover {
+    background-color: #475569 !important;
+    color: #f8fafc !important;
+}
+
+#addDeptModal .btn-add-dept-save {
+    padding: 12px 28px !important;
+    background-color: #385585 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 12px rgba(56, 85, 133, 0.25) !important;
+    transition: all 0.2s ease !important;
+}
+
+#addDeptModal .btn-add-dept-save:hover {
+    background-color: #2f477a !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 16px rgba(56, 85, 133, 0.35) !important;
+}
+

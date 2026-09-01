@@ -4,13 +4,15 @@ require_once __DIR__ . '/auth_check.php';
 // Ensure department_account table structure exists
 $conn->query("CREATE TABLE IF NOT EXISTS department_account (
     dept_acc_id INT AUTO_INCREMENT PRIMARY KEY,
-    department_name VARCHAR(255) NULL,
-    department_code VARCHAR(50) NULL,
     full_name VARCHAR(255) NOT NULL,
-    username VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL,
     password VARCHAR(255) NOT NULL,
-    office_location VARCHAR(255) NULL,
+    employee_id VARCHAR(100) NULL,
+    role VARCHAR(100) DEFAULT 'Department Head',
+    department_id INT NULL,
+    profile_image VARCHAR(255) NULL,
+    last_online DATETIME NULL,
+    status VARCHAR(50) DEFAULT 'Active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )");
 
@@ -65,29 +67,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($action === 'add_department') {
-        $deptName = trim($_POST['dept_name'] ?? '');
-        $idNumber = trim($_POST['dept_id_number'] ?? '');
-        $address  = trim($_POST['dept_address'] ?? '');
-        $email    = trim($_POST['dept_email'] ?? '');
-        $password = $_POST['dept_password'] ?? 'dept123';
-        $username = explode('@', $email)[0];
-        
-        $stmtChk = $conn->prepare("SELECT dept_acc_id FROM department_account WHERE email = ? OR username = ?");
-        $stmtChk->bind_param("ss", $email, $username);
-        $stmtChk->execute();
-        if ($stmtChk->get_result()->num_rows > 0) {
-            $serverMsg = "A department account with this email or username already exists.";
+        $fullName   = trim($_POST['full_name'] ?? '');
+        $email      = trim($_POST['email'] ?? '');
+        $employeeId = trim($_POST['employee_id'] ?? '');
+        $role       = trim($_POST['role'] ?? 'Department Head');
+        $deptId     = (int)($_POST['department_id'] ?? 0);
+        $password   = $_POST['password'] ?? 'dept123';
+
+        if (empty($fullName) || empty($email) || empty($employeeId) || empty($role) || empty($deptId)) {
+            $serverMsg = "All fields (Full Name, Email, Employee ID, Role, Department) are required.";
             $serverMsgType = "error";
         } else {
-            $hashedPass = password_hash($password, PASSWORD_DEFAULT);
-            $stmtInsDept = $conn->prepare("INSERT INTO department_account (department_name, department_code, full_name, username, email, password, office_location) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmtInsDept->bind_param("sssssss", $deptName, $idNumber, $deptName, $username, $email, $hashedPass, $address);
-            if ($stmtInsDept->execute()) {
-                $serverMsg = "Department account for '$deptName' created successfully!";
-                $serverMsgType = "success";
-            } else {
-                $serverMsg = "Failed to create department account: " . $conn->error;
-                $serverMsgType = "error";
+            $stmtChk = $conn->prepare("SELECT dept_acc_id FROM department_account WHERE email = ? OR employee_id = ?");
+            if ($stmtChk) {
+                $stmtChk->bind_param("ss", $email, $employeeId);
+                $stmtChk->execute();
+                if ($stmtChk->get_result()->num_rows > 0) {
+                    $serverMsg = "A department account with this email or employee ID already exists.";
+                    $serverMsgType = "error";
+                } else {
+                    $hashedPass = password_hash($password, PASSWORD_DEFAULT);
+                    $stmtInsDept = $conn->prepare("INSERT INTO department_account (full_name, email, employee_id, role, department_id, password) VALUES (?, ?, ?, ?, ?, ?)");
+                    if ($stmtInsDept) {
+                        $stmtInsDept->bind_param("ssssis", $fullName, $email, $employeeId, $role, $deptId, $hashedPass);
+                        if ($stmtInsDept->execute()) {
+                            $serverMsg = "Department account for '$fullName' created successfully!";
+                            $serverMsgType = "success";
+                        } else {
+                            $serverMsg = "Failed to create department account: " . $conn->error;
+                            $serverMsgType = "error";
+                        }
+                    } else {
+                        $serverMsg = "Database error: " . $conn->error;
+                        $serverMsgType = "error";
+                    }
+                }
             }
         }
     } elseif ($action === 'delete_user') {
@@ -115,6 +129,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $serverMsg = "User account deleted successfully.";
             $serverMsgType = "success";
         }
+    } elseif ($action === 'update_profile_image') {
+        $targetUserId = (int)($_POST['target_user_id'] ?? 0);
+        $targetUserType = $_POST['target_user_type'] ?? 'user_account';
+        
+        if (isset($_FILES['admin_profile_img_file']) && $_FILES['admin_profile_img_file']['error'] === UPLOAD_ERR_OK) {
+            $file = $_FILES['admin_profile_img_file'];
+            $fileMime = mime_content_type($file['tmp_name']);
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+            
+            if (in_array($fileMime, $allowedMimes) && $file['size'] <= 5 * 1024 * 1024) {
+                $binaryData = file_get_contents($file['tmp_name']);
+                $base64Data = 'data:' . $fileMime . ';base64,' . base64_encode($binaryData);
+                
+                if ($targetUserType === 'department') {
+                    $conn->query("ALTER TABLE department_account MODIFY COLUMN profile_image LONGTEXT DEFAULT NULL");
+                    $actualId = $targetUserId > 100000 ? ($targetUserId - 100000) : $targetUserId;
+                    $stmtUpd = $conn->prepare("UPDATE department_account SET profile_image = ? WHERE dept_acc_id = ?");
+                    $stmtUpd->bind_param("si", $base64Data, $actualId);
+                    $stmtUpd->execute();
+                } else {
+                    $conn->query("ALTER TABLE user_account MODIFY COLUMN profile_image LONGTEXT DEFAULT NULL");
+                    $stmtUpd = $conn->prepare("UPDATE user_account SET profile_image = ? WHERE user_id = ?");
+                    $stmtUpd->bind_param("si", $base64Data, $targetUserId);
+                    $stmtUpd->execute();
+                }
+                $serverMsg = "Profile picture updated and saved to database successfully!";
+                $serverMsgType = "success";
+            } else {
+                $serverMsg = "Invalid image file or file size exceeds 5MB limit.";
+                $serverMsgType = "error";
+            }
+        }
+    } elseif ($action === 'toggle_status') {
+        $targetUserId = (int)($_POST['target_user_id'] ?? 0);
+        $targetUserType = $_POST['target_user_type'] ?? 'user_account';
+        $newStatus = ($_POST['new_status'] === 'Deactivated') ? 'Deactivated' : 'Active';
+        
+        if ($targetUserType === 'department') {
+            $actualId = $targetUserId > 100000 ? ($targetUserId - 100000) : $targetUserId;
+            $stmtUpd = $conn->prepare("UPDATE department_account SET status = ? WHERE dept_acc_id = ?");
+            $stmtUpd->bind_param("si", $newStatus, $actualId);
+            $stmtUpd->execute();
+        } else {
+            $stmtUpd = $conn->prepare("UPDATE user_account SET status = ? WHERE user_id = ?");
+            $stmtUpd->bind_param("si", $newStatus, $targetUserId);
+            $stmtUpd->execute();
+        }
+        $serverMsg = "User account status updated to '$newStatus' successfully!";
+        $serverMsgType = "success";
     }
 }
 
@@ -128,6 +191,10 @@ $sqlUsers = "
         u.role,
         u.email,
         u.department_id,
+        u.date_created,
+        u.last_online,
+        u.profile_image,
+        u.status,
         s.first_name AS s_first_name,
         s.last_name AS s_last_name,
         s.id_number AS s_id_number,
@@ -165,51 +232,97 @@ if ($resUsers) {
             $idNumber = 'USR-' . sprintf('%04d', $row['id']);
         }
 
+        $createdAtFormatted = 'Database Record';
+        if (!empty($row['date_created'])) {
+            $createdAtFormatted = date('M j, Y, g:i A', strtotime($row['date_created']));
+        }
+
+        $lastOnlineFormatted = 'Offline / Never';
+        if (!empty($row['last_online'])) {
+            $lastOnlineFormatted = date('M j, Y, g:i A', strtotime($row['last_online']));
+        }
+
+        $userStatus = !empty($row['status']) ? $row['status'] : 'Active';
+
         $dbUsers[] = [
-            'id'          => (int)$row['id'],
-            'db_type'     => 'user_account',
-            'first_name'  => $firstName,
-            'last_name'   => $lastName,
-            'id_number'   => $idNumber,
-            'role'        => strtolower($row['role']) === 'faculty' ? 'teacher' : strtolower($row['role']),
-            'year_level'  => $yearLevel,
-            'email'       => $row['email'],
-            'address'     => $address,
-            'department'  => $departmentName,
-            'status'      => 'Active',
-            'username'    => explode('@', $row['email'])[0],
-            'created_at'  => 'Database Record',
-            'last_login'  => 'N/A'
+            'id'            => (int)$row['id'],
+            'db_type'       => 'user_account',
+            'first_name'    => $firstName,
+            'last_name'     => $lastName,
+            'id_number'     => $idNumber,
+            'role'          => strtolower($row['role']) === 'faculty' ? 'teacher' : strtolower($row['role']),
+            'year_level'    => $yearLevel,
+            'email'         => $row['email'],
+            'address'       => $address,
+            'department'    => $departmentName,
+            'status'        => $userStatus,
+            'username'      => explode('@', $row['email'])[0],
+            'created_at'    => $createdAtFormatted,
+            'last_online'   => $lastOnlineFormatted,
+            'profile_image' => !empty($row['profile_image']) ? $row['profile_image'] : null
         ];
     }
 }
 
-// 2. Fetch Department accounts from department_account
-$sqlDepts = "SELECT * FROM department_account ORDER BY dept_acc_id DESC";
+// 2. Fetch Department accounts from department_account joined with department table
+$sqlDepts = "
+    SELECT 
+        da.*,
+        d.department_name,
+        d.department_code
+    FROM department_account da
+    LEFT JOIN department d ON da.department_id = d.department_id
+    ORDER BY da.dept_acc_id DESC
+";
 $resDepts = $conn->query($sqlDepts);
 if ($resDepts) {
     while ($row = $resDepts->fetch_assoc()) {
-        $deptName = !empty($row['department_name']) ? $row['department_name'] : (!empty($row['full_name']) ? $row['full_name'] : 'Department Office');
-        $deptCode = !empty($row['department_code']) ? $row['department_code'] : (!empty($row['username']) ? strtoupper($row['username']) : 'D-' . $row['dept_acc_id']);
-        $email    = !empty($row['email']) ? $row['email'] : ($row['username'] ?? 'dept@equiptrack.edu');
-        $address  = $row['office_location'] ?? ($row['address'] ?? 'University Campus');
+        $fullName = !empty($row['full_name']) ? $row['full_name'] : 'Department Account';
+        $empId    = !empty($row['employee_id']) ? $row['employee_id'] : ('EMP-' . $row['dept_acc_id']);
+        $email    = !empty($row['email']) ? $row['email'] : 'dept@equiptrack.edu';
+        $deptName = !empty($row['department_name']) ? $row['department_name'] : 'Department Office';
+        $roleName = !empty($row['role']) ? $row['role'] : 'Department Head';
+
+        $createdAtFormatted = 'Database Record';
+        if (!empty($row['created_at'])) {
+            $createdAtFormatted = date('M j, Y, g:i A', strtotime($row['created_at']));
+        }
+
+        $lastOnlineFormatted = 'Offline / Never';
+        if (!empty($row['last_online'])) {
+            $lastOnlineFormatted = date('M j, Y, g:i A', strtotime($row['last_online']));
+        }
+
+        $deptStatus = !empty($row['status']) ? $row['status'] : 'Active';
 
         $dbUsers[] = [
-            'id'          => 100000 + (int)$row['dept_acc_id'],
-            'db_type'     => 'department',
-            'first_name'  => $deptName,
-            'last_name'   => '',
-            'id_number'   => $deptCode,
-            'role'        => 'department',
-            'year_level'  => 'N/A',
-            'email'       => $email,
-            'address'     => $address,
-            'department'  => $deptName,
-            'status'      => 'Active',
-            'username'    => $row['username'] ?? explode('@', $email)[0],
-            'created_at'  => 'Database Record',
-            'last_login'  => 'N/A'
+            'id'            => 100000 + (int)$row['dept_acc_id'],
+            'db_type'       => 'department',
+            'first_name'    => $fullName,
+            'last_name'     => '',
+            'id_number'     => $empId,
+            'role'          => strtolower($roleName),
+            'year_level'    => 'N/A',
+            'email'         => $email,
+            'address'       => $deptName,
+            'department'    => $deptName,
+            'status'        => $deptStatus,
+            'username'      => !empty($email) ? explode('@', $email)[0] : 'dept',
+            'employee_id'   => $empId,
+            'department_id' => $row['department_id'],
+            'created_at'    => $createdAtFormatted,
+            'last_online'   => $lastOnlineFormatted,
+            'profile_image' => !empty($row['profile_image']) ? $row['profile_image'] : null
         ];
+    }
+}
+
+// 3. Fetch departments list for select options in modals
+$departmentsList = [];
+$dListRes = $conn->query("SELECT department_id, department_name, department_code FROM department ORDER BY department_name ASC");
+if ($dListRes) {
+    while ($dRow = $dListRes->fetch_assoc()) {
+        $departmentsList[] = $dRow;
     }
 }
 ?>
@@ -520,7 +633,7 @@ if ($resDepts) {
     <div class="modal-overlay" id="departmentModal">
         <div class="modal-card eq-modal-card">
             <div class="modal-outer-header">
-                <p class="modal-subtitle-top">Register a new department/office account in the system</p>
+                <p class="modal-subtitle-top">Register a new department account in the system</p>
             </div>
             <div class="modal-inner-card">
                 <button class="modal-close" id="closeDeptModalBtn">&times;</button>
@@ -528,37 +641,53 @@ if ($resDepts) {
                 
                 <form id="departmentForm" action="users.php" method="POST" class="new-modal-form" style="padding-top: 10px;">
                     <input type="hidden" name="action" value="add_department">
+                    
                     <div class="form-group-flat">
-                        <label>Department Name</label>
-                        <div class="flat-select-wrapper" style="width: 100%;">
-                            <select id="deptName" name="dept_name" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
-                                <option value="" disabled selected>Select Department</option>
-                                <option value="Information Technology Department">Information Technology Department</option>
-                                <option value="Engineering Department">Engineering Department</option>
-                                <option value="Education Department">Education Department</option>
-                            </select>
+                        <label>Full Name <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="deptFullName" name="full_name" class="form-control-flat" required placeholder="e.g., Dr. Jane Doe">
+                    </div>
+
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group-flat">
+                            <label>Employee ID <span style="color: #ef4444;">*</span></label>
+                            <input type="text" id="deptEmployeeId" name="employee_id" class="form-control-flat" required placeholder="e.g., EMP-2026-001">
+                        </div>
+                        <div class="form-group-flat">
+                            <label>Email Address <span style="color: #ef4444;">*</span></label>
+                            <input type="email" id="deptEmail" name="email" class="form-control-flat" required placeholder="e.g., jane.doe@equiptrack.edu">
                         </div>
                     </div>
 
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group-flat">
-                            <label>Department Code / ID</label>
-                            <input type="text" id="deptIdNumber" name="dept_id_number" class="form-control-flat" required placeholder="e.g., D-IT-200">
+                            <label>Role <span style="color: #ef4444;">*</span></label>
+                            <div class="flat-select-wrapper" style="width: 100%;">
+                                <select id="deptRole" name="role" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                                    <option value="Department Head" selected>Department Head</option>
+                                    <option value="Department Staff">Department Staff</option>
+                                    <option value="Department Admin">Department Admin</option>
+                                </select>
+                            </div>
                         </div>
+
                         <div class="form-group-flat">
-                            <label>Room / Office Location</label>
-                            <input type="text" id="deptAddress" name="dept_address" class="form-control-flat" required placeholder="e.g., Tech Building Room 302">
+                            <label>Department <span style="color: #ef4444;">*</span></label>
+                            <div class="flat-select-wrapper" style="width: 100%;">
+                                <select id="deptDepartmentId" name="department_id" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                                    <option value="" disabled selected>Select Department</option>
+                                    <?php foreach ($departmentsList as $dItem): ?>
+                                        <option value="<?php echo (int)$dItem['department_id']; ?>">
+                                            <?php echo htmlspecialchars($dItem['department_name'] . ($dItem['department_code'] ? ' (' . $dItem['department_code'] . ')' : '')); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
                     <div class="form-group-flat">
-                        <label>Department Email</label>
-                        <input type="email" id="deptEmail" name="dept_email" class="form-control-flat" required placeholder="e.g., it.dept@equiptrack.edu">
-                    </div>
-
-                    <div class="form-group-flat">
-                        <label>Password</label>
-                        <input type="password" id="deptPassword" name="dept_password" class="form-control-flat" required placeholder="••••••••" minlength="6">
+                        <label>Password <span style="color: #ef4444;">*</span></label>
+                        <input type="password" id="deptPassword" name="password" class="form-control-flat" required placeholder="••••••••" minlength="6" value="dept123">
                     </div>
 
                     <button type="submit" class="btn-submit-request" style="margin-top: 10px;">
@@ -571,7 +700,7 @@ if ($resDepts) {
 
     <!-- User Details Modal -->
     <div class="modal-overlay" id="userDetailsModal">
-        <div class="modal-card eq-modal-card" style="max-width: 680px;">
+        <div class="modal-card eq-modal-card" style="max-width: 800px;">
             <div class="modal-outer-header">
                 <p class="modal-subtitle-top">Detailed view of user account information</p>
             </div>
@@ -591,8 +720,12 @@ if ($resDepts) {
                 <!-- Main Fields Section -->
                 <div class="detail-main-content">
                     <div class="detail-left-side">
-                        <div class="detail-img-container">
+                        <div class="detail-img-container" style="position: relative;">
                             <img src="" alt="User Profile Image" id="modalUserProfileImg">
+                            <button type="button" class="btn-upload-icon" id="adminUploadPicBtn" style="position: absolute; bottom: 8px; right: 8px; background: #385585; color: #fff; border: none; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3);" title="Upload / Change Profile Picture">
+                                <i class="fa-solid fa-camera"></i>
+                            </button>
+                            <input type="file" id="adminProfilePicInput" style="display: none;" accept="image/*">
                         </div>
                         <div class="detail-form-group">
                             <label class="detail-form-label">Status</label>
@@ -609,6 +742,18 @@ if ($resDepts) {
                                 <input type="text" id="modalFullName" class="detail-form-control" readonly>
                             </div>
                             <div class="detail-form-group">
+                                <label class="detail-form-label">ID Number</label>
+                                <input type="text" id="modalStudentId" class="detail-form-control" readonly>
+                            </div>
+                            <div class="detail-form-group">
+                                <label class="detail-form-label">Year Level</label>
+                                <input type="text" id="modalYearLevel" class="detail-form-control" readonly>
+                            </div>
+                            <div class="detail-form-group">
+                                <label class="detail-form-label">Email</label>
+                                <input type="text" id="modalEmail" class="detail-form-control" readonly>
+                            </div>
+                            <div class="detail-form-group">
                                 <label class="detail-form-label">Role</label>
                                 <input type="text" id="modalRole" class="detail-form-control" readonly>
                             </div>
@@ -617,24 +762,12 @@ if ($resDepts) {
                                 <input type="text" id="modalDepartment" class="detail-form-control" readonly>
                             </div>
                             <div class="detail-form-group">
-                                <label class="detail-form-label">Student ID</label>
-                                <input type="text" id="modalStudentId" class="detail-form-control" readonly>
-                            </div>
-                            <div class="detail-form-group">
-                                <label class="detail-form-label">Username</label>
-                                <input type="text" id="modalUsername" class="detail-form-control" readonly>
-                            </div>
-                            <div class="detail-form-group">
-                                <label class="detail-form-label">Email</label>
-                                <input type="text" id="modalEmail" class="detail-form-control" readonly>
-                            </div>
-                            <div class="detail-form-group">
                                 <label class="detail-form-label">Date Created</label>
                                 <input type="text" id="modalDateCreated" class="detail-form-control" readonly>
                             </div>
                             <div class="detail-form-group">
-                                <label class="detail-form-label">Last Login</label>
-                                <input type="text" id="modalLastLogin" class="detail-form-control" readonly>
+                                <label class="detail-form-label">Last Online</label>
+                                <input type="text" id="modalLastOnline" class="detail-form-control" readonly>
                             </div>
                         </div>
                     </div>
@@ -642,13 +775,14 @@ if ($resDepts) {
 
                 <!-- Address / Location Info Section -->
                 <div class="detail-form-group" style="margin-bottom: 16px;">
-                    <label class="detail-form-label">Address / Location</label>
+                    <label class="detail-form-label">Address</label>
                     <input type="text" id="modalAddress" class="detail-form-control" readonly>
                 </div>
 
                 <!-- Modal Actions Footer -->
-                <div class="modal-actions-footer">
-                    <button class="btn-modal-close" style="width: 100%;" id="modalCloseDetailsBtn">Close</button>
+                <div class="modal-actions-footer" style="display: flex; gap: 12px; align-items: center;">
+                    <button type="button" id="modalToggleStatusBtn" class="btn-modal-toggle-status" style="flex: 1; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: background 0.2s ease, transform 0.1s ease;">Deactivate Account</button>
+                    <button type="button" class="btn-modal-close" style="flex: 1;" id="modalCloseDetailsBtn">Close</button>
                 </div>
             </div>
         </div>
@@ -728,6 +862,7 @@ if ($resDepts) {
             const modalRole = document.getElementById('modalRole');
             const modalDepartment = document.getElementById('modalDepartment');
             const modalStudentId = document.getElementById('modalStudentId');
+            const modalYearLevel = document.getElementById('modalYearLevel');
             const modalUsername = document.getElementById('modalUsername');
             const modalEmail = document.getElementById('modalEmail');
             const modalDateCreated = document.getElementById('modalDateCreated');
@@ -778,23 +913,30 @@ if ($resDepts) {
 
             // Render table based on current page, search, filter and sort
             function renderUsersTable() {
-                const query = searchInput.value.toLowerCase().trim();
-                const role = filterRole.value;
+                const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+                const role = filterRole ? filterRole.value : 'all';
 
                 // 1. Filter
                 filteredUsers = users.filter(user => {
-                    const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+                    if (!user) return false;
+                    const firstName = user.first_name || '';
+                    const lastName = user.last_name || '';
+                    const fullName = `${firstName} ${lastName}`.trim().toLowerCase();
+                    const idNum = (user.id_number || '').toLowerCase();
+                    const email = (user.email || '').toLowerCase();
+                    const userRole = (user.role || '').toLowerCase();
+
                     const matchesSearch = fullName.includes(query) || 
-                                          user.id_number.toLowerCase().includes(query) || 
-                                          user.email.toLowerCase().includes(query);
-                    const matchesRole = role === 'all' || user.role.toLowerCase() === role;
+                                          idNum.includes(query) || 
+                                          email.includes(query);
+                    const matchesRole = role === 'all' || userRole === role || (role === 'department' && user.db_type === 'department');
                     return matchesSearch && matchesRole;
                 });
 
                 // 2. Sort (Default by Name A-Z)
                 filteredUsers.sort((a, b) => {
-                    const valA = `${a.first_name} ${a.last_name}`.toLowerCase();
-                    const valB = `${b.first_name} ${b.last_name}`.toLowerCase();
+                    const valA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
+                    const valB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
                     return valA.localeCompare(valB);
                 });
 
@@ -874,8 +1016,8 @@ if ($resDepts) {
             function updateSummaryStats() {
                 const totalUsers = users.length;
                 const students = users.filter(u => u.role.toLowerCase() === 'student').length;
-                const faculty = users.filter(u => u.role.toLowerCase() === 'teacher' || u.role.toLowerCase() === 'faculty').length;
-                const departments = users.filter(u => u.role.toLowerCase() === 'department').length;
+                const faculty = users.filter(u => u.role.toLowerCase() === 'teacher' || u.role.toLowerCase() === 'faculty' || u.role.toLowerCase() === 'faculty member').length;
+                const departments = users.filter(u => u.db_type === 'department' || u.role.toLowerCase().includes('department')).length;
                 const active = users.filter(u => u.status.toLowerCase() === 'active').length;
                 const deactivated = users.filter(u => u.status.toLowerCase() === 'inactive' || u.status.toLowerCase() === 'deactivated').length;
 
@@ -983,10 +1125,13 @@ if ($resDepts) {
                 }
             };
 
+            let activeModalUser = null;
+
             // Open User Details Modal
             window.openUserDetailsModal = function(id) {
                 const user = users.find(u => u.id === id);
                 if (!user) return;
+                activeModalUser = user;
 
                 const fullName = user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
                 let roleLabel = user.role.charAt(0).toUpperCase() + user.role.slice(1);
@@ -994,7 +1139,35 @@ if ($resDepts) {
                     roleLabel = 'Faculty Member';
                 }
                 
-                const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random&size=200`;
+                // Profile Picture: check database profile_image, avatar, localStorage, or generate fallback avatar
+                let avatarUrl = user.profile_image || user.avatar;
+                
+                // Clear legacy/deleted file paths if present
+                if (avatarUrl && avatarUrl.includes('uploads/')) {
+                    avatarUrl = null;
+                }
+
+                if (!avatarUrl) {
+                    const localAvatar = localStorage.getItem('user-avatar-src');
+                    if (user.role.toLowerCase() === 'student' && localAvatar && (localAvatar.startsWith('data:') || localAvatar.startsWith('http'))) {
+                        avatarUrl = localAvatar;
+                    } else {
+                        avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=385585&color=fff&size=300&bold=true`;
+                    }
+                } else if (!avatarUrl.startsWith('http') && !avatarUrl.startsWith('data:') && !avatarUrl.startsWith('../')) {
+                    avatarUrl = '../' + avatarUrl.replace(/^\/+/, '');
+                }
+
+                const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=385585&color=fff&size=300&bold=true`;
+                modalUserAvatar.onerror = function() {
+                    this.onerror = null;
+                    this.src = fallbackAvatar;
+                };
+                modalUserProfileImg.onerror = function() {
+                    this.onerror = null;
+                    this.src = fallbackAvatar;
+                };
+
                 modalUserAvatar.src = avatarUrl;
                 modalUserProfileImg.src = avatarUrl;
                 modalUserName.textContent = fullName;
@@ -1005,29 +1178,72 @@ if ($resDepts) {
                 modalStatusBadge.textContent = user.status;
                 modalStatusBadge.className = 'status-badge ' + statusClass;
 
-                // Form Fields
+                // Form Fields (Full Name, ID Number, Year Level, Email, Address, Date Created, Profile Picture)
                 modalFullName.value = fullName;
+                modalStudentId.value = user.id_number || 'N/A';
+                modalYearLevel.value = user.year_level || 'N/A';
+                modalEmail.value = user.email || 'N/A';
                 modalRole.value = roleLabel;
                 
                 if (user.role.toLowerCase() === 'student') {
                     modalDepartment.value = user.department || 'N/A';
-                    modalStudentId.value = user.id_number;
                 } else if (user.role.toLowerCase() === 'department') {
                     modalDepartment.value = user.department || fullName;
-                    modalStudentId.value = 'N/A';
                 } else {
                     modalDepartment.value = user.department || 'N/A';
-                    modalStudentId.value = 'N/A';
                 }
 
-                modalUsername.value = user.username || user.email.split('@')[0];
-                modalEmail.value = user.email;
+                modalLastOnline.value = user.last_online || 'Offline / Never';
                 modalDateCreated.value = user.created_at || 'Database Record';
-                modalLastLogin.value = user.last_login || 'N/A';
                 modalAddress.value = user.address || 'N/A';
 
                 userDetailsModal.classList.add('show');
             };
+
+            // Admin Profile Picture Upload Event Listeners
+            const adminUploadPicBtn = document.getElementById('adminUploadPicBtn');
+            const adminProfilePicInput = document.getElementById('adminProfilePicInput');
+
+            if (adminUploadPicBtn && adminProfilePicInput) {
+                adminUploadPicBtn.addEventListener('click', () => {
+                    adminProfilePicInput.click();
+                });
+
+                adminProfilePicInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file && activeModalUser) {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = 'users.php';
+                        form.enctype = 'multipart/form-data';
+
+                        const actionInput = document.createElement('input');
+                        actionInput.type = 'hidden';
+                        actionInput.name = 'action';
+                        actionInput.value = 'update_profile_image';
+                        form.appendChild(actionInput);
+
+                        const idInput = document.createElement('input');
+                        idInput.type = 'hidden';
+                        idInput.name = 'target_user_id';
+                        idInput.value = activeModalUser.id;
+                        form.appendChild(idInput);
+
+                        const typeInput = document.createElement('input');
+                        typeInput.type = 'hidden';
+                        typeInput.name = 'target_user_type';
+                        typeInput.value = activeModalUser.db_type || activeModalUser.role;
+                        form.appendChild(typeInput);
+
+                        const fileInput = e.target.cloneNode(true);
+                        fileInput.name = 'admin_profile_img_file';
+                        form.appendChild(fileInput);
+
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+                });
+            }
 
             // HTML Escaping Helper
             function escapeHTML(str) {
@@ -1099,14 +1315,20 @@ if ($resDepts) {
 
             // Add Department Submit Handler
             departmentForm.addEventListener('submit', (e) => {
-                const idNumber = document.getElementById('deptIdNumber').value.trim();
-                const email = document.getElementById('deptEmail').value.trim();
+                const emailEl = document.getElementById('deptEmail');
+                const empIdEl = document.getElementById('deptEmployeeId');
 
-                // Validate if email or ID already exists
-                const exists = users.some(u => u.id_number.toLowerCase() === idNumber.toLowerCase() || u.email.toLowerCase() === email.toLowerCase());
+                const email = emailEl ? emailEl.value.trim() : '';
+                const employeeId = empIdEl ? empIdEl.value.trim() : '';
+
+                // Validate if email or employee ID already exists
+                const exists = users.some(u => 
+                    (u.email && u.email.toLowerCase() === email.toLowerCase()) || 
+                    (u.id_number && u.id_number.toLowerCase() === employeeId.toLowerCase())
+                );
                 if (exists) {
                     e.preventDefault();
-                    showNotification('Registration Error', 'A department with this Code or Email already exists.', 'error');
+                    showNotification('Registration Error', 'A department account with this Email or Employee ID already exists.', 'error');
                     return;
                 }
             });

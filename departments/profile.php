@@ -1,5 +1,118 @@
 <?php
 require_once __DIR__ . '/auth_check.php';
+
+// Handle AJAX POST requests for profile updates & avatar upload
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json');
+    $action = $_POST['action'] ?? '';
+    
+    if ($action === 'upload_avatar' && !empty($_FILES['avatar_file']['tmp_name'])) {
+        $file = $_FILES['avatar_file'];
+        $fileMime = mime_content_type($file['tmp_name']);
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        
+        if (in_array($fileMime, $allowedMimes) && $file['size'] <= 5 * 1024 * 1024) {
+            $binaryData = file_get_contents($file['tmp_name']);
+            $base64Data = 'data:' . $fileMime . ';base64,' . base64_encode($binaryData);
+            
+            $conn->query("ALTER TABLE department_account MODIFY COLUMN profile_image LONGTEXT DEFAULT NULL");
+            $stmtUpd = $conn->prepare("UPDATE department_account SET profile_image = ? WHERE dept_acc_id = ?");
+            if ($stmtUpd) {
+                $stmtUpd->bind_param("si", $base64Data, $dept_acc_id);
+                if ($stmtUpd->execute()) {
+                    echo json_encode(['success' => true, 'message' => 'Profile picture updated and saved to database successfully!', 'profile_image' => $base64Data]);
+                    exit;
+                }
+            }
+        }
+        echo json_encode(['success' => false, 'message' => 'Invalid image file or file size exceeds 5MB limit.']);
+        exit;
+    }
+    
+    if ($action === 'update_profile') {
+        $fullName   = trim($_POST['full_name'] ?? '');
+        $email      = trim($_POST['email'] ?? '');
+        $employeeId = trim($_POST['employee_id'] ?? '');
+        $role       = trim($_POST['role'] ?? '');
+        $currPass   = $_POST['current_password'] ?? '';
+        $newPass    = $_POST['new_password'] ?? '';
+        $confPass   = $_POST['confirm_password'] ?? '';
+
+        if (empty($fullName) || empty($email)) {
+            echo json_encode(['success' => false, 'message' => 'Full Name and Email are required.']);
+            exit;
+        }
+
+        $stmtChk = $conn->prepare("SELECT dept_acc_id FROM department_account WHERE (email = ? OR (employee_id = ? AND employee_id != '')) AND dept_acc_id != ?");
+        if ($stmtChk) {
+            $stmtChk->bind_param("ssi", $email, $employeeId, $dept_acc_id);
+            $stmtChk->execute();
+            if ($stmtChk->get_result()->num_rows > 0) {
+                echo json_encode(['success' => false, 'message' => 'Email or Employee ID is already used by another account.']);
+                exit;
+            }
+        }
+
+        if (!empty($newPass)) {
+            if ($newPass !== $confPass) {
+                echo json_encode(['success' => false, 'message' => 'New password and confirm password do not match.']);
+                exit;
+            }
+            $stmtP = $conn->prepare("SELECT password FROM department_account WHERE dept_acc_id = ?");
+            $stmtP->bind_param("i", $dept_acc_id);
+            $stmtP->execute();
+            $pRes = $stmtP->get_result();
+            if ($pRow = $pRes->fetch_assoc()) {
+                if (!password_verify($currPass, $pRow['password'])) {
+                    echo json_encode(['success' => false, 'message' => 'Current password is incorrect.']);
+                    exit;
+                }
+            }
+            $hashedPass = password_hash($newPass, PASSWORD_DEFAULT);
+            $stmtUpd = $conn->prepare("UPDATE department_account SET full_name = ?, email = ?, employee_id = ?, role = ?, password = ? WHERE dept_acc_id = ?");
+            $stmtUpd->bind_param("sssssi", $fullName, $email, $employeeId, $role, $hashedPass, $dept_acc_id);
+        } else {
+            $stmtUpd = $conn->prepare("UPDATE department_account SET full_name = ?, email = ?, employee_id = ?, role = ? WHERE dept_acc_id = ?");
+            $stmtUpd->bind_param("ssssi", $fullName, $email, $employeeId, $role, $dept_acc_id);
+        }
+
+        if ($stmtUpd && $stmtUpd->execute()) {
+            $_SESSION['dept_name'] = $fullName;
+            $_SESSION['dept_email'] = $email;
+            echo json_encode(['success' => true, 'message' => 'Profile information updated successfully!']);
+            exit;
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Database error: ' . $conn->error]);
+            exit;
+        }
+    }
+}
+
+// Fetch logged in department details from database
+$deptAccountData = null;
+$stmtFetchDept = $conn->prepare("
+    SELECT 
+        da.*,
+        d.department_name
+    FROM department_account da
+    LEFT JOIN department d ON da.department_id = d.department_id
+    WHERE da.dept_acc_id = ?
+");
+if ($stmtFetchDept) {
+    $stmtFetchDept->bind_param("i", $dept_acc_id);
+    $stmtFetchDept->execute();
+    $resFetch = $stmtFetchDept->get_result();
+    if ($resFetch && $rowFetch = $resFetch->fetch_assoc()) {
+        $deptAccountData = $rowFetch;
+    }
+}
+
+$dept_full_name   = $deptAccountData['full_name'] ?? $dept_name;
+$dept_email_val   = $deptAccountData['email'] ?? $dept_email;
+$dept_employee_id = $deptAccountData['employee_id'] ?? '';
+$dept_role_val    = $deptAccountData['role'] ?? 'Department Head';
+$dept_assigned    = $deptAccountData['department_name'] ?? 'Department Office';
+$dept_profile_img = $deptAccountData['profile_image'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -79,15 +192,21 @@ require_once __DIR__ . '/auth_check.php';
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;"><?php echo htmlspecialchars($dept_initials); ?></div>
-                    <span class="user-name"><?php echo htmlspecialchars($dept_name); ?></span>
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; overflow: hidden;">
+                        <?php if (!empty($dept_profile_img)): ?>
+                            <img src="<?php echo htmlspecialchars($dept_profile_img); ?>" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+                        <?php else: ?>
+                            <?php echo htmlspecialchars($dept_initials); ?>
+                        <?php endif; ?>
+                    </div>
+                    <span class="user-name"><?php echo htmlspecialchars($dept_full_name); ?></span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
                     <!-- Dropdown Menu -->
                     <div class="profile-dropdown-menu" id="dropdownMenu">
                         <div class="dropdown-profile-header">
-                            <span class="header-name"><?php echo htmlspecialchars($dept_name); ?></span>
-                            <span class="header-email"><?php echo htmlspecialchars($dept_email); ?></span>
+                            <span class="header-name"><?php echo htmlspecialchars($dept_full_name); ?></span>
+                            <span class="header-email"><?php echo htmlspecialchars($dept_email_val); ?></span>
                         </div>
                         <div class="dropdown-divider"></div>
                         <a href="profile.php"><i class="fa-solid fa-user"></i> My Profile</a>
@@ -110,15 +229,15 @@ require_once __DIR__ . '/auth_check.php';
             <div class="profile-card-left">
                 <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
                     <div class="avatar-wrapper">
-                        <img src="../images/logo_only.png" alt="Department Logo" class="avatar-img" id="avatarImage">
+                        <img src="<?php echo !empty($dept_profile_img) ? htmlspecialchars($dept_profile_img) : '../images/logo_only.png'; ?>" alt="Department Logo" class="avatar-img" id="avatarImage">
                         <button class="avatar-camera-btn" id="changeAvatarBtn" title="Upload new photo">
                             <i class="fa-solid fa-camera"></i>
                         </button>
                         <input type="file" id="deptAvatarInput" style="display: none;" accept="image/*">
                     </div>
 
-                    <h3 class="account-name" id="displayAccountName"><?php echo htmlspecialchars(strtoupper($dept_name)); ?></h3>
-                    <p class="account-role">Department Equipment Personnel</p>
+                    <h3 class="account-name" id="displayAccountName"><?php echo htmlspecialchars(strtoupper($dept_full_name)); ?></h3>
+                    <p class="account-role"><?php echo htmlspecialchars($dept_role_val); ?></p>
 
                     <span class="badge-active-status">ACTIVE</span>
                 </div>
@@ -136,21 +255,14 @@ require_once __DIR__ . '/auth_check.php';
                     <div class="form-group-item">
                         <label for="fullName">Full Name</label>
                         <div class="form-input-box">
-                            <input type="text" id="fullName" value="" placeholder="Enter full name">
-                        </div>
-                    </div>
-
-                    <div class="form-group-item">
-                        <label for="username">Username</label>
-                        <div class="form-input-box">
-                            <input type="text" id="username" value="" placeholder="Enter username">
+                            <input type="text" id="fullName" value="<?php echo htmlspecialchars($dept_full_name); ?>" placeholder="Enter full name" required>
                         </div>
                     </div>
 
                     <div class="form-group-item">
                         <label for="email">Email</label>
                         <div class="form-input-box">
-                            <input type="email" id="email" value="" placeholder="Enter email address">
+                            <input type="email" id="email" value="<?php echo htmlspecialchars($dept_email_val); ?>" placeholder="Enter email address" required>
                         </div>
                     </div>
 
@@ -158,14 +270,14 @@ require_once __DIR__ . '/auth_check.php';
                         <div class="form-group-item">
                             <label for="employeeId">Employee ID</label>
                             <div class="form-input-box">
-                                <input type="text" id="employeeId" value="" placeholder="Enter employee ID">
+                                <input type="text" id="employeeId" value="<?php echo htmlspecialchars($dept_employee_id); ?>" placeholder="Enter employee ID">
                             </div>
                         </div>
 
                         <div class="form-group-item">
                             <label for="role">Role</label>
                             <div class="form-input-box">
-                                <input type="text" id="role" value="" placeholder="Enter role">
+                                <input type="text" id="role" value="<?php echo htmlspecialchars($dept_role_val); ?>" placeholder="Enter role">
                             </div>
                         </div>
                     </div>
@@ -173,7 +285,7 @@ require_once __DIR__ . '/auth_check.php';
                     <div class="form-group-item">
                         <label for="department">Assigned Department</label>
                         <div class="form-input-box">
-                            <input type="text" id="department" value="" placeholder="Enter assigned department">
+                            <input type="text" id="department" value="<?php echo htmlspecialchars($dept_assigned); ?>" readonly placeholder="Assigned department" style="background-color: var(--bg-tertiary, #f3f4f6); cursor: not-allowed;">
                         </div>
                     </div>
 
@@ -328,25 +440,52 @@ require_once __DIR__ . '/auth_check.php';
             }
         }
 
-        // Handle profile submit
+        // Handle profile submit via AJAX
         function handleProfileSubmit(e) {
             e.preventDefault();
-            const fullNameVal = document.getElementById('fullName').value;
-            if (fullNameVal) {
-                document.getElementById('displayAccountName').textContent = fullNameVal.toUpperCase();
-            }
-            showToast('Account details updated successfully.');
+            const fullNameVal = document.getElementById('fullName').value.trim();
+            const emailVal = document.getElementById('email').value.trim();
+            const employeeIdVal = document.getElementById('employeeId').value.trim();
+            const roleVal = document.getElementById('role').value.trim();
+            const currentPasswordVal = document.getElementById('currentPassword').value;
+            const newPasswordVal = document.getElementById('newPassword').value;
+            const confirmPasswordVal = document.getElementById('confirmPassword').value;
+
+            const formData = new FormData();
+            formData.append('action', 'update_profile');
+            formData.append('full_name', fullNameVal);
+            formData.append('email', emailVal);
+            formData.append('employee_id', employeeIdVal);
+            formData.append('role', roleVal);
+            formData.append('current_password', currentPasswordVal);
+            formData.append('new_password', newPasswordVal);
+            formData.append('confirm_password', confirmPasswordVal);
+
+            fetch('profile.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (fullNameVal) {
+                        document.getElementById('displayAccountName').textContent = fullNameVal.toUpperCase();
+                    }
+                    showToast(data.message || 'Profile updated successfully.');
+                } else {
+                    showToast(data.message || 'Failed to update profile.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showToast('Error updating profile information.');
+            });
         }
 
         // Avatar change & upload handler
         const changeAvatarBtn = document.getElementById('changeAvatarBtn');
         const deptAvatarInput = document.getElementById('deptAvatarInput');
         const avatarImage = document.getElementById('avatarImage');
-
-        const savedAvatar = localStorage.getItem('dept-avatar-src');
-        if (savedAvatar && avatarImage) {
-            avatarImage.src = savedAvatar;
-        }
 
         if (changeAvatarBtn && deptAvatarInput) {
             changeAvatarBtn.addEventListener('click', () => {
@@ -356,15 +495,29 @@ require_once __DIR__ . '/auth_check.php';
             deptAvatarInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(evt) {
-                        const newSrc = evt.target.result;
-                        if (avatarImage) avatarImage.src = newSrc;
-                        localStorage.setItem('dept-avatar-src', newSrc);
-                        syncNavbarAvatar();
-                        showToast('Profile picture updated successfully!');
-                    };
-                    reader.readAsDataURL(file);
+                    const formData = new FormData();
+                    formData.append('action', 'upload_avatar');
+                    formData.append('avatar_file', file);
+
+                    fetch('profile.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success && data.profile_image) {
+                            if (avatarImage) avatarImage.src = data.profile_image;
+                            localStorage.setItem('dept-avatar-src', data.profile_image);
+                            syncNavbarAvatar();
+                            showToast(data.message || 'Profile picture updated successfully!');
+                        } else {
+                            showToast(data.message || 'Failed to update profile picture.');
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        showToast('Error uploading profile picture.');
+                    });
                 }
             });
         }
