@@ -52,6 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         : trim(($user['f_fname'] ?? '') . ' ' . ($user['f_lname'] ?? ''));
                     $_SESSION['email']     = $user['email'];
 
+                    $stmtUpdOnline = $conn->prepare("UPDATE user_account SET last_online = NOW() WHERE user_id = ?");
+                    if ($stmtUpdOnline) {
+                        $stmtUpdOnline->bind_param("i", $user['user_id']);
+                        $stmtUpdOnline->execute();
+                    }
+
                     header("Location: user/userdashboard.php");
                     exit;
                 }
@@ -93,10 +99,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     session_unset();
                     session_regenerate_id(true);
-                    $_SESSION['dept_acc_id'] = $dept['dept_acc_id'];
-                    $_SESSION['dept_name']   = $dept['full_name'];
-                    $_SESSION['dept_email']  = $dept['email'] ?? '';
-                    $_SESSION['dept_role']   = 'Department';
+                    $_SESSION['dept_acc_id']   = $dept['dept_acc_id'];
+                    $_SESSION['department_id'] = $dept['department_id'];
+                    $_SESSION['dept_name']     = $dept['full_name'];
+                    $_SESSION['dept_email']    = $dept['email'] ?? '';
+                    $_SESSION['dept_role']     = !empty($dept['role']) ? $dept['role'] : 'Department';
+
+                    $stmtUpdOnline = $conn->prepare("UPDATE department_account SET last_online = NOW() WHERE dept_acc_id = ?");
+                    if ($stmtUpdOnline) {
+                        $stmtUpdOnline->bind_param("i", $dept['dept_acc_id']);
+                        $stmtUpdOnline->execute();
+                    }
 
                     header("Location: departments/departmentdashboard.php");
                     exit;
@@ -178,6 +191,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     
     <script>
+        localStorage.removeItem('user-avatar-src');
+        localStorage.removeItem('dept-avatar-src');
+        localStorage.removeItem('admin-avatar-src');
+
         const togglePassword = document.querySelector('#togglePassword');
         const password = document.querySelector('#password');
 

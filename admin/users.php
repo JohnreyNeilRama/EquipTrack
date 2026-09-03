@@ -87,9 +87,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $serverMsgType = "error";
                 } else {
                     $hashedPass = password_hash($password, PASSWORD_DEFAULT);
-                    $stmtInsDept = $conn->prepare("INSERT INTO department_account (full_name, email, employee_id, role, department_id, password) VALUES (?, ?, ?, ?, ?, ?)");
+
+                    // Fetch existing department profile image if available
+                    $deptImgVal = null;
+                    if (!empty($deptId)) {
+                        $stmtFindImg = $conn->prepare("
+                            SELECT COALESCE(
+                                d.profile_image,
+                                (SELECT da.profile_image FROM department_account da WHERE da.department_id = d.department_id AND da.profile_image IS NOT NULL AND da.profile_image != '' ORDER BY da.dept_acc_id ASC LIMIT 1)
+                            ) AS existing_img
+                            FROM department d WHERE d.department_id = ?
+                        ");
+                        if ($stmtFindImg) {
+                            $stmtFindImg->bind_param("i", $deptId);
+                            $stmtFindImg->execute();
+                            $resFindImg = $stmtFindImg->get_result();
+                            if ($resFindImg && $rowFindImg = $resFindImg->fetch_assoc()) {
+                                $deptImgVal = $rowFindImg['existing_img'];
+                            }
+                        }
+                    }
+
+                    $stmtInsDept = $conn->prepare("INSERT INTO department_account (full_name, email, employee_id, role, department_id, password, profile_image) VALUES (?, ?, ?, ?, ?, ?, ?)");
                     if ($stmtInsDept) {
-                        $stmtInsDept->bind_param("ssssis", $fullName, $email, $employeeId, $role, $deptId, $hashedPass);
+                        $stmtInsDept->bind_param("ssssiss", $fullName, $email, $employeeId, $role, $deptId, $hashedPass, $deptImgVal);
                         if ($stmtInsDept->execute()) {
                             $serverMsg = "Department account for '$fullName' created successfully!";
                             $serverMsgType = "success";
@@ -143,8 +164,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $base64Data = 'data:' . $fileMime . ';base64,' . base64_encode($binaryData);
                 
                 if ($targetUserType === 'department') {
+                    $conn->query("ALTER TABLE department MODIFY COLUMN profile_image LONGTEXT DEFAULT NULL");
                     $conn->query("ALTER TABLE department_account MODIFY COLUMN profile_image LONGTEXT DEFAULT NULL");
                     $actualId = $targetUserId > 100000 ? ($targetUserId - 100000) : $targetUserId;
+                    
+                    // Fetch department_id for this department account
+                    $stmtGetDeptId = $conn->prepare("SELECT department_id FROM department_account WHERE dept_acc_id = ?");
+                    if ($stmtGetDeptId) {
+                        $stmtGetDeptId->bind_param("i", $actualId);
+                        $stmtGetDeptId->execute();
+                        $resDeptId = $stmtGetDeptId->get_result();
+                        if ($resDeptId && $rowDeptId = $resDeptId->fetch_assoc()) {
+                            $targetDeptId = (int)$rowDeptId['department_id'];
+                            if ($targetDeptId > 0) {
+                                $stmtUpdDept = $conn->prepare("UPDATE department SET profile_image = ? WHERE department_id = ?");
+                                if ($stmtUpdDept) {
+                                    $stmtUpdDept->bind_param("si", $base64Data, $targetDeptId);
+                                    $stmtUpdDept->execute();
+                                }
+                                $stmtUpdAllAcc = $conn->prepare("UPDATE department_account SET profile_image = ? WHERE department_id = ?");
+                                if ($stmtUpdAllAcc) {
+                                    $stmtUpdAllAcc->bind_param("si", $base64Data, $targetDeptId);
+                                    $stmtUpdAllAcc->execute();
+                                }
+                            }
+                        }
+                    }
+
                     $stmtUpd = $conn->prepare("UPDATE department_account SET profile_image = ? WHERE dept_acc_id = ?");
                     $stmtUpd->bind_param("si", $base64Data, $actualId);
                     $stmtUpd->execute();
@@ -269,7 +315,12 @@ $sqlDepts = "
     SELECT 
         da.*,
         d.department_name,
-        d.department_code
+        d.department_code,
+        COALESCE(
+            d.profile_image,
+            da.profile_image,
+            (SELECT da2.profile_image FROM department_account da2 WHERE da2.department_id = da.department_id AND da2.profile_image IS NOT NULL AND da2.profile_image != '' ORDER BY da2.dept_acc_id ASC LIMIT 1)
+        ) AS shared_dept_image
     FROM department_account da
     LEFT JOIN department d ON da.department_id = d.department_id
     ORDER BY da.dept_acc_id DESC
@@ -294,6 +345,7 @@ if ($resDepts) {
         }
 
         $deptStatus = !empty($row['status']) ? $row['status'] : 'Active';
+        $deptImg    = !empty($row['shared_dept_image']) ? $row['shared_dept_image'] : null;
 
         $dbUsers[] = [
             'id'            => 100000 + (int)$row['dept_acc_id'],
@@ -312,7 +364,7 @@ if ($resDepts) {
             'department_id' => $row['department_id'],
             'created_at'    => $createdAtFormatted,
             'last_online'   => $lastOnlineFormatted,
-            'profile_image' => !empty($row['profile_image']) ? $row['profile_image'] : null
+            'profile_image' => $deptImg
         ];
     }
 }
@@ -403,7 +455,13 @@ if ($dListRes) {
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;"><?php echo htmlspecialchars($admin_initials); ?></div>
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; overflow: hidden; <?php echo !empty($admin_profile_image) ? 'padding: 0; background: transparent;' : ''; ?>">
+                        <?php if (!empty($admin_profile_image)): ?>
+                            <img src="<?php echo htmlspecialchars($admin_profile_image); ?>" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        <?php else: ?>
+                            <?php echo htmlspecialchars($admin_initials); ?>
+                        <?php endif; ?>
+                    </div>
                     <span class="user-name"><?php echo htmlspecialchars($admin_name); ?></span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
@@ -803,22 +861,41 @@ if ($dListRes) {
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Navbar Avatar Sync Helper
-            function syncNavbarAvatar() {
-                const savedAvatar = localStorage.getItem('admin-avatar-src');
+            function syncNavbarAvatar(newAvatar) {
+                const dbAvatar = <?php echo json_encode($admin_profile_image); ?>;
+                let currentAvatar = null;
+                if (newAvatar !== undefined) {
+                    currentAvatar = newAvatar;
+                } else if (dbAvatar) {
+                    currentAvatar = dbAvatar;
+                } else {
+                    localStorage.removeItem('admin-avatar-src');
+                    currentAvatar = null;
+                }
+
                 const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
-                navAvatars.forEach(navAvatar => {
-                    if (savedAvatar) {
-                        navAvatar.innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+
+                if (currentAvatar) {
+                    localStorage.setItem('admin-avatar-src', currentAvatar);
+                    navAvatars.forEach(navAvatar => {
+                        navAvatar.innerHTML = `<img src="${currentAvatar}" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
                         navAvatar.style.padding = '0';
                         navAvatar.style.background = 'transparent';
-                    }
-                });
+                    });
+                } else {
+                    localStorage.removeItem('admin-avatar-src');
+                    navAvatars.forEach(navAvatar => {
+                        navAvatar.style.padding = '';
+                        navAvatar.style.background = 'var(--primary-color)';
+                        navAvatar.innerHTML = <?php echo json_encode(htmlspecialchars($admin_initials)); ?>;
+                    });
+                }
             }
             syncNavbarAvatar();
 
             window.addEventListener('storage', function(e) {
                 if (e.key === 'admin-avatar-src') {
-                    syncNavbarAvatar();
+                    syncNavbarAvatar(e.newValue);
                 }
             });
 
@@ -1148,12 +1225,7 @@ if ($dListRes) {
                 }
 
                 if (!avatarUrl) {
-                    const localAvatar = localStorage.getItem('user-avatar-src');
-                    if (user.role.toLowerCase() === 'student' && localAvatar && (localAvatar.startsWith('data:') || localAvatar.startsWith('http'))) {
-                        avatarUrl = localAvatar;
-                    } else {
-                        avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=385585&color=fff&size=300&bold=true`;
-                    }
+                    avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=385585&color=fff&size=300&bold=true`;
                 } else if (!avatarUrl.startsWith('http') && !avatarUrl.startsWith('data:') && !avatarUrl.startsWith('../')) {
                     avatarUrl = '../' + avatarUrl.replace(/^\/+/, '');
                 }

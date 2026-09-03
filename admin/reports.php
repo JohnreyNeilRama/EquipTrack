@@ -1,5 +1,14 @@
 <?php
 require_once __DIR__ . '/auth_check.php';
+
+// Fetch categories dynamically from equipment_category table
+$dbCategories = [];
+$catRes = $conn->query("SELECT category_id, category_name FROM equipment_category ORDER BY category_name ASC");
+if ($catRes) {
+    while ($row = $catRes->fetch_assoc()) {
+        $dbCategories[] = $row['category_name'];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -79,7 +88,13 @@ require_once __DIR__ . '/auth_check.php';
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;"><?php echo htmlspecialchars($admin_initials); ?></div>
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; overflow: hidden; <?php echo !empty($admin_profile_image) ? 'padding: 0; background: transparent;' : ''; ?>">
+                        <?php if (!empty($admin_profile_image)): ?>
+                            <img src="<?php echo htmlspecialchars($admin_profile_image); ?>" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        <?php else: ?>
+                            <?php echo htmlspecialchars($admin_initials); ?>
+                        <?php endif; ?>
+                    </div>
                     <span class="user-name"><?php echo htmlspecialchars($admin_name); ?></span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
@@ -247,11 +262,9 @@ require_once __DIR__ . '/auth_check.php';
                             <label>Category</label>
                             <select id="filterCategory" class="form-control select-control">
                                 <option value="All Categories">All Categories</option>
-                                <option value="Laptop">Laptop</option>
-                                <option value="Projector">Projector</option>
-                                <option value="Camera">Camera</option>
-                                <option value="Laboratory Equipment">Laboratory Equipment</option>
-                                <option value="Audio Equipment">Audio Equipment</option>
+                                <?php foreach ($dbCategories as $cat): ?>
+                                    <option value="<?php echo htmlspecialchars($cat); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
@@ -365,25 +378,44 @@ require_once __DIR__ . '/auth_check.php';
     <!-- Scripts -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Navbar Avatar Sync Helper
-            function syncNavbarAvatar() {
-                const savedAvatar = localStorage.getItem('admin-avatar-src');
-                const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
+          // Navbar Avatar Sync Helper
+        function syncNavbarAvatar(newAvatar) {
+            const dbAvatar = <?php echo json_encode($admin_profile_image); ?>;
+            let currentAvatar = null;
+            if (newAvatar !== undefined) {
+                currentAvatar = newAvatar;
+            } else if (dbAvatar) {
+                currentAvatar = dbAvatar;
+            } else {
+                localStorage.removeItem('admin-avatar-src');
+                currentAvatar = null;
+            }
+
+            const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
+
+            if (currentAvatar) {
+                localStorage.setItem('admin-avatar-src', currentAvatar);
                 navAvatars.forEach(navAvatar => {
-                    if (savedAvatar) {
-                        navAvatar.innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
-                        navAvatar.style.padding = '0';
-                        navAvatar.style.background = 'transparent';
-                    }
+                    navAvatar.innerHTML = `<img src="${currentAvatar}" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                    navAvatar.style.padding = '0';
+                    navAvatar.style.background = 'transparent';
+                });
+            } else {
+                localStorage.removeItem('admin-avatar-src');
+                navAvatars.forEach(navAvatar => {
+                    navAvatar.style.padding = '';
+                    navAvatar.style.background = 'var(--primary-color)';
+                    navAvatar.innerHTML = <?php echo json_encode(htmlspecialchars($admin_initials)); ?>;
                 });
             }
-            syncNavbarAvatar();
+        }
+        syncNavbarAvatar();
 
-            window.addEventListener('storage', function(e) {
-                if (e.key === 'admin-avatar-src') {
-                    syncNavbarAvatar();
-                }
-            });
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'admin-avatar-src') {
+                syncNavbarAvatar(e.newValue);
+            }
+        });
 
             // Dropdown profile logic
             const userProfileDropdown = document.getElementById('userProfileDropdown');

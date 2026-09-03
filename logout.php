@@ -20,7 +20,19 @@ if (ini_get("session.use_cookies")) {
 
 // Destroy session
 session_destroy();
+?>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Logging Out...</title>
+<script>
+    localStorage.removeItem('user-avatar-src');
+    localStorage.removeItem('dept-avatar-src');
+    localStorage.removeItem('admin-avatar-src');
+    window.location.href = 'login.php';
+</script>
+</head>
+<body></body>
+</html>
 
-// Redirect to login page
-header("Location: login.php");
-exit;

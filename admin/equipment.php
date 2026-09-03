@@ -1,5 +1,57 @@
 <?php
 require_once __DIR__ . '/auth_check.php';
+
+// Handle POST request for Adding Category to equipment_category table
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_category') {
+    header('Content-Type: application/json');
+    $category_name = trim($_POST['category_name'] ?? '');
+
+    if (empty($category_name)) {
+        echo json_encode(['success' => false, 'message' => 'Category name is required.']);
+        exit;
+    }
+
+    // Check if category already exists in equipment_category table
+    $stmtChk = $conn->prepare("SELECT category_id FROM equipment_category WHERE LOWER(category_name) = LOWER(?)");
+    if ($stmtChk) {
+        $stmtChk->bind_param("s", $category_name);
+        $stmtChk->execute();
+        $resChk = $stmtChk->get_result();
+        if ($resChk && $resChk->num_rows > 0) {
+            echo json_encode(['success' => false, 'message' => 'A category with this name already exists.']);
+            exit;
+        }
+    }
+
+    $stmtIns = $conn->prepare("INSERT INTO equipment_category (category_name) VALUES (?)");
+    if ($stmtIns) {
+        $stmtIns->bind_param("s", $category_name);
+        if ($stmtIns->execute()) {
+            $new_id = $stmtIns->insert_id;
+            echo json_encode([
+                'success'  => true,
+                'message'  => 'Category added successfully!',
+                'category' => [
+                    'category_id'   => $new_id,
+                    'category_name' => $category_name
+                ]
+            ]);
+            exit;
+        }
+    }
+
+    echo json_encode(['success' => false, 'message' => 'Failed to save category: ' . $conn->error]);
+    exit;
+}
+
+// Fetch all categories strictly from equipment_category table
+$dbCategories = [];
+$catRes = $conn->query("SELECT category_id, category_name FROM equipment_category ORDER BY category_name ASC");
+if ($catRes) {
+    while ($row = $catRes->fetch_assoc()) {
+        $dbCategories[] = $row['category_name'];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -77,7 +129,13 @@ require_once __DIR__ . '/auth_check.php';
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;"><?php echo htmlspecialchars($admin_initials); ?></div>
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; overflow: hidden; <?php echo !empty($admin_profile_image) ? 'padding: 0; background: transparent;' : ''; ?>">
+                        <?php if (!empty($admin_profile_image)): ?>
+                            <img src="<?php echo htmlspecialchars($admin_profile_image); ?>" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        <?php else: ?>
+                            <?php echo htmlspecialchars($admin_initials); ?>
+                        <?php endif; ?>
+                    </div>
                     <span class="user-name"><?php echo htmlspecialchars($admin_name); ?></span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
@@ -112,18 +170,21 @@ require_once __DIR__ . '/auth_check.php';
                     <div class="filter-select-wrapper">
                         <select id="filterCategory">
                             <option value="all">All</option>
-                            <option value="laptop">Laptop</option>
-                            <option value="camera">Camera</option>
-                            <option value="audio">Audio</option>
-                            <option value="projector">Projector</option>
-                            <option value="others">Others</option>
+                            <?php foreach ($dbCategories as $cat): ?>
+                                <option value="<?php echo htmlspecialchars(strtolower($cat)); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                            <?php endforeach; ?>
                         </select>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
                 </div>
-                <button class="btn-add-equipment" id="addEquipmentBtn">
-                    <i class="fa-solid fa-plus"></i> Add Equipment
-                </button>
+                <div class="controls-right" style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn-add-category" id="addCategoryBtn" style="height: 46px; padding: 0 20px; border-radius: 23px; background-color: var(--card-bg, #ffffff); color: var(--text-main, #0f172a); border: 1px solid var(--border-color, #e2e8f0); font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                        <i class="fa-solid fa-folder-plus" style="color: #385585;"></i> Add Category
+                    </button>
+                    <button class="btn-add-equipment" id="addEquipmentBtn">
+                        <i class="fa-solid fa-plus"></i> Add Equipment
+                    </button>
+                </div>
             </div>
 
             <!-- Equipment cards grid -->
@@ -155,11 +216,9 @@ require_once __DIR__ . '/auth_check.php';
                         <label>Category</label>
                         <div class="flat-select-wrapper" style="width: 100%;">
                             <select id="eqFormCategory" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
-                                <option value="Laptop">Laptop</option>
-                                <option value="Camera">Camera</option>
-                                <option value="Audio">Audio</option>
-                                <option value="Projector">Projector</option>
-                                <option value="Others">Others</option>
+                                <?php foreach ($dbCategories as $cat): ?>
+                                    <option value="<?php echo htmlspecialchars($cat); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
@@ -230,6 +289,33 @@ require_once __DIR__ . '/auth_check.php';
         </div>
     </div>
 
+    <!-- Category Modal (Add Category) -->
+    <div class="modal-overlay" id="categoryModal" style="display: none;">
+        <div class="modal-card eq-modal-card" style="max-width: 480px;">
+            <div class="modal-outer-header">
+                <p class="modal-subtitle-top">Create a new equipment classification</p>
+            </div>
+            <div class="modal-inner-card">
+                <button class="modal-close" id="closeCategoryModalBtn">&times;</button>
+                <h3 class="modal-title-center">Add New Category</h3>
+                
+                <form id="categoryForm" class="new-modal-form" style="padding-top: 10px;">
+                    <input type="hidden" name="action" value="add_category">
+                    
+                    <div class="form-group-flat">
+                        <label for="catFormName">Category Name <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="catFormName" name="category_name" class="form-control-flat" required placeholder="e.g., Laboratory Equipment">
+                    </div>
+
+                    <div class="modal-actions-footer" style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                        <button type="button" class="btn-modal-close" id="cancelCategoryBtn" style="height: 42px; padding: 0 18px; border-radius: 8px; border: 1px solid var(--border-color, #e2e8f0); background: transparent; color: var(--text-main); font-weight: 600; cursor: pointer;">Cancel</button>
+                        <button type="submit" class="btn-submit-request" id="saveCategoryBtn" style="height: 42px; width: auto; padding: 0 24px;">Save Category</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Success Toast Notification -->
     <div class="toast-notification" id="toast">
         <div class="toast-content">
@@ -244,23 +330,45 @@ require_once __DIR__ . '/auth_check.php';
     <!-- Scripting for Interactivity -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Loaded categories list from equipment_category database table
+            let categories = <?php echo json_encode($dbCategories); ?>;
+
             // Navbar Avatar Sync Helper
-            function syncNavbarAvatar() {
-                const savedAvatar = localStorage.getItem('admin-avatar-src');
+            function syncNavbarAvatar(newAvatar) {
+                const dbAvatar = <?php echo json_encode($admin_profile_image); ?>;
+                let currentAvatar = null;
+                if (newAvatar !== undefined) {
+                    currentAvatar = newAvatar;
+                } else if (dbAvatar) {
+                    currentAvatar = dbAvatar;
+                } else {
+                    localStorage.removeItem('admin-avatar-src');
+                    currentAvatar = null;
+                }
+
                 const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
-                navAvatars.forEach(navAvatar => {
-                    if (savedAvatar) {
-                        navAvatar.innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+
+                if (currentAvatar) {
+                    localStorage.setItem('admin-avatar-src', currentAvatar);
+                    navAvatars.forEach(navAvatar => {
+                        navAvatar.innerHTML = `<img src="${currentAvatar}" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
                         navAvatar.style.padding = '0';
                         navAvatar.style.background = 'transparent';
-                    }
-                });
+                    });
+                } else {
+                    localStorage.removeItem('admin-avatar-src');
+                    navAvatars.forEach(navAvatar => {
+                        navAvatar.style.padding = '';
+                        navAvatar.style.background = 'var(--primary-color)';
+                        navAvatar.innerHTML = <?php echo json_encode(htmlspecialchars($admin_initials)); ?>;
+                    });
+                }
             }
             syncNavbarAvatar();
 
             window.addEventListener('storage', function(e) {
                 if (e.key === 'admin-avatar-src') {
-                    syncNavbarAvatar();
+                    syncNavbarAvatar(e.newValue);
                 }
             });
 
@@ -275,7 +383,7 @@ require_once __DIR__ . '/auth_check.php';
             const filterSelect = document.getElementById('filterCategory');
             const grid = document.getElementById('equipmentGrid');
 
-            // Modal
+            // Equipment Modal
             const modal = document.getElementById('equipmentModal');
             const addBtn = document.getElementById('addEquipmentBtn');
             const closeModalBtn = document.getElementById('closeModalBtn');
@@ -286,6 +394,14 @@ require_once __DIR__ . '/auth_check.php';
             const submitBtn = document.getElementById('submitBtn');
             const editItemIdInput = document.getElementById('editItemId');
             
+            // Category Modal Elements
+            const addCategoryBtn = document.getElementById('addCategoryBtn');
+            const categoryModal = document.getElementById('categoryModal');
+            const closeCategoryModalBtn = document.getElementById('closeCategoryModalBtn');
+            const cancelCategoryBtn = document.getElementById('cancelCategoryBtn');
+            const categoryForm = document.getElementById('categoryForm');
+            const catFormNameInput = document.getElementById('catFormName');
+
             // Form Fields
             const eqNameField = document.getElementById('eqFormName');
             const eqCategoryField = document.getElementById('eqFormCategory');
@@ -310,9 +426,99 @@ require_once __DIR__ . '/auth_check.php';
             const toastTitle = document.getElementById('toastTitle');
             const toastMsg = document.getElementById('toastMsg');
 
-            // Global state variable for tracking items loaded from localStorage
-            const defaultEquipmentList = [];
+            // Populate category select dropdowns dynamically
+            function populateCategoryDropdowns(selectedFormVal = null) {
+                const currentFilter = filterSelect.value;
+                filterSelect.innerHTML = '<option value="all">All</option>';
+                categories.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat.toLowerCase();
+                    opt.textContent = cat;
+                    filterSelect.appendChild(opt);
+                });
+                filterSelect.value = currentFilter || 'all';
 
+                const currentFormVal = selectedFormVal || eqCategoryField.value;
+                eqCategoryField.innerHTML = '';
+                categories.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat;
+                    opt.textContent = cat;
+                    eqCategoryField.appendChild(opt);
+                });
+                if (currentFormVal && categories.includes(currentFormVal)) {
+                    eqCategoryField.value = currentFormVal;
+                } else if (categories.length > 0) {
+                    eqCategoryField.value = categories[0];
+                }
+            }
+
+            populateCategoryDropdowns();
+
+            // Open / Close Category Modal Logic
+            function openCategoryModal() {
+                categoryForm.reset();
+                categoryModal.style.display = 'flex';
+                setTimeout(() => {
+                    categoryModal.classList.add('show');
+                    if (catFormNameInput) catFormNameInput.focus();
+                }, 10);
+            }
+
+            function closeCategoryModal() {
+                categoryModal.classList.remove('show');
+                setTimeout(() => {
+                    categoryModal.style.display = 'none';
+                    categoryForm.reset();
+                }, 200);
+            }
+
+            if (addCategoryBtn) addCategoryBtn.addEventListener('click', openCategoryModal);
+            if (closeCategoryModalBtn) closeCategoryModalBtn.addEventListener('click', closeCategoryModal);
+            if (cancelCategoryBtn) cancelCategoryBtn.addEventListener('click', closeCategoryModal);
+            if (categoryModal) {
+                categoryModal.addEventListener('click', (e) => {
+                    if (e.target === categoryModal) closeCategoryModal();
+                });
+            }
+
+            // Category Form Submit (AJAX insert into equipment_category table)
+            if (categoryForm) {
+                categoryForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const catName = catFormNameInput.value.trim();
+                    if (!catName) {
+                        showNotification('Validation Error', 'Please enter a category name.', 'error');
+                        return;
+                    }
+
+                    const formData = new FormData(categoryForm);
+                    fetch('equipment.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            const newCatName = data.category.category_name;
+                            if (!categories.includes(newCatName)) {
+                                categories.push(newCatName);
+                            }
+                            populateCategoryDropdowns(newCatName);
+                            closeCategoryModal();
+                            showNotification('Category Added', `Category "${newCatName}" saved to database successfully!`, 'success');
+                        } else {
+                            showNotification('Error', data.message || 'Failed to save category.', 'error');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error saving category:', err);
+                        showNotification('System Error', 'An unexpected error occurred while saving the category.', 'error');
+                    });
+                });
+            }
+
+            // Global state variable for tracking items loaded from localStorage
             let equipment = JSON.parse(localStorage.getItem('equip-track-equipment'));
             if (!equipment || (Array.isArray(equipment) && equipment.some(e => e.name === "Laptop Dell XPS" || e.name === "Camera Canon EOS" || e.name === "Wireless Microphone Set" || e.name === "Lenovo ThinkPad" || e.name === "Projector Epson" || e.name === "Scientific Calculator"))) {
                 equipment = [];

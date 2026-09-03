@@ -6,6 +6,31 @@ $admin_id = (int)$_SESSION['admin_id'];
 $success_msg = '';
 $error_msg = '';
 
+// Handle AJAX Profile Picture Upload
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['admin_avatar_file'])) {
+    header('Content-Type: application/json');
+    $file = $_FILES['admin_avatar_file'];
+    if ($file['error'] === UPLOAD_ERR_OK) {
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        $fileMime = mime_content_type($file['tmp_name']);
+        if (in_array($fileMime, $allowedMimes) && $file['size'] <= 5 * 1024 * 1024) {
+            $binaryData = file_get_contents($file['tmp_name']);
+            $base64Data = 'data:' . $fileMime . ';base64,' . base64_encode($binaryData);
+            
+            $stmtUpdImg = $conn->prepare("UPDATE admin SET profile_image = ? WHERE admin_id = ?");
+            if ($stmtUpdImg) {
+                $stmtUpdImg->bind_param("si", $base64Data, $admin_id);
+                $stmtUpdImg->execute();
+                $_SESSION['admin_profile_image'] = $base64Data;
+                echo json_encode(['success' => true, 'message' => 'Profile picture updated successfully!', 'image_url' => $base64Data]);
+                exit;
+            }
+        }
+    }
+    echo json_encode(['success' => false, 'message' => 'Failed to upload profile picture.']);
+    exit;
+}
+
 // Handle Profile Updates via POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $full_name   = trim($_POST['admin_full_name'] ?? '');
@@ -152,7 +177,13 @@ $admin_initials = !empty($initials) ? substr($initials, 0, 2) : 'AD';
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;"><?php echo htmlspecialchars($admin_initials); ?></div>
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; overflow: hidden; <?php echo !empty($admin_profile_image) ? 'padding: 0; background: transparent;' : ''; ?>">
+                        <?php if (!empty($admin_profile_image)): ?>
+                            <img src="<?php echo htmlspecialchars($admin_profile_image); ?>" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        <?php else: ?>
+                            <?php echo htmlspecialchars($admin_initials); ?>
+                        <?php endif; ?>
+                    </div>
                     <span class="user-name"><?php echo htmlspecialchars($admin_name); ?></span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
@@ -195,7 +226,7 @@ $admin_initials = !empty($initials) ? substr($initials, 0, 2) : 'AD';
                 <div class="profile-card profile-sidebar-card">
                     <div class="avatar-upload-container">
                         <div class="avatar-image-ring">
-                            <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($admin_name); ?>&background=5C74A8&color=fff&size=200" id="profileAvatarImg" alt="Admin Avatar">
+                            <img src="<?php echo !empty($admin_profile_image) ? htmlspecialchars($admin_profile_image) : 'https://ui-avatars.com/api/?name=' . urlencode($admin_name) . '&background=5C74A8&color=fff&size=200'; ?>" id="profileAvatarImg" alt="Admin Avatar">
                         </div>
                         <button type="button" class="btn-avatar-camera" id="btnUploadAvatar" title="Change Profile Picture">
                             <i class="fa-solid fa-camera"></i>
@@ -362,22 +393,41 @@ $admin_initials = !empty($initials) ? substr($initials, 0, 2) : 'AD';
             }
 
             // Navbar Avatar Sync Helper
-            function syncNavbarAvatar() {
-                const savedAvatar = localStorage.getItem('admin-avatar-src');
+            function syncNavbarAvatar(newAvatar) {
+                const dbAvatar = <?php echo json_encode($admin_profile_image); ?>;
+                let currentAvatar = null;
+                if (newAvatar !== undefined) {
+                    currentAvatar = newAvatar;
+                } else if (dbAvatar) {
+                    currentAvatar = dbAvatar;
+                } else {
+                    localStorage.removeItem('admin-avatar-src');
+                    currentAvatar = null;
+                }
+
                 const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
-                navAvatars.forEach(navAvatar => {
-                    if (savedAvatar) {
-                        navAvatar.innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+
+                if (currentAvatar) {
+                    localStorage.setItem('admin-avatar-src', currentAvatar);
+                    navAvatars.forEach(navAvatar => {
+                        navAvatar.innerHTML = `<img src="${currentAvatar}" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
                         navAvatar.style.padding = '0';
                         navAvatar.style.background = 'transparent';
-                    }
-                });
+                    });
+                } else {
+                    localStorage.removeItem('admin-avatar-src');
+                    navAvatars.forEach(navAvatar => {
+                        navAvatar.style.padding = '';
+                        navAvatar.style.background = 'var(--primary-color)';
+                        navAvatar.innerHTML = <?php echo json_encode(htmlspecialchars($admin_initials)); ?>;
+                    });
+                }
             }
             syncNavbarAvatar();
 
             window.addEventListener('storage', function(e) {
                 if (e.key === 'admin-avatar-src') {
-                    syncNavbarAvatar();
+                    syncNavbarAvatar(e.newValue);
                 }
             });
 
@@ -385,11 +435,6 @@ $admin_initials = !empty($initials) ? substr($initials, 0, 2) : 'AD';
             const btnUploadAvatar = document.getElementById('btnUploadAvatar');
             const avatarFileInput = document.getElementById('avatarFileInput');
             const profileAvatarImg = document.getElementById('profileAvatarImg');
-
-            const savedAvatar = localStorage.getItem('admin-avatar-src');
-            if (savedAvatar && profileAvatarImg) {
-                profileAvatarImg.src = savedAvatar;
-            }
 
             if (btnUploadAvatar && avatarFileInput) {
                 btnUploadAvatar.addEventListener('click', function() {
@@ -399,15 +444,27 @@ $admin_initials = !empty($initials) ? substr($initials, 0, 2) : 'AD';
                 avatarFileInput.addEventListener('change', function(e) {
                     const file = e.target.files[0];
                     if (file) {
-                        const reader = new FileReader();
-                        reader.onload = function(evt) {
-                            const newSrc = evt.target.result;
-                            profileAvatarImg.src = newSrc;
-                            localStorage.setItem('admin-avatar-src', newSrc);
-                            syncNavbarAvatar();
-                            showToast('Profile picture updated successfully!');
-                        };
-                        reader.readAsDataURL(file);
+                        const formData = new FormData();
+                        formData.append('admin_avatar_file', file);
+                        fetch('profile.php', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success && data.image_url) {
+                                if (profileAvatarImg) profileAvatarImg.src = data.image_url;
+                                localStorage.setItem('admin-avatar-src', data.image_url);
+                                syncNavbarAvatar(data.image_url);
+                                showToast('Profile picture updated successfully!');
+                            } else {
+                                alert(data.message || 'Error uploading profile picture');
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            alert('An error occurred while uploading profile picture.');
+                        });
                     }
                 });
             }

@@ -1,0 +1,252 @@
+/* Styles for Admin Requests Page */
+
+/* Requester column styling */
+.requester-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.requester-name {
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.requester-role {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* Status styling matching admin */
+.status-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.status-pending {
+    background-color: rgba(71, 85, 105, 0.08);
+    color: #475569;
+}
+
+.status-badge.status-approved {
+    background-color: rgba(16, 185, 129, 0.08);
+    color: #10b981;
+}
+
+.status-badge.status-rejected {
+    background-color: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+}
+
+/* Action buttons */
+.admin-action-btn {
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    outline: none;
+}
+
+.admin-action-btn.approve {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.admin-action-btn.approve:hover {
+    background-color: #10b981;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.admin-action-btn.reject {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.admin-action-btn.reject:hover {
+    background-color: #ef4444;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.admin-action-btn.view {
+    background-color: rgba(79, 107, 156, 0.1);
+    color: #4f6b9c;
+}
+
+.admin-action-btn.view:hover {
+    background-color: #4f6b9c;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+/* Reject Reason Modal Inputs */
+.reject-reason-input-group {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.btn-submit-reject {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: 100%;
+}
+
+.btn-submit-reject:hover {
+    background-color: #dc2626;
+}
+
+/* User profile details in modal */
+.modal-requester-profile {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background-color: var(--bg-color);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.modal-requester-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.modal-requester-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+}
+
+.modal-requester-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.modal-requester-details {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Align modal footer buttons */
+.modal-actions-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+}
+
+.modal-actions-footer button {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modal-actions-footer .btn-modal-close {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+}
+
+.modal-actions-footer .btn-modal-close:hover {
+    background-color: var(--primary-light);
+}
+
+.modal-actions-footer .btn-modal-approve {
+    background-color: #10b981;
+    border: none;
+    color: white;
+}
+
+.modal-actions-footer .btn-modal-approve:hover {
+    background-color: #059669;
+}
+
+.modal-actions-footer .btn-modal-reject-trigger {
+    background-color: #ef4444;
+    border: none;
+    color: white;
+}
+
+.modal-actions-footer .btn-modal-reject-trigger:hover {
+    background-color: #dc2626;
+}
+
+/* Adjustments for dark mode variables */
+.dark-theme .status-badge.status-pending {
+    background-color: rgba(226, 232, 240, 0.1);
+    color: #cbd5e1;
+}
+
+.dark-theme .status-badge.status-approved {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}
+
+.dark-theme .status-badge.status-rejected {
+    background-color: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+}
+
+.dark-theme .admin-action-btn.approve {
+    background-color: rgba(52, 211, 153, 0.1);
+    color: #34d399;
+}
+
+.dark-theme .admin-action-btn.approve:hover {
+    background-color: #34d399;
+    color: #0f172a;
+}
+
+.dark-theme .admin-action-btn.reject {
+    background-color: rgba(248, 113, 113, 0.1);
+    color: #f87171;
+}
+
+.dark-theme .admin-action-btn.reject:hover {
+    background-color: #f87171;
+    color: #0f172a;
+}
+
+.dark-theme .admin-action-btn.view {
+    background-color: rgba(129, 140, 248, 0.1);
+    color: #818cf8;
+}
+
+.dark-theme .admin-action-btn.view:hover {
+    background-color: #818cf8;
+    color: #0f172a;
+}

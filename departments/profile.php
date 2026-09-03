@@ -15,15 +15,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $binaryData = file_get_contents($file['tmp_name']);
             $base64Data = 'data:' . $fileMime . ';base64,' . base64_encode($binaryData);
             
+            $conn->query("ALTER TABLE department MODIFY COLUMN profile_image LONGTEXT DEFAULT NULL");
             $conn->query("ALTER TABLE department_account MODIFY COLUMN profile_image LONGTEXT DEFAULT NULL");
+            
             $stmtUpd = $conn->prepare("UPDATE department_account SET profile_image = ? WHERE dept_acc_id = ?");
             if ($stmtUpd) {
                 $stmtUpd->bind_param("si", $base64Data, $dept_acc_id);
-                if ($stmtUpd->execute()) {
-                    echo json_encode(['success' => true, 'message' => 'Profile picture updated and saved to database successfully!', 'profile_image' => $base64Data]);
-                    exit;
+                $stmtUpd->execute();
+            }
+            if (!empty($dept_id)) {
+                $stmtUpdDept = $conn->prepare("UPDATE department SET profile_image = ? WHERE department_id = ?");
+                if ($stmtUpdDept) {
+                    $stmtUpdDept->bind_param("si", $base64Data, $dept_id);
+                    $stmtUpdDept->execute();
                 }
             }
+            $_SESSION['dept_profile_image'] = $base64Data;
+            echo json_encode(['success' => true, 'message' => 'Profile picture updated successfully!', 'profile_image' => $base64Data]);
+            exit;
         }
         echo json_encode(['success' => false, 'message' => 'Invalid image file or file size exceeds 5MB limit.']);
         exit;
@@ -112,7 +121,7 @@ $dept_email_val   = $deptAccountData['email'] ?? $dept_email;
 $dept_employee_id = $deptAccountData['employee_id'] ?? '';
 $dept_role_val    = $deptAccountData['role'] ?? 'Department Head';
 $dept_assigned    = $deptAccountData['department_name'] ?? 'Department Office';
-$dept_profile_img = $deptAccountData['profile_image'] ?? '';
+$dept_profile_img = !empty($deptAccountData['profile_image']) ? $deptAccountData['profile_image'] : null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -192,9 +201,9 @@ $dept_profile_img = $deptAccountData['profile_image'] ?? '';
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; overflow: hidden;">
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; overflow: hidden; <?php echo !empty($dept_profile_img) ? 'padding: 0; background: transparent;' : ''; ?>">
                         <?php if (!empty($dept_profile_img)): ?>
-                            <img src="<?php echo htmlspecialchars($dept_profile_img); ?>" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img src="<?php echo htmlspecialchars($dept_profile_img); ?>" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
                         <?php else: ?>
                             <?php echo htmlspecialchars($dept_initials); ?>
                         <?php endif; ?>
@@ -229,7 +238,13 @@ $dept_profile_img = $deptAccountData['profile_image'] ?? '';
             <div class="profile-card-left">
                 <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
                     <div class="avatar-wrapper">
-                        <img src="<?php echo !empty($dept_profile_img) ? htmlspecialchars($dept_profile_img) : '../images/logo_only.png'; ?>" alt="Department Logo" class="avatar-img" id="avatarImage">
+                        <div class="profile-card-avatar-circle" style="width: 120px; height: 120px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 36px; overflow: hidden; <?php echo !empty($dept_profile_img) ? 'padding: 0; background: transparent;' : ''; ?>">
+                            <?php if (!empty($dept_profile_img)): ?>
+                                <img src="<?php echo htmlspecialchars($dept_profile_img); ?>" alt="Department Avatar" class="avatar-img" id="avatarImage" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                            <?php else: ?>
+                                <span id="avatarInitials"><?php echo htmlspecialchars($dept_initials); ?></span>
+                            <?php endif; ?>
+                        </div>
                         <button class="avatar-camera-btn" id="changeAvatarBtn" title="Upload new photo">
                             <i class="fa-solid fa-camera"></i>
                         </button>
@@ -408,22 +423,41 @@ $dept_profile_img = $deptAccountData['profile_image'] ?? '';
         }
 
         // Navbar Avatar Sync Helper
-        function syncNavbarAvatar() {
-            const savedAvatar = localStorage.getItem('dept-avatar-src');
+        function syncNavbarAvatar(newAvatar) {
+            const dbAvatar = <?php echo json_encode($dept_profile_img); ?>;
+            let currentAvatar = null;
+            if (newAvatar !== undefined) {
+                currentAvatar = newAvatar;
+            } else if (dbAvatar) {
+                currentAvatar = dbAvatar;
+            } else {
+                localStorage.removeItem('dept-avatar-src');
+                currentAvatar = null;
+            }
+
             const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
-            navAvatars.forEach(navAvatar => {
-                if (savedAvatar) {
-                    navAvatar.innerHTML = `<img src="${savedAvatar}" alt="Department Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+
+            if (currentAvatar) {
+                localStorage.setItem('dept-avatar-src', currentAvatar);
+                navAvatars.forEach(navAvatar => {
+                    navAvatar.innerHTML = `<img src="${currentAvatar}" alt="Department Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
                     navAvatar.style.padding = '0';
                     navAvatar.style.background = 'transparent';
-                }
-            });
+                });
+            } else {
+                localStorage.removeItem('dept-avatar-src');
+                navAvatars.forEach(navAvatar => {
+                    navAvatar.style.padding = '';
+                    navAvatar.style.background = 'var(--primary-color)';
+                    navAvatar.innerHTML = <?php echo json_encode(htmlspecialchars($dept_initials)); ?>;
+                });
+            }
         }
         syncNavbarAvatar();
 
         window.addEventListener('storage', function(e) {
             if (e.key === 'dept-avatar-src') {
-                syncNavbarAvatar();
+                syncNavbarAvatar(e.newValue);
             }
         });
 
@@ -508,7 +542,7 @@ $dept_profile_img = $deptAccountData['profile_image'] ?? '';
                         if (data.success && data.profile_image) {
                             if (avatarImage) avatarImage.src = data.profile_image;
                             localStorage.setItem('dept-avatar-src', data.profile_image);
-                            syncNavbarAvatar();
+                            syncNavbarAvatar(data.profile_image);
                             showToast(data.message || 'Profile picture updated successfully!');
                         } else {
                             showToast(data.message || 'Failed to update profile picture.');

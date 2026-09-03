@@ -153,7 +153,13 @@ $display_avatar_url = !empty($user_profile_image)
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;"><?php echo htmlspecialchars($user_initials); ?></div>
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; overflow: hidden; <?php echo !empty($user_profile_image) ? 'padding: 0; background: transparent;' : ''; ?>">
+                        <?php if (!empty($user_profile_image)): ?>
+                            <img src="<?php echo htmlspecialchars($user_profile_image); ?>" alt="User Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        <?php else: ?>
+                            <?php echo htmlspecialchars($user_initials); ?>
+                        <?php endif; ?>
+                    </div>
                     <span class="user-name"><?php echo htmlspecialchars($first_name); ?></span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
@@ -321,22 +327,41 @@ $display_avatar_url = !empty($user_profile_image)
             }
 
             // Navbar Avatar Sync Helper
-            function syncNavbarAvatar() {
-                const savedAvatar = localStorage.getItem('user-avatar-src');
+            function syncNavbarAvatar(newAvatar) {
+                const dbAvatar = <?php echo json_encode($user_profile_image); ?>;
+                let currentAvatar = null;
+                if (newAvatar !== undefined) {
+                    currentAvatar = newAvatar;
+                } else if (dbAvatar) {
+                    currentAvatar = dbAvatar;
+                } else {
+                    localStorage.removeItem('user-avatar-src');
+                    currentAvatar = null;
+                }
+
                 const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
-                navAvatars.forEach(navAvatar => {
-                    if (savedAvatar) {
-                        navAvatar.innerHTML = `<img src="${savedAvatar}" alt="User Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+
+                if (currentAvatar) {
+                    localStorage.setItem('user-avatar-src', currentAvatar);
+                    navAvatars.forEach(navAvatar => {
+                        navAvatar.innerHTML = `<img src="${currentAvatar}" alt="User Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
                         navAvatar.style.padding = '0';
                         navAvatar.style.background = 'transparent';
-                    }
-                });
+                    });
+                } else {
+                    localStorage.removeItem('user-avatar-src');
+                    navAvatars.forEach(navAvatar => {
+                        navAvatar.style.padding = '';
+                        navAvatar.style.background = 'var(--primary-color)';
+                        navAvatar.innerHTML = <?php echo json_encode(htmlspecialchars($user_initials)); ?>;
+                    });
+                }
             }
             syncNavbarAvatar();
 
             window.addEventListener('storage', function(e) {
                 if (e.key === 'user-avatar-src') {
-                    syncNavbarAvatar();
+                    syncNavbarAvatar(e.newValue);
                 }
             });
 
@@ -360,7 +385,7 @@ $display_avatar_url = !empty($user_profile_image)
                             if (data.success) {
                                 profileImg.src = data.image_url;
                                 localStorage.setItem('user-avatar-src', data.image_url);
-                                syncNavbarAvatar();
+                                syncNavbarAvatar(data.image_url);
                                 showToast('Profile picture uploaded and saved to database!');
                             } else {
                                 alert(data.message || 'Error uploading profile picture');

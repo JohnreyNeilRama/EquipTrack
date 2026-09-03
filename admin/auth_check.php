@@ -36,7 +36,7 @@ if (
 
 // 2. Database Verification: Check that the admin record actually exists in the database
 $admin_id = (int)$_SESSION['admin_id'];
-$stmtCheckAdmin = $conn->prepare("SELECT admin_id, name, email, username, employee_id FROM admin WHERE admin_id = ?");
+$stmtCheckAdmin = $conn->prepare("SELECT admin_id, name, email, username, employee_id, profile_image FROM admin WHERE admin_id = ?");
 if (!$stmtCheckAdmin) {
     redirect_unauthorized_admin();
 }
@@ -55,11 +55,14 @@ unset($_SESSION['user_id'], $_SESSION['user_role'], $_SESSION['user_name'], $_SE
 unset($_SESSION['dept_acc_id'], $_SESSION['dept_name'], $_SESSION['dept_email'], $_SESSION['dept_role']);
 
 $currentAdminData = $adminRes->fetch_assoc();
-$_SESSION['admin_name']        = $currentAdminData['name'];
-$_SESSION['admin_email']       = !empty($currentAdminData['email']) ? $currentAdminData['email'] : $currentAdminData['username'];
-$_SESSION['admin_username']    = $currentAdminData['username'];
-$_SESSION['admin_employee_id'] = $currentAdminData['employee_id'] ?? '';
-$_SESSION['admin_role']        = 'Admin';
+$admin_profile_image = !empty($currentAdminData['profile_image']) ? $currentAdminData['profile_image'] : null;
+
+$_SESSION['admin_name']          = $currentAdminData['name'];
+$_SESSION['admin_email']         = !empty($currentAdminData['email']) ? $currentAdminData['email'] : $currentAdminData['username'];
+$_SESSION['admin_username']      = $currentAdminData['username'];
+$_SESSION['admin_employee_id']   = $currentAdminData['employee_id'] ?? '';
+$_SESSION['admin_role']          = 'Admin';
+$_SESSION['admin_profile_image'] = $admin_profile_image;
 
 // Variables available to admin page views
 $admin_name     = $_SESSION['admin_name'];
@@ -72,4 +75,5 @@ foreach ($nameParts as $part) {
     }
 }
 $admin_initials = !empty($initials) ? substr($initials, 0, 2) : 'AD';
+
 

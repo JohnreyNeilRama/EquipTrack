@@ -1,6 +1,15 @@
 <?php
 require_once __DIR__ . '/auth_check.php';
 
+// Fetch categories dynamically from equipment_category table
+$dbCategories = [];
+$catRes = $conn->query("SELECT category_id, category_name FROM equipment_category ORDER BY category_name ASC");
+if ($catRes) {
+    while ($row = $catRes->fetch_assoc()) {
+        $dbCategories[] = $row['category_name'];
+    }
+}
+
 // Handle POST request to add a department record
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_department') {
     header('Content-Type: application/json');
@@ -51,23 +60,57 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && 
     exit;
 }
 
-// Fetch all department records strictly from department table
+// Fetch all department records along with the profile picture of their assigned Department Head
 $dbDepartments = [];
 
-$deptRes = $conn->query("SELECT * FROM department ORDER BY department_name ASC");
+$deptRes = $conn->query("
+    SELECT d.*, 
+           (
+               SELECT da.profile_image 
+               FROM department_account da 
+               WHERE da.department_id = d.department_id 
+                 AND da.profile_image IS NOT NULL 
+                 AND da.profile_image != '' 
+               ORDER BY (
+                   CASE 
+                       WHEN LOWER(da.full_name) = LOWER(d.department_head) THEN 1
+                       WHEN LOWER(da.role) LIKE '%head%' THEN 2
+                       WHEN LOWER(da.role) LIKE '%chair%' THEN 3
+                       WHEN LOWER(da.role) LIKE '%dean%' THEN 4
+                       ELSE 5 
+                   END
+               ), da.dept_acc_id ASC 
+               LIMIT 1
+           ) AS head_account_image
+    FROM department d 
+    ORDER BY d.department_name ASC
+");
+
 if ($deptRes) {
     while ($row = $deptRes->fetch_assoc()) {
         $name = $row['department_name'];
         if (!empty($name)) {
+            $headName = $row['department_head'] ?? '';
+            // Priority: Department Head account profile_image -> Department table profile_image -> default avatar placeholder
+            $headImg = !empty($row['head_account_image']) ? $row['head_account_image'] : (!empty($row['profile_image']) ? $row['profile_image'] : null);
+            
+            if (!empty($headImg)) {
+                $img = $headImg;
+            } else {
+                $displayName = !empty($headName) ? $headName : $name;
+                $img = "https://ui-avatars.com/api/?name=" . urlencode($displayName) . "&background=385585&color=fff&size=300&bold=true";
+            }
+
             $dbDepartments[] = [
                 'department_id'   => (int)$row['department_id'],
                 'department_name' => $name,
                 'department_code' => $row['department_code'] ?? '',
                 'college'         => $row['college'] ?? $name,
-                'department_head' => $row['department_head'] ?? '',
+                'department_head' => $headName,
+                'profile_image'   => $headImg,
                 'title'           => $name,
                 'name'            => $name,
-                'image'           => '../images/logo_only.png'
+                'image'           => $img
             ];
         }
     }
@@ -151,7 +194,13 @@ if ($deptRes) {
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
-                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;"><?php echo htmlspecialchars($admin_initials); ?></div>
+                    <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; overflow: hidden; <?php echo !empty($admin_profile_image) ? 'padding: 0; background: transparent;' : ''; ?>">
+                        <?php if (!empty($admin_profile_image)): ?>
+                            <img src="<?php echo htmlspecialchars($admin_profile_image); ?>" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        <?php else: ?>
+                            <?php echo htmlspecialchars($admin_initials); ?>
+                        <?php endif; ?>
+                    </div>
                     <span class="user-name"><?php echo htmlspecialchars($admin_name); ?></span>
                     <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
                     
@@ -318,12 +367,9 @@ if ($deptRes) {
                     <div class="filter-select-wrapper">
                         <select id="filterCategory">
                             <option value="all">All Categories</option>
-                            <option value="Laptop">Laptop</option>
-                            <option value="Projector">Projector</option>
-                            <option value="Camera">Camera</option>
-                            <option value="Laboratory Equipment">Laboratory Equipment</option>
-                            <option value="Audio Equipment">Audio Equipment</option>
-                            <option value="Others">Others</option>
+                            <?php foreach ($dbCategories as $cat): ?>
+                                <option value="<?php echo htmlspecialchars($cat); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                            <?php endforeach; ?>
                         </select>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
@@ -499,25 +545,43 @@ if ($deptRes) {
     <!-- Interactivity Script -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Navbar Avatar Sync Helper
-            function syncNavbarAvatar() {
-                const savedAvatar = localStorage.getItem('admin-avatar-src');
-                const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
+        function syncNavbarAvatar(newAvatar) {
+            const dbAvatar = <?php echo json_encode($admin_profile_image); ?>;
+            let currentAvatar = null;
+            if (newAvatar !== undefined) {
+                currentAvatar = newAvatar;
+            } else if (dbAvatar) {
+                currentAvatar = dbAvatar;
+            } else {
+                localStorage.removeItem('admin-avatar-src');
+                currentAvatar = null;
+            }
+
+            const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
+
+            if (currentAvatar) {
+                localStorage.setItem('admin-avatar-src', currentAvatar);
                 navAvatars.forEach(navAvatar => {
-                    if (savedAvatar) {
-                        navAvatar.innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
-                        navAvatar.style.padding = '0';
-                        navAvatar.style.background = 'transparent';
-                    }
+                    navAvatar.innerHTML = `<img src="${currentAvatar}" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                    navAvatar.style.padding = '0';
+                    navAvatar.style.background = 'transparent';
+                });
+            } else {
+                localStorage.removeItem('admin-avatar-src');
+                navAvatars.forEach(navAvatar => {
+                    navAvatar.style.padding = '';
+                    navAvatar.style.background = 'var(--primary-color)';
+                    navAvatar.innerHTML = <?php echo json_encode(htmlspecialchars($admin_initials)); ?>;
                 });
             }
-            syncNavbarAvatar();
+        }
+        syncNavbarAvatar();
 
-            window.addEventListener('storage', function(e) {
-                if (e.key === 'admin-avatar-src') {
-                    syncNavbarAvatar();
-                }
-            });
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'admin-avatar-src') {
+                syncNavbarAvatar(e.newValue);
+            }
+        });
 
             // Monitoring requests list initialized to empty
             const monitoringSeed = [];
@@ -648,11 +712,11 @@ if ($deptRes) {
                         const deptCode = dept.department_code || dept.code || '';
                         const collegeName = dept.college || '';
                         const headName = dept.department_head || '';
-                        const imgUrl = dept.image || '../images/logo_only.png';
+                        const imgUrl = dept.image || dept.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(headName || deptTitle)}&background=385585&color=fff&size=300&bold=true`;
 
                         card.innerHTML = `
                             <div class="dept-logo-wrapper">
-                                <img src="${imgUrl}" alt="${escapeHTML(deptTitle)}" class="dept-logo-img">
+                                <img src="${escapeHTML(imgUrl)}" alt="${escapeHTML(deptTitle)}" class="dept-logo-img" onerror="this.onerror=null; this.src='../images/logo_only.png';">
                             </div>
                             <h4 class="dept-card-title">${escapeHTML(deptTitle)}</h4>
                             <p class="dept-card-subtitle">${escapeHTML(deptCode ? `${deptCode} • ${collegeName}` : collegeName)}</p>
@@ -711,7 +775,7 @@ if ($deptRes) {
                     // Display department card
                     selectedDeptHeaderCard.style.display = 'flex';
                     
-                    const logoSrc = deptMeta ? deptMeta.image : '../images/logo_only.png';
+                    const logoSrc = deptMeta ? (deptMeta.image || deptMeta.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(deptMeta.department_head || selectedDept)}&background=385585&color=fff&size=300&bold=true`) : '../images/logo_only.png';
                     
                     // Translate standard department name to exact program/degree name as requested
                     let customTitle = deptMeta ? deptMeta.title : selectedDept;
@@ -731,7 +795,7 @@ if ($deptRes) {
                     
                     selectedDeptHeaderCard.innerHTML = `
                         <div class="selected-dept-logo-box">
-                            <img src="${logoSrc}" alt="${escapeHTML(customTitle)} Logo">
+                            <img src="${escapeHTML(logoSrc)}" alt="${escapeHTML(customTitle)} Logo" onerror="this.onerror=null; this.src='../images/logo_only.png';">
                         </div>
                         <div class="selected-dept-info">
                             <h3 class="selected-dept-name">${escapeHTML(customTitle)}</h3>
