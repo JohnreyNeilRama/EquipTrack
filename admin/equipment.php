@@ -1,7 +1,34 @@
 <?php
 require_once __DIR__ . '/auth_check.php';
 
-// Handle POST request for Adding Category to equipment_category table
+// -------------------------------------------------------------
+// 1. GET ALL EQUIPMENT (JSON)
+// -------------------------------------------------------------
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET' && isset($_GET['action']) && $_GET['action'] === 'get_equipment') {
+    header('Content-Type: application/json');
+    $items = [];
+    $res = $conn->query("
+        SELECT e.*, 
+               c.category_name, 
+               d.department_name, 
+               d.department_code 
+        FROM equipment e 
+        LEFT JOIN equipment_category c ON e.category_id = c.category_id 
+        LEFT JOIN department d ON e.department_id = d.department_id 
+        ORDER BY e.equipment_id DESC
+    ");
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $items[] = $row;
+        }
+    }
+    echo json_encode(['success' => true, 'equipment' => $items]);
+    exit;
+}
+
+// -------------------------------------------------------------
+// 2. ADD CATEGORY (JSON)
+// -------------------------------------------------------------
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_category') {
     header('Content-Type: application/json');
     $category_name = trim($_POST['category_name'] ?? '');
@@ -11,7 +38,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && 
         exit;
     }
 
-    // Check if category already exists in equipment_category table
     $stmtChk = $conn->prepare("SELECT category_id FROM equipment_category WHERE LOWER(category_name) = LOWER(?)");
     if ($stmtChk) {
         $stmtChk->bind_param("s", $category_name);
@@ -44,12 +70,157 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && 
     exit;
 }
 
+// -------------------------------------------------------------
+// 3. SAVE EQUIPMENT - ADD OR EDIT (JSON)
+// -------------------------------------------------------------
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_equipment') {
+    header('Content-Type: application/json');
+
+    $equipment_id         = (int)($_POST['equipment_id'] ?? 0);
+    $name                 = trim($_POST['name'] ?? '');
+    $brand                = trim($_POST['brand'] ?? '');
+    $model                = trim($_POST['model'] ?? '');
+    $serial_number        = trim($_POST['serial_number'] ?? '');
+    $image                = trim($_POST['image'] ?? '');
+    $available_qty        = (int)($_POST['available_qty'] ?? 0);
+    $total_qty            = (int)($_POST['total_qty'] ?? 0);
+    $status               = trim($_POST['status'] ?? 'Available');
+    $accessories_included = trim($_POST['accessories_included'] ?? '');
+    $category_id          = (int)($_POST['category_id'] ?? 0);
+    $department_id        = (int)($_POST['department_id'] ?? 0);
+
+    // Backend Validation
+    if (empty($name) || empty($brand) || empty($serial_number) || empty($image) || $category_id <= 0 || $department_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Please fill in all required fields (Equipment Name, Brand, Serial Number, Image, Category, and Department).']);
+        exit;
+    }
+
+    if ($available_qty < 0 || $total_qty < 0) {
+        echo json_encode(['success' => false, 'message' => 'Quantities cannot be negative values.']);
+        exit;
+    }
+
+    if ($available_qty > $total_qty) {
+        echo json_encode(['success' => false, 'message' => 'Available Quantity cannot be greater than Total Quantity.']);
+        exit;
+    }
+
+    $validStatuses = ['Available', 'Unavailable', 'On Hold', 'Under Maintenance'];
+    if (!in_array($status, $validStatuses)) {
+        echo json_encode(['success' => false, 'message' => 'Invalid equipment status selected.']);
+        exit;
+    }
+
+    // Check Serial Number Uniqueness
+    if ($equipment_id > 0) {
+        $stmtChkSN = $conn->prepare("SELECT equipment_id FROM equipment WHERE LOWER(serial_number) = LOWER(?) AND equipment_id != ?");
+        $stmtChkSN->bind_param("si", $serial_number, $equipment_id);
+    } else {
+        $stmtChkSN = $conn->prepare("SELECT equipment_id FROM equipment WHERE LOWER(serial_number) = LOWER(?)");
+        $stmtChkSN->bind_param("s", $serial_number);
+    }
+    $stmtChkSN->execute();
+    $resChkSN = $stmtChkSN->get_result();
+    if ($resChkSN && $resChkSN->num_rows > 0) {
+        echo json_encode(['success' => false, 'message' => 'Serial Number "' . htmlspecialchars($serial_number) . '" is already registered to another equipment item.']);
+        exit;
+    }
+
+    if ($equipment_id > 0) {
+        // Update Equipment
+        $stmtUpd = $conn->prepare("
+            UPDATE equipment 
+            SET name = ?, 
+                brand = ?, 
+                model = ?, 
+                serial_number = ?, 
+                image = ?, 
+                available_qty = ?, 
+                total_qty = ?, 
+                status = ?, 
+                accessories_included = ?, 
+                category_id = ?, 
+                department_id = ? 
+            WHERE equipment_id = ?
+        ");
+        if ($stmtUpd) {
+            $stmtUpd->bind_param("sssssiissiii", $name, $brand, $model, $serial_number, $image, $available_qty, $total_qty, $status, $accessories_included, $category_id, $department_id, $equipment_id);
+            if ($stmtUpd->execute()) {
+                echo json_encode(['success' => true, 'message' => 'Equipment details updated successfully!']);
+                exit;
+            }
+        }
+        echo json_encode(['success' => false, 'message' => 'Failed to update equipment: ' . $conn->error]);
+        exit;
+    } else {
+        // Insert Equipment
+        $stmtIns = $conn->prepare("
+            INSERT INTO equipment 
+            (name, brand, model, serial_number, image, available_qty, total_qty, status, accessories_included, category_id, department_id) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        if ($stmtIns) {
+            $stmtIns->bind_param("sssssiissii", $name, $brand, $model, $serial_number, $image, $available_qty, $total_qty, $status, $accessories_included, $category_id, $department_id);
+            if ($stmtIns->execute()) {
+                echo json_encode(['success' => true, 'message' => 'Equipment registered successfully!']);
+                exit;
+            }
+        }
+        echo json_encode(['success' => false, 'message' => 'Failed to register equipment: ' . $conn->error]);
+        exit;
+    }
+}
+
+// -------------------------------------------------------------
+// 4. DELETE EQUIPMENT (JSON)
+// -------------------------------------------------------------
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_equipment') {
+    header('Content-Type: application/json');
+    $equipment_id = (int)($_POST['equipment_id'] ?? 0);
+
+    if ($equipment_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid equipment ID provided.']);
+        exit;
+    }
+
+    $stmtCheck = $conn->prepare("SELECT request_id FROM borrow_request WHERE equipment_id = ? AND status IN ('Pending', 'Approved', 'Borrowed') LIMIT 1");
+    if ($stmtCheck) {
+        $stmtCheck->bind_param("i", $equipment_id);
+        $stmtCheck->execute();
+        $resCheck = $stmtCheck->get_result();
+        if ($resCheck && $resCheck->num_rows > 0) {
+            echo json_encode(['success' => false, 'message' => 'Cannot delete this equipment because it has active or pending borrow requests.']);
+            exit;
+        }
+    }
+
+    $stmtDel = $conn->prepare("DELETE FROM equipment WHERE equipment_id = ?");
+    if ($stmtDel) {
+        $stmtDel->bind_param("i", $equipment_id);
+        if ($stmtDel->execute()) {
+            echo json_encode(['success' => true, 'message' => 'Equipment removed from inventory successfully!']);
+            exit;
+        }
+    }
+    echo json_encode(['success' => false, 'message' => 'Failed to delete equipment: ' . $conn->error]);
+    exit;
+}
+
 // Fetch all categories strictly from equipment_category table
 $dbCategories = [];
 $catRes = $conn->query("SELECT category_id, category_name FROM equipment_category ORDER BY category_name ASC");
 if ($catRes) {
     while ($row = $catRes->fetch_assoc()) {
-        $dbCategories[] = $row['category_name'];
+        $dbCategories[] = $row;
+    }
+}
+
+// Fetch all departments strictly from department table
+$dbDepartments = [];
+$deptRes = $conn->query("SELECT department_id, department_name, department_code FROM department ORDER BY department_name ASC");
+if ($deptRes) {
+    while ($row = $deptRes->fetch_assoc()) {
+        $dbDepartments[] = $row;
     }
 }
 ?>
@@ -70,13 +241,34 @@ if ($catRes) {
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
-        // Check for saved theme preference immediately to prevent flash of light theme
         (function() {
             if (localStorage.getItem('dashboard-theme') === 'dark') {
                 document.documentElement.classList.add('dark-theme');
             }
         })();
     </script>
+    <style>
+        .eq-status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-available { background-color: #dcfce7; color: #15803d; }
+        .status-unavailable { background-color: #fee2e2; color: #b91c1c; }
+        .status-on-hold { background-color: #ffedd5; color: #c2410c; }
+        .status-under-maintenance { background-color: #fef3c7; color: #b45309; }
+        
+        .form-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 640px) {
+            .form-grid-2 { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
     <!-- Sidebar -->
@@ -169,9 +361,9 @@ if ($catRes) {
                     </div>
                     <div class="filter-select-wrapper">
                         <select id="filterCategory">
-                            <option value="all">All</option>
+                            <option value="all">All Categories</option>
                             <?php foreach ($dbCategories as $cat): ?>
-                                <option value="<?php echo htmlspecialchars(strtolower($cat)); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                                <option value="<?php echo htmlspecialchars($cat['category_id']); ?>"><?php echo htmlspecialchars($cat['category_name']); ?></option>
                             <?php endforeach; ?>
                         </select>
                         <i class="fa-solid fa-chevron-down"></i>
@@ -196,7 +388,7 @@ if ($catRes) {
 
     <!-- Equipment Modal (Add / Edit) -->
     <div class="modal-overlay" id="equipmentModal">
-        <div class="modal-card eq-modal-card">
+        <div class="modal-card eq-modal-card" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-outer-header">
                 <p class="modal-subtitle-top" id="modalSubtitle">Provide details for the inventory item</p>
             </div>
@@ -205,26 +397,94 @@ if ($catRes) {
                 <h3 class="modal-title-center" id="modalTitle">Add New Equipment</h3>
                 
                 <form id="equipmentForm" class="new-modal-form" style="padding-top: 10px;">
-                    <input type="hidden" id="editItemId" value="">
+                    <input type="hidden" id="editItemId" name="equipment_id" value="">
+                    <input type="hidden" name="action" value="save_equipment">
+                    <input type="hidden" id="eqFormImg" name="image" value="">
                     
+                    <!-- Equipment Name -->
                     <div class="form-group-flat">
-                        <label>Equipment Name</label>
-                        <input type="text" id="eqFormName" class="form-control-flat" required placeholder="e.g., Laptop Dell XPS">
+                        <label for="eqFormName">Equipment Name <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="eqFormName" name="name" class="form-control-flat" required placeholder="e.g., Dell Latitude 5420 Laptop">
                     </div>
 
-                    <div class="form-group-flat">
-                        <label>Category</label>
-                        <div class="flat-select-wrapper" style="width: 100%;">
-                            <select id="eqFormCategory" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
-                                <?php foreach ($dbCategories as $cat): ?>
-                                    <option value="<?php echo htmlspecialchars($cat); ?>"><?php echo htmlspecialchars($cat); ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                    <!-- Brand & Model -->
+                    <div class="form-grid-2">
+                        <div class="form-group-flat">
+                            <label for="eqFormBrand">Brand <span style="color: #ef4444;">*</span></label>
+                            <input type="text" id="eqFormBrand" name="brand" class="form-control-flat" required placeholder="e.g., Dell">
+                        </div>
+                        <div class="form-group-flat">
+                            <label for="eqFormModel">Model</label>
+                            <input type="text" id="eqFormModel" name="model" class="form-control-flat" placeholder="e.g., Latitude 5420">
                         </div>
                     </div>
 
+                    <!-- Serial Number & Status -->
+                    <div class="form-grid-2">
+                        <div class="form-group-flat">
+                            <label for="eqFormSerial">Serial Number <span style="color: #ef4444;">*</span></label>
+                            <input type="text" id="eqFormSerial" name="serial_number" class="form-control-flat" required placeholder="e.g., SN-DELL-98765">
+                        </div>
+                        <div class="form-group-flat">
+                            <label for="eqFormStatus">Status <span style="color: #ef4444;">*</span></label>
+                            <div class="flat-select-wrapper" style="width: 100%;">
+                                <select id="eqFormStatus" name="status" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                                    <option value="Available">Available</option>
+                                    <option value="Unavailable">Unavailable</option>
+                                    <option value="On Hold">On Hold</option>
+                                    <option value="Under Maintenance">Under Maintenance</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category & Department -->
+                    <div class="form-grid-2">
+                        <div class="form-group-flat">
+                            <label for="eqFormCategory">Category <span style="color: #ef4444;">*</span></label>
+                            <div class="flat-select-wrapper" style="width: 100%;">
+                                <select id="eqFormCategory" name="category_id" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                                    <option value="">Select Category</option>
+                                    <?php foreach ($dbCategories as $cat): ?>
+                                        <option value="<?php echo htmlspecialchars($cat['category_id']); ?>"><?php echo htmlspecialchars($cat['category_name']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group-flat">
+                            <label for="eqFormDepartment">Department <span style="color: #ef4444;">*</span></label>
+                            <div class="flat-select-wrapper" style="width: 100%;">
+                                <select id="eqFormDepartment" name="department_id" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                                    <option value="">Select Department</option>
+                                    <?php foreach ($dbDepartments as $dept): ?>
+                                        <option value="<?php echo htmlspecialchars($dept['department_id']); ?>"><?php echo htmlspecialchars($dept['department_name']); ?><?php echo !empty($dept['department_code']) ? ' ('.$dept['department_code'].')' : ''; ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Available Quantity & Total Quantity -->
+                    <div class="form-grid-2">
+                        <div class="form-group-flat">
+                            <label for="eqFormAvail">Available Quantity <span style="color: #ef4444;">*</span></label>
+                            <input type="number" id="eqFormAvail" name="available_qty" class="form-control-flat" min="0" required value="1">
+                        </div>
+                        <div class="form-group-flat">
+                            <label for="eqFormTotal">Total Quantity <span style="color: #ef4444;">*</span></label>
+                            <input type="number" id="eqFormTotal" name="total_qty" class="form-control-flat" min="0" required value="1">
+                        </div>
+                    </div>
+
+                    <!-- Accessories Included -->
                     <div class="form-group-flat">
-                        <label>Equipment Image</label>
+                        <label for="eqFormAccessories">Accessories Included</label>
+                        <input type="text" id="eqFormAccessories" name="accessories_included" class="form-control-flat" placeholder="e.g., Charger, Power Adapter, Carrying Case">
+                    </div>
+
+                    <!-- Equipment Image -->
+                    <div class="form-group-flat">
+                        <label>Equipment Image <span style="color: #ef4444;">*</span></label>
                         <div class="image-upload-wrapper" id="imageUploadWrapper">
                             <!-- Dropzone State -->
                             <div class="image-dropzone" id="imageDropzone">
@@ -240,7 +500,7 @@ if ($catRes) {
                             <div class="image-url-alternative" id="imageUrlAlternative">
                                 <span class="or-separator">or</span>
                                 <div class="url-input-container">
-                                    <input type="url" id="eqFormImg" class="form-control-flat" placeholder="Paste image URL here...">
+                                    <input type="url" id="eqFormImgUrl" class="form-control-flat" placeholder="Paste image URL here...">
                                     <button type="button" class="btn-apply-url" id="btnApplyUrl">Apply</button>
                                 </div>
                             </div>
@@ -257,27 +517,6 @@ if ($catRes) {
                                     </button>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row-flat">
-                        <div class="form-group-flat">
-                            <label>Available Quantity</label>
-                            <input type="number" id="eqFormAvail" class="form-control-flat" min="0" required value="0">
-                        </div>
-                        <div class="form-group-flat">
-                            <label>Total Quantity</label>
-                            <input type="number" id="eqFormTotal" class="form-control-flat" min="0" required value="0">
-                        </div>
-                    </div>
-
-                    <div class="form-group-flat">
-                        <label>Status</label>
-                        <div class="flat-select-wrapper" style="width: 100%;">
-                            <select id="eqFormStatus" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
-                                <option value="Available">Available</option>
-                                <option value="Unavailable">Unavailable</option>
-                            </select>
                         </div>
                     </div>
 
@@ -330,8 +569,10 @@ if ($catRes) {
     <!-- Scripting for Interactivity -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Loaded categories list from equipment_category database table
-            let categories = <?php echo json_encode($dbCategories); ?>;
+            // Master Equipment Array loaded from database
+            let equipment = [];
+            let dbCategories = <?php echo json_encode($dbCategories); ?>;
+            let dbDepartments = <?php echo json_encode($dbDepartments); ?>;
 
             // Navbar Avatar Sync Helper
             function syncNavbarAvatar(newAvatar) {
@@ -347,7 +588,6 @@ if ($catRes) {
                 }
 
                 const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
-
                 if (currentAvatar) {
                     localStorage.setItem('admin-avatar-src', currentAvatar);
                     navAvatars.forEach(navAvatar => {
@@ -404,11 +644,17 @@ if ($catRes) {
 
             // Form Fields
             const eqNameField = document.getElementById('eqFormName');
+            const eqBrandField = document.getElementById('eqFormBrand');
+            const eqModelField = document.getElementById('eqFormModel');
+            const eqSerialField = document.getElementById('eqFormSerial');
             const eqCategoryField = document.getElementById('eqFormCategory');
-            const eqImgField = document.getElementById('eqFormImg');
+            const eqDepartmentField = document.getElementById('eqFormDepartment');
+            const eqImgHiddenField = document.getElementById('eqFormImg');
+            const eqImgUrlField = document.getElementById('eqFormImgUrl');
             const eqAvailField = document.getElementById('eqFormAvail');
             const eqTotalField = document.getElementById('eqFormTotal');
             const eqStatusField = document.getElementById('eqFormStatus');
+            const eqAccessoriesField = document.getElementById('eqFormAccessories');
 
             // Uploader Elements
             const imageDropzone = document.getElementById('imageDropzone');
@@ -426,106 +672,19 @@ if ($catRes) {
             const toastTitle = document.getElementById('toastTitle');
             const toastMsg = document.getElementById('toastMsg');
 
-            // Populate category select dropdowns dynamically
-            function populateCategoryDropdowns(selectedFormVal = null) {
-                const currentFilter = filterSelect.value;
-                filterSelect.innerHTML = '<option value="all">All</option>';
-                categories.forEach(cat => {
-                    const opt = document.createElement('option');
-                    opt.value = cat.toLowerCase();
-                    opt.textContent = cat;
-                    filterSelect.appendChild(opt);
-                });
-                filterSelect.value = currentFilter || 'all';
-
-                const currentFormVal = selectedFormVal || eqCategoryField.value;
-                eqCategoryField.innerHTML = '';
-                categories.forEach(cat => {
-                    const opt = document.createElement('option');
-                    opt.value = cat;
-                    opt.textContent = cat;
-                    eqCategoryField.appendChild(opt);
-                });
-                if (currentFormVal && categories.includes(currentFormVal)) {
-                    eqCategoryField.value = currentFormVal;
-                } else if (categories.length > 0) {
-                    eqCategoryField.value = categories[0];
-                }
-            }
-
-            populateCategoryDropdowns();
-
-            // Open / Close Category Modal Logic
-            function openCategoryModal() {
-                categoryForm.reset();
-                categoryModal.style.display = 'flex';
-                setTimeout(() => {
-                    categoryModal.classList.add('show');
-                    if (catFormNameInput) catFormNameInput.focus();
-                }, 10);
-            }
-
-            function closeCategoryModal() {
-                categoryModal.classList.remove('show');
-                setTimeout(() => {
-                    categoryModal.style.display = 'none';
-                    categoryForm.reset();
-                }, 200);
-            }
-
-            if (addCategoryBtn) addCategoryBtn.addEventListener('click', openCategoryModal);
-            if (closeCategoryModalBtn) closeCategoryModalBtn.addEventListener('click', closeCategoryModal);
-            if (cancelCategoryBtn) cancelCategoryBtn.addEventListener('click', closeCategoryModal);
-            if (categoryModal) {
-                categoryModal.addEventListener('click', (e) => {
-                    if (e.target === categoryModal) closeCategoryModal();
-                });
-            }
-
-            // Category Form Submit (AJAX insert into equipment_category table)
-            if (categoryForm) {
-                categoryForm.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const catName = catFormNameInput.value.trim();
-                    if (!catName) {
-                        showNotification('Validation Error', 'Please enter a category name.', 'error');
-                        return;
-                    }
-
-                    const formData = new FormData(categoryForm);
-                    fetch('equipment.php', {
-                        method: 'POST',
-                        body: formData
-                    })
+            // Fetch Equipment from Database
+            function loadEquipment() {
+                fetch('equipment.php?action=get_equipment')
                     .then(res => res.json())
                     .then(data => {
                         if (data.success) {
-                            const newCatName = data.category.category_name;
-                            if (!categories.includes(newCatName)) {
-                                categories.push(newCatName);
-                            }
-                            populateCategoryDropdowns(newCatName);
-                            closeCategoryModal();
-                            showNotification('Category Added', `Category "${newCatName}" saved to database successfully!`, 'success');
-                        } else {
-                            showNotification('Error', data.message || 'Failed to save category.', 'error');
+                            equipment = data.equipment || [];
+                            renderEquipment();
+                            filterEquipment();
                         }
                     })
-                    .catch(err => {
-                        console.error('Error saving category:', err);
-                        showNotification('System Error', 'An unexpected error occurred while saving the category.', 'error');
-                    });
-                });
+                    .catch(err => console.error('Error loading equipment:', err));
             }
-
-            // Global state variable for tracking items loaded from localStorage
-            let equipment = JSON.parse(localStorage.getItem('equip-track-equipment'));
-            if (!equipment || (Array.isArray(equipment) && equipment.some(e => e.name === "Laptop Dell XPS" || e.name === "Camera Canon EOS" || e.name === "Wireless Microphone Set" || e.name === "Lenovo ThinkPad" || e.name === "Projector Epson" || e.name === "Scientific Calculator"))) {
-                equipment = [];
-                localStorage.setItem('equip-track-equipment', JSON.stringify([]));
-            }
-
-            let itemIdCounter = equipment.length > 0 ? Math.max(...equipment.map(e => e.id)) + 1 : 1;
 
             // Render equipment cards dynamically
             function renderEquipment() {
@@ -543,34 +702,53 @@ if ($catRes) {
                 equipment.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'eq-card-admin';
-                    card.setAttribute('data-category', item.category.toLowerCase());
-                    card.setAttribute('data-id', item.id);
+                    card.setAttribute('data-category-id', item.category_id || '');
+                    card.setAttribute('data-id', item.equipment_id);
+                    
+                    let statusClass = 'status-available';
+                    if (item.status === 'Unavailable') statusClass = 'status-unavailable';
+                    else if (item.status === 'On Hold') statusClass = 'status-on-hold';
+                    else if (item.status === 'Under Maintenance') statusClass = 'status-under-maintenance';
+
                     card.innerHTML = `
                         <div class="eq-card-img-wrapper">
-                            <img src="${escapeHTML(item.imgUrl)}" alt="${escapeHTML(item.name)}">
+                            <img src="${escapeHTML(item.image)}" alt="${escapeHTML(item.name)}" onerror="this.onerror=null; this.src='../images/logo_only.png';">
                         </div>
                         <div class="eq-card-details">
                             <h4 class="eq-card-title">${escapeHTML(item.name)}</h4>
                             <div class="eq-card-meta-line">
+                                <span class="label">Brand/Model :</span>
+                                <span class="value">${escapeHTML(item.brand)}${item.model ? ' ' + escapeHTML(item.model) : ''}</span>
+                            </div>
+                            <div class="eq-card-meta-line">
+                                <span class="label">S/N :</span>
+                                <span class="value">${escapeHTML(item.serial_number)}</span>
+                            </div>
+                            <div class="eq-card-meta-line">
                                 <span class="label">Category :</span>
-                                <span class="value cat-val">${escapeHTML(item.category)}</span>
+                                <span class="value cat-val">${escapeHTML(item.category_name || 'Unassigned')}</span>
                             </div>
                             <div class="eq-card-meta-line">
-                                <span class="label">Available :</span>
-                                <span class="value avail-val">${escapeHTML(item.available)}</span>
+                                <span class="label">Department :</span>
+                                <span class="value">${escapeHTML(item.department_name || 'Unassigned')}</span>
                             </div>
                             <div class="eq-card-meta-line">
-                                <span class="label">Total Quantity :</span>
-                                <span class="value total-val">${escapeHTML(item.total)}</span>
+                                <span class="label">Available / Total :</span>
+                                <span class="value">${escapeHTML(item.available_qty)} / ${escapeHTML(item.total_qty)}</span>
                             </div>
                             <div class="eq-card-meta-line">
                                 <span class="label">Status :</span>
-                                <span class="value status-val">${escapeHTML(item.status)}</span>
+                                <span class="value"><span class="eq-status-badge ${statusClass}">${escapeHTML(item.status)}</span></span>
                             </div>
+                            ${item.accessories_included ? `
+                            <div class="eq-card-meta-line" style="margin-top: 4px;">
+                                <span class="label">Accessories :</span>
+                                <span class="value" style="font-size: 12px; opacity: 0.85;">${escapeHTML(item.accessories_included)}</span>
+                            </div>` : ''}
                         </div>
                         <div class="eq-card-actions">
-                            <button class="btn-card-edit" onclick="openEditModal(${item.id})"><i class="fa-regular fa-edit"></i> Edit</button>
-                            <button class="btn-card-delete" onclick="deleteEquipment(${item.id})"><i class="fa-regular fa-trash-can"></i> Delete</button>
+                            <button class="btn-card-edit" onclick="openEditModal(${item.equipment_id})"><i class="fa-regular fa-edit"></i> Edit</button>
+                            <button class="btn-card-delete" onclick="deleteEquipment(${item.equipment_id})"><i class="fa-regular fa-trash-can"></i> Delete</button>
                         </div>
                     `;
                     grid.appendChild(card);
@@ -590,10 +768,10 @@ if ($catRes) {
                 );
             }
 
-            // Helper to show the preview state
+            // Helper to show preview state
             function showPreview(url) {
                 imagePreviewImg.src = url;
-                eqImgField.value = url;
+                eqImgHiddenField.value = url;
                 imageDropzone.style.display = 'none';
                 imageUrlAlternative.style.display = 'none';
                 imagePreviewContainer.style.display = 'block';
@@ -603,7 +781,8 @@ if ($catRes) {
             function resetUploader() {
                 imagePreviewImg.src = "";
                 imageFileInput.value = "";
-                eqImgField.value = "";
+                eqImgHiddenField.value = "";
+                if (eqImgUrlField) eqImgUrlField.value = "";
                 imageDropzone.style.display = 'flex';
                 imageUrlAlternative.style.display = 'flex';
                 imagePreviewContainer.style.display = 'none';
@@ -611,11 +790,17 @@ if ($catRes) {
 
             function handleFile(file) {
                 if (file && file.type.startsWith('image/')) {
+                    if (file.size > 5 * 1024 * 1024) {
+                        showNotification('File Too Large', 'Please upload an image smaller than 5MB.', 'error');
+                        return;
+                    }
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         showPreview(e.target.result);
                     };
                     reader.readAsDataURL(file);
+                } else {
+                    showNotification('Invalid File', 'Please select a valid image file.', 'error');
                 }
             }
 
@@ -649,7 +834,7 @@ if ($catRes) {
 
             btnApplyUrl.addEventListener('click', (e) => {
                 e.preventDefault();
-                const urlValue = eqImgField.value.trim();
+                const urlValue = eqImgUrlField.value.trim();
                 if (urlValue) {
                     showPreview(urlValue);
                 } else {
@@ -657,13 +842,14 @@ if ($catRes) {
                 }
             });
 
-            // Prevent enter key in URL input from submitting the main form, instead apply it
-            eqImgField.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    btnApplyUrl.click();
-                }
-            });
+            if (eqImgUrlField) {
+                eqImgUrlField.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        btnApplyUrl.click();
+                    }
+                });
+            }
 
             btnReplacePreview.addEventListener('click', () => {
                 imageFileInput.click();
@@ -672,6 +858,80 @@ if ($catRes) {
             btnRemovePreview.addEventListener('click', () => {
                 resetUploader();
             });
+
+            // Open / Close Category Modal Logic
+            function openCategoryModal() {
+                categoryForm.reset();
+                categoryModal.style.display = 'flex';
+                setTimeout(() => {
+                    categoryModal.classList.add('show');
+                    if (catFormNameInput) catFormNameInput.focus();
+                }, 10);
+            }
+
+            function closeCategoryModal() {
+                categoryModal.classList.remove('show');
+                setTimeout(() => {
+                    categoryModal.style.display = 'none';
+                    categoryForm.reset();
+                }, 200);
+            }
+
+            if (addCategoryBtn) addCategoryBtn.addEventListener('click', openCategoryModal);
+            if (closeCategoryModalBtn) closeCategoryModalBtn.addEventListener('click', closeCategoryModal);
+            if (cancelCategoryBtn) cancelCategoryBtn.addEventListener('click', closeCategoryModal);
+            if (categoryModal) {
+                categoryModal.addEventListener('click', (e) => {
+                    if (e.target === categoryModal) closeCategoryModal();
+                });
+            }
+
+            // Add Category Submit
+            if (categoryForm) {
+                categoryForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const catName = catFormNameInput.value.trim();
+                    if (!catName) {
+                        showNotification('Validation Error', 'Please enter a category name.', 'error');
+                        return;
+                    }
+
+                    const formData = new FormData(categoryForm);
+                    fetch('equipment.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            const newCat = data.category;
+                            dbCategories.push(newCat);
+
+                            // Add to Category Filter
+                            const filterOpt = document.createElement('option');
+                            filterOpt.value = newCat.category_id;
+                            filterOpt.textContent = newCat.category_name;
+                            filterSelect.appendChild(filterOpt);
+
+                            // Add to Form Select
+                            const formOpt = document.createElement('option');
+                            formOpt.value = newCat.category_id;
+                            formOpt.textContent = newCat.category_name;
+                            eqCategoryField.appendChild(formOpt);
+                            eqCategoryField.value = newCat.category_id;
+
+                            closeCategoryModal();
+                            showNotification('Category Added', `Category "${newCat.category_name}" saved to database successfully!`, 'success');
+                        } else {
+                            showNotification('Error', data.message || 'Failed to save category.', 'error');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error saving category:', err);
+                        showNotification('System Error', 'An unexpected error occurred while saving the category.', 'error');
+                    });
+                });
+            }
 
             // Dark Mode Logic
             if (themeToggleBtn && themeToggleIcon) {
@@ -707,15 +967,15 @@ if ($catRes) {
             // Search & Filter Trigger
             function filterEquipment() {
                 const query = searchInput.value.toLowerCase().trim();
-                const category = filterSelect.value.toLowerCase();
+                const selectedCatId = filterSelect.value;
                 const cards = grid.querySelectorAll('.eq-card-admin');
 
                 cards.forEach(card => {
                     const title = card.querySelector('.eq-card-title').textContent.toLowerCase();
-                    const cardCategory = card.getAttribute('data-category').toLowerCase();
+                    const cardCatId = card.getAttribute('data-category-id');
 
                     const matchesSearch = title.includes(query);
-                    const matchesCategory = (category === 'all' || cardCategory === category);
+                    const matchesCategory = (selectedCatId === 'all' || cardCatId === selectedCatId);
 
                     if (matchesSearch && matchesCategory) {
                         card.style.display = 'flex';
@@ -758,7 +1018,6 @@ if ($catRes) {
                 submitBtn.textContent = "Add Item";
                 
                 resetUploader();
-                
                 modal.classList.add('show');
             });
 
@@ -773,23 +1032,31 @@ if ($catRes) {
             function closeModal() {
                 modal.classList.remove('show');
                 form.reset();
+                resetUploader();
             }
 
             // Open Edit Modal
             window.openEditModal = function(id) {
-                const item = equipment.find(e => e.id == id);
+                const item = equipment.find(e => e.equipment_id == id);
                 if (!item) return;
 
-                // Fill inputs
-                editItemIdInput.value = item.id;
-                eqNameField.value = item.name;
-                eqCategoryField.value = item.category;
-                eqAvailField.value = item.available;
-                eqTotalField.value = item.total;
-                eqStatusField.value = item.status;
-                
-                // Show actual preview
-                showPreview(item.imgUrl);
+                editItemIdInput.value = item.equipment_id;
+                eqNameField.value = item.name || '';
+                eqBrandField.value = item.brand || '';
+                eqModelField.value = item.model || '';
+                eqSerialField.value = item.serial_number || '';
+                eqCategoryField.value = item.category_id || '';
+                eqDepartmentField.value = item.department_id || '';
+                eqAvailField.value = item.available_qty !== undefined ? item.available_qty : 0;
+                eqTotalField.value = item.total_qty !== undefined ? item.total_qty : 0;
+                eqStatusField.value = item.status || 'Available';
+                eqAccessoriesField.value = item.accessories_included || '';
+
+                if (item.image) {
+                    showPreview(item.image);
+                } else {
+                    resetUploader();
+                }
 
                 modalTitle.textContent = "Edit Equipment";
                 modalSubtitle.textContent = "Update inventory details for this item";
@@ -800,28 +1067,31 @@ if ($catRes) {
 
             // Delete Equipment
             window.deleteEquipment = function(id) {
-                const item = equipment.find(e => e.id == id);
+                const item = equipment.find(e => e.equipment_id == id);
                 if (!item) return;
 
-                if (confirm(`Are you sure you want to delete "${item.name}"?`)) {
-                    equipment = equipment.filter(e => e.id != id);
-                    localStorage.setItem('equip-track-equipment', JSON.stringify(equipment));
-                    
-                    const card = grid.querySelector(`.eq-card-admin[data-id="${id}"]`);
-                    if (card) {
-                        card.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-                        card.style.opacity = '0';
-                        card.style.transform = 'translateY(10px) scale(0.95)';
-                        setTimeout(() => {
-                            renderEquipment();
-                            filterEquipment();
-                            showNotification('Deleted Successfully', `Removed ${item.name} from inventory.`, 'success');
-                        }, 500);
-                    } else {
-                        renderEquipment();
-                        filterEquipment();
-                        showNotification('Deleted Successfully', `Removed ${item.name} from inventory.`, 'success');
-                    }
+                if (confirm(`Are you sure you want to delete "${item.name}" (${item.serial_number})?`)) {
+                    const formData = new FormData();
+                    formData.append('action', 'delete_equipment');
+                    formData.append('equipment_id', id);
+
+                    fetch('equipment.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            showNotification('Deleted Successfully', data.message, 'success');
+                            loadEquipment();
+                        } else {
+                            showNotification('Error', data.message || 'Failed to delete equipment.', 'error');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error deleting equipment:', err);
+                        showNotification('System Error', 'An error occurred while deleting equipment.', 'error');
+                    });
                 }
             };
 
@@ -829,57 +1099,44 @@ if ($catRes) {
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
                 
-                const id = editItemIdInput.value;
-                const name = eqNameField.value.trim();
-                const category = eqCategoryField.value;
-                const imgUrl = eqImgField.value.trim();
-                const available = parseInt(eqAvailField.value) || 0;
-                const total = parseInt(eqTotalField.value) || 0;
-                const status = eqStatusField.value;
-
-                if (!imgUrl) {
-                    showNotification('Image Required', 'Please upload an image or enter a URL first.', 'error');
+                const imgVal = eqImgHiddenField.value.trim();
+                if (!imgVal) {
+                    showNotification('Image Required', 'Please upload an image or enter an image URL.', 'error');
                     return;
                 }
 
-                if (id) {
-                    // Editing existing item
-                    const item = equipment.find(e => e.id == id);
-                    if (item) {
-                        item.name = name;
-                        item.category = category;
-                        item.imgUrl = imgUrl;
-                        item.available = available;
-                        item.total = total;
-                        item.status = status;
-                        
-                        localStorage.setItem('equip-track-equipment', JSON.stringify(equipment));
-                        showNotification('Updated Successfully', `Saved changes for ${name}.`, 'success');
-                    }
-                } else {
-                    // Adding new item
-                    const newItem = {
-                        id: itemIdCounter++,
-                        name: name,
-                        category: category,
-                        imgUrl: imgUrl,
-                        available: available,
-                        total: total,
-                        status: status
-                    };
-                    equipment.push(newItem);
-                    localStorage.setItem('equip-track-equipment', JSON.stringify(equipment));
-                    showNotification('Added Successfully', `Registered ${name} in equipment inventory.`, 'success');
+                const availQty = parseInt(eqAvailField.value) || 0;
+                const totalQty = parseInt(eqTotalField.value) || 0;
+
+                if (availQty > totalQty) {
+                    showNotification('Validation Error', 'Available Quantity cannot exceed Total Quantity.', 'error');
+                    return;
                 }
 
-                closeModal();
-                renderEquipment();
-                filterEquipment(); // Re-apply current search/filter
+                const formData = new FormData(form);
+
+                fetch('equipment.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        closeModal();
+                        showNotification('Success', data.message, 'success');
+                        loadEquipment();
+                    } else {
+                        showNotification('Validation Error', data.message || 'Failed to save equipment.', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error saving equipment:', err);
+                    showNotification('System Error', 'An unexpected error occurred while saving equipment.', 'error');
+                });
             });
 
             // Initial rendering
-            renderEquipment();
-            filterEquipment();
+            loadEquipment();
         });
     </script>
 </body>

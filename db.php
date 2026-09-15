@@ -277,7 +277,7 @@ try {
         brand VARCHAR(50) NOT NULL,
         model VARCHAR(50) DEFAULT NULL,
         serial_number VARCHAR(50) NOT NULL UNIQUE,
-        image VARCHAR(255) NOT NULL,
+        image LONGTEXT NOT NULL,
         available_qty INT(5) NOT NULL DEFAULT 0,
         total_qty INT(5) NOT NULL,
         status ENUM('Available','Unavailable','On Hold','Under Maintenance') NOT NULL,
@@ -289,6 +289,8 @@ try {
         CONSTRAINT fk_equipment_department FOREIGN KEY (department_id) REFERENCES department (department_id) ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
+    $conn->query("ALTER TABLE equipment MODIFY COLUMN image LONGTEXT NOT NULL");
+
     // Helper: Ensure borrow_request table exists
     $conn->query("CREATE TABLE IF NOT EXISTS borrow_request (
         request_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -296,8 +298,12 @@ try {
         equipment_id INT NOT NULL,
         quantity INT(5) NOT NULL DEFAULT 1,
         purpose VARCHAR(255) NOT NULL,
+        notes TEXT DEFAULT NULL,
         date_requested DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         date_needed DATE NOT NULL,
+        borrow_date DATE DEFAULT NULL,
+        return_date DATE DEFAULT NULL,
+        due_date DATE DEFAULT NULL,
         admin_status ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending',
         admin_id INT DEFAULT NULL,
         admin_reviewed_at DATETIME DEFAULT NULL,
@@ -305,11 +311,35 @@ try {
         dept_acc_id INT DEFAULT NULL,
         dept_reviewed_at DATETIME DEFAULT NULL,
         overall_status ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending',
+        reject_reason TEXT DEFAULT NULL,
         CONSTRAINT fk_borrow_request_user FOREIGN KEY (user_id) REFERENCES user_account (user_id) ON UPDATE CASCADE,
         CONSTRAINT fk_borrow_request_equipment FOREIGN KEY (equipment_id) REFERENCES equipment (equipment_id) ON UPDATE CASCADE,
         CONSTRAINT fk_borrow_request_admin FOREIGN KEY (admin_id) REFERENCES admin (admin_id) ON DELETE SET NULL ON UPDATE CASCADE,
         CONSTRAINT fk_borrow_request_dept_account FOREIGN KEY (dept_acc_id) REFERENCES department_account (dept_acc_id) ON DELETE SET NULL ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $brColsRes = $conn->query("SHOW COLUMNS FROM borrow_request");
+    $existingBrCols = [];
+    if ($brColsRes) {
+        while ($col = $brColsRes->fetch_assoc()) {
+            $existingBrCols[] = $col['Field'];
+        }
+    }
+    if (!in_array('notes', $existingBrCols)) {
+        $conn->query("ALTER TABLE borrow_request ADD COLUMN notes TEXT DEFAULT NULL AFTER purpose");
+    }
+    if (!in_array('borrow_date', $existingBrCols)) {
+        $conn->query("ALTER TABLE borrow_request ADD COLUMN borrow_date DATE DEFAULT NULL AFTER date_needed");
+    }
+    if (!in_array('return_date', $existingBrCols)) {
+        $conn->query("ALTER TABLE borrow_request ADD COLUMN return_date DATE DEFAULT NULL AFTER date_needed");
+    }
+    if (!in_array('due_date', $existingBrCols)) {
+        $conn->query("ALTER TABLE borrow_request ADD COLUMN due_date DATE DEFAULT NULL AFTER return_date");
+    }
+    if (!in_array('reject_reason', $existingBrCols)) {
+        $conn->query("ALTER TABLE borrow_request ADD COLUMN reject_reason TEXT DEFAULT NULL");
+    }
 
     // Helper: Ensure borrow_transaction table exists
     $conn->query("CREATE TABLE IF NOT EXISTS borrow_transaction (

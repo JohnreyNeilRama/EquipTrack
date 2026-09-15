@@ -1,5 +1,173 @@
 <?php
 require_once __DIR__ . '/auth_check.php';
+
+// -------------------------------------------------------------
+// 1. GET ALL EQUIPMENT (JSON Endpoint for live polling)
+// -------------------------------------------------------------
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET' && isset($_GET['action']) && $_GET['action'] === 'get_equipment') {
+    header('Content-Type: application/json');
+    $items = [];
+    $res = $conn->query("
+        SELECT e.*, 
+               c.category_name, 
+               d.department_name, 
+               d.department_code 
+        FROM equipment e 
+        LEFT JOIN equipment_category c ON e.category_id = c.category_id 
+        LEFT JOIN department d ON e.department_id = d.department_id 
+        ORDER BY e.equipment_id DESC
+    ");
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $items[] = $row;
+        }
+    }
+    echo json_encode(['success' => true, 'equipment' => $items]);
+    exit;
+}
+
+// -------------------------------------------------------------
+// 1.5 SUBMIT BORROW REQUEST (POST Endpoint)
+// -------------------------------------------------------------
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && $_POST['action'] === 'submit_request') {
+    header('Content-Type: application/json');
+
+    $userId = $_SESSION['user_id'] ?? 0;
+    if (!$userId) {
+        echo json_encode(['success' => false, 'message' => 'User session expired. Please log in again.']);
+        exit;
+    }
+
+    $equipmentId = isset($_POST['equipment_id']) ? (int)$_POST['equipment_id'] : 0;
+    $borrowDate  = trim($_POST['borrow_date'] ?? '');
+    $returnDate  = trim($_POST['return_date'] ?? '');
+    $purpose     = trim($_POST['purpose'] ?? '');
+    $notes       = trim($_POST['notes'] ?? '');
+
+    // Validation
+    if ($equipmentId <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid equipment selected.']);
+        exit;
+    }
+
+    if (empty($borrowDate) || empty($returnDate)) {
+        echo json_encode(['success' => false, 'message' => 'Please specify both borrow and return dates.']);
+        exit;
+    }
+
+    if (strtotime($returnDate) < strtotime($borrowDate)) {
+        echo json_encode(['success' => false, 'message' => 'Return date cannot be earlier than borrow date.']);
+        exit;
+    }
+
+    if (empty($purpose)) {
+        echo json_encode(['success' => false, 'message' => 'Please select a borrowing purpose.']);
+        exit;
+    }
+
+    // Check equipment availability
+    $eqCheckStmt = $conn->prepare("SELECT name, available_qty, status FROM equipment WHERE equipment_id = ?");
+    $eqCheckStmt->bind_param("i", $equipmentId);
+    $eqCheckStmt->execute();
+    $eqResult = $eqCheckStmt->get_result();
+
+    if (!$eqResult || $eqResult->num_rows === 0) {
+        echo json_encode(['success' => false, 'message' => 'The selected equipment was not found in the database.']);
+        exit;
+    }
+
+    $eqData = $eqResult->fetch_assoc();
+    if (strtolower($eqData['status']) !== 'available' || (int)$eqData['available_qty'] <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Sorry, this equipment is currently unavailable for borrowing.']);
+        exit;
+    }
+
+    // Insert into borrow_request
+    $insertStmt = $conn->prepare("
+        INSERT INTO borrow_request 
+        (user_id, equipment_id, quantity, purpose, notes, date_requested, date_needed, borrow_date, return_date, due_date, admin_status, dept_status, overall_status) 
+        VALUES 
+        (?, ?, 1, ?, ?, NOW(), ?, ?, ?, ?, 'Pending', 'Pending', 'Pending')
+    ");
+
+    if (!$insertStmt) {
+        echo json_encode(['success' => false, 'message' => 'Database error: ' . $conn->error]);
+        exit;
+    }
+
+    $insertStmt->bind_param("iissssss", $userId, $equipmentId, $purpose, $notes, $borrowDate, $borrowDate, $returnDate, $returnDate);
+
+    if ($insertStmt->execute()) {
+        $requestId = $insertStmt->insert_id;
+
+        // Log audit trail if table exists
+        $auditAction = "Submitted borrow request #" . $requestId . " for " . $eqData['name'];
+        $auditStmt = $conn->prepare("INSERT INTO audit_trail (user_id, action, timestamp) VALUES (?, ?, NOW())");
+        if ($auditStmt) {
+            $auditStmt->bind_param("is", $userId, $auditAction);
+            $auditStmt->execute();
+        }
+
+        echo json_encode([
+            'success' => true, 
+            'message' => 'Your borrowing request has been submitted successfully!',
+            'request_id' => $requestId,
+            'redirect' => 'userrequests.php'
+        ]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to process request: ' . $insertStmt->error]);
+    }
+    exit;
+}
+
+// -------------------------------------------------------------
+// 2. FETCH CATEGORIES & EQUIPMENT FROM DATABASE
+// -------------------------------------------------------------
+$dbCategories = [];
+$catRes = $conn->query("SELECT category_id, category_name FROM equipment_category ORDER BY category_name ASC");
+if ($catRes) {
+    while ($row = $catRes->fetch_assoc()) {
+        $dbCategories[] = $row;
+    }
+}
+
+$dbEquipment = [];
+$eqRes = $conn->query("
+    SELECT e.*, 
+           c.category_name, 
+           d.department_name, 
+           d.department_code 
+    FROM equipment e 
+    LEFT JOIN equipment_category c ON e.category_id = c.category_id 
+    LEFT JOIN department d ON e.department_id = d.department_id 
+    ORDER BY e.equipment_id DESC
+");
+if ($eqRes) {
+    while ($row = $eqRes->fetch_assoc()) {
+        $dbEquipment[] = $row;
+    }
+}
+
+// Count items per category
+$categoryCounts = [];
+$totalEquipmentCount = count($dbEquipment);
+foreach ($dbEquipment as $eqItem) {
+    $cName = !empty($eqItem['category_name']) ? $eqItem['category_name'] : 'Others';
+    $categoryCounts[$cName] = ($categoryCounts[$cName] ?? 0) + 1;
+}
+
+// Helper to resolve fontawesome icon per category
+function getCategoryIconClass($catName) {
+    $lower = strtolower($catName);
+    if (strpos($lower, 'laptop') !== false || strpos($lower, 'computer') !== false) return 'fa-laptop';
+    if (strpos($lower, 'projector') !== false || strpos($lower, 'video') !== false) return 'fa-video';
+    if (strpos($lower, 'camera') !== false) return 'fa-camera';
+    if (strpos($lower, 'audio') !== false || strpos($lower, 'sound') !== false || strpos($lower, 'speaker') !== false) return 'fa-music';
+    if (strpos($lower, 'mic') !== false) return 'fa-microphone';
+    if (strpos($lower, 'lab') !== false) return 'fa-flask';
+    if (strpos($lower, 'calc') !== false) return 'fa-calculator';
+    return 'fa-box';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -95,49 +263,27 @@ require_once __DIR__ . '/auth_check.php';
             <!-- Categories Section -->
             <div class="categories-section">
                 <h2 class="section-title">Categories</h2>
-                <div class="categories-list">
+                <div class="categories-list" id="categoriesList">
                     <div class="category-card active" data-category="all">
                         <i class="fa-solid fa-table-cells-large"></i>
                         <div class="cat-info">
                             <span class="cat-name">All</span>
-                            <span class="cat-count">0</span>
+                            <span class="cat-count"><?php echo $totalEquipmentCount; ?></span>
                         </div>
                     </div>
-                    <div class="category-card" data-category="laptop">
-                        <i class="fa-solid fa-laptop"></i>
-                        <div class="cat-info">
-                            <span class="cat-name">Laptops</span>
-                            <span class="cat-count">0</span>
+                    <?php foreach ($dbCategories as $catRow): 
+                        $cName = $catRow['category_name'];
+                        $cCount = $categoryCounts[$cName] ?? 0;
+                        $cIcon = getCategoryIconClass($cName);
+                    ?>
+                        <div class="category-card" data-category="<?php echo htmlspecialchars(strtolower($cName)); ?>">
+                            <i class="fa-solid <?php echo $cIcon; ?>"></i>
+                            <div class="cat-info">
+                                <span class="cat-name"><?php echo htmlspecialchars($cName); ?></span>
+                                <span class="cat-count"><?php echo $cCount; ?></span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="category-card" data-category="projector">
-                        <i class="fa-solid fa-video"></i>
-                        <div class="cat-info">
-                            <span class="cat-name">Projectors</span>
-                            <span class="cat-count">0</span>
-                        </div>
-                    </div>
-                    <div class="category-card" data-category="camera">
-                        <i class="fa-solid fa-flask"></i>
-                        <div class="cat-info">
-                            <span class="cat-name">Lab Equipment</span>
-                            <span class="cat-count">0</span>
-                        </div>
-                    </div>
-                    <div class="category-card" data-category="audio">
-                        <i class="fa-solid fa-music"></i>
-                        <div class="cat-info">
-                            <span class="cat-name">Audio Equipment</span>
-                            <span class="cat-count">0</span>
-                        </div>
-                    </div>
-                    <div class="category-card" data-category="others">
-                        <i class="fa-solid fa-box"></i>
-                        <div class="cat-info">
-                            <span class="cat-name">Others</span>
-                            <span class="cat-count">0</span>
-                        </div>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
 
@@ -146,17 +292,92 @@ require_once __DIR__ . '/auth_check.php';
                 <div class="equipments-header">
                     <h2 class="section-title">Available Equipments</h2>
                     <div class="search-wrapper">
-                        <input type="text" placeholder="Search equipment...">
+                        <input type="text" id="searchInput" placeholder="Search equipment by name, brand, model...">
                         <i class="fa-solid fa-magnifying-glass search-icon"></i>
                     </div>
                 </div>
 
                 <div class="equipment-grid" id="equipmentGrid">
-                    <div class="empty-state-card" style="grid-column: 1 / -1; text-align: center; padding: 48px 24px; color: var(--text-muted, #64748b);">
-                        <i class="fa-solid fa-box-open" style="font-size: 36px; margin-bottom: 12px; opacity: 0.5; display: block;"></i>
-                        <h4 style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">No available equipment</h4>
-                        <p style="font-size: 13px;">Equipment items will appear here once added to the system inventory.</p>
-                    </div>
+                    <?php if (empty($dbEquipment)): ?>
+                        <div class="empty-state-card" id="emptyStateCard">
+                            <i class="fa-solid fa-box-open empty-icon"></i>
+                            <h4 class="empty-title">No available equipment</h4>
+                            <p class="empty-desc">Equipment items created by the admin will appear here automatically.</p>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($dbEquipment as $eq): 
+                            $eqId         = (int)$eq['equipment_id'];
+                            $eqName       = $eq['name'];
+                            $eqBrand      = $eq['brand'] ?? '';
+                            $eqModel      = $eq['model'] ?? '';
+                            $eqCategory   = !empty($eq['category_name']) ? $eq['category_name'] : 'Uncategorized';
+                            $eqDept       = !empty($eq['department_name']) ? $eq['department_name'] : (!empty($eq['department_code']) ? $eq['department_code'] : 'General');
+                            $eqAvail      = (int)$eq['available_qty'];
+                            $eqTotal      = (int)$eq['total_qty'];
+                            $eqStatus     = !empty($eq['status']) ? $eq['status'] : 'Available';
+                            $rawImg       = trim($eq['image'] ?? '');
+
+                            if (empty($rawImg)) {
+                                $imgUrl = '../images/EquipTrack_logo.png';
+                            } elseif (preg_match('/^(https?:\/\/|data:)/i', $rawImg)) {
+                                $imgUrl = $rawImg;
+                            } else {
+                                $imgUrl = '../' . ltrim($rawImg, '/');
+                            }
+
+                            $isLowStock    = ($eqAvail <= 1);
+                            $isUnavailable = (strtolower($eqStatus) !== 'available' || $eqAvail <= 0);
+                        ?>
+                            <div class="equipment-card" 
+                                 data-id="<?php echo $eqId; ?>"
+                                 data-name="<?php echo htmlspecialchars(strtolower($eqName)); ?>"
+                                 data-brand="<?php echo htmlspecialchars(strtolower($eqBrand)); ?>"
+                                 data-model="<?php echo htmlspecialchars(strtolower($eqModel)); ?>"
+                                 data-category="<?php echo htmlspecialchars(strtolower($eqCategory)); ?>"
+                                 data-status="<?php echo htmlspecialchars(strtolower($eqStatus)); ?>">
+                                
+                                <div class="eq-img-container">
+                                    <img src="<?php echo htmlspecialchars($imgUrl); ?>" 
+                                         alt="<?php echo htmlspecialchars($eqName); ?>" 
+                                         onerror="this.onerror=null; this.src='../images/EquipTrack_logo.png';">
+                                </div>
+                                <div class="eq-details">
+                                    <h4 class="eq-name" title="<?php echo htmlspecialchars($eqName); ?>"><?php echo htmlspecialchars($eqName); ?></h4>
+                                    
+                                    <div class="eq-meta-row">
+                                        <span class="eq-category"><i class="fa-solid fa-tag"></i> <?php echo htmlspecialchars($eqCategory); ?></span>
+                                        <span class="eq-dept"><i class="fa-solid fa-building"></i> <?php echo htmlspecialchars($eqDept); ?></span>
+                                    </div>
+
+                                    <div class="eq-stock-row">
+                                        <span class="eq-available <?php echo $isLowStock ? 'low-stock' : ''; ?>">
+                                            <i class="fa-solid fa-circle-check"></i> Stock: <strong><?php echo $eqAvail; ?> / <?php echo $eqTotal; ?></strong>
+                                        </span>
+                                        <span class="eq-status-badge <?php echo strtolower($eqStatus) === 'available' ? 'status-available' : 'status-unavailable'; ?>">
+                                            <?php echo htmlspecialchars($eqStatus); ?>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <button type="button" class="btn-request" 
+                                        data-id="<?php echo $eqId; ?>"
+                                        data-name="<?php echo htmlspecialchars($eqName); ?>"
+                                        data-category="<?php echo htmlspecialchars($eqCategory); ?>"
+                                        data-available="<?php echo $eqAvail; ?>"
+                                        data-img="<?php echo htmlspecialchars($imgUrl); ?>"
+                                        <?php echo $isUnavailable ? 'disabled' : ''; ?>>
+                                    <?php echo $isUnavailable ? 'Not Available' : 'Request Item'; ?>
+                                </button>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Dynamic Empty State JS Container -->
+                <div class="empty-state-card" id="searchEmptyState" style="display: none;">
+                    <i class="fa-solid fa-magnifying-glass empty-icon"></i>
+                    <h4 class="empty-title">No matching equipment found</h4>
+                    <p class="empty-desc">Try adjusting your search terms or category selection.</p>
                 </div>
             </div>
         </div>
@@ -172,6 +393,7 @@ require_once __DIR__ . '/auth_check.php';
                     <h3 class="modal-title-center">Request Equipment</h3>
                     
                     <form id="borrowForm" class="new-modal-form">
+                        <input type="hidden" id="modalEqId" value="">
                         <div class="form-main-content">
                             <!-- Left Side: Image Preview -->
                             <div class="form-left-img">
@@ -244,8 +466,10 @@ require_once __DIR__ . '/auth_check.php';
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const categoryCards = document.querySelectorAll('.category-card');
+            const equipmentGrid = document.getElementById('equipmentGrid');
             const equipmentCards = document.querySelectorAll('.equipment-card');
-            const searchInput = document.querySelector('.search-wrapper input');
+            const searchInput = document.getElementById('searchInput');
+            const searchEmptyState = document.getElementById('searchEmptyState');
 
             // Dark Mode Toggle Logic
             const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -324,24 +548,41 @@ require_once __DIR__ . '/auth_check.php';
                 }
             });
 
+            // Filter items function
             function filterItems() {
                 const activeCard = document.querySelector('.category-card.active');
-                const selectedCategory = activeCard ? activeCard.getAttribute('data-category') : 'all';
-                const searchTerm = searchInput.value.toLowerCase().trim();
+                const selectedCategory = activeCard ? activeCard.getAttribute('data-category').toLowerCase() : 'all';
+                const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+                let visibleCount = 0;
 
                 equipmentCards.forEach(card => {
-                    const cardCategory = card.getAttribute('data-category');
-                    const cardName = card.querySelector('.eq-name').textContent.toLowerCase();
+                    const cardCategory = card.getAttribute('data-category').toLowerCase();
+                    const cardName     = card.getAttribute('data-name') || '';
+                    const cardBrand    = card.getAttribute('data-brand') || '';
+                    const cardModel    = card.getAttribute('data-model') || '';
 
                     const matchesCategory = (selectedCategory === 'all' || cardCategory === selectedCategory);
-                    const matchesSearch = cardName.includes(searchTerm);
+                    const matchesSearch   = !searchTerm || 
+                                           cardName.includes(searchTerm) || 
+                                           cardBrand.includes(searchTerm) || 
+                                           cardModel.includes(searchTerm);
 
                     if (matchesCategory && matchesSearch) {
                         card.style.display = 'flex';
+                        visibleCount++;
                     } else {
                         card.style.display = 'none';
                     }
                 });
+
+                if (searchEmptyState) {
+                    if (visibleCount === 0 && equipmentCards.length > 0) {
+                        searchEmptyState.style.display = 'block';
+                    } else {
+                        searchEmptyState.style.display = 'none';
+                    }
+                }
             }
 
             categoryCards.forEach(card => {
@@ -352,7 +593,9 @@ require_once __DIR__ . '/auth_check.php';
                 });
             });
 
-            searchInput.addEventListener('input', filterItems);
+            if (searchInput) {
+                searchInput.addEventListener('input', filterItems);
+            }
 
             // Modal Interactions
             const modal = document.getElementById('borrowModal');
@@ -363,81 +606,148 @@ require_once __DIR__ . '/auth_check.php';
 
             // Set minimum dates
             const today = new Date().toISOString().split('T')[0];
-            borrowDateInput.min = today;
-            borrowDateInput.value = today;
+            if (borrowDateInput) {
+                borrowDateInput.min = today;
+                borrowDateInput.value = today;
+            }
 
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
-            returnDateInput.min = tomorrow.toISOString().split('T')[0];
+            if (returnDateInput) {
+                returnDateInput.min = tomorrow.toISOString().split('T')[0];
+            }
 
-            // Adjust return date min dynamically based on borrow date
-            borrowDateInput.addEventListener('change', () => {
-                const selectedBorrowDate = new Date(borrowDateInput.value);
-                selectedBorrowDate.setDate(selectedBorrowDate.getDate() + 1);
-                returnDateInput.min = selectedBorrowDate.toISOString().split('T')[0];
-                if (returnDateInput.value && returnDateInput.value < returnDateInput.min) {
-                    returnDateInput.value = returnDateInput.min;
-                }
-            });
+            if (borrowDateInput && returnDateInput) {
+                borrowDateInput.addEventListener('change', () => {
+                    const selectedBorrowDate = new Date(borrowDateInput.value);
+                    selectedBorrowDate.setDate(selectedBorrowDate.getDate() + 1);
+                    returnDateInput.min = selectedBorrowDate.toISOString().split('T')[0];
+                    if (returnDateInput.value && returnDateInput.value < returnDateInput.min) {
+                        returnDateInput.value = returnDateInput.min;
+                    }
+                });
+            }
 
-            equipmentCards.forEach(card => {
-                const requestBtn = card.querySelector('.btn-request');
-                requestBtn.addEventListener('click', () => {
-                    // Get equipment details
-                    const eqName = card.querySelector('.eq-name').textContent;
-                    const eqCategory = card.querySelector('.eq-category').textContent.trim();
-                    const eqAvailableText = card.querySelector('.eq-available').textContent.trim();
-                    const eqImgSrc = card.querySelector('.eq-img-container img').src;
-                    const maxAvailable = parseInt(eqAvailableText.replace(/[^0-9]/g, ''), 10);
+            // Attach request click event to buttons
+            const requestBtns = document.querySelectorAll('.btn-request');
+            requestBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    if (btn.disabled) return;
+                    
+                    const eqId       = btn.getAttribute('data-id');
+                    const eqName     = btn.getAttribute('data-name');
+                    const eqCategory = btn.getAttribute('data-category');
+                    const eqAvail    = btn.getAttribute('data-available');
+                    const eqImg      = btn.getAttribute('data-img');
 
-                    // Populate Modal Fields (inputs)
-                    document.getElementById('modalEqName').value = eqName;
-                    document.getElementById('modalEqCategory').value = eqCategory;
-                    document.getElementById('modalEqAvailable').value = maxAvailable;
+                    document.getElementById('modalEqId').value        = eqId;
+                    document.getElementById('modalEqName').value      = eqName;
+                    document.getElementById('modalEqCategory').value  = eqCategory;
+                    document.getElementById('modalEqAvailable').value = eqAvail;
                     
                     const modalImg = document.getElementById('modalEqImg');
-                    modalImg.src = eqImgSrc;
+                    modalImg.src = eqImg;
                     modalImg.alt = eqName;
 
-                    // Reset date fields to default
-                    borrowDateInput.value = today;
-                    returnDateInput.value = "";
-                    returnDateInput.min = tomorrow.toISOString().split('T')[0];
+                    if (borrowDateInput) borrowDateInput.value = today;
+                    if (returnDateInput) {
+                        returnDateInput.value = "";
+                        returnDateInput.min = tomorrow.toISOString().split('T')[0];
+                    }
 
-                    // Show Modal
-                    modal.classList.add('show');
+                    if (modal) modal.classList.add('show');
                 });
             });
 
             // Close modal functions
             const closeModal = () => {
-                modal.classList.remove('show');
-                borrowForm.reset();
+                if (modal) modal.classList.remove('show');
+                if (borrowForm) borrowForm.reset();
             };
 
-            closeModalBtn.addEventListener('click', closeModal);
+            if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
 
-            // Close modal when clicking outside the card
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    closeModal();
-                }
-            });
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        closeModal();
+                    }
+                });
+            }
 
             // Handle Borrow Form Submission
-            borrowForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const borrowDate = borrowDateInput.value;
-                const returnDate = returnDateInput.value;
-                const purpose = document.getElementById('borrowPurpose').value;
-                const notes = document.getElementById('borrowNotes').value;
-                const eqName = document.getElementById('modalEqName').value;
+            if (borrowForm) {
+                borrowForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    
+                    const eqId       = document.getElementById('modalEqId').value;
+                    const borrowDate = borrowDateInput ? borrowDateInput.value : '';
+                    const returnDate = returnDateInput ? returnDateInput.value : '';
+                    const purpose    = document.getElementById('borrowPurpose').value;
+                    const notes      = document.getElementById('borrowNotes').value;
+                    const submitBtn  = borrowForm.querySelector('.btn-submit-request');
 
-                // Professional mockup feedback
-                alert(`Borrow Request Submitted Successfully!\n\nEquipment: ${eqName}\nBorrow Date: ${borrowDate}\nReturn Date: ${returnDate}\nPurpose: ${purpose}\nNotes: ${notes || 'None'}`);
-                
-                closeModal();
-            });
+                    if (!eqId) {
+                        alert('Invalid equipment item selected.');
+                        return;
+                    }
+
+                    if (!borrowDate || !returnDate) {
+                        alert('Please select both borrow date and return date.');
+                        return;
+                    }
+
+                    if (returnDate < borrowDate) {
+                        alert('Return date cannot be earlier than borrow date.');
+                        return;
+                    }
+
+                    if (!purpose) {
+                        alert('Please select a purpose for borrowing.');
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('action', 'submit_request');
+                    formData.append('equipment_id', eqId);
+                    formData.append('borrow_date', borrowDate);
+                    formData.append('return_date', returnDate);
+                    formData.append('purpose', purpose);
+                    formData.append('notes', notes);
+
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
+                    }
+
+                    fetch('useravailequipment.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert(data.message || 'Borrow request submitted successfully!');
+                            closeModal();
+                            if (data.redirect) {
+                                window.location.href = data.redirect;
+                            }
+                        } else {
+                            alert('Submission Error: ' + (data.message || 'Failed to submit request.'));
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('An unexpected network error occurred while submitting your request.');
+                    })
+                    .finally(() => {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = 'Submit Request';
+                        }
+                    });
+                });
+            }
         });
     </script>
 </body>

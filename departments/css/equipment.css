@@ -304,33 +304,35 @@
 /* Equipment Grid Cards Matching Screenshot */
 .equipment-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(3, minmax(260px, 320px));
     gap: 24px;
     margin-bottom: 30px;
 }
 
 .eq-card-admin {
-    background-color: #3b5585; /* Vibrant SaaS blue matching screenshot */
-    border-radius: 18px;
-    padding: 20px;
+    background-color: #385585; /* Vibrant SaaS blue matching screenshot */
+    border-radius: 20px;
+    padding: 24px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 18px;
     color: #ffffff;
-    box-shadow: 0 8px 20px rgba(56, 85, 133, 0.18);
+    max-width: 320px;
+    width: 100%;
+    box-shadow: 0 8px 24px rgba(56, 85, 133, 0.18);
     border: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .eq-card-admin:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 28px rgba(56, 85, 133, 0.28);
+    box-shadow: 0 14px 32px rgba(56, 85, 133, 0.28);
 }
 
 .eq-card-img-wrapper {
     width: 100%;
-    height: 165px;
-    border-radius: 12px;
+    height: 200px;
+    border-radius: 14px;
     overflow: hidden;
     background-color: #ffffff;
     display: flex;
@@ -357,30 +359,39 @@
 .eq-card-details {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 
 .eq-card-title {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
     margin: 0 0 4px 0;
     color: #ffffff;
+    letter-spacing: -0.2px;
 }
 
 .eq-card-meta-line {
-    font-size: 13.5px;
+    font-size: 14px;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.9);
     display: flex;
     justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 2px 0;
 }
 
 .eq-card-meta-line span.label {
     opacity: 0.8;
+    font-size: 13.5px;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .eq-card-meta-line span.value {
     font-weight: 600;
+    text-align: right;
+    word-break: break-word;
 }
 
 .eq-card-actions {

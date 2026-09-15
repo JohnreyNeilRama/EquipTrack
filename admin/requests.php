@@ -1,5 +1,192 @@
 <?php
 require_once __DIR__ . '/auth_check.php';
+
+// Helper function to fetch all requests from MySQL database
+function fetchAllBorrowRequests($conn) {
+    $requests = [];
+    $sql = "
+        SELECT 
+            r.request_id,
+            r.user_id,
+            r.equipment_id,
+            r.quantity,
+            r.purpose,
+            r.notes,
+            r.date_requested,
+            r.date_needed,
+            r.borrow_date,
+            r.return_date,
+            r.due_date,
+            r.admin_status,
+            r.dept_status,
+            r.overall_status,
+            r.reject_reason,
+            u.role AS user_role,
+            u.email AS user_email,
+            u.profile_image AS user_avatar,
+            COALESCE(
+                NULLIF(TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))), ''),
+                NULLIF(TRIM(CONCAT(COALESCE(fm.first_name, ''), ' ', COALESCE(fm.last_name, ''))), ''),
+                u.email
+            ) AS user_full_name,
+            e.name AS equipment_name,
+            e.image AS equipment_image,
+            e.available_qty,
+            e.total_qty,
+            c.category_name
+        FROM borrow_request r
+        LEFT JOIN user_account u ON r.user_id = u.user_id
+        LEFT JOIN student s ON u.user_id = s.user_id
+        LEFT JOIN faculty_member fm ON u.user_id = fm.user_id
+        LEFT JOIN equipment e ON r.equipment_id = e.equipment_id
+        LEFT JOIN equipment_category c ON e.category_id = c.category_id
+        ORDER BY r.request_id DESC
+    ";
+    $res = $conn->query($sql);
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $reqDate = !empty($row['date_requested']) ? date('M d, Y', strtotime($row['date_requested'])) : 'N/A';
+            $fullReqDate = !empty($row['date_requested']) ? date('M d, Y h:i A', strtotime($row['date_requested'])) : 'N/A';
+            $bDateRaw = !empty($row['borrow_date']) ? $row['borrow_date'] : ($row['date_needed'] ?? '');
+            $bDate = !empty($bDateRaw) ? date('M d, Y', strtotime($bDateRaw)) : 'N/A';
+            $dDateRaw = !empty($row['due_date']) ? $row['due_date'] : ($row['return_date'] ?? '');
+            $dDate = !empty($dDateRaw) ? date('M d, Y', strtotime($dDateRaw)) : 'N/A';
+
+            $uAvatar = trim($row['user_avatar'] ?? '');
+            if (empty($uAvatar)) {
+                $uAvatar = "https://ui-avatars.com/api/?name=" . urlencode($row['user_full_name'] ?: 'User') . "&background=385585&color=fff";
+            }
+
+            $rawImg = trim($row['equipment_image'] ?? '');
+            if (empty($rawImg)) {
+                $eqImg = '../images/EquipTrack_logo.png';
+            } elseif (preg_match('/^(https?:\/\/|data:)/i', $rawImg)) {
+                $eqImg = $rawImg;
+            } else {
+                $eqImg = '../' . ltrim($rawImg, '/');
+            }
+
+            $requests[] = [
+                'id'           => (int)$row['request_id'],
+                'user_id'      => (int)$row['user_id'],
+                'user'         => !empty($row['user_full_name']) ? $row['user_full_name'] : 'Unknown User',
+                'role'         => ucfirst($row['user_role'] ?? 'Student'),
+                'email'        => $row['user_email'] ?? '',
+                'avatar'       => $uAvatar,
+                'equipment_id' => (int)$row['equipment_id'],
+                'equipment'    => !empty($row['equipment_name']) ? $row['equipment_name'] : 'Unknown Equipment',
+                'category'     => !empty($row['category_name']) ? $row['category_name'] : 'General',
+                'img'          => $eqImg,
+                'quantity'     => (int)($row['quantity'] ?? 1),
+                'date'         => $reqDate,
+                'fullDate'     => $fullReqDate,
+                'borrowDate'   => $bDate,
+                'dueDate'      => $dDate,
+                'purpose'      => $row['purpose'] ?: 'N/A',
+                'notes'        => $row['notes'] ?: 'None',
+                'status'       => ucfirst($row['overall_status'] ?? 'Pending'),
+                'adminStatus'  => ucfirst($row['admin_status'] ?? 'Pending'),
+                'rejectReason' => $row['reject_reason'] ?? ''
+            ];
+        }
+    }
+    return $requests;
+}
+
+// GET Endpoint for live JSON polling
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET' && isset($_GET['action']) && $_GET['action'] === 'get_requests') {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => true, 'requests' => fetchAllBorrowRequests($conn)]);
+    exit;
+}
+
+// POST Endpoint for Status Updates (Approve / Reject)
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_status') {
+    header('Content-Type: application/json');
+
+    $requestId    = isset($_POST['request_id']) ? (int)$_POST['request_id'] : 0;
+    $status       = trim($_POST['status'] ?? '');
+    $rejectReason = trim($_POST['reject_reason'] ?? '');
+
+    if ($requestId <= 0 || !in_array($status, ['Approved', 'Rejected'])) {
+        echo json_encode(['success' => false, 'message' => 'Invalid parameters.']);
+        exit;
+    }
+
+    // Check request
+    $chkStmt = $conn->prepare("SELECT r.*, e.name AS equipment_name FROM borrow_request r INNER JOIN equipment e ON r.equipment_id = e.equipment_id WHERE r.request_id = ?");
+    $chkStmt->bind_param("i", $requestId);
+    $chkStmt->execute();
+    $chkRes = $chkStmt->get_result();
+
+    if (!$chkRes || $chkRes->num_rows === 0) {
+        echo json_encode(['success' => false, 'message' => 'Borrow request not found.']);
+        exit;
+    }
+
+    $reqData = $chkRes->fetch_assoc();
+
+    if ($status === 'Approved') {
+        $updateStmt = $conn->prepare("
+            UPDATE borrow_request 
+            SET admin_status = 'Approved', 
+                overall_status = 'Approved', 
+                admin_id = ?, 
+                admin_reviewed_at = NOW(), 
+                reject_reason = NULL 
+            WHERE request_id = ?
+        ");
+        $updateStmt->bind_param("ii", $admin_id, $requestId);
+
+        if ($updateStmt->execute()) {
+            // Log to audit trail
+            $auditAction = "Approved borrow request #" . $requestId . " for " . $reqData['equipment_name'];
+            $auditStmt = $conn->prepare("INSERT INTO audit_trail (admin_id, action, timestamp) VALUES (?, ?, NOW())");
+            if ($auditStmt) {
+                $auditStmt->bind_param("is", $admin_id, $auditAction);
+                $auditStmt->execute();
+            }
+
+            echo json_encode(['success' => true, 'message' => 'Borrow request approved successfully!']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to update request: ' . $conn->error]);
+        }
+    } elseif ($status === 'Rejected') {
+        if (empty($rejectReason)) {
+            echo json_encode(['success' => false, 'message' => 'Please state a reason for rejecting the request.']);
+            exit;
+        }
+
+        $updateStmt = $conn->prepare("
+            UPDATE borrow_request 
+            SET admin_status = 'Rejected', 
+                overall_status = 'Rejected', 
+                admin_id = ?, 
+                admin_reviewed_at = NOW(), 
+                reject_reason = ? 
+            WHERE request_id = ?
+        ");
+        $updateStmt->bind_param("isi", $admin_id, $rejectReason, $requestId);
+
+        if ($updateStmt->execute()) {
+            // Log to audit trail
+            $auditAction = "Rejected borrow request #" . $requestId . " for " . $reqData['equipment_name'] . ". Reason: " . $rejectReason;
+            $auditStmt = $conn->prepare("INSERT INTO audit_trail (admin_id, action, timestamp) VALUES (?, ?, NOW())");
+            if ($auditStmt) {
+                $auditStmt->bind_param("is", $admin_id, $auditAction);
+                $auditStmt->execute();
+            }
+
+            echo json_encode(['success' => true, 'message' => 'Borrow request rejected.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to reject request: ' . $conn->error]);
+        }
+    }
+    exit;
+}
+
+// Initial fetch for page load
+$dbRequests = fetchAllBorrowRequests($conn);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -116,72 +303,106 @@ require_once __DIR__ . '/auth_check.php';
             color: #0f172a;
         }
 
-        /* Modal Details Form styling */
-        .detail-form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 20px;
+        /* Modal Details Form styling                                            */
+        /* Mirrors the structure/spacing of the User "My Request" details modal    */
+        /* (.eq-modal-card alone is capped at 500px !important by adminequipment.css, */
+        /* so we still need the extra class + !important here to win the cascade). */
+        .eq-modal-card.request-details-card {
+            max-width: 680px !important;
         }
-        .detail-form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            text-align: left;
-        }
-        .detail-form-group.full-width {
-            grid-column: span 2;
-        }
-        .detail-form-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .detail-form-control {
-            padding: 10px 14px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-size: 14px;
-            outline: none;
-            width: 100%;
-        }
-        .detail-form-control[readonly] {
-            cursor: default;
-        }
+
         .detail-main-content {
             display: flex;
-            gap: 24px;
+            gap: 28px;
             margin-bottom: 20px;
+            align-items: stretch;
         }
         .detail-left-side {
-            width: 180px;
+            flex: 1;
             display: flex;
             flex-direction: column;
             gap: 16px;
         }
-        .detail-right-side {
-            flex: 1;
-        }
         .detail-img-container {
-            width: 180px;
-            height: 140px;
-            border-radius: 12px;
+            width: 100%;
+            height: 190px;
+            border-radius: 16px;
             overflow: hidden;
-            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
         }
         .detail-img-container img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
+        .detail-right-side {
+            flex: 1.3;
+            min-width: 0;
+        }
+
+        /* Stacked single-column field list, same as the user page's form-grid */
+        .detail-form-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .detail-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            text-align: left;
+            width: 100%;
+        }
+        .detail-form-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .detail-form-control {
+            width: 100%;
+            padding: 10px 14px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            outline: none;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        .detail-form-control[readonly] {
+            cursor: default;
+        }
+
+        /* Lower section (Purpose / Notes / Reason) - vertical stack with a
+           top divider, matching the user page's .detail-lower-section */
+        .detail-lower-section {
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .detail-main-content {
+                flex-direction: column;
+                gap: 16px;
+            }
+            .detail-img-container {
+                height: 150px;
+            }
+        }
+
         .textarea-control {
             resize: none;
             font-family: inherit;
+            line-height: 1.5;
         }
         .text-danger-control {
             border-color: rgba(239, 68, 68, 0.3);
@@ -339,7 +560,7 @@ require_once __DIR__ . '/auth_check.php';
 
     <!-- Request Details Modal -->
     <div class="modal-overlay" id="detailsModal">
-        <div class="modal-card eq-modal-card" style="max-width: 680px;">
+        <div class="modal-card eq-modal-card request-details-card">
             <div class="modal-outer-header">
                 <p class="modal-subtitle-top">Detailed view of user request</p>
             </div>
@@ -381,6 +602,10 @@ require_once __DIR__ . '/auth_check.php';
                                 <input type="text" id="modalEqCategory" class="detail-form-control" readonly>
                             </div>
                             <div class="detail-form-group">
+                                <label class="detail-form-label">Quantity Requested</label>
+                                <input type="text" id="modalEqQty" class="detail-form-control" readonly>
+                            </div>
+                            <div class="detail-form-group">
                                 <label class="detail-form-label">Request Date</label>
                                 <input type="text" id="modalReqDate" class="detail-form-control" readonly>
                             </div>
@@ -388,7 +613,7 @@ require_once __DIR__ . '/auth_check.php';
                                 <label class="detail-form-label">Borrow Date</label>
                                 <input type="text" id="modalBorrowDate" class="detail-form-control" readonly>
                             </div>
-                            <div class="detail-form-group full-width">
+                            <div class="detail-form-group">
                                 <label class="detail-form-label">Due Date</label>
                                 <input type="text" id="modalDueDate" class="detail-form-control" readonly>
                             </div>
@@ -397,13 +622,15 @@ require_once __DIR__ . '/auth_check.php';
                 </div>
 
                 <!-- Purpose & Notes Section -->
-                <div class="detail-form-group" style="margin-bottom: 16px;">
-                    <label class="detail-form-label">Purpose of Borrowing</label>
-                    <textarea id="modalPurpose" class="detail-form-control textarea-control" rows="2" readonly></textarea>
-                </div>
-                <div class="detail-form-group" style="margin-bottom: 16px;">
-                    <label class="detail-form-label">Additional Notes</label>
-                    <textarea id="modalNotes" class="detail-form-control textarea-control" rows="2" readonly></textarea>
+                <div class="detail-text-grid">
+                    <div class="detail-form-group">
+                        <label class="detail-form-label">Purpose of Borrowing</label>
+                        <textarea id="modalPurpose" class="detail-form-control textarea-control" rows="3" readonly></textarea>
+                    </div>
+                    <div class="detail-form-group">
+                        <label class="detail-form-label">Additional Notes</label>
+                        <textarea id="modalNotes" class="detail-form-control textarea-control" rows="3" readonly></textarea>
+                    </div>
                 </div>
                 <div class="detail-form-group" id="modalReasonGroup" style="display: none; margin-bottom: 16px;">
                     <label class="detail-form-label text-danger">Reason for Rejection</label>
@@ -456,50 +683,46 @@ require_once __DIR__ . '/auth_check.php';
     <!-- Interactivity Script -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-        function syncNavbarAvatar(newAvatar) {
-            const dbAvatar = <?php echo json_encode($admin_profile_image); ?>;
-            let currentAvatar = null;
-            if (newAvatar !== undefined) {
-                currentAvatar = newAvatar;
-            } else if (dbAvatar) {
-                currentAvatar = dbAvatar;
-            } else {
-                localStorage.removeItem('admin-avatar-src');
-                currentAvatar = null;
+            function syncNavbarAvatar(newAvatar) {
+                const dbAvatar = <?php echo json_encode($admin_profile_image); ?>;
+                let currentAvatar = null;
+                if (newAvatar !== undefined) {
+                    currentAvatar = newAvatar;
+                } else if (dbAvatar) {
+                    currentAvatar = dbAvatar;
+                } else {
+                    localStorage.removeItem('admin-avatar-src');
+                    currentAvatar = null;
+                }
+
+                const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
+
+                if (currentAvatar) {
+                    localStorage.setItem('admin-avatar-src', currentAvatar);
+                    navAvatars.forEach(navAvatar => {
+                        navAvatar.innerHTML = `<img src="${currentAvatar}" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                        navAvatar.style.padding = '0';
+                        navAvatar.style.background = 'transparent';
+                    });
+                } else {
+                    localStorage.removeItem('admin-avatar-src');
+                    navAvatars.forEach(navAvatar => {
+                        navAvatar.style.padding = '';
+                        navAvatar.style.background = 'var(--primary-color)';
+                        navAvatar.innerHTML = <?php echo json_encode(htmlspecialchars($admin_initials)); ?>;
+                    });
+                }
             }
+            syncNavbarAvatar();
 
-            const navAvatars = document.querySelectorAll('.user-profile .profile-avatar');
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'admin-avatar-src') {
+                    syncNavbarAvatar(e.newValue);
+                }
+            });
 
-            if (currentAvatar) {
-                localStorage.setItem('admin-avatar-src', currentAvatar);
-                navAvatars.forEach(navAvatar => {
-                    navAvatar.innerHTML = `<img src="${currentAvatar}" alt="Admin Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
-                    navAvatar.style.padding = '0';
-                    navAvatar.style.background = 'transparent';
-                });
-            } else {
-                localStorage.removeItem('admin-avatar-src');
-                navAvatars.forEach(navAvatar => {
-                    navAvatar.style.padding = '';
-                    navAvatar.style.background = 'var(--primary-color)';
-                    navAvatar.innerHTML = <?php echo json_encode(htmlspecialchars($admin_initials)); ?>;
-                });
-            }
-        }
-        syncNavbarAvatar();
-
-        window.addEventListener('storage', function(e) {
-            if (e.key === 'admin-avatar-src') {
-                syncNavbarAvatar(e.newValue);
-            }
-        });
-
-            // Default seeding requests if not present in localStorage
-            const defaultRequestsList = [];
-
-            // LocalStorage loading - ensure clean empty state for initial system setup
-            let requests = [];
-            localStorage.setItem('equip-track-requests', JSON.stringify([]));
+            // Initial requests dataset loaded directly from PHP MySQL query
+            let requests = <?php echo json_encode($dbRequests); ?>;
 
             // DOM Elements
             const tableBody = document.getElementById('requestsTableBody');
@@ -556,6 +779,23 @@ require_once __DIR__ . '/auth_check.php';
                 });
             }
 
+            // Function to fetch latest requests from backend (live polling & after updates)
+            function loadRequests() {
+                fetch('requests.php?action=get_requests')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success && Array.isArray(data.requests)) {
+                            requests = data.requests;
+                            renderTable();
+                            updateDashboardStats();
+                        }
+                    })
+                    .catch(err => console.error('Error fetching requests:', err));
+            }
+
+            // Auto-refresh requests every 5 seconds for seamless automatic updating
+            setInterval(loadRequests, 5000);
+
             // Render Table function
             function renderTable() {
                 const query = searchInput.value.toLowerCase().trim();
@@ -563,9 +803,10 @@ require_once __DIR__ . '/auth_check.php';
                 tableBody.innerHTML = '';
 
                 const filtered = requests.filter(req => {
-                    const matchesSearch = req.user.toLowerCase().includes(query) || 
-                                          req.equipment.toLowerCase().includes(query);
-                    const matchesFilter = filter === 'all' || req.status.toLowerCase() === filter;
+                    const matchesSearch = (req.user || '').toLowerCase().includes(query) || 
+                                          (req.equipment || '').toLowerCase().includes(query) ||
+                                          (req.role || '').toLowerCase().includes(query);
+                    const matchesFilter = filter === 'all' || (req.status || '').toLowerCase() === filter;
                     return matchesSearch && matchesFilter;
                 });
 
@@ -611,6 +852,7 @@ require_once __DIR__ . '/auth_check.php';
 
                     // Format status text
                     const statusClass = 'status-' + req.status.toLowerCase();
+                    const qtyBadge = req.quantity > 1 ? ` <span style="font-size: 11px; opacity: 0.8;">(${req.quantity} pcs)</span>` : '';
 
                     tr.innerHTML = `
                         <td>
@@ -619,10 +861,10 @@ require_once __DIR__ . '/auth_check.php';
                             </div>
                         </td>
                         <td>${escapeHTML(req.role)}</td>
-                        <td>${escapeHTML(req.equipment)}</td>
+                        <td>${escapeHTML(req.equipment)}${qtyBadge}</td>
                         <td>${escapeHTML(req.date)}</td>
                         <td>
-                            <span class="status-badge ${statusClass}">${req.status}</span>
+                            <span class="status-badge ${statusClass}">${escapeHTML(req.status)}</span>
                         </td>
                         <td class="action-cell">${actionHtml}</td>
                     `;
@@ -653,20 +895,31 @@ require_once __DIR__ . '/auth_check.php';
 
             // Approve Request function
             window.approveRequest = function(id) {
-                const reqIndex = requests.findIndex(r => r.id === id);
-                if (reqIndex > -1) {
-                    const req = requests[reqIndex];
-                    req.status = 'Approved';
-                    req.rejectReason = '';
-                    localStorage.setItem('equip-track-requests', JSON.stringify(requests));
-                    showNotification('Request Approved', `Approved request for ${req.equipment} by ${req.user}`, 'success');
-                    
-                    // Close details modal if open
-                    detailsModal.classList.remove('show');
-                    
-                    renderTable();
-                    updateDashboardStats();
-                }
+                if (!confirm('Are you sure you want to approve this equipment request?')) return;
+
+                const formData = new FormData();
+                formData.append('action', 'update_status');
+                formData.append('request_id', id);
+                formData.append('status', 'Approved');
+
+                fetch('requests.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Request Approved', data.message || 'Request approved successfully!', 'success');
+                        detailsModal.classList.remove('show');
+                        loadRequests();
+                    } else {
+                        showNotification('Action Failed', data.message || 'Failed to approve request.', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    showNotification('Error', 'Network error occurred.', 'error');
+                });
             };
 
             // Trigger Rejection Reason modal
@@ -682,21 +935,36 @@ require_once __DIR__ . '/auth_check.php';
                 const id = parseInt(rejectRequestIdInput.value);
                 const reason = rejectReasonInput.value.trim();
 
-                const reqIndex = requests.findIndex(r => r.id === id);
-                if (reqIndex > -1 && reason) {
-                    const req = requests[reqIndex];
-                    req.status = 'Rejected';
-                    req.rejectReason = reason;
-                    localStorage.setItem('equip-track-requests', JSON.stringify(requests));
-                    
-                    rejectReasonModal.classList.remove('show');
-                    // Close details modal if open
-                    detailsModal.classList.remove('show');
-
-                    showNotification('Request Rejected', `Rejected request for ${req.equipment} by ${req.user}`, 'error');
-                    renderTable();
-                    updateDashboardStats();
+                if (!id || !reason) {
+                    showNotification('Input Error', 'Please provide a valid rejection reason.', 'error');
+                    return;
                 }
+
+                const formData = new FormData();
+                formData.append('action', 'update_status');
+                formData.append('request_id', id);
+                formData.append('status', 'Rejected');
+                formData.append('reject_reason', reason);
+
+                fetch('requests.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Request Rejected', data.message || 'Request rejected.', 'error');
+                        rejectReasonModal.classList.remove('show');
+                        detailsModal.classList.remove('show');
+                        loadRequests();
+                    } else {
+                        showNotification('Action Failed', data.message || 'Failed to reject request.', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    showNotification('Error', 'Network error occurred.', 'error');
+                });
             });
 
             // Open Details Modal
@@ -704,12 +972,12 @@ require_once __DIR__ . '/auth_check.php';
                 const req = requests.find(r => r.id === id);
                 if (!req) return;
 
-                // Populate modal
+                // Populate modal user details
                 document.getElementById('modalUserAvatar').src = req.avatar || "https://ui-avatars.com/api/?name=" + encodeURIComponent(req.user);
                 document.getElementById('modalUserName').textContent = req.user;
                 document.getElementById('modalUserRole').textContent = req.role;
 
-                document.getElementById('modalEqImg').src = req.img || "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60";
+                document.getElementById('modalEqImg').src = req.img;
                 
                 const statusBadge = document.getElementById('modalStatusBadge');
                 statusBadge.textContent = req.status;
@@ -717,11 +985,12 @@ require_once __DIR__ . '/auth_check.php';
 
                 document.getElementById('modalEqName').value = req.equipment;
                 document.getElementById('modalEqCategory').value = req.category;
+                document.getElementById('modalEqQty').value = req.quantity + ' pc(s)';
                 document.getElementById('modalReqDate').value = req.fullDate;
                 document.getElementById('modalBorrowDate').value = req.borrowDate;
                 document.getElementById('modalDueDate').value = req.dueDate;
                 document.getElementById('modalPurpose').value = req.purpose;
-                document.getElementById('modalNotes').value = req.notes || 'N/A';
+                document.getElementById('modalNotes').value = req.notes || 'None';
 
                 const reasonGroup = document.getElementById('modalReasonGroup');
                 if (req.status.toLowerCase() === 'rejected') {

@@ -1,5 +1,34 @@
 <?php
 require_once __DIR__ . '/auth_check.php';
+
+$userId = $_SESSION['user_id'] ?? 0;
+$userRequests = [];
+
+$reqStmt = $conn->prepare("
+    SELECT r.*, 
+           e.name AS equipment_name, 
+           e.image AS equipment_image, 
+           c.category_name, 
+           d.department_name, 
+           d.department_code 
+    FROM borrow_request r 
+    INNER JOIN equipment e ON r.equipment_id = e.equipment_id 
+    LEFT JOIN equipment_category c ON e.category_id = c.category_id 
+    LEFT JOIN department d ON e.department_id = d.department_id 
+    WHERE r.user_id = ? 
+    ORDER BY r.request_id DESC
+");
+
+if ($reqStmt) {
+    $reqStmt->bind_param("i", $userId);
+    $reqStmt->execute();
+    $reqRes = $reqStmt->get_result();
+    if ($reqRes) {
+        while ($row = $reqRes->fetch_assoc()) {
+            $userRequests[] = $row;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -125,11 +154,81 @@ require_once __DIR__ . '/auth_check.php';
                     </tr>
                 </thead>
                 <tbody id="requestsTableBody">
-                    <tr>
-                        <td colspan="7" style="text-align: center; color: var(--text-muted, #64748b); padding: 32px;">
-                            No equipment requests found.
-                        </td>
-                    </tr>
+                    <?php if (empty($userRequests)): ?>
+                        <tr id="noRequestsRow">
+                            <td colspan="7" style="text-align: center; color: var(--text-muted, #64748b); padding: 32px;">
+                                No equipment requests found.
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($userRequests as $idx => $req): 
+                            $reqNo = $idx + 1;
+                            $reqId = (int)$req['request_id'];
+                            $eqName = $req['equipment_name'];
+                            $eqCat = !empty($req['category_name']) ? $req['category_name'] : 'General';
+                            
+                            $reqDateFormatted = !empty($req['date_requested']) ? date('M d, Y', strtotime($req['date_requested'])) : 'N/A';
+                            
+                            $bDate = !empty($req['borrow_date']) ? $req['borrow_date'] : ($req['date_needed'] ?? '');
+                            $bDateFormatted = !empty($bDate) ? date('M d, Y', strtotime($bDate)) : 'N/A';
+                            
+                            $dDate = !empty($req['due_date']) ? $req['due_date'] : ($req['return_date'] ?? '');
+                            $dDateFormatted = !empty($dDate) ? date('M d, Y', strtotime($dDate)) : 'N/A';
+
+                            $status = !empty($req['overall_status']) ? $req['overall_status'] : 'Pending';
+                            $purpose = $req['purpose'] ?? 'N/A';
+                            $notes = !empty($req['notes']) ? $req['notes'] : 'None';
+                            $rejectReason = $req['reject_reason'] ?? '';
+
+                            $rawImg = trim($req['equipment_image'] ?? '');
+                            if (empty($rawImg)) {
+                                $imgUrl = '../images/EquipTrack_logo.png';
+                            } elseif (preg_match('/^(https?:\/\/|data:)/i', $rawImg)) {
+                                $imgUrl = $rawImg;
+                            } else {
+                                $imgUrl = '../' . ltrim($rawImg, '/');
+                            }
+                            
+                            $statusClass = strtolower($status);
+                        ?>
+                            <tr class="request-row" 
+                                data-id="<?php echo $reqId; ?>"
+                                data-equipment="<?php echo htmlspecialchars($eqName); ?>"
+                                data-category="<?php echo htmlspecialchars($eqCat); ?>"
+                                data-req-date="<?php echo htmlspecialchars($reqDateFormatted); ?>"
+                                data-borrow-date="<?php echo htmlspecialchars($bDateFormatted); ?>"
+                                data-due-date="<?php echo htmlspecialchars($dDateFormatted); ?>"
+                                data-status="<?php echo htmlspecialchars($status); ?>"
+                                data-purpose="<?php echo htmlspecialchars($purpose); ?>"
+                                data-notes="<?php echo htmlspecialchars($notes); ?>"
+                                data-img="<?php echo htmlspecialchars($imgUrl); ?>"
+                                data-reject-reason="<?php echo htmlspecialchars($rejectReason); ?>">
+                                <td><?php echo $reqNo; ?></td>
+                                <td class="equipment-col">
+                                    <div class="eq-cell" style="display: flex; align-items: center; gap: 12px;">
+                                        <img src="<?php echo htmlspecialchars($imgUrl); ?>" alt="<?php echo htmlspecialchars($eqName); ?>" class="eq-thumb" style="width: 42px; height: 42px; border-radius: 8px; object-fit: cover; background: #fff;" onerror="this.onerror=null; this.src='../images/EquipTrack_logo.png';">
+                                        <div class="eq-info" style="display: flex; flex-direction: column;">
+                                            <span class="eq-title" style="font-weight: 600; color: var(--text-main);"><?php echo htmlspecialchars($eqName); ?></span>
+                                            <span class="eq-sub" style="font-size: 12px; color: var(--text-muted);"><?php echo htmlspecialchars($eqCat); ?></span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><?php echo $reqDateFormatted; ?></td>
+                                <td><?php echo $bDateFormatted; ?></td>
+                                <td><?php echo $dDateFormatted; ?></td>
+                                <td>
+                                    <span class="detail-status-badge status-<?php echo $statusClass; ?>">
+                                        <?php echo htmlspecialchars($status); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn-view-request" onclick="openRequestDetails(this)">
+                                        <i class="fa-regular fa-eye"></i> View
+                                    </button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -291,14 +390,16 @@ require_once __DIR__ . '/auth_check.php';
 
         // Function to filter requests in real-time
         function filterRequests() {
-            const query = searchInput.value.toLowerCase().trim();
-            const filterVal = statusFilter.value;
+            const rows = document.querySelectorAll('.request-row');
+            const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            const filterVal = statusFilter ? statusFilter.value : 'All';
 
-            requestRows.forEach(row => {
-                const equipment = row.getAttribute('data-equipment').toLowerCase();
-                const status = row.getAttribute('data-status');
+            rows.forEach(row => {
+                const equipment = (row.getAttribute('data-equipment') || '').toLowerCase();
+                const category  = (row.getAttribute('data-category') || '').toLowerCase();
+                const status    = row.getAttribute('data-status') || '';
 
-                const matchesSearch = equipment.includes(query);
+                const matchesSearch = !query || equipment.includes(query) || category.includes(query);
                 const matchesFilter = (filterVal === 'All' || status === filterVal);
 
                 if (matchesSearch && matchesFilter) {
