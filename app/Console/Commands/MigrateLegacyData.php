@@ -107,10 +107,18 @@ class MigrateLegacyData extends Command
                 $count++;
             }
 
-            // Fix AUTO_INCREMENT so new rows never collide with migrated IDs.
+            // Fix the auto-increment counter so new rows never collide with migrated IDs.
+            // Syntax differs per driver: MySQL uses ALTER TABLE ... AUTO_INCREMENT,
+            // Postgres uses its serial sequence via setval().
             $max = (int) DB::table($table)->max($pk);
             if ($max > 0) {
-                DB::statement("ALTER TABLE {$table} AUTO_INCREMENT = " . ($max + 1));
+                $driver = DB::connection()->getDriverName();
+                if ($driver === 'pgsql') {
+                    DB::statement("SELECT setval(pg_get_serial_sequence('{$table}', '{$pk}'), ?)", [$max]);
+                } elseif ($driver === 'mysql' || $driver === 'mariadb') {
+                    DB::statement("ALTER TABLE {$table} AUTO_INCREMENT = " . ($max + 1));
+                }
+                // sqlite: no separate sequence to reset, nothing to do.
             }
 
             $this->line("<fg=green>Copied</> {$table} ({$count} rows)");

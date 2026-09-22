@@ -62,6 +62,9 @@
                 <div class="icon-btn" id="themeToggleBtn" title="Toggle theme">
                     <i class="fa-solid fa-moon" id="themeToggleIcon"></i>
                 </div>
+                <div class="icon-btn notification" id="notifBtn" title="Notifications">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
                     <div class="profile-avatar" style="width: 38px; height: 38px; border-radius: 50%; background-color: var(--primary-color); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; overflow: hidden; {{ $d?->profile_image ? 'padding: 0; background: transparent;' : '' }}">
