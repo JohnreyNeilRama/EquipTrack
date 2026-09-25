@@ -330,12 +330,13 @@
         document.addEventListener('DOMContentLoaded', () => {
 
 
-            // Monitoring requests list initialized to empty
-            const monitoringSeed = [];
+            // Monitoring requests loaded live from the database (one row per
+            // equipment with its current borrow status), so approved borrows and
+            // user returns are reflected here immediately.
+            let requests = @json($dbRequests);
 
-            // Reset requests storage to clean empty state
-            let requests = [];
-            localStorage.setItem('equip-track-requests', JSON.stringify([]));
+            // Keep storage in sync so in-session actions (reminders, details) persist
+            localStorage.setItem('equip-track-requests', JSON.stringify(requests));
 
             // Department metadata loaded from database
             let dbDepts = @json($dbDepartments);

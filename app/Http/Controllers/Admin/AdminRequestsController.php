@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditTrail;
 use App\Models\BorrowRequest;
+use App\Models\BorrowTransaction;
+use App\Models\Equipment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AdminRequestsController extends Controller
@@ -26,10 +29,10 @@ class AdminRequestsController extends Controller
     }
 
     /**
-     * Approve / Reject. Mirrors the legacy update_status endpoint exactly:
-     * status columns + audit trail. (Stock decrement and borrow_transaction
-     * creation were NOT part of the legacy behavior and are deliberately
-     * deferred, per the agreed migration scope.)
+     * Approve / Reject. Mirrors the legacy update_status endpoint:
+     * status columns + audit trail. On approval the borrow lifecycle is now
+     * completed for real: equipment stock is decremented and an Active
+     * borrow_transaction is created, which the user Return Item flow depends on.
      */
     public function updateStatus(Request $request): JsonResponse
     {
@@ -64,26 +67,73 @@ class AdminRequestsController extends Controller
         $now = now();
         $reason = $data['status'] === 'Rejected' ? trim($data['reject_reason']) : null;
 
-        $borrow->update([
-            'admin_status' => $data['status'],
-            'overall_status' => $data['status'],
-            'admin_id' => $admin->admin_id,
-            'admin_reviewed_at' => $now,
-            'reject_reason' => $reason,
-        ]);
+        $result = DB::transaction(function () use ($request, $data, $borrow, $admin, $now, $reason) {
+            // Re-fetch under a lock so concurrent approvals cannot double-decrement stock.
+            $locked = BorrowRequest::where('request_id', $borrow->request_id)->lockForUpdate()->first();
+            if (!$locked || $locked->admin_status !== 'Pending') {
+                return ['code' => 400, 'message' => 'This request has already been reviewed.'];
+            }
 
-        // Legacy audit inserts used a nonexistent `timestamp` column and failed
-        // silently; write to the real audit_trail schema.
-        $action = $data['status'] === 'Approved'
-            ? 'Approved borrow request #' . $borrow->request_id . ' for ' . $borrow->equipment->name
-            : 'Rejected borrow request #' . $borrow->request_id . ' for ' . $borrow->equipment->name . '. Reason: ' . $reason;
+            if ($data['status'] === 'Approved') {
+                $equipment = Equipment::where('equipment_id', $locked->equipment_id)
+                    ->lockForUpdate()
+                    ->first();
 
-        AuditTrail::create([
-            'admin_id' => $admin->admin_id,
-            'action' => mb_substr($action, 0, 100),
-            'ip_address' => $request->ip() ?? '127.0.0.1',
-            'affected_entity' => 'borrow_request:' . $borrow->request_id,
-        ]);
+                if (!$equipment) {
+                    return ['code' => 404, 'message' => 'The equipment for this request was not found.'];
+                }
+
+                $qty = max(1, (int) $locked->quantity);
+                if ((int) $equipment->available_qty < $qty) {
+                    return ['code' => 400, 'message' => 'Cannot approve: this equipment has no available stock left.'];
+                }
+
+                $equipment->available_qty = (int) $equipment->available_qty - $qty;
+                if ($equipment->available_qty <= 0) {
+                    $equipment->available_qty = 0;
+                    $equipment->status = 'Unavailable';
+                }
+                $equipment->save();
+
+                // The borrowing record returned items are settled against.
+                BorrowTransaction::create([
+                    'request_id' => $locked->request_id,
+                    'borrow_date' => $locked->borrow_date ?: $locked->date_needed,
+                    'due_date' => $locked->due_date ?: $locked->return_date,
+                    'status' => 'Active',
+                ]);
+            }
+
+            $locked->update([
+                'admin_status' => $data['status'],
+                'overall_status' => $data['status'],
+                'admin_id' => $admin->admin_id,
+                'admin_reviewed_at' => $now,
+                'reject_reason' => $reason,
+            ]);
+
+            // Legacy audit inserts used a nonexistent `timestamp` column and failed
+            // silently; write to the real audit_trail schema.
+            $action = $data['status'] === 'Approved'
+                ? 'Approved borrow request #' . $locked->request_id . ' for ' . $borrow->equipment->name
+                : 'Rejected borrow request #' . $locked->request_id . ' for ' . $borrow->equipment->name . '. Reason: ' . $reason;
+
+            AuditTrail::create([
+                'admin_id' => $admin->admin_id,
+                'action' => mb_substr($action, 0, 100),
+                'ip_address' => $request->ip() ?? '127.0.0.1',
+                'affected_entity' => 'borrow_request:' . $locked->request_id,
+            ]);
+
+            return ['code' => 200];
+        });
+
+        if (($result['code'] ?? 200) !== 200) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+            ], $result['code']);
+        }
 
         return response()->json([
             'success' => true,

@@ -105,6 +105,11 @@
     color: var(--text-main); /* Dark charcoal text matching mockup */
 }
 
+.status-text.status-overdue {
+    color: #ef4444;
+    font-weight: 600;
+}
+
 /* Action button */
 .btn-return-action {
     background-color: #4f6b9c; /* Soft blue matching return button in screenshot */

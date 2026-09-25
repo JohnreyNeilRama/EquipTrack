@@ -6,6 +6,16 @@
 <link rel="stylesheet" href="{{ asset('user/css/userreturns.css') }}">
 @endpush
 
+@php
+    $fmt = fn ($v) => $v ? \Illuminate\Support\Carbon::parse($v)->format('M d, Y') : 'N/A';
+    $resolveImg = function (?string $raw): string {
+        $raw = trim((string) $raw);
+        if ($raw === '') return asset('images/EquipTrack_logo.png');
+        if (preg_match('/^(https?:\/\/|data:|\/storage\/)/i', $raw)) return $raw;
+        return asset(ltrim($raw, '/'));
+    };
+@endphp
+
 @section('content')
 <!-- Page Subtitle Header -->
         <h3 class="manage-return-header">Manage and return your borrowed equipment</h3>
@@ -20,7 +30,7 @@
 
         <!-- Table Container -->
         <div class="table-container card returns-table-card">
-            <table style="display: none;">
+            <table @if ($returnItems->isEmpty()) style="display: none;" @endif>
                 <thead>
                     <tr>
                         <th class="col-no">No.</th>
@@ -32,26 +42,72 @@
                     </tr>
                 </thead>
                 <tbody id="returnsTableBody">
-                    <!-- Dynamic return items -->
+                    @forelse ($returnItems as $idx => $item)
+                        @php
+                            $eq = $item->equipment;
+                            $eqName = $eq->name ?? 'Unknown equipment';
+                            $eqCat = $eq->category?->category_name ?: 'General';
+                            $bDateFormatted = $fmt($item->borrow_date ?: $item->date_needed);
+                            $dueDateRaw = $item->transaction?->due_date ?: $item->due_date ?: $item->return_date;
+                            $dDateFormatted = $fmt($dueDateRaw);
+                            // Overdue once the due date is strictly before today
+                            $status = ($dueDateRaw && \Illuminate\Support\Carbon::parse($dueDateRaw)->startOfDay()->lt(now()->startOfDay()))
+                                ? 'Overdue'
+                                : 'Borrowed';
+                            $imgUrl = $resolveImg($eq->image ?? '');
+                        @endphp
+                        <tr class="return-row"
+                            data-id="{{ $item->request_id }}"
+                            data-equipment="{{ $eqName }}"
+                            data-category="{{ $eqCat }}"
+                            data-borrow-date="{{ $bDateFormatted }}"
+                            data-due-date="{{ $dDateFormatted }}"
+                            data-status="{{ $status }}"
+                            data-img="{{ $imgUrl }}">
+                            <td class="row-index">{{ $idx + 1 }}</td>
+                            <td class="equipment-col">
+                                <div class="eq-cell" style="display: flex; align-items: center; gap: 12px;">
+                                    <img src="{{ $imgUrl }}" alt="{{ $eqName }}" class="eq-thumb" style="width: 42px; height: 42px; border-radius: 8px; object-fit: cover; background: #fff;" onerror="this.onerror=null; this.src='{{ asset('images/EquipTrack_logo.png') }}';">
+                                    <div class="eq-info" style="display: flex; flex-direction: column;">
+                                        <span class="eq-title" style="font-weight: 600; color: var(--text-main);">{{ $eqName }}</span>
+                                        <span class="eq-sub" style="font-size: 12px; color: var(--text-muted);">{{ $eqCat }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ $bDateFormatted }}</td>
+                            <td @if ($status === 'Overdue') style="color: #ef4444; font-weight: 600;" @endif>{{ $dDateFormatted }}</td>
+                            <td>
+                                <span class="status-text status-{{ strtolower($status) }}">{{ $status }}</span>
+                            </td>
+                            <td>
+                                <button type="button" class="btn-return-action" onclick="openReturnModal(this)">
+                                    <i class="fa-solid fa-rotate-left"></i> Return Item
+                                </button>
+                            </td>
+                        </tr>
+                    @endforeach
                 </tbody>
             </table>
             <!-- Empty state illustration if all items returned -->
-            <div id="emptyState" class="empty-state-container" style="display: flex;">
+            <div id="emptyState" class="empty-state-container" style="display: {{ $returnItems->isEmpty() ? 'flex' : 'none' }};">
                 <i class="fa-solid fa-circle-check empty-state-icon"></i>
                 <h4>All items returned!</h4>
                 <p>You currently do not have any borrowed equipment to return.</p>
             </div>
         </div>
+
 <!-- Return Modal -->
     <div class="modal-overlay" id="returnModal">
         <div class="modal-card return-modal-card">
             <div class="modal-inner-card">
                 <button class="modal-close" id="closeReturnBtn">&times;</button>
-                
+
                 <h3 class="modal-title-center">Return Equipment</h3>
                 <p class="modal-subtitle-center">Verify return details and specify the item condition</p>
-                
+
                 <form id="returnForm" onsubmit="submitReturn(event)">
+                    @csrf
+                    <input type="hidden" name="request_id" id="returnRequestId" value="">
                     <div class="detail-main-content">
                         <!-- Left Side: Image Preview & Condition Select -->
                         <div class="detail-left-side">
@@ -69,7 +125,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Right Side: Details Form Grid -->
                         <div class="detail-right-side">
                             <div class="detail-form-grid">
@@ -125,36 +181,62 @@
     </div>
 @endsection
 
+
 @push('scripts')
 <script>
-
         const searchInput = document.getElementById('searchReturns');
-        const returnRows = document.querySelectorAll('.return-row');
         const returnModal = document.getElementById('returnModal');
         const closeReturnBtn = document.getElementById('closeReturnBtn');
         const cancelReturnBtn = document.getElementById('cancelReturnBtn');
         const successToast = document.getElementById('successToast');
-        
+        const returnForm = document.getElementById('returnForm');
+        const submitReturnBtn = returnForm.querySelector('.btn-modal-submit');
+
         let activeRow = null;
-
-        // Dark Mode Toggle Logic
-
-
-
+        let toastTimer = null;
 
         // Set return date to current local date
         const today = new Date();
         const formattedToday = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         document.getElementById('returnDateToday').value = formattedToday;
 
+        // Toast helper (success / error)
+        function showToast(title, message, type = 'success') {
+            const toastTitle = successToast.querySelector('.toast-title');
+            const toastDesc = successToast.querySelector('.toast-desc');
+            const toastIcon = successToast.querySelector('.toast-icon');
+            const toastContent = successToast.querySelector('.toast-content');
+
+            toastTitle.textContent = title;
+            toastDesc.textContent = message;
+
+            if (type === 'success') {
+                toastIcon.className = 'fa-solid fa-circle-check toast-icon';
+                toastIcon.style.color = '#10b981';
+                toastContent.style.borderLeft = '4px solid #10b981';
+            } else {
+                toastIcon.className = 'fa-solid fa-circle-xmark toast-icon';
+                toastIcon.style.color = '#ef4444';
+                toastContent.style.borderLeft = '4px solid #ef4444';
+            }
+
+            successToast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => successToast.classList.remove('show'), 4000);
+        }
+
         // Search filtering function
         searchInput.addEventListener('input', () => {
             const query = searchInput.value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.return-row');
+            const emptyState = document.getElementById('emptyState');
+            const tableElement = document.querySelector('.returns-table-card table');
             let visibleCount = 0;
 
-            returnRows.forEach(row => {
-                const equipment = row.getAttribute('data-equipment').toLowerCase();
-                if (equipment.includes(query)) {
+            rows.forEach(row => {
+                const equipment = (row.getAttribute('data-equipment') || '').toLowerCase();
+                const category = (row.getAttribute('data-category') || '').toLowerCase();
+                if (query === '' || equipment.includes(query) || category.includes(query)) {
                     row.style.display = '';
                     visibleCount++;
                 } else {
@@ -162,9 +244,8 @@
                 }
             });
 
-            const emptyState = document.getElementById('emptyState');
-            const tableElement = document.querySelector('.returns-table-card table');
-            if (visibleCount === 0 && query !== '') {
+            const hasRows = rows.length > 0;
+            if (visibleCount === 0 && (hasRows || query !== '')) {
                 emptyState.style.display = 'flex';
                 tableElement.style.opacity = '0.3';
             } else {
@@ -176,20 +257,16 @@
         // Open Modal and Populate Fields
         function openReturnModal(button) {
             activeRow = button.closest('.return-row');
-            
-            const eqName = activeRow.getAttribute('data-equipment');
-            const category = activeRow.getAttribute('data-category');
-            const borrowDate = activeRow.getAttribute('data-borrow-date');
-            const dueDate = activeRow.getAttribute('data-due-date');
-            const imgUrl = activeRow.getAttribute('data-img');
 
-            document.getElementById('returnEqName').value = eqName;
-            document.getElementById('returnEqCategory').value = category;
-            document.getElementById('returnBorrowDate').value = borrowDate;
-            document.getElementById('returnDueDate').value = dueDate;
+            document.getElementById('returnRequestId').value = activeRow.getAttribute('data-id') || '';
+            document.getElementById('returnEqName').value = activeRow.getAttribute('data-equipment') || '';
+            document.getElementById('returnEqCategory').value = activeRow.getAttribute('data-category') || '';
+            document.getElementById('returnBorrowDate').value = activeRow.getAttribute('data-borrow-date') || '';
+            document.getElementById('returnDueDate').value = activeRow.getAttribute('data-due-date') || '';
             document.getElementById('returnRemarks').value = '';
             document.getElementById('returnCondition').value = 'Good';
 
+            const imgUrl = activeRow.getAttribute('data-img');
             const imgElement = document.getElementById('returnEqImg');
             if (imgUrl) {
                 imgElement.src = imgUrl;
@@ -216,50 +293,91 @@
             }
         });
 
-        // Submit return request
-        function submitReturn(event) {
+
+        // Submit the return to the backend and update the UI on success
+        async function submitReturn(event) {
             event.preventDefault();
-            
+
+            const row = activeRow;
+            const requestId = document.getElementById('returnRequestId').value;
             const eqName = document.getElementById('returnEqName').value;
             const condition = document.getElementById('returnCondition').value;
+            const remarks = document.getElementById('returnRemarks').value.trim();
+            const tokenInput = returnForm.querySelector('input[name="_token"]');
 
-            // Close the modal
-            closeModal();
-
-            // Set toast text and show it
-            document.getElementById('toastDescMsg').textContent = `Returned ${eqName} in ${condition} condition.`;
-            successToast.classList.add('show');
-
-            // Hide active row in table
-            if (activeRow) {
-                activeRow.style.transition = 'all 0.5s ease';
-                activeRow.style.opacity = '0';
-                activeRow.style.transform = 'translateX(-20px)';
-                
-                setTimeout(() => {
-                    activeRow.remove();
-                    reindexTable();
-                }, 500);
+            if (!requestId) {
+                showToast('Error', 'Missing borrow record. Please refresh the page and try again.', 'error');
+                return;
             }
 
-            // Hide Toast after 4 seconds
-            setTimeout(() => {
-                successToast.classList.remove('show');
-            }, 4000);
+            submitReturnBtn.disabled = true;
+            submitReturnBtn.textContent = 'Processing...';
+
+            try {
+                const response = await fetch('{{ route('user.returns.store') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': tokenInput ? tokenInput.value : '',
+                    },
+                    body: JSON.stringify({
+                        request_id: requestId,
+                        condition: condition,
+                        remarks: remarks,
+                    }),
+                });
+
+                const data = await response.json().catch(() => ({}));
+
+                if (response.ok && data.success) {
+                    closeModal();
+                    showToast('Success', data.message || `Returned ${eqName} in ${condition} condition.`, 'success');
+
+                    if (row) {
+                        row.style.transition = 'all 0.5s ease';
+                        row.style.opacity = '0';
+                        row.style.transform = 'translateX(-20px)';
+
+                        setTimeout(() => {
+                            row.remove();
+                            reindexTable();
+                        }, 500);
+                    }
+                } else {
+                    closeModal();
+                    let message = data.message;
+                    if (!message && data.errors) {
+                        const firstError = Object.values(data.errors)[0];
+                        message = Array.isArray(firstError) ? firstError[0] : firstError;
+                    }
+                    showToast('Error', message || 'Unable to process the return. Please try again.', 'error');
+                }
+            } catch (error) {
+                console.error('Return submission failed:', error);
+                closeModal();
+                showToast('System Error', 'An unexpected error occurred while processing the return.', 'error');
+            } finally {
+                submitReturnBtn.disabled = false;
+                submitReturnBtn.textContent = 'Confirm Return';
+            }
         }
 
         // Recalculate Row Indices & Show Empty State if no rows left
         function reindexTable() {
             const remainingRows = document.querySelectorAll('.return-row');
+            const emptyState = document.getElementById('emptyState');
+            const tableElement = document.querySelector('.returns-table-card table');
+
             if (remainingRows.length === 0) {
-                document.getElementById('emptyState').style.display = 'flex';
-                document.querySelector('.returns-table-card table').style.display = 'none';
+                emptyState.style.display = 'flex';
+                tableElement.style.display = 'none';
             } else {
                 remainingRows.forEach((row, index) => {
                     row.querySelector('.row-index').textContent = index + 1;
                 });
             }
         }
-    
 </script>
 @endpush
+

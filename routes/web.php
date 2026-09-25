@@ -9,8 +9,10 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Department\DepartmentProfileController;
 use App\Http\Controllers\User\UserEquipmentController;
+use App\Http\Controllers\User\UserHistoryController;
 use App\Http\Controllers\User\UserProfileController;
 use App\Http\Controllers\User\UserRequestsController;
+use App\Http\Controllers\User\UserReturnsController;
 use App\Models\EquipmentCategory;
 use Illuminate\Support\Facades\Route;
 
@@ -72,6 +74,7 @@ Route::middleware(['auth:user', 'active'])->prefix('user')->name('user.')->group
     Route::get('/equipment', [UserEquipmentController::class, 'index'])->name('equipment');
     Route::post('/equipment/borrow', [UserEquipmentController::class, 'store'])->name('borrow.store');
     Route::get('/requests', [UserRequestsController::class, 'index'])->name('requests');
-    Route::view('/returns', 'user.returns')->name('returns');
+    Route::get('/returns', [UserReturnsController::class, 'index'])->name('returns');
+    Route::post('/returns', [UserReturnsController::class, 'store'])->name('returns.store');
     Route::view('/history', 'user.history')->name('history');
 });
