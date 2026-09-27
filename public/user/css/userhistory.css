@@ -150,6 +150,18 @@
     color: #ef4444; /* Red */
 }
 
+.status-borrowed {
+    color: #4f6b9c; /* Soft blue for items currently out */
+}
+
+.status-pending {
+    color: #333333; /* Dark/charcoal text */
+}
+
+.status-rejected {
+    color: #ef4444; /* Red */
+}
+
 .col-remarks {
     color: var(--text-muted) !important;
 }
@@ -351,6 +363,16 @@
     display: inline-block;
 }
 
+.detail-status-badge.status-pending {
+    background-color: #e2e8f0;
+    color: #475569;
+}
+
+.detail-status-badge.status-borrowed {
+    background-color: rgba(56, 85, 133, 0.12);
+    color: #385585;
+}
+
 .detail-status-badge.status-approved {
     background-color: #d1fae5;
     color: #10b981;
@@ -359,6 +381,12 @@
 .detail-status-badge.status-rejected {
     background-color: #fef2f2;
     color: #ef4444;
+}
+
+/* Dark theme badge variant not covered by global.css */
+.dark-theme .detail-status-badge.status-borrowed {
+    background-color: rgba(96, 165, 250, 0.15) !important;
+    color: #93c5fd !important;
 }
 
 /* Lower Section */

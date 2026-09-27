@@ -23,8 +23,12 @@
                 <div class="filter-wrapper">
                     <select id="statusHistoryFilter" class="filter-select">
                         <option value="All">All</option>
+                        <option value="Borrowed">Borrowed</option>
+                        <option value="Overdue">Overdue</option>
                         <option value="Returned">Returned</option>
                         <option value="Late Return">Late Return</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Rejected">Rejected</option>
                     </select>
                 </div>
                 <div class="filter-wrapper">
@@ -38,7 +42,7 @@
 
         <!-- Table Container -->
         <div class="table-container card history-table-card">
-            <table style="display: none;">
+            <table @if ($historyItems->isEmpty()) style="display: none;" @endif>
                 <thead>
                     <tr>
                         <th class="col-no">No.</th>
@@ -50,11 +54,41 @@
                     </tr>
                 </thead>
                 <tbody id="historyTableBody">
-                    <!-- Dynamic transaction rows -->
+                    @forelse ($historyItems as $idx => $item)
+                        <tr class="history-row"
+                            data-equipment="{{ $item['equipment'] }}"
+                            data-category="{{ $item['category'] }}"
+                            data-borrow-date="{{ $item['borrow_date'] }}"
+                            data-return-date="{{ $item['return_date'] }}"
+                            data-status="{{ $item['status'] }}"
+                            data-badge="{{ $item['badge_class'] }}"
+                            data-remarks="{{ $item['remarks'] }}"
+                            data-condition="{{ $item['condition'] }}"
+                            data-handled-by="{{ $item['handled_by'] }}"
+                            data-img="{{ $item['img'] }}"
+                            data-timestamp="{{ $item['timestamp'] }}">
+                            <td class="row-index">{{ $idx + 1 }}</td>
+                            <td class="equipment-col">
+                                <div class="eq-cell" style="display: flex; align-items: center; gap: 12px;">
+                                    <img src="{{ $item['img'] }}" alt="{{ $item['equipment'] }}" class="eq-thumb" style="width: 42px; height: 42px; border-radius: 8px; object-fit: cover; background: #fff;" onerror="this.onerror=null; this.src='{{ asset('images/EquipTrack_logo.png') }}';">
+                                    <div class="eq-info" style="display: flex; flex-direction: column;">
+                                        <span class="eq-title" style="font-weight: 600; color: var(--text-main);">{{ $item['equipment'] }}</span>
+                                        <span class="eq-sub" style="font-size: 12px; color: var(--text-muted);">{{ $item['category'] }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ $item['borrow_date'] }}</td>
+                            <td>{{ $item['return_date'] }}</td>
+                            <td>
+                                <span class="status-text {{ $item['status_class'] }}">{{ $item['status'] }}</span>
+                            </td>
+                            <td class="col-remarks">{{ $item['remarks'] }}</td>
+                        </tr>
+                    @endforeach
                 </tbody>
             </table>
             <!-- Empty state illustration if search yields nothing or no data -->
-            <div id="historyEmptyState" class="empty-state-container" style="display: flex;">
+            <div id="historyEmptyState" class="empty-state-container" style="display: {{ $historyItems->isEmpty() ? 'flex' : 'none' }};">
                 <i class="fa-solid fa-clock-rotate-left empty-state-icon"></i>
                 <h4>No transaction history</h4>
                 <p>Your past borrowing history and transaction logs will appear here.</p>
@@ -234,7 +268,8 @@
                 const badge = document.getElementById('historyStatusBadge');
                 badge.textContent = status;
                 badge.className = 'detail-status-badge'; // Reset class
-                badge.classList.add('status-' + (status === 'Late Return' ? 'rejected' : 'approved'));
+                // Badge variant is derived on the server (approved / borrowed / pending / rejected)
+                badge.classList.add('status-' + (row.getAttribute('data-badge') || 'approved'));
 
                 historyModal.classList.add('show');
             });

@@ -717,6 +717,14 @@
 
         // Initial rendering
         loadEquipment();
+
+        // Borrow request approvals (admin or department) change the available
+        // quantity in the background, so refresh when this tab regains focus.
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                loadEquipment();
+            }
+        });
     });
 </script>
 @endpush

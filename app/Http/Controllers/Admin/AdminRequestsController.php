@@ -5,8 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditTrail;
 use App\Models\BorrowRequest;
-use App\Models\BorrowTransaction;
-use App\Models\Equipment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -63,6 +61,14 @@ class AdminRequestsController extends Controller
             ], 400);
         }
 
+        // The department workflow may have already rejected this request.
+        if ($borrow->overall_status === 'Rejected') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This request has already been rejected.',
+            ], 400);
+        }
+
         $admin = auth('admin')->user();
         $now = now();
         $reason = $data['status'] === 'Rejected' ? trim($data['reject_reason']) : null;
@@ -70,38 +76,22 @@ class AdminRequestsController extends Controller
         $result = DB::transaction(function () use ($request, $data, $borrow, $admin, $now, $reason) {
             // Re-fetch under a lock so concurrent approvals cannot double-decrement stock.
             $locked = BorrowRequest::where('request_id', $borrow->request_id)->lockForUpdate()->first();
-            if (!$locked || $locked->admin_status !== 'Pending') {
+            if (!$locked || $locked->admin_status !== 'Pending' || $locked->overall_status === 'Rejected') {
                 return ['code' => 400, 'message' => 'This request has already been reviewed.'];
             }
 
             if ($data['status'] === 'Approved') {
-                $equipment = Equipment::where('equipment_id', $locked->equipment_id)
-                    ->lockForUpdate()
-                    ->first();
-
-                if (!$equipment) {
-                    return ['code' => 404, 'message' => 'The equipment for this request was not found.'];
+                // Decrements the equipment's available quantity and creates the
+                // Active borrow_transaction. Idempotent, so approving a request
+                // the department already approved will not deduct stock twice.
+                $activation = $locked->activateLoan();
+                if (($activation['code'] ?? 200) !== 200) {
+                    return $activation;
                 }
-
-                $qty = max(1, (int) $locked->quantity);
-                if ((int) $equipment->available_qty < $qty) {
-                    return ['code' => 400, 'message' => 'Cannot approve: this equipment has no available stock left.'];
-                }
-
-                $equipment->available_qty = (int) $equipment->available_qty - $qty;
-                if ($equipment->available_qty <= 0) {
-                    $equipment->available_qty = 0;
-                    $equipment->status = 'Unavailable';
-                }
-                $equipment->save();
-
-                // The borrowing record returned items are settled against.
-                BorrowTransaction::create([
-                    'request_id' => $locked->request_id,
-                    'borrow_date' => $locked->borrow_date ?: $locked->date_needed,
-                    'due_date' => $locked->due_date ?: $locked->return_date,
-                    'status' => 'Active',
-                ]);
+            } elseif ($locked->transaction()->exists()) {
+                // The department may already have activated the loan. Rejecting
+                // it now would leave an active transaction with stock deducted.
+                return ['code' => 400, 'message' => 'This request is already approved and the equipment is on loan.'];
             }
 
             $locked->update([

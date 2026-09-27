@@ -63,4 +63,59 @@ class BorrowRequest extends Model
     {
         return $this->hasOne(BorrowTransaction::class, 'request_id', 'request_id');
     }
+
+    /**
+     * Activates the loan for an approved request exactly once: the equipment's
+     * available quantity is decreased by the requested quantity (never below
+     * zero), the equipment is flagged Unavailable when its stock runs out, and
+     * the Active borrow_transaction is created.
+     *
+     * Both the admin and the department approval workflows call this, so it is
+     * idempotent: when a transaction already exists (the other approver already
+     * approved), the stock is left untouched and no second transaction is made.
+     * Total quantity is never modified — it is the number of units owned.
+     *
+     * Call this inside a DB transaction while this request row is locked.
+     *
+     * @return array{code:int, message?:string}
+     */
+    public function activateLoan(): array
+    {
+        if ($this->transaction()->exists()) {
+            return ['code' => 200];
+        }
+
+        $equipment = Equipment::where('equipment_id', $this->equipment_id)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$equipment) {
+            return ['code' => 404, 'message' => 'The equipment for this request was not found.'];
+        }
+
+        $quantity = max(1, (int) $this->quantity);
+        $available = (int) $equipment->available_qty;
+
+        if ($available < $quantity) {
+            return ['code' => 400, 'message' => 'Cannot approve: this equipment has no available stock left.'];
+        }
+
+        // Available quantity stays within [0, total_qty].
+        $equipment->available_qty = max(0, $available - $quantity);
+
+        if ((int) $equipment->available_qty === 0) {
+            $equipment->status = 'Unavailable';
+        }
+
+        $equipment->save();
+
+        BorrowTransaction::create([
+            'request_id' => $this->request_id,
+            'borrow_date' => $this->borrow_date ?: $this->date_needed,
+            'due_date' => $this->due_date ?: $this->return_date,
+            'status' => 'Active',
+        ]);
+
+        return ['code' => 200];
+    }
 }

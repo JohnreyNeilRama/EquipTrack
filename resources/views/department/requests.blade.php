@@ -178,14 +178,11 @@
             const toastTitle = document.getElementById('toastTitle');
             const toastMsg = document.getElementById('toastMsg');
 
-            // Storage Management
-            let requests = JSON.parse(localStorage.getItem('equip-track-borrow-requests'));
-            if (!requests || !Array.isArray(requests)) {
-                requests = [];
-            } else {
-                requests = requests.filter(r => !['21432132', 'FAC-2023', '20230456', '20230812', '20230944', '20230112', '20230554', '20230788'].includes(r.id));
-            }
-            localStorage.setItem('equip-track-borrow-requests', JSON.stringify(requests));
+            // Requests loaded live from the database (equipment owned by this
+            // department), so approvals and stock changes stay in sync.
+            const URL_UPDATE = @json(route('department.requests.update'));
+            const CSRF_TOKEN = @json(csrf_token());
+            let requests = @json($dbRequests);
 
             function updateSummaryCards() {
                 const pendingCount = requests.filter(r => r.status === 'Pending').length;
@@ -260,19 +257,43 @@
             }
 
             window.updateRequestStatus = function(id, newStatus) {
-                const req = requests.find(r => r.id === id);
-                if (req) {
-                    req.status = newStatus;
-                    localStorage.setItem('equip-track-borrow-requests', JSON.stringify(requests));
-                    
-                    if (newStatus === 'Approved') {
-                        showNotification('Request Approved', `Approved borrow request for ${req.user}.`, 'success');
-                    } else {
-                        showNotification('Request Rejected', `Rejected borrow request for ${req.user}.`, 'error');
-                    }
+                const req = requests.find(r => String(r.id) === String(id));
+                if (!req) return;
 
-                    renderTable();
+                const formData = new FormData();
+                formData.append('request_id', req.id);
+                formData.append('status', newStatus);
+                if (newStatus === 'Rejected') {
+                    // The page has no reason field, so a default reason is recorded.
+                    formData.append('reject_reason', 'Rejected by the department.');
                 }
+
+                fetch(URL_UPDATE, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': CSRF_TOKEN,
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                })
+                .then(res => res.json().then(data => ({ ok: res.ok, data })))
+                .then(({ ok, data }) => {
+                    if (ok && data.success) {
+                        // Approval also decreases the equipment's available quantity.
+                        req.status = newStatus;
+                        showNotification(
+                            newStatus === 'Approved' ? 'Request Approved' : 'Request Rejected',
+                            data.message || `Borrow request for ${req.user} has been ${newStatus.toLowerCase()}.`,
+                            newStatus === 'Approved' ? 'success' : 'error'
+                        );
+                        renderTable();
+                    } else {
+                        showNotification('Update Failed', (data && data.message) || 'Unable to update the request.', 'error');
+                    }
+                })
+                .catch(() => {
+                    showNotification('System Error', 'An unexpected error occurred while updating the request.', 'error');
+                });
             };
 
             function filterTable() {

@@ -7,7 +7,9 @@ use App\Http\Controllers\Admin\AdminRequestsController;
 use App\Http\Controllers\Admin\AdminUsersController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Department\DepartmentEquipmentController;
 use App\Http\Controllers\Department\DepartmentProfileController;
+use App\Http\Controllers\Department\DepartmentRequestsController;
 use App\Http\Controllers\User\UserEquipmentController;
 use App\Http\Controllers\User\UserHistoryController;
 use App\Http\Controllers\User\UserProfileController;
@@ -58,8 +60,12 @@ Route::middleware(['auth:dept', 'active'])->prefix('department')->name('departme
     Route::get('/profile', [DepartmentProfileController::class, 'show'])->name('profile');
     Route::post('/profile', [DepartmentProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/avatar', [DepartmentProfileController::class, 'avatar'])->name('profile.avatar');
-    Route::get('/equipment', fn () => view('department.equipment', $catNames()))->name('equipment');
-    Route::get('/requests', fn () => view('department.requests', $catNames()))->name('requests');
+    // Equipment assigned to this department (same records the admin manages).
+    Route::get('/equipment', [DepartmentEquipmentController::class, 'index'])->name('equipment');
+    Route::get('/equipment/data', [DepartmentEquipmentController::class, 'data'])->name('equipment.data');
+    Route::post('/equipment/save', [DepartmentEquipmentController::class, 'save'])->name('equipment.save');
+    Route::get('/requests', [DepartmentRequestsController::class, 'index'])->name('requests');
+    Route::post('/requests/update-status', [DepartmentRequestsController::class, 'updateStatus'])->name('requests.update');
     Route::view('/users', 'department.users')->name('users');
     Route::get('/monitoring', fn () => view('department.monitoring', $catNames()))->name('monitoring');
     Route::get('/history', fn () => view('department.history', $catNames()))->name('history');
@@ -76,5 +82,5 @@ Route::middleware(['auth:user', 'active'])->prefix('user')->name('user.')->group
     Route::get('/requests', [UserRequestsController::class, 'index'])->name('requests');
     Route::get('/returns', [UserReturnsController::class, 'index'])->name('returns');
     Route::post('/returns', [UserReturnsController::class, 'store'])->name('returns.store');
-    Route::view('/history', 'user.history')->name('history');
+    Route::get('/history', [UserHistoryController::class, 'index'])->name('history');
 });

@@ -174,6 +174,17 @@
 
                     <div class="form-row-flat">
                         <div class="form-group-flat">
+                            <label>Brand</label>
+                            <input type="text" id="eqFormBrand" class="form-control-flat" required maxlength="50" placeholder="e.g., Dell">
+                        </div>
+                        <div class="form-group-flat">
+                            <label>Serial Number</label>
+                            <input type="text" id="eqFormSerial" class="form-control-flat" required maxlength="50" placeholder="e.g., SN-000123">
+                        </div>
+                    </div>
+
+                    <div class="form-row-flat">
+                        <div class="form-group-flat">
                             <label>Available Quantity</label>
                             <input type="number" id="eqFormAvail" class="form-control-flat" min="0" required value="4">
                         </div>
@@ -236,7 +247,7 @@
                         </div>
                         <div class="view-detail-item full">
                             <span class="label">Department Assignment</span>
-                            <span class="val">Assigned Department</span>
+                            <span class="val" id="viewModalDepartment">{{ $departmentName }}</span>
                         </div>
                     </div>
                 </div>
@@ -327,6 +338,8 @@
             
             const eqNameField = document.getElementById('eqFormName');
             const eqCategoryField = document.getElementById('eqFormCategory');
+            const eqBrandField = document.getElementById('eqFormBrand');
+            const eqSerialField = document.getElementById('eqFormSerial');
             const eqImgField = document.getElementById('eqFormImg');
             const eqAvailField = document.getElementById('eqFormAvail');
             const eqTotalField = document.getElementById('eqFormTotal');
@@ -351,6 +364,7 @@
             const viewModalStatus = document.getElementById('viewModalStatus');
             const viewModalAvail = document.getElementById('viewModalAvail');
             const viewModalTotal = document.getElementById('viewModalTotal');
+            const viewModalDepartment = document.getElementById('viewModalDepartment');
 
             // Toast
             const toast = document.getElementById('toast');
@@ -358,17 +372,34 @@
             const toastTitle = document.getElementById('toastTitle');
             const toastMsg = document.getElementById('toastMsg');
 
-            // Equipment Storage Management
-            let equipment = JSON.parse(localStorage.getItem('equip-track-equipment'));
-            if (!equipment || !Array.isArray(equipment)) {
-                equipment = [];
-            } else {
-                // Filter out fake demo items if stored in localStorage
-                equipment = equipment.filter(e => !['Laptop Dell XPS', 'Camera Canon EOS', 'Projector Epson', 'Wireless Microphone Set', 'Scientific Calculator', 'Lenovo ThinkPad'].includes(e.name));
-            }
-            localStorage.setItem('equip-track-equipment', JSON.stringify(equipment));
+            // Equipment data: the shared `equipment` records, scoped by the server
+            // to this department account, so admin assignments, edits and
+            // quantity updates appear here automatically.
+            const URL_DATA = @json(route('department.equipment.data'));
+            const URL_SAVE = @json(route('department.equipment.save'));
+            const CSRF_TOKEN = @json(csrf_token());
+            const DEPARTMENT_NAME = @json($departmentName);
+            const CATEGORY_MAP = @json($dbCategoryMap);
 
-            let itemIdCounter = equipment.length > 0 ? Math.max(...equipment.map(e => e.id || 0)) + 1 : 1;
+            let equipment = [];
+
+            function categoryIdFor(name) {
+                const match = CATEGORY_MAP.find(c => c.category_name.toLowerCase() === String(name || '').toLowerCase());
+                return match ? match.category_id : (CATEGORY_MAP[0] ? CATEGORY_MAP[0].category_id : '');
+            }
+
+            function loadEquipment() {
+                fetch(URL_DATA, { headers: { 'Accept': 'application/json' } })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            equipment = data.equipment || [];
+                            renderEquipment();
+                            filterEquipment();
+                        }
+                    })
+                    .catch(err => console.error('Error loading department equipment:', err));
+            }
 
             // Recalculate summary card metrics
             function updateSummaryCards() {
@@ -611,6 +642,8 @@
                 editItemIdInput.value = item.id;
                 eqNameField.value = item.name;
                 eqCategoryField.value = item.category;
+                eqBrandField.value = item.brand || '';
+                eqSerialField.value = item.serial_number || '';
                 eqAvailField.value = item.available;
                 eqTotalField.value = item.total;
                 eqStatusField.value = item.status;
@@ -635,6 +668,7 @@
                 viewModalStatus.textContent = item.status;
                 viewModalAvail.textContent = item.available;
                 viewModalTotal.textContent = item.total;
+                if (viewModalDepartment) viewModalDepartment.textContent = DEPARTMENT_NAME;
 
                 viewModal.classList.add('show');
             };
@@ -656,6 +690,8 @@
                 const id = editItemIdInput.value;
                 const name = eqNameField.value.trim();
                 const category = eqCategoryField.value;
+                const brand = eqBrandField.value.trim();
+                const serial = eqSerialField.value.trim();
                 const imgUrl = eqImgField.value.trim();
                 const available = parseInt(eqAvailField.value) || 0;
                 const total = parseInt(eqTotalField.value) || 0;
@@ -666,44 +702,61 @@
                     return;
                 }
 
-                if (id) {
-                    // Update item
-                    const item = equipment.find(e => e.id == id);
-                    if (item) {
-                        item.name = name;
-                        item.category = category;
-                        item.imgUrl = imgUrl;
-                        item.available = available;
-                        item.total = total;
-                        item.status = status;
-                        
-                        localStorage.setItem('equip-track-equipment', JSON.stringify(equipment));
-                        showNotification('Updated Successfully', `Saved changes for ${name}.`, 'success');
-                    }
-                } else {
-                    // Add item
-                    const newItem = {
-                        id: itemIdCounter++,
-                        name: name,
-                        category: category,
-                        imgUrl: imgUrl,
-                        available: available,
-                        total: total,
-                        status: status
-                    };
-                    equipment.push(newItem);
-                    localStorage.setItem('equip-track-equipment', JSON.stringify(equipment));
-                    showNotification('Added Successfully', `Registered ${name} in department equipment inventory.`, 'success');
+                if (available > total) {
+                    showNotification('Invalid Quantity', 'Available Quantity cannot be greater than Total Quantity.', 'error');
+                    return;
                 }
 
-                closeModal();
-                renderEquipment();
-                filterEquipment();
+                // Persist to the shared equipment record (server forces the
+                // department, so an item can never move to another department).
+                const payload = new FormData();
+                if (id) payload.append('equipment_id', id);
+                payload.append('name', name);
+                payload.append('brand', brand);
+                payload.append('serial_number', serial);
+                payload.append('category_id', categoryIdFor(category));
+                payload.append('image', imgUrl);
+                payload.append('available_qty', available);
+                payload.append('total_qty', total);
+                payload.append('status', status);
+
+                fetch(URL_SAVE, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': CSRF_TOKEN,
+                        'Accept': 'application/json'
+                    },
+                    body: payload
+                })
+                .then(res => res.json().then(data => ({ ok: res.ok, data })))
+                .then(({ ok, data }) => {
+                    if (ok && data.success) {
+                        closeModal();
+                        loadEquipment();
+                        showNotification(
+                            id ? 'Updated Successfully' : 'Added Successfully',
+                            data.message || `Saved ${name}.`,
+                            'success'
+                        );
+                    } else {
+                        showNotification('Save Failed', (data && data.message) || 'Unable to save the equipment.', 'error');
+                    }
+                })
+                .catch(() => {
+                    showNotification('System Error', 'An unexpected error occurred while saving equipment.', 'error');
+                });
             });
 
-            // Initial render
-            renderEquipment();
-            filterEquipment();
+            // Initial render from the database (only this department's equipment)
+            loadEquipment();
+
+            // Admin edits, approvals and returns update these same records in the
+            // background, so refresh the list when this tab regains focus.
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    loadEquipment();
+                }
+            });
         });
     
 </script>

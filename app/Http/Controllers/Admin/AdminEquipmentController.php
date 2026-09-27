@@ -86,7 +86,7 @@ class AdminEquipmentController extends Controller
             'brand' => ['required', 'string', 'max:50'],
             'model' => ['nullable', 'string', 'max:50'],
             'serial_number' => ['required', 'string', 'max:50'],
-            'image' => ['required', 'string'],
+            'image' => ['nullable', 'string'],
             'available_qty' => ['required', 'integer', 'min:0'],
             'total_qty' => ['required', 'integer', 'min:0'],
             'status' => ['required', Rule::in(['Available', 'Unavailable', 'On Hold', 'Under Maintenance'])],
@@ -99,7 +99,7 @@ class AdminEquipmentController extends Controller
 
         // Legacy stored whatever the JS posted (base64 data URI or URL). We decode
         // data URIs into real files so the DB keeps paths, matching migrated rows.
-        $image = $this->normalizeImage($data['image'], $equipmentId ?: null);
+        $image = $this->normalizeImage($data['image'] ?? '', $equipmentId ?: null);
 
         $dupe = Equipment::whereRaw('LOWER(serial_number) = ?', [strtolower($data['serial_number'])])
             ->when($equipmentId > 0, fn ($q) => $q->where('equipment_id', '!=', $equipmentId))
