@@ -51,10 +51,19 @@ class AdminMonitoringController extends Controller
     }
 
     /**
-     * Live monitoring rows: one per equipment, showing the current borrower and
-     * borrow status (Borrowed / Overdue) or the equipment's own status when it
-     * is not out on loan. Returned items fall back to the equipment row, so a
-     * user return is reflected here immediately.
+     * Live monitoring rows.
+     *
+     * - One row per active loan (Borrowed / Overdue), so every borrower is
+     *   listed even when several people hold units of the same equipment. The
+     *   row's `department` is the BORROWER's department, which is what the
+     *   department filter on the page selects by.
+     * - Equipment with no active loan keeps a single row showing its own
+     *   status, filed under the department that owns the equipment. Returned
+     *   items therefore fall back to that row, so a user return is reflected
+     *   here immediately.
+     *
+     * `id` is the equipment id, so several loan rows can share it; the page
+     * numbers its rows itself (see monitoring.blade.php).
      */
     private function buildMonitoringRows(): array
     {
@@ -72,6 +81,7 @@ class AdminMonitoringController extends Controller
         $activeTransactions = BorrowTransaction::with([
             'request.user.student',
             'request.user.facultyMember',
+            'request.user.department',
         ])
             ->where('status', '!=', 'Returned')
             ->whereHas('request', fn ($query) => $query->where('overall_status', 'Approved'))
@@ -89,11 +99,16 @@ class AdminMonitoringController extends Controller
                 $img = asset(ltrim($rawImg, '/'));
             }
 
-            $transaction = $activeTransactions->get($equipment->equipment_id)?->last();
-            $request = $transaction?->request;
-            $user = $request?->user;
+            $loanRows = [];
 
-            if ($transaction && $request && $user) {
+            foreach ($activeTransactions->get($equipment->equipment_id, collect()) as $transaction) {
+                $request = $transaction->request;
+                $user = $request?->user;
+
+                if (!$request || !$user) {
+                    continue;
+                }
+
                 $fullName = $user->fullName() ?: $user->email;
                 $avatar = trim((string) ($user->profile_image ?? ''));
                 if ($avatar === '') {
@@ -104,17 +119,19 @@ class AdminMonitoringController extends Controller
                     ? ($user->student?->id_number ?? '')
                     : ($user->facultyMember?->faculty_id_number ?? '');
 
-                $isOverdue = $transaction->due_date
-                    && Carbon::parse($transaction->due_date)->startOfDay()->lt(now()->startOfDay());
+                $isOverdue = ($transaction->due_date
+                    && Carbon::parse($transaction->due_date)->startOfDay()->lt(now()->startOfDay()))
+                    || $transaction->status === 'Overdue';
 
-                $rows[] = [
+                $loanRows[] = [
                     'id' => (int) $equipment->equipment_id,
                     'user' => $fullName ?: 'Unknown User',
                     'role' => ucfirst($user->role),
                     'id_number' => $idNumber,
                     'equipment' => $equipment->name,
                     'category' => $equipment->category?->category_name ?: 'General',
-                    'department' => $equipment->department?->department_name ?? '',
+                    // The borrower's department, not the equipment owner's.
+                    'department' => $user->department?->department_name ?? '',
                     'status' => $isOverdue ? 'Overdue' : 'Borrowed',
                     'borrowDate' => $transaction->borrow_date ? Carbon::parse($transaction->borrow_date)->format('M d, Y') : '—',
                     'dueDate' => $transaction->due_date ? Carbon::parse($transaction->due_date)->format('M d, Y') : '—',
@@ -124,6 +141,10 @@ class AdminMonitoringController extends Controller
                     'img' => $img,
                     'avatar' => $avatar,
                 ];
+            }
+
+            if ($loanRows) {
+                array_push($rows, ...$loanRows);
 
                 continue;
             }

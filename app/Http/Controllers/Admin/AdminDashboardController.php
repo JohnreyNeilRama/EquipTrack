@@ -183,10 +183,10 @@ class AdminDashboardController extends Controller
             ->all();
     }
 
-    /** System summary: this month's borrowing activity grouped by outcome. */
+    /** System summary: all borrowing requests (all time) grouped by outcome. */
     private function systemSummary(): array
     {
-        $counts = BorrowRequest::where('date_requested', '>=', now()->startOfMonth())
+        $counts = BorrowRequest::query()
             ->selectRaw('overall_status, COUNT(*) as total')
             ->groupBy('overall_status')
             ->pluck('total', 'overall_status');
@@ -196,7 +196,7 @@ class AdminDashboardController extends Controller
         $pending = (int) ($counts['Pending'] ?? 0);
 
         return [
-            'month' => now()->format('F Y'),
+            'scope' => 'All time',
             'approved' => $approved,
             'rejected' => $rejected,
             'pending' => $pending,

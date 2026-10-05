@@ -148,7 +148,7 @@
                 <div class="system-summary-card card">
                     <div class="summary-hero">
                         <div class="summary-hero-meta">
-                            <span class="summary-hero-label">Requests This Month</span>
+                            <span class="summary-hero-label">Total Requests</span>
                             <p class="summary-hero-desc">Total borrowing activity processed</p>
                         </div>
                         <span class="summary-hero-value" id="summaryTotalCount">0</span>

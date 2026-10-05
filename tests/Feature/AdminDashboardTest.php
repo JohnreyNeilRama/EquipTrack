@@ -287,23 +287,23 @@ class AdminDashboardTest extends TestCase
         $this->assertSame('Low Stock', $almostEmpty['label']);
     }
 
-    public function test_system_summary_counts_this_months_requests_by_status(): void
+    public function test_system_summary_counts_all_requests_by_status(): void
     {
         $equipment = $this->makeEquipment();
 
         $this->makeRequest($equipment, ['overall_status' => 'Approved', 'admin_status' => 'Approved']);
         $this->makeRequest($equipment, ['overall_status' => 'Rejected', 'admin_status' => 'Rejected']);
         $this->makeRequest($equipment);
-        // Outside the current month, so it must not be counted.
-        $this->makeRequest($equipment, ['date_requested' => now()->subMonths(2)->startOfMonth()]);
+        // Older requests are counted too: the summary covers all time.
+        $this->makeRequest($equipment, ['overall_status' => 'Approved', 'admin_status' => 'Approved', 'date_requested' => now()->subMonths(2)->startOfMonth()]);
 
         $summary = $this->payload()['summary'];
 
-        $this->assertSame(1, $summary['approved']);
+        $this->assertSame(2, $summary['approved']);
         $this->assertSame(1, $summary['rejected']);
         $this->assertSame(1, $summary['pending']);
-        $this->assertSame(3, $summary['total']);
-        $this->assertSame(now()->format('F Y'), $summary['month']);
+        $this->assertSame(4, $summary['total']);
+        $this->assertSame('All time', $summary['scope']);
     }
 
     public function test_recent_requests_show_real_status_and_only_pending_can_be_acted_on(): void

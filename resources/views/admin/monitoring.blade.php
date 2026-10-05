@@ -338,6 +338,10 @@
             // Keep storage in sync so in-session actions (reminders, details) persist
             localStorage.setItem('equip-track-requests', JSON.stringify(requests));
 
+            // Several loan rows can belong to the same equipment, so give every
+            // row its own page-level id for the View / Remind / Return handlers.
+            requests.forEach((r, i) => { r.id = i + 1; });
+
             // Department metadata loaded from database
             let dbDepts = @json($dbDepartments);
             let departments = dbDepts && dbDepts.length > 0 ? dbDepts : [];
@@ -351,6 +355,20 @@
             const adminSection = document.querySelector('.admin-section');
             const controlsBar = document.querySelector('.controls-bar');
             const tableCard = document.querySelector('.admin-table-card');
+
+            // Table, filter and pagination elements used by renderTable()
+            const searchInput = document.getElementById('monitoringSearch');
+            const filterStatusSelect = document.getElementById('filterStatus');
+            const filterCategorySelect = document.getElementById('filterCategory');
+            const tableBody = document.getElementById('monitoringTableBody');
+            const emptyState = document.getElementById('monitoringEmptyState');
+            const paginationContainer = document.getElementById('paginationContainer');
+            const paginationInfo = document.getElementById('paginationInfo');
+            const paginationButtons = document.getElementById('paginationButtons');
+            const detailsModal = document.getElementById('detailsModal');
+            const closeDetailsBtn = document.getElementById('closeDetailsBtn');
+            let currentPage = 1;
+            const pageSize = 10;
 
             // Add Department Modal Elements & Global Functions
             window.openAddDeptModal = function() {
