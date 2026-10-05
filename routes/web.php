@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminEquipmentController;
 use App\Http\Controllers\Admin\AdminMonitoringController;
 use App\Http\Controllers\Admin\AdminProfileController;
@@ -7,6 +8,8 @@ use App\Http\Controllers\Admin\AdminRequestsController;
 use App\Http\Controllers\Admin\AdminUsersController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Department\DepartmentDashboardController;
+
 use App\Http\Controllers\Department\DepartmentEquipmentController;
 use App\Http\Controllers\Department\DepartmentProfileController;
 use App\Http\Controllers\Department\DepartmentRequestsController;
@@ -31,7 +34,8 @@ Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
 // Admin
 Route::middleware(['auth:admin', 'active'])->prefix('admin')->name('admin.')->group(function () use ($catNames) {
-    Route::view('/dashboard', 'admin.dashboard')->name('dashboard');
+    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/data', [AdminDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [AdminProfileController::class, 'show'])->name('profile');
     Route::post('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/avatar', [AdminProfileController::class, 'avatar'])->name('profile.avatar');
@@ -56,7 +60,8 @@ Route::middleware(['auth:admin', 'active'])->prefix('admin')->name('admin.')->gr
 
 // Department
 Route::middleware(['auth:dept', 'active'])->prefix('department')->name('department.')->group(function () use ($catNames) {
-    Route::view('/dashboard', 'department.dashboard')->name('dashboard');
+    Route::get('/dashboard', [DepartmentDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/data', [DepartmentDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [DepartmentProfileController::class, 'show'])->name('profile');
     Route::post('/profile', [DepartmentProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/avatar', [DepartmentProfileController::class, 'avatar'])->name('profile.avatar');

@@ -211,160 +211,197 @@
             }
         });
 
-        // DOM Elements
-        const toast = document.getElementById('toast');
-        const toastIcon = document.getElementById('toastIcon');
-        const toastTitle = document.getElementById('toastTitle');
-        const toastMsg = document.getElementById('toastMsg');
-        
-        // Stats elements
-        const statTotalUsers = document.getElementById('statTotalUsers');
-        const statTotalEq = document.getElementById('statTotalEq');
-        const statPending = document.getElementById('statPending');
-        const statBorrowed = document.getElementById('statBorrowed');
-        const statOverdue = document.getElementById('statOverdue');
-        const summaryPendingCount = document.getElementById('summaryPendingCount');
-        const summaryApprovedCount = document.getElementById('summaryApprovedCount');
-        const summaryRejectedCount = document.getElementById('summaryRejectedCount');
-        const summaryTotalCount = document.getElementById('summaryTotalCount');
-        const summarySegmentBar = document.getElementById('summarySegmentBar');
+        // ---------------------------------------------------------------------
+        // Live dashboard data
+        //
+        // Every figure and table below is rendered from the database through the
+        // admin dashboard endpoints (equipment, borrow requests, loan
+        // transactions and accounts). Nothing is read from localStorage, so new
+        // requests, approvals, borrows, returns and stock changes are always
+        // reflected. `showNotification` comes from the shared admin shell.
+        // ---------------------------------------------------------------------
+        const URL_DATA = @json(route('admin.dashboard.data'));
+        const URL_REQUESTS = @json(route('admin.requests.update'));
+        const CSRF_TOKEN = @json(csrf_token());
+        const REFRESH_MS = 30000;
 
-        // Requests Data Sync
-        const defaultRequestsList = [];
+        // Rendered by the server on first paint so the page never flashes empty
+        // states, then kept current by refreshDashboard().
+        let dashboard = @json($dashboard);
 
-        // Overdue Items default list
-        const defaultOverdueList = [];
+        function applyDashboard(payload) {
+            dashboard = payload;
+            renderStats(payload.stats || {});
+            renderSummary(payload.summary || {});
+            renderRequests(payload.recentRequests || []);
+            renderOverdue(payload.overdue || []);
+            renderLowStock(payload.lowStock || []);
+        }
 
-        // Initialize Users
-        const defaultUsers = [];
-        let users = JSON.parse(localStorage.getItem('equip-track-users')) || [];
+        // Keeps the dashboard in step with the system without a manual reload.
+        function refreshDashboard() {
+            return fetch(URL_DATA, { headers: { 'Accept': 'application/json' } })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        applyDashboard(data);
+                    }
+                    return data;
+                })
+                .catch(err => console.error('Error loading dashboard data:', err));
+        }
 
-        // Initialize Equipment
-        const defaultEquipmentList = [];
-        let equipment = JSON.parse(localStorage.getItem('equip-track-equipment')) || [];
+        function setText(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = (value === null || value === undefined) ? 0 : value;
+        }
 
-        let requests = JSON.parse(localStorage.getItem('equip-track-requests')) || [];
+        // Quick Stats cards
+        function renderStats(stats) {
+            setText('statTotalUsers', stats.totalUsers);
+            setText('statTotalEq', stats.totalEquipment);
+            setText('statPending', stats.pendingRequests);
+            setText('statBorrowed', stats.borrowedEquipment);
+            setText('statOverdue', stats.overdueItems);
 
-        // Render Dashboard Stats and Table
-        function renderDashboard() {
-            // Calculate Stats
-            const pendingRequests = requests.filter(r => r.status && r.status.toLowerCase() === 'pending');
-            const approvedRequests = requests.filter(r => r.status && r.status.toLowerCase() === 'approved');
-            const rejectedRequests = requests.filter(r => r.status && r.status.toLowerCase() === 'rejected');
-            
-            const totalPending = pendingRequests.length;
-            const totalApproved = approvedRequests.length;
-            const totalRejected = rejectedRequests.length;
-            
-            // System summary totals
-            const baseApproved = 0; 
-            const baseRejected = 0;
-            const finalApproved = baseApproved + totalApproved;
-            const finalRejected = baseRejected + totalRejected;
-            const finalTotal = finalApproved + finalRejected + totalPending;
-
-            // Get users from localStorage to count dynamically
-            const currentUsers = JSON.parse(localStorage.getItem('equip-track-users')) || users;
-            const totalUsersVal = currentUsers.length;
-
-            // Get equipment from localStorage to count dynamically
-            const currentEquipment = JSON.parse(localStorage.getItem('equip-track-equipment')) || equipment;
-            const totalEquipmentQty = currentEquipment.reduce((sum, item) => sum + parseInt(item.total || 0), 0);
-
-            // Update DOM Stats
-            if (statTotalUsers) statTotalUsers.textContent = totalUsersVal;
-            if (statTotalEq) statTotalEq.textContent = totalEquipmentQty;
-            if (statPending) statPending.textContent = totalPending;
-            if (statBorrowed) statBorrowed.textContent = totalApproved; 
-            if (statOverdue) statOverdue.textContent = defaultOverdueList.length;
-            
-            if (summaryPendingCount) summaryPendingCount.textContent = totalPending;
-            if (summaryApprovedCount) summaryApprovedCount.textContent = finalApproved;
-            if (summaryRejectedCount) summaryRejectedCount.textContent = finalRejected;
-            if (summaryTotalCount) summaryTotalCount.textContent = finalTotal;
-
-            // Render Segment Bar
-            if (summarySegmentBar) {
-                const appPct = finalTotal > 0 ? (finalApproved / finalTotal) * 100 : 0;
-                const rejPct = finalTotal > 0 ? (finalRejected / finalTotal) * 100 : 0;
-                const penPct = finalTotal > 0 ? (totalPending / finalTotal) * 100 : 0;
-
-                summarySegmentBar.innerHTML = `
-                    <div class="segment-fill approved" style="width: ${appPct}%;"></div>
-                    <div class="segment-fill rejected" style="width: ${rejPct}%;"></div>
-                    <div class="segment-fill pending" style="width: ${penPct}%;"></div>
-                `;
-            }
-
-            // Render Table (maximum 2 pending rows shown on dashboard recent section)
-            const tableBody = document.getElementById('requestsTableBody');
-            if (tableBody) {
-                tableBody.innerHTML = '';
-                const recent = pendingRequests.slice(0, 2);
-
-                if (recent.length === 0) {
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">
-                                <i class="fa-solid fa-inbox" style="color: var(--text-muted); font-size: 20px; margin-bottom: 8px; display: block;"></i>
-                                No recent requests found.
-                            </td>
-                        </tr>
-                    `;
-                } else {
-                    recent.forEach(req => {
-                        const tr = document.createElement('tr');
-                        tr.className = 'admin-table-row';
-                        tr.innerHTML = `
-                            <td>${escapeHTML(req.user)}</td>
-                            <td>${escapeHTML(req.equipment)}</td>
-                            <td>${escapeHTML(req.date)}</td>
-                            <td>Pending</td>
-                            <td class="action-cell">
-                                <div class="action-buttons">
-                                    <button class="btn-approve" onclick="handleRequestAction(this, ${req.id}, 'approved')">Approve</button>
-                                    <button class="btn-reject" onclick="handleRequestAction(this, ${req.id}, 'rejected')">Reject</button>
-                                </div>
-                            </td>
-                        `;
-                        tableBody.appendChild(tr);
-                    });
-                }
-            }
-
-            // Render Overdue Alerts Table dynamically
-            const overdueTableBody = document.getElementById('overdueTableBody');
-            if (overdueTableBody) {
-                overdueTableBody.innerHTML = '';
-                if (defaultOverdueList.length === 0) {
-                    overdueTableBody.innerHTML = `
-                        <tr>
-                            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">
-                                <i class="fa-solid fa-check-circle" style="color: #10b981; font-size: 20px; margin-bottom: 8px; display: block;"></i>
-                                No overdue items recorded.
-                            </td>
-                        </tr>
-                    `;
-                } else {
-                    defaultOverdueList.forEach(item => {
-                        const tr = document.createElement('tr');
-                        tr.className = 'admin-table-row';
-                        tr.innerHTML = `
-                            <td>${escapeHTML(item.user)}</td>
-                            <td>${escapeHTML(item.equipment)}</td>
-                            <td>${escapeHTML(item.dueDate)}</td>
-                            <td><span class="days-late">${escapeHTML(item.daysLate)}</span></td>
-                        `;
-                        overdueTableBody.appendChild(tr);
-                    });
-                }
+            // The card shows the number of registered equipment records; the
+            // tooltip carries the unit totals so both figures stay available.
+            const eqCard = document.getElementById('statTotalEq');
+            if (eqCard) {
+                eqCard.title = (stats.totalEquipmentUnits || 0) + ' units in total, ' +
+                    (stats.totalAvailableUnits || 0) + ' currently available.';
             }
         }
 
+        // System Summary card
+        function renderSummary(summary) {
+            setText('summaryTotalCount', summary.total);
+            setText('summaryApprovedCount', summary.approved);
+            setText('summaryRejectedCount', summary.rejected);
+            setText('summaryPendingCount', summary.pending);
+
+            const total = summary.total || 0;
+            const pct = value => total > 0 ? ((value || 0) / total) * 100 : 0;
+            const bar = document.getElementById('summarySegmentBar');
+            if (bar) {
+                bar.innerHTML = `
+                    <div class="segment-fill approved" style="width: ${pct(summary.approved)}%;"></div>
+                    <div class="segment-fill rejected" style="width: ${pct(summary.rejected)}%;"></div>
+                    <div class="segment-fill pending" style="width: ${pct(summary.pending)}%;"></div>
+                `;
+            }
+        }
+
+        // Recent Requests table (latest requests with their real status)
+        function renderRequests(rows) {
+            const tableBody = document.getElementById('requestsTableBody');
+            if (!tableBody) return;
+
+            tableBody.innerHTML = '';
+
+            if (!rows.length) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                            <i class="fa-solid fa-inbox" style="color: var(--text-muted); font-size: 20px; margin-bottom: 8px; display: block;"></i>
+                            No recent requests found.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            rows.forEach(req => {
+                const tr = document.createElement('tr');
+                tr.className = 'admin-table-row';
+
+                const actionCell = req.canAct
+                    ? `<div class="action-buttons">
+                           <button class="btn-approve" onclick="handleRequestAction(this, ${req.id}, 'Approved')">Approve</button>
+                           <button class="btn-reject" onclick="handleRequestAction(this, ${req.id}, 'Rejected')">Reject</button>
+                       </div>`
+                    : `<span style="color: var(--text-muted); font-size: 13px;">Reviewed</span>`;
+
+                tr.innerHTML = `
+                    <td>${escapeHTML(req.user)}</td>
+                    <td>${escapeHTML(req.equipment)}</td>
+                    <td>${escapeHTML(req.date)}</td>
+                    <td>${escapeHTML(req.status)}</td>
+                    <td class="action-cell">${actionCell}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // Overdue Alerts table
+        function renderOverdue(rows) {
+            const tableBody = document.getElementById('overdueTableBody');
+            if (!tableBody) return;
+
+            tableBody.innerHTML = '';
+
+            if (!rows.length) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                            <i class="fa-solid fa-check-circle" style="color: #10b981; font-size: 20px; margin-bottom: 8px; display: block;"></i>
+                            No overdue items recorded.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            rows.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = 'admin-table-row';
+                tr.innerHTML = `
+                    <td>${escapeHTML(item.user)}</td>
+                    <td>${escapeHTML(item.equipment)}</td>
+                    <td>${escapeHTML(item.dueDate)}</td>
+                    <td><span class="days-late">${escapeHTML(item.daysLate)}</span></td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // Low Stock list
+        function renderLowStock(rows) {
+            const container = document.getElementById('lowStockCard');
+            if (!container) return;
+
+            if (!rows.length) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: var(--text-muted); padding: 24px 16px;">
+                        <i class="fa-solid fa-box-open" style="color: var(--text-muted); font-size: 20px; margin-bottom: 8px; display: block;"></i>
+                        No low stock equipment.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = rows.map((item, index) => `
+                ${index > 0 ? '<div class="stock-item-divider"></div>' : ''}
+                <div class="stock-item-row">
+                    <div class="stock-item-left">
+                        <div class="stock-item-icon-box ${item.critical ? 'critical' : 'warning'}">
+                            <i class="fa-solid ${item.critical ? 'fa-circle-exclamation' : 'fa-triangle-exclamation'}"></i>
+                        </div>
+                        <div class="stock-item-meta">
+                            <span class="stock-item-name">${escapeHTML(item.name)}</span>
+                            <span class="stock-status-label ${item.critical ? 'text-critical' : 'text-warning'}">${escapeHTML(item.label)} &middot; ${escapeHTML(item.category)}</span>
+                        </div>
+                    </div>
+                    <span class="stock-pill ${item.critical ? 'pill-critical' : 'pill-warning'}">${item.available} / ${item.total}</span>
+                </div>
+            `).join('');
+        }
+
+
         // Helper to escape HTML values
-        function escapeHTML(str) {
-            if (!str) return '';
-            return str.replace(/[&<>'"]/g, 
+        function escapeHTML(value) {
+            if (value === null || value === undefined) return '';
+            return String(value).replace(/[&<>'"]/g,
                 tag => ({
                     '&': '&amp;',
                     '<': '&lt;',
@@ -375,65 +412,60 @@
             );
         }
 
-            document.addEventListener('click', () => {
-                dropdownMenu.classList.remove('show');
-            });
-        }
+        // Approve / Reject straight from the dashboard, then refresh every figure.
+        window.handleRequestAction = function (button, id, action) {
+            const row = button ? button.closest('.admin-table-row') : null;
+            if (row) row.style.opacity = '0.5';
+            if (button) button.disabled = true;
 
-        // Show Toast Function
-        function showNotification(title, message, type = 'success') {
-            toastTitle.textContent = title;
-            toastMsg.textContent = message;
-            
-            // Set style based on status
-            if (type === 'success') {
-                toastIcon.className = 'fa-solid fa-circle-check toast-icon';
-                toastIcon.style.color = '#10b981';
-                document.querySelector('.toast-content').style.borderLeft = '4px solid #10b981';
-            } else {
-                toastIcon.className = 'fa-solid fa-circle-xmark toast-icon';
-                toastIcon.style.color = '#ef4444';
-                document.querySelector('.toast-content').style.borderLeft = '4px solid #ef4444';
+            const payload = new FormData();
+            payload.append('request_id', id);
+            payload.append('status', action);
+            if (action === 'Rejected') {
+                // The endpoint requires a reason for rejections.
+                payload.append('reject_reason', 'Rejected from the admin dashboard.');
             }
-            
-            toast.classList.add('show');
-            
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3500);
-        }
 
-        // Handle Approve/Reject Actions
-        window.handleRequestAction = function(button, id, action) {
-            const row = button.closest('.admin-table-row');
-            const req = requests.find(r => r.id === id);
-            if (!req) return;
+            fetch(URL_REQUESTS, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': CSRF_TOKEN,
+                    'Accept': 'application/json'
+                },
+                body: payload
+            })
+                .then(res => res.json().then(data => ({ ok: res.ok, data })))
+                .then(({ ok, data }) => {
+                    if (ok && data.success) {
+                        showNotification(
+                            action === 'Approved' ? 'Approved' : 'Rejected',
+                            data.message || 'Request updated successfully.',
+                            action === 'Approved' ? 'success' : 'error'
+                        );
+                        refreshDashboard();
+                        return;
+                    }
 
-            // Apply a nice fade-out animation
-            row.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-            row.style.opacity = '0';
-            row.style.transform = 'translateX(-20px)';
-            
-            setTimeout(() => {
-                if (action === 'approved') {
-                    req.status = 'Approved';
-                    req.rejectReason = '';
-                    localStorage.setItem('equip-track-requests', JSON.stringify(requests));
-                    showNotification('Approved', `Request for ${req.equipment} by ${req.user} has been approved.`, 'success');
-                } else {
-                    req.status = 'Rejected';
-                    req.rejectReason = 'Rejected from Dashboard';
-                    localStorage.setItem('equip-track-requests', JSON.stringify(requests));
-                    showNotification('Rejected', `Request for ${req.equipment} by ${req.user} has been rejected.`, 'error');
-                }
+                    if (row) row.style.opacity = '1';
+                    if (button) button.disabled = false;
+                    showNotification('Update Failed', (data && data.message) || 'Unable to update the request.', 'error');
+                })
+                .catch(() => {
+                    if (row) row.style.opacity = '1';
+                    if (button) button.disabled = false;
+                    showNotification('System Error', 'An unexpected error occurred while updating the request.', 'error');
+                });
+        };
 
-                // Re-render whole dashboard stats and items lists
-                renderDashboard();
-            }, 500);
-        }
+        // First paint from the server payload, then stay live: poll in the
+        // background and refresh whenever the tab regains focus.
+        applyDashboard(dashboard);
 
-        // Initial rendering of dashboard items
-        renderDashboard();
-    
+        setInterval(refreshDashboard, REFRESH_MS);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                refreshDashboard();
+            }
+        });
 </script>
 @endpush
