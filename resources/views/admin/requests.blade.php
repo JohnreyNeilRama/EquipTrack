@@ -253,7 +253,7 @@
 
         {{-- Requests Table Card --}}
         <div class="table-container card admin-table-card">
-            <table>
+            <table style="width: 100%;">
                 <thead>
                     <tr>
                         <th>User</th>
@@ -261,13 +261,21 @@
                         <th>Equipment</th>
                         <th>Date</th>
                         <th>Status</th>
-                        <th class="action-column">Action</th>
+                        <th class="action-column" style="text-align: center;">Action</th>
                     </tr>
                 </thead>
                 <tbody id="requestsTableBody">
                     {{-- Loaded dynamically via JavaScript --}}
                 </tbody>
             </table>
+
+            {{-- Pagination Footer --}}
+            <div class="pagination-container" id="paginationContainer">
+                <span class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 entries</span>
+                <div class="pagination-buttons" id="paginationButtons">
+                    {{-- Buttons added dynamically --}}
+                </div>
+            </div>
         </div>
     </div>
 
@@ -398,6 +406,15 @@
         const searchInput = document.getElementById('searchRequests');
         const filterSelect = document.getElementById('filterStatus');
 
+        // Pagination Elements
+        const paginationContainer = document.getElementById('paginationContainer');
+        const paginationInfo = document.getElementById('paginationInfo');
+        const paginationButtons = document.getElementById('paginationButtons');
+
+        // Pagination state
+        let currentPage = 1;
+        const pageSize = 10;
+
         // Modals
         const detailsModal = document.getElementById('detailsModal');
         const closeDetailsBtn = document.getElementById('closeDetailsBtn');
@@ -447,10 +464,22 @@
                         </td>
                     </tr>
                 `;
+                paginationContainer.style.display = 'none';
                 return;
             }
 
-            filtered.forEach(req => {
+            const totalEntries = filtered.length;
+            const totalPages = Math.ceil(totalEntries / pageSize);
+
+            if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
+
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, totalEntries);
+            const paginatedRequests = filtered.slice(startIndex, endIndex);
+
+            paginationContainer.style.display = 'flex';
+
+            paginatedRequests.forEach(req => {
                 const tr = document.createElement('tr');
                 tr.className = 'admin-table-row';
 
@@ -465,7 +494,7 @@
                 let actionHtml = '';
                 if (req.status.toLowerCase() === 'pending') {
                     actionHtml = `
-                        <div class="action-buttons">
+                        <div class="action-buttons" style="justify-content: center; gap: 8px;">
                             <button class="btn-approve" onclick="approveRequest(${req.id})">Approve</button>
                             <button class="btn-reject" onclick="triggerRejectReason(${req.id})">Reject</button>
                         </div>
@@ -494,10 +523,49 @@
                     <td>
                         <span class="status-badge ${statusClass}">${escapeHTML(req.status)}</span>
                     </td>
-                    <td class="action-cell">${actionHtml}</td>
+                    <td class="action-cell" style="text-align: center;">${actionHtml}</td>
                 `;
                 tableBody.appendChild(tr);
             });
+
+            paginationInfo.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${totalEntries} entries`;
+            renderPaginationButtons(totalPages);
+        }
+
+        // Render pagination buttons dynamically (same behavior as Admin Users)
+        function renderPaginationButtons(totalPages) {
+            paginationButtons.innerHTML = '';
+
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'btn-page';
+            prevBtn.innerHTML = '<i class="fa-solid fa-angle-left"></i>';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.addEventListener('click', () => {
+                currentPage--;
+                renderTable();
+            });
+            paginationButtons.appendChild(prevBtn);
+
+            for (let i = 1; i <= totalPages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = `btn-page ${currentPage === i ? 'active' : ''}`;
+                pageBtn.textContent = i;
+                pageBtn.addEventListener('click', () => {
+                    currentPage = i;
+                    renderTable();
+                });
+                paginationButtons.appendChild(pageBtn);
+            }
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'btn-page';
+            nextBtn.innerHTML = '<i class="fa-solid fa-angle-right"></i>';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.addEventListener('click', () => {
+                currentPage++;
+                renderTable();
+            });
+            paginationButtons.appendChild(nextBtn);
         }
 
         // Approve Request function
@@ -669,8 +737,14 @@
         }
 
         // Event Listeners for search & filters
-        searchInput.addEventListener('input', renderTable);
-        filterSelect.addEventListener('change', renderTable);
+        searchInput.addEventListener('input', () => {
+            currentPage = 1;
+            renderTable();
+        });
+        filterSelect.addEventListener('change', () => {
+            currentPage = 1;
+            renderTable();
+        });
 
         // Initial render
         renderTable();

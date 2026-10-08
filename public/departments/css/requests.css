@@ -258,13 +258,16 @@
     pointer-events: none;
 }
 
-/* Data Table Styling Matching Screenshot */
+/* Data table — same look as the admin tables (.admin-table-card):
+   theme header colour, --table-border lines, 20px radius, 16px / 20px cells. */
 .requests-table-container {
     background-color: var(--card-bg, #ffffff);
-    border-radius: 18px;
-    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 20px;
+    border: 1px solid var(--table-border, #718096);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
-    overflow: hidden;
+    overflow-x: auto;
+    width: 100%;
+    max-width: 100%;
     margin-bottom: 30px;
 }
 
@@ -275,122 +278,144 @@
 }
 
 .requests-table thead {
-    background-color: #6f97db; /* Vibrant pastel blue header matching reference screenshot */
+    background-color: var(--table-header, #8AA4D2);
+    border-bottom: 1px solid var(--table-border, #718096);
 }
 
 .requests-table th {
     padding: 16px 20px;
+    background-color: var(--table-header, #8AA4D2);
     color: #ffffff;
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 600;
+    text-align: left;
     text-transform: none;
-    letter-spacing: 0.2px;
+    letter-spacing: normal;
     border: none;
+    border-bottom: 1px solid var(--table-border, #718096);
 }
 
 .requests-table tbody tr {
-    border-bottom: 1px solid var(--border-color, #f1f5f9);
-    transition: background-color 0.2s;
+    transition: background-color 0.2s ease;
 }
 
-.requests-table tbody tr:last-child {
-    border-bottom: none;
-}
-
-.requests-table tbody tr:hover {
-    background-color: var(--primary-light, #f8fafc);
+.requests-table tbody tr:hover td {
+    background-color: rgba(56, 85, 133, 0.015);
 }
 
 .requests-table td {
     padding: 16px 20px;
     font-size: 14px;
-    font-weight: 500;
-    color: var(--text-main, #334155);
+    font-weight: 400;
+    color: var(--text-main, #333333);
+    border-bottom: 1px solid var(--table-border, #718096);
+    background: transparent;
     vertical-align: middle;
 }
 
-.requests-table td.col-id {
-    font-weight: 700;
-    color: var(--text-main, #1e293b);
+/* Set by the page script on the last row that is currently visible, so
+   filtered lists never end with a double line against the card border. */
+.requests-table tbody tr.last-visible-row td {
+    border-bottom: none;
 }
 
+.requests-table td.col-id,
 .requests-table td.col-user {
     font-weight: 600;
 }
 
-.requests-table td.col-roles {
-    color: var(--text-muted, #64748b);
-}
-
-/* Status Badges */
+/* Status Badges — same look as the admin Requests badges */
 .status-badge {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     padding: 6px 14px;
     border-radius: 20px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .status-badge.pending {
-    background-color: #fef3c7;
-    color: #d97706;
+    background-color: rgba(71, 85, 105, 0.08);
+    color: #475569;
 }
 
 .status-badge.approved {
-    background-color: #d1fae5;
-    color: #059669;
+    background-color: rgba(16, 185, 129, 0.08);
+    color: #10b981;
 }
 
 .status-badge.rejected {
-    background-color: #fee2e2;
-    color: #dc2626;
+    background-color: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
 }
 
-/* Action Buttons Matching Screenshot */
+.dark-theme .status-badge.pending {
+    background-color: rgba(226, 232, 240, 0.1);
+    color: #cbd5e1;
+}
+
+.dark-theme .status-badge.approved {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}
+
+.dark-theme .status-badge.rejected {
+    background-color: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+}
+
+/* Action buttons — same size and colours as the admin Requests buttons */
 .action-buttons-cell {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+}
+
+.btn-action-approve,
+.btn-action-reject {
+    height: 32px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s ease;
 }
 
 .btn-action-approve {
-    height: 36px;
-    padding: 0 20px;
-    border-radius: 8px;
-    background-color: #3b5585; /* SaaS blue */
-    color: #ffffff;
-    font-size: 13.5px;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.2s, transform 0.1s;
-    box-shadow: 0 2px 6px rgba(59, 85, 133, 0.2);
+    background-color: #3b5998;
 }
 
 .btn-action-approve:hover {
-    background-color: #2f4570;
+    background-color: #2f477a;
     transform: translateY(-1px);
 }
 
 .btn-action-reject {
-    height: 36px;
-    padding: 0 20px;
-    border-radius: 8px;
-    background-color: #ff0000; /* Vibrant solid red matching screenshot */
-    color: #ffffff;
-    font-size: 13.5px;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.2s, transform 0.1s;
-    box-shadow: 0 2px 6px rgba(255, 0, 0, 0.2);
+    background-color: #ff0000;
 }
 
 .btn-action-reject:hover {
-    background-color: #d90000;
+    background-color: #cc0000;
     transform: translateY(-1px);
+}
+
+.dark-theme .btn-action-approve {
+    background-color: #3b82f6;
+}
+
+.dark-theme .btn-action-approve:hover {
+    background-color: #2563eb;
 }
 
 .btn-action-view {
@@ -408,6 +433,57 @@
 
 .btn-action-view:hover {
     background-color: var(--primary-light, #e2e8f0);
+}
+
+/* Pagination footer (same design as Admin Users table) */
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+}
+
+.pagination-info {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-page {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-page:hover:not(:disabled) {
+    background-color: var(--hover-color);
+}
+
+.btn-page:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-page.active {
+    background-color: #385585;
+    color: #ffffff;
+    border-color: #385585;
+}
+
+.dark-theme .btn-page.active {
+    background-color: var(--primary-sidebar);
+    border-color: var(--primary-sidebar);
 }
 
 /* Empty State Container */
@@ -495,6 +571,9 @@
 }
 
 @media (max-width: 992px) {
+    .requests-table {
+        min-width: 720px;
+    }
     .requests-table-container {
         overflow-x: auto;
     }

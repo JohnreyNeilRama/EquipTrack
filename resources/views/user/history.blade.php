@@ -93,6 +93,14 @@
                 <h4>No transaction history</h4>
                 <p>Your past borrowing history and transaction logs will appear here.</p>
             </div>
+
+            <!-- Pagination Footer -->
+            <div class="pagination-container" id="paginationContainer">
+                <span class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 entries</span>
+                <div class="pagination-buttons" id="paginationButtons">
+                    <!-- Buttons added dynamically -->
+                </div>
+            </div>
         </div>
 <!-- Transaction Details Modal -->
     <div class="modal-overlay" id="historyModal">
@@ -170,13 +178,62 @@
         const historyModal = document.getElementById('historyModal');
         const closeHistoryBtn = document.getElementById('closeHistoryBtn');
 
+        // Pagination elements & state (same behavior as the Admin tables)
+        const paginationContainer = document.getElementById('paginationContainer');
+        const paginationInfo = document.getElementById('paginationInfo');
+        const paginationButtons = document.getElementById('paginationButtons');
+        let currentPage = 1;
+        const pageSize = 10;
+
+        // Search/filter/sort changed: go back to the first page, then re-render
+        function filterHistory() {
+            currentPage = 1;
+            updateHistoryTable();
+        }
+
+        // Render pagination buttons dynamically (same behavior as Admin Users)
+        function renderPaginationButtons(totalPages) {
+            paginationButtons.innerHTML = '';
+
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'btn-page';
+            prevBtn.innerHTML = '<i class="fa-solid fa-angle-left"></i>';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.addEventListener('click', () => {
+                currentPage--;
+                updateHistoryTable();
+            });
+            paginationButtons.appendChild(prevBtn);
+
+            for (let i = 1; i <= totalPages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = `btn-page ${currentPage === i ? 'active' : ''}`;
+                pageBtn.textContent = i;
+                pageBtn.addEventListener('click', () => {
+                    currentPage = i;
+                    updateHistoryTable();
+                });
+                paginationButtons.appendChild(pageBtn);
+            }
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'btn-page';
+            nextBtn.innerHTML = '<i class="fa-solid fa-angle-right"></i>';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.addEventListener('click', () => {
+                currentPage++;
+                updateHistoryTable();
+            });
+            paginationButtons.appendChild(nextBtn);
+        }
+
         // Dark Mode Toggle Logic
 
 
 
 
         // Filter and Sort function
-        function updateHistoryTable() {
+        function updateHistoryTable(applySort = true) {
             const query = searchInput.value.toLowerCase().trim();
             const selectedStatus = statusFilter.value;
             const sortOrder = sortFilter.value;
@@ -201,7 +258,7 @@
             });
 
             // Sort remaining rows
-            rows.sort((a, b) => {
+            if (applySort) rows.sort((a, b) => {
                 const dateA = new Date(a.getAttribute('data-timestamp'));
                 const dateB = new Date(b.getAttribute('data-timestamp'));
                 return sortOrder === 'latest' ? dateB - dateA : dateA - dateB;
@@ -211,12 +268,33 @@
             rows.forEach(row => tableBody.appendChild(row));
 
             // Re-calculate visible indices
-            let visibleIndex = 1;
+            // Paginate the matching rows; numbering continues across pages
+            const matchedRows = rows.filter(row => row.style.display !== 'none');
+            const totalEntries = matchedRows.length;
+            const totalPages = Math.ceil(totalEntries / pageSize);
+
+            if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
+
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, totalEntries);
+            const pageRows = matchedRows.slice(startIndex, endIndex);
+
             rows.forEach(row => {
-                if (row.style.display !== 'none') {
-                    row.querySelector('.row-index').textContent = visibleIndex++;
-                }
+                row.style.display = 'none';
+                row.classList.remove('last-visible-row');
             });
+            pageRows.forEach((row, i) => {
+                row.style.display = '';
+                row.querySelector('.row-index').textContent = startIndex + i + 1;
+            });
+            if (pageRows.length) {
+                pageRows[pageRows.length - 1].classList.add('last-visible-row');
+            }
+
+            if (totalEntries > 0) {
+                paginationInfo.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${totalEntries} entries`;
+                renderPaginationButtons(totalPages);
+            }
 
             // Empty state display
             const emptyState = document.getElementById('historyEmptyState');
@@ -224,16 +302,21 @@
             if (visibleCount === 0) {
                 emptyState.style.display = 'flex';
                 tableElement.style.display = 'none';
+                paginationContainer.style.display = 'none';
             } else {
                 emptyState.style.display = 'none';
                 tableElement.style.display = 'table';
+                paginationContainer.style.display = 'flex';
             }
         }
 
         // Attach listeners
-        searchInput.addEventListener('input', updateHistoryTable);
-        statusFilter.addEventListener('change', updateHistoryTable);
-        sortFilter.addEventListener('change', updateHistoryTable);
+        searchInput.addEventListener('input', filterHistory);
+        statusFilter.addEventListener('change', filterHistory);
+        sortFilter.addEventListener('change', filterHistory);
+
+        // Initial render (keeps the server-provided order, just paginated)
+        updateHistoryTable(false);
 
         // Click Row Event for Details Modal
         const historyRows = document.querySelectorAll('.history-row');

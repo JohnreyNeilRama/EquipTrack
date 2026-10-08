@@ -85,19 +85,27 @@
             <table class="requests-table">
                 <thead>
                     <tr>
-                        <th style="width: 14%;">ID</th>
+                        <th style="width: 8%;">ID</th>
                         <th style="width: 18%;">User</th>
-                        <th style="width: 14%;">Roles</th>
-                        <th style="width: 18%;">Equipment</th>
+                        <th style="width: 12%;">Roles</th>
+                        <th style="width: 20%;">Equipment</th>
                         <th style="width: 12%;">Date</th>
-                        <th style="width: 12%;">Status</th>
-                        <th style="width: 12%; text-align: center;">Action</th>
+                        <th style="width: 14%;">Status</th>
+                        <th style="width: 16%; text-align: center;">Action</th>
                     </tr>
                 </thead>
                 <tbody id="requestsTableBody">
                     <!-- Dynamic rendering via JS -->
                 </tbody>
             </table>
+
+            <!-- Pagination Footer -->
+            <div class="pagination-container" id="paginationContainer">
+                <span class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 entries</span>
+                <div class="pagination-buttons" id="paginationButtons">
+                    <!-- Buttons added dynamically -->
+                </div>
+            </div>
         </div>
 
         <!-- Empty State Container -->
@@ -150,14 +158,6 @@
 
         if (topbarMenuBtn) topbarMenuBtn.addEventListener('click', openSidebar);
         if (sidebarScrim) sidebarScrim.addEventListener('click', closeSidebar);
-
-        // Notifications bell
-        const notifBtn = document.getElementById('notifBtn');
-        if (notifBtn) {
-            notifBtn.addEventListener('click', () => {
-                alert('No new notifications.');
-            });
-        }
     
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -166,6 +166,13 @@
             const filterStatusSelect = document.getElementById('filterStatus');
             const filterCategorySelect = document.getElementById('filterCategory');
             const emptyStateContainer = document.getElementById('emptyStateContainer');
+
+            // Pagination elements & state (same behavior as the Admin tables)
+            const paginationContainer = document.getElementById('paginationContainer');
+            const paginationInfo = document.getElementById('paginationInfo');
+            const paginationButtons = document.getElementById('paginationButtons');
+            let currentPage = 1;
+            const pageSize = 10;
 
             // Summary metrics elements
             const sumPending = document.getElementById('sumPending');
@@ -197,16 +204,37 @@
             function renderTable() {
                 tableBody.innerHTML = '';
                 
-                requests.forEach(item => {
+                const query = searchInput.value.toLowerCase().trim();
+                const selectedStatus = filterStatusSelect.value.toLowerCase();
+                const selectedCategory = filterCategorySelect.value.toLowerCase();
+
+                const filtered = requests.filter(item => {
+                    const searchData = `${item.id} ${item.user} ${item.equipment}`.toLowerCase();
+                    const itemStatus = item.status.toLowerCase();
+                    const itemCategory = (item.category || '').toLowerCase();
+
+                    const matchesSearch = searchData.includes(query);
+                    const matchesStatus = (selectedStatus === 'all' || itemStatus === selectedStatus);
+                    const matchesCategory = (selectedCategory === 'all' || itemCategory.includes(selectedCategory));
+                    return matchesSearch && matchesStatus && matchesCategory;
+                });
+
+                const totalEntries = filtered.length;
+                const totalPages = Math.ceil(totalEntries / pageSize);
+
+                if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
+
+                const startIndex = (currentPage - 1) * pageSize;
+                const endIndex = Math.min(startIndex + pageSize, totalEntries);
+                const paginatedRequests = filtered.slice(startIndex, endIndex);
+
+                paginatedRequests.forEach(item => {
                     const tr = document.createElement('tr');
-                    tr.setAttribute('data-status', item.status.toLowerCase());
-                    tr.setAttribute('data-category', (item.category || '').toLowerCase());
-                    tr.setAttribute('data-search', `${item.id} ${item.user} ${item.equipment}`.toLowerCase());
 
                     let actionHtml = '';
                     if (item.status === 'Pending') {
                         actionHtml = `
-                            <div class="action-buttons-cell">
+                            <div class="action-buttons-cell" style="justify-content: center; gap: 8px;">
                                 <button class="btn-action-approve" onclick="updateRequestStatus('${item.id}', 'Approved')">Approve</button>
                                 <button class="btn-action-reject" onclick="updateRequestStatus('${item.id}', 'Rejected')">Reject</button>
                             </div>
@@ -233,14 +261,66 @@
                         <td>${escapeHTML(item.equipment)}</td>
                         <td>${escapeHTML(item.date)}</td>
                         <td>${statusBadgeHtml}</td>
-                        <td>${actionHtml}</td>
+                        <td style="text-align: center;">${actionHtml}</td>
                     `;
 
                     tableBody.appendChild(tr);
                 });
 
                 updateSummaryCards();
-                filterTable();
+
+                // Mark the last rendered row so its bottom line doesn't double up
+                // against the card border.
+                const renderedRows = tableBody.querySelectorAll('tr');
+                if (renderedRows.length) {
+                    renderedRows[renderedRows.length - 1].classList.add('last-visible-row');
+                }
+
+                if (totalEntries === 0) {
+                    emptyStateContainer.style.display = 'flex';
+                    paginationContainer.style.display = 'none';
+                } else {
+                    emptyStateContainer.style.display = 'none';
+                    paginationContainer.style.display = 'flex';
+                    paginationInfo.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${totalEntries} entries`;
+                    renderPaginationButtons(totalPages);
+                }
+            }
+
+            // Render pagination buttons dynamically (same behavior as Admin Users)
+            function renderPaginationButtons(totalPages) {
+                paginationButtons.innerHTML = '';
+
+                const prevBtn = document.createElement('button');
+                prevBtn.className = 'btn-page';
+                prevBtn.innerHTML = '<i class="fa-solid fa-angle-left"></i>';
+                prevBtn.disabled = currentPage === 1;
+                prevBtn.addEventListener('click', () => {
+                    currentPage--;
+                    renderTable();
+                });
+                paginationButtons.appendChild(prevBtn);
+
+                for (let i = 1; i <= totalPages; i++) {
+                    const pageBtn = document.createElement('button');
+                    pageBtn.className = `btn-page ${currentPage === i ? 'active' : ''}`;
+                    pageBtn.textContent = i;
+                    pageBtn.addEventListener('click', () => {
+                        currentPage = i;
+                        renderTable();
+                    });
+                    paginationButtons.appendChild(pageBtn);
+                }
+
+                const nextBtn = document.createElement('button');
+                nextBtn.className = 'btn-page';
+                nextBtn.innerHTML = '<i class="fa-solid fa-angle-right"></i>';
+                nextBtn.disabled = currentPage === totalPages;
+                nextBtn.addEventListener('click', () => {
+                    currentPage++;
+                    renderTable();
+                });
+                paginationButtons.appendChild(nextBtn);
             }
 
             function escapeHTML(str) {
@@ -296,36 +376,10 @@
                 });
             };
 
+            // Filters/search changed: go back to the first page, then re-render
             function filterTable() {
-                const query = searchInput.value.toLowerCase().trim();
-                const selectedStatus = filterStatusSelect.value.toLowerCase();
-                const selectedCategory = filterCategorySelect.value.toLowerCase();
-
-                const rows = tableBody.querySelectorAll('tr');
-                let visibleCount = 0;
-
-                rows.forEach(row => {
-                    const searchData = row.getAttribute('data-search');
-                    const rowStatus = row.getAttribute('data-status');
-                    const rowCategory = row.getAttribute('data-category');
-
-                    const matchesSearch = searchData.includes(query);
-                    const matchesStatus = (selectedStatus === 'all' || rowStatus === selectedStatus);
-                    const matchesCategory = (selectedCategory === 'all' || rowCategory.includes(selectedCategory));
-
-                    if (matchesSearch && matchesStatus && matchesCategory) {
-                        row.style.display = '';
-                        visibleCount++;
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-
-                if (visibleCount === 0) {
-                    emptyStateContainer.style.display = 'flex';
-                } else {
-                    emptyStateContainer.style.display = 'none';
-                }
+                currentPage = 1;
+                renderTable();
             }
 
             function showNotification(title, message, type = 'success') {

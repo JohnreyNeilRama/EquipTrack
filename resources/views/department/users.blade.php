@@ -4,13 +4,14 @@
 
 @push('css')
 <link rel="stylesheet" href="{{ asset('departments/css/users.css') }}">
+<link rel="stylesheet" href="{{ asset('departments/css/user-details-modal.css') }}">
 @endpush
 
 @section('content')
 <!-- Page Header -->
         <div class="page-title-section" style="margin-top: 10px;">
             <h2>Users Management</h2>
-            <p>Manage registered users and departments.</p>
+            <p>Students and faculty members registered under your department.</p>
         </div>
 
         <!-- Summary Cards Section -->
@@ -87,16 +88,6 @@
                 </select>
                 <i class="fa-solid fa-chevron-down"></i>
             </div>
-
-            <div class="filter-select-item">
-                <select id="filterDept">
-                    <option value="all">All Categories</option>
-                    <option value="ccs">College of Computer Studies (CCS)</option>
-                    <option value="engineering">Engineering</option>
-                    <option value="business">Business</option>
-                </select>
-                <i class="fa-solid fa-chevron-down"></i>
-            </div>
         </div>
 
         <!-- Department Users Data Table Card -->
@@ -109,8 +100,7 @@
                         <th style="width: 15%;">User Type</th>
                         <th style="width: 18%;">Year Level / Attainment</th>
                         <th style="width: 12%;">Status</th>
-                        <th style="width: 12%;">Date Registered</th>
-                        <th style="width: 8%; text-align: center;">Action</th>
+                        <th style="width: 8%;">Action</th>
                     </tr>
                 </thead>
                 <tbody id="usersTableBody">
@@ -137,57 +127,88 @@
         </div>
 <!-- View User Details Modal -->
     <div class="modal-overlay" id="viewUserModal">
-        <div class="modal-card">
-            <button class="modal-close" id="closeViewUserModalBtn">&times;</button>
-            <h3 class="modal-title-center">User Details</h3>
-            <p class="modal-subtitle-top">Information about registered user</p>
-            
-            <div class="view-details-card">
-                <div class="view-detail-item">
-                    <span class="label">Full Name</span>
-                    <span class="val" id="viewUserName">-</span>
+        <div class="eq-modal-card">
+            <div class="modal-outer-header">
+                <p class="modal-subtitle-top">Detailed view of user account information</p>
+            </div>
+            <div class="modal-inner-card">
+                <button class="modal-close" id="closeViewUserModalBtn">&times;</button>
+                <h3 class="modal-title-center">User Details</h3>
+
+                <div class="modal-requester-profile">
+                    <img src="" alt="User Avatar" class="modal-requester-avatar" id="modalUserAvatar">
+                    <div class="modal-requester-meta">
+                        <span class="modal-requester-name" id="modalUserName">-</span>
+                        <span class="modal-requester-details" id="modalUserRole">-</span>
+                    </div>
                 </div>
-                <div class="view-detail-item">
-                    <span class="label">ID Number</span>
-                    <span class="val" id="viewUserId">-</span>
+
+                <div class="detail-main-content">
+                    <div class="detail-left-side">
+                        <div class="detail-img-container">
+                            <img src="" alt="User Profile Image" id="modalUserProfileImg">
+                        </div>
+                        <div class="detail-form-group">
+                            <label class="detail-form-label">Status</label>
+                            <div class="status-badge-wrapper">
+                                <span class="status-badge" id="modalStatusBadge">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-right-side">
+                        <div class="detail-form-grid">
+                            <div class="detail-form-group">
+                                <label class="detail-form-label">Full Name</label>
+                                <input type="text" id="modalFullName" class="detail-form-control" readonly>
+                            </div>
+                            <div class="detail-form-group">
+                                <label class="detail-form-label">ID Number</label>
+                                <input type="text" id="modalStudentId" class="detail-form-control" readonly>
+                            </div>
+                            <div class="detail-form-group">
+                                <label class="detail-form-label" id="modalAttainmentLabel">Year Level</label>
+                                <input type="text" id="modalYearLevel" class="detail-form-control" readonly>
+                            </div>
+                            <div class="detail-form-group">
+                                <label class="detail-form-label">Email</label>
+                                <input type="text" id="modalEmail" class="detail-form-control" readonly>
+                            </div>
+                            <div class="detail-form-group">
+                                <label class="detail-form-label">Role</label>
+                                <input type="text" id="modalRole" class="detail-form-control" readonly>
+                            </div>
+                            <div class="detail-form-group">
+                                <label class="detail-form-label">Department</label>
+                                <input type="text" id="modalDepartment" class="detail-form-control" readonly>
+                            </div>
+                            <div class="detail-form-group">
+                                <label class="detail-form-label">Date Created</label>
+                                <input type="text" id="modalDateCreated" class="detail-form-control" readonly>
+                            </div>
+                            <div class="detail-form-group">
+                                <label class="detail-form-label">Last Online</label>
+                                <input type="text" id="modalLastOnline" class="detail-form-control" readonly>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="view-detail-item">
-                    <span class="label">User Type</span>
-                    <span class="val" id="viewUserType">-</span>
+
+                <div class="detail-form-group" style="margin-bottom: 16px;">
+                    <label class="detail-form-label">Address</label>
+                    <input type="text" id="modalAddress" class="detail-form-control" readonly>
                 </div>
-                <div class="view-detail-item">
-                    <span class="label">Year Level / Attainment</span>
-                    <span class="val" id="viewUserAttainment">-</span>
-                </div>
-                <div class="view-detail-item">
-                    <span class="label">Account Status</span>
-                    <span class="val" id="viewUserStatus">-</span>
-                </div>
-                <div class="view-detail-item">
-                    <span class="label">Date Registered</span>
-                    <span class="val" id="viewUserDate">-</span>
+
+                <div class="modal-actions-footer">
+                    <button type="button" class="btn-modal-close" id="modalCloseDetailsBtn">Close</button>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Interactivity Script -->
-    
-
-    <!-- Data & Table Script -->
 @endsection
 
 @push('scripts')
 <script>
-
-
-
-
-
-
-        
-
-
         // Mobile sidebar toggle
         const sidebar = document.getElementById('sidebar');
         const sidebarScrim = document.getElementById('sidebarScrim');
@@ -205,21 +226,11 @@
         if (topbarMenuBtn) topbarMenuBtn.addEventListener('click', openSidebar);
         if (sidebarScrim) sidebarScrim.addEventListener('click', closeSidebar);
 
-        // Notifications bell
-        const notifBtn = document.getElementById('notifBtn');
-        if (notifBtn) {
-            notifBtn.addEventListener('click', () => {
-                alert('No new notifications.');
-            });
-        }
-    
-
         document.addEventListener('DOMContentLoaded', () => {
-            const tableBody = document.getElementById('requestsTableBody') || document.getElementById('usersTableBody');
+            const tableBody = document.getElementById('usersTableBody');
             const searchInput = document.getElementById('searchUsers');
             const filterRoleSelect = document.getElementById('filterRole');
             const filterStatusSelect = document.getElementById('filterStatus');
-            const filterDeptSelect = document.getElementById('filterDept');
             const emptyStateContainer = document.getElementById('emptyStateContainer');
             const paginationInfo = document.getElementById('paginationInfo');
 
@@ -233,25 +244,17 @@
             const viewUserModal = document.getElementById('viewUserModal');
             const closeViewUserModalBtn = document.getElementById('closeViewUserModalBtn');
 
-            // Storage Management
-            let users = JSON.parse(localStorage.getItem('equip-track-table-users'));
-            if (!users || !Array.isArray(users)) {
-                users = [];
-            } else {
-                users = users.filter(u => !['Johnrey Neil Rama', 'Gabriel Fernandez', 'Michael John Silva', 'Jeffrey Gaviola'].includes(u.fullName));
-            }
-            localStorage.setItem('equip-track-table-users', JSON.stringify(users));
+            // Users of the signed-in department, loaded live from the database
+            // and refreshed below so the table stays current.
+            const URL_DATA = @json(route('department.users.data'));
+            const REFRESH_MS = 15000;
+            let users = @json($dbUsers);
 
             function updateSummaryCards() {
-                const totalCount = users.length;
-                const studentsCount = users.filter(u => u.userType.toLowerCase().includes('student')).length;
-                const facultyCount = users.filter(u => u.userType.toLowerCase().includes('faculty')).length;
-                const activeCount = users.filter(u => u.status.toLowerCase() === 'active').length;
-
-                sumTotalUsers.textContent = totalCount;
-                sumStudents.textContent = studentsCount;
-                sumFaculty.textContent = facultyCount;
-                sumActive.textContent = activeCount;
+                sumTotalUsers.textContent = users.length;
+                sumStudents.textContent = users.filter(u => u.userType.toLowerCase().includes('student')).length;
+                sumFaculty.textContent = users.filter(u => u.userType.toLowerCase().includes('faculty')).length;
+                sumActive.textContent = users.filter(u => u.status.toLowerCase() === 'active').length;
             }
 
             function renderTable() {
@@ -273,11 +276,8 @@
                         <td><span class="user-type-badge ${badgeClass}">${escapeHTML(user.userType)}</span></td>
                         <td class="col-attainment">${escapeHTML(user.attainment)}</td>
                         <td><span class="status-badge ${statusClass}">${escapeHTML(user.status)}</span></td>
-                        <td class="col-date">${escapeHTML(user.dateRegistered)}</td>
-                        <td style="text-align: center;">
-                            <button class="btn-action-view" onclick="openViewUserModal('${user.idNumber}')">
-                                <i class="fa-regular fa-clock" style="display:none;"></i>
-                                <i class="fa-solid fa-arrow-up-right-from-square" style="display:none;"></i>
+                        <td>
+                            <button class="btn-action-view" onclick="openViewUserModal(${Number(user.id)})">
                                 <i class="fa-solid fa-eye"></i> View
                             </button>
                         </td>
@@ -303,18 +303,51 @@
                 );
             }
 
-            window.openViewUserModal = function(idNum) {
-                const user = users.find(u => u.idNumber === idNum);
-                if (user) {
-                    document.getElementById('viewUserName').textContent = user.fullName;
-                    document.getElementById('viewUserId').textContent = user.idNumber;
-                    document.getElementById('viewUserType').textContent = user.userType;
-                    document.getElementById('viewUserAttainment').textContent = user.attainment;
-                    document.getElementById('viewUserStatus').textContent = user.status;
-                    document.getElementById('viewUserDate').textContent = user.dateRegistered;
-                    viewUserModal.classList.add('show');
-                }
+            window.openViewUserModal = function(id) {
+                const user = users.find(u => Number(u.id) === Number(id));
+                if (!user) return;
+
+                // Profile picture: the user's own image, else a generated initials avatar
+                // (same fallback the admin View Details uses).
+                const fallbackAvatar = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.fullName) + '&background=385585&color=fff&size=300&bold=true';
+                const avatarUrl = user.profileImage || fallbackAvatar;
+                const avatarEl = document.getElementById('modalUserAvatar');
+                const photoEl = document.getElementById('modalUserProfileImg');
+                [avatarEl, photoEl].forEach(img => {
+                    img.onerror = function() {
+                        this.onerror = null;
+                        this.src = fallbackAvatar;
+                    };
+                    img.src = avatarUrl;
+                });
+
+                document.getElementById('modalUserName').textContent = user.fullName;
+                document.getElementById('modalUserRole').textContent = user.userType;
+
+                const statusBadge = document.getElementById('modalStatusBadge');
+                statusBadge.textContent = user.status;
+                statusBadge.className = 'status-badge status-' + user.status.toLowerCase();
+
+                document.getElementById('modalFullName').value = user.fullName;
+                document.getElementById('modalStudentId').value = user.idNumber || 'N/A';
+                document.getElementById('modalAttainmentLabel').textContent = user.attainmentLabel || 'Year Level';
+                document.getElementById('modalYearLevel').value = user.attainment || 'N/A';
+                document.getElementById('modalEmail').value = user.email || 'N/A';
+                document.getElementById('modalRole').value = user.userType;
+                document.getElementById('modalDepartment').value = user.department || 'N/A';
+                document.getElementById('modalDateCreated').value = user.createdAt || 'Database Record';
+                document.getElementById('modalLastOnline').value = user.lastOnline || 'Offline / Never';
+                document.getElementById('modalAddress').value = user.address || 'N/A';
+
+                viewUserModal.classList.add('show');
             };
+
+            const modalCloseDetailsBtn = document.getElementById('modalCloseDetailsBtn');
+            if (modalCloseDetailsBtn) {
+                modalCloseDetailsBtn.addEventListener('click', () => {
+                    viewUserModal.classList.remove('show');
+                });
+            }
 
             if (closeViewUserModalBtn) {
                 closeViewUserModalBtn.addEventListener('click', () => {
@@ -353,6 +386,14 @@
                     }
                 });
 
+                // Mark the last visible row so the table's footer line doesn't
+                // double up with that row's bottom line (rows are hidden, not removed).
+                rows.forEach(row => row.classList.remove('last-visible-row'));
+                const visibleRows = Array.from(rows).filter(row => row.style.display !== 'none');
+                if (visibleRows.length) {
+                    visibleRows[visibleRows.length - 1].classList.add('last-visible-row');
+                }
+
                 if (paginationInfo) {
                     paginationInfo.textContent = `Showing ${visibleCount > 0 ? 1 : 0} to ${visibleCount} of ${visibleCount} entries`;
                 }
@@ -364,13 +405,33 @@
                 }
             }
 
+            // Reload the department's users so new, edited and deactivated
+            // accounts show up without a manual page refresh.
+            function refreshUsers() {
+                fetch(URL_DATA, {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin'
+                })
+                    .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
+                    .then(data => {
+                        if (data && data.success && Array.isArray(data.users)) {
+                            users = data.users;
+                            renderTable();
+                        }
+                    })
+                    .catch(err => console.error('Error refreshing users:', err));
+            }
+
             searchInput.addEventListener('input', filterTable);
             filterRoleSelect.addEventListener('change', filterTable);
             filterStatusSelect.addEventListener('change', filterTable);
-            if (filterDeptSelect) filterDeptSelect.addEventListener('change', filterTable);
 
-            // Initial render
+            // Initial render, then keep it current.
             renderTable();
+            setInterval(refreshUsers, REFRESH_MS);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') refreshUsers();
+            });
         });
     
 </script>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\BorrowTransaction;
 use App\Models\Department;
 use App\Models\DepartmentAccount;
 use App\Models\Student;
@@ -146,10 +147,26 @@ class AdminUsersController extends Controller
             DepartmentAccount::findOrFail($data['user_id'] - 100000)->delete();
             $msg = 'Department account deleted successfully.';
         } else {
-            // FIX vs legacy: the FKs now cascade (student/faculty_member/
-            // borrow_request), so one authoritative delete is enough — and it
-            // fails loudly instead of reporting false success.
-            UserAccount::findOrFail($data['user_id'])->delete();
+            $account = UserAccount::findOrFail($data['user_id']);
+
+            // Refuse to delete users who still hold equipment or owe a penalty;
+            // deleting them would erase the only record of an open loan.
+            $hasOpenLoans = BorrowTransaction::whereHas('request', fn ($q) => $q->where('user_id', $account->user_id))
+                ->where(fn ($q) => $q->whereIn('status', ['Active', 'Overdue'])
+                    ->orWhere('penalty_status', 'Unpaid'))
+                ->exists();
+
+            if ($hasOpenLoans) {
+                return redirect()
+                    ->route('admin.users')
+                    ->with('serverMsg', 'This user cannot be deleted because they have active or overdue borrowed equipment, or an unpaid penalty. Resolve those first, or deactivate the account instead.')
+                    ->with('serverMsgType', 'error');
+            }
+
+            // FKs cascade (student/faculty_member/borrow_request/borrow_transaction),
+            // so one authoritative delete removes the account and its completed
+            // history, and fails loudly instead of reporting false success.
+            $account->delete();
             $msg = 'User account deleted successfully.';
         }
 

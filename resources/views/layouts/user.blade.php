@@ -11,6 +11,7 @@
     <link rel="icon" type="image/png" href="{{ asset('images/logo_only.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('images/logo_only.png') }}">
     <link rel="stylesheet" href="{{ asset('ccs/global.css') }}">
+    <link rel="stylesheet" href="{{ asset('user/css/usernotifications.css') }}">
     @stack('css')
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -59,8 +60,26 @@
                 <div class="icon-btn" id="themeToggleBtn" title="Toggle theme">
                     <i class="fa-solid fa-moon" id="themeToggleIcon"></i>
                 </div>
-                <div class="icon-btn notification" id="notifBtn" title="Notifications">
-                    <i class="fa-solid fa-bell"></i>
+                <div class="notif-wrapper" id="notifWrapper"
+                     data-feed-url="{{ route('user.notifications') }}"
+                     data-read-url="{{ route('user.notifications.read') }}"
+                     data-csrf="{{ csrf_token() }}">
+                    <div class="icon-btn notification" id="notifBtn" title="Notifications" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
+                        <i class="fa-solid fa-bell"></i>
+                        <span class="notif-badge" id="notifBadge" style="display: none;">0</span>
+                    </div>
+                    <div class="notif-dropdown" id="notifDropdown">
+                        <div class="notif-header">
+                            <span class="notif-title">Notifications</span>
+                            <button type="button" class="notif-mark-all" id="notifMarkAll" style="display: none;">Mark all as read</button>
+                        </div>
+                        <div class="notif-list" id="notifList">
+                            <div class="notif-empty">
+                                <i class="fa-solid fa-bell-slash"></i>
+                                <span>No notifications yet.</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <span class="navbar-divider"></span>
                 <div class="user-profile" id="userProfileDropdown">
@@ -102,6 +121,7 @@
         window.navInitials = @json($u?->initials() ?? 'US');
     </script>
     <script src="{{ asset('js/admin-shell.js') }}"></script>
+    <script src="{{ asset('js/user-notifications.js') }}"></script>
     @stack('scripts')
 </body>
 </html>

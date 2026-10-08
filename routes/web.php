@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminEquipmentController;
 use App\Http\Controllers\Admin\AdminMonitoringController;
+use App\Http\Controllers\Admin\AdminNotificationController;
 use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AdminRequestsController;
 use App\Http\Controllers\Admin\AdminUsersController;
@@ -11,10 +12,13 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Department\DepartmentDashboardController;
 
 use App\Http\Controllers\Department\DepartmentEquipmentController;
+use App\Http\Controllers\Department\DepartmentNotificationController;
 use App\Http\Controllers\Department\DepartmentProfileController;
 use App\Http\Controllers\Department\DepartmentRequestsController;
+use App\Http\Controllers\Department\DepartmentUsersController;
 use App\Http\Controllers\User\UserEquipmentController;
 use App\Http\Controllers\User\UserHistoryController;
+use App\Http\Controllers\User\UserNotificationController;
 use App\Http\Controllers\User\UserProfileController;
 use App\Http\Controllers\User\UserRequestsController;
 use App\Http\Controllers\User\UserReturnsController;
@@ -56,6 +60,8 @@ Route::middleware(['auth:admin', 'active'])->prefix('admin')->name('admin.')->gr
     Route::get('/monitoring', [AdminMonitoringController::class, 'index'])->name('monitoring');
     Route::get('/reports', fn () => view('admin.reports', $catNames()))->name('reports');
     Route::view('/audit', 'admin.audit')->name('audit');
+    Route::get('/notifications', [AdminNotificationController::class, 'index'])->name('notifications');
+    Route::post('/notifications/read', [AdminNotificationController::class, 'markRead'])->name('notifications.read');
 });
 
 // Department
@@ -71,9 +77,12 @@ Route::middleware(['auth:dept', 'active'])->prefix('department')->name('departme
     Route::post('/equipment/save', [DepartmentEquipmentController::class, 'save'])->name('equipment.save');
     Route::get('/requests', [DepartmentRequestsController::class, 'index'])->name('requests');
     Route::post('/requests/update-status', [DepartmentRequestsController::class, 'updateStatus'])->name('requests.update');
-    Route::view('/users', 'department.users')->name('users');
+    Route::get('/users', [DepartmentUsersController::class, 'index'])->name('users');
+    Route::get('/users/data', [DepartmentUsersController::class, 'data'])->name('users.data');
     Route::get('/monitoring', fn () => view('department.monitoring', $catNames()))->name('monitoring');
     Route::get('/history', fn () => view('department.history', $catNames()))->name('history');
+    Route::get('/notifications', [DepartmentNotificationController::class, 'index'])->name('notifications');
+    Route::post('/notifications/read', [DepartmentNotificationController::class, 'markRead'])->name('notifications.read');
 });
 
 // User (Student / Faculty)
@@ -88,4 +97,6 @@ Route::middleware(['auth:user', 'active'])->prefix('user')->name('user.')->group
     Route::get('/returns', [UserReturnsController::class, 'index'])->name('returns');
     Route::post('/returns', [UserReturnsController::class, 'store'])->name('returns.store');
     Route::get('/history', [UserHistoryController::class, 'index'])->name('history');
+    Route::get('/notifications', [UserNotificationController::class, 'index'])->name('notifications');
+    Route::post('/notifications/read', [UserNotificationController::class, 'markRead'])->name('notifications.read');
 });

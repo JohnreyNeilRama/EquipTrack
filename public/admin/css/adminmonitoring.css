@@ -222,65 +222,14 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Modernized Table Design */
-.admin-table-card {
-    background-color: var(--card-bg);
-    border-radius: var(--admin-card-radius, 20px) !important;
-    border: 1px solid var(--border-color) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03) !important;
-    overflow: hidden;
-}
-
-.dark-theme .admin-table-card {
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
-}
-
+/* Table Design
+   The card border, border-collapse, header, cell padding/font, row dividers
+   and hover colour all come from the shared .admin-table-card rules in
+   admindashboard.css (and adminusers.css), so this table matches the Users,
+   Requests and other admin tables. Only monitoring-specific column layout is
+   kept below. */
 .admin-table-card table {
-    table-layout: fixed !important;
-    width: 100%;
-    border-collapse: separate !important;
-    border-spacing: 0 !important;
-}
-
-.admin-table-card th {
-    background-color: var(--table-header) !important;
-    color: #ffffff !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.8px !important;
-    padding: 18px 20px !important;
-    border-bottom: 2px solid rgba(0, 0, 0, 0.06) !important;
-}
-
-.dark-theme .admin-table-card th {
-    border-bottom: 2px solid rgba(255, 255, 255, 0.06) !important;
-}
-
-.admin-table-card td {
-    padding: 16px 20px !important;
-    font-size: 13.5px !important;
-    color: var(--text-main) !important;
-    border-bottom: 1px solid var(--border-color) !important;
-    vertical-align: middle !important;
-}
-
-.admin-table-card tr:last-child td {
-    border-bottom: none !important;
-}
-
-/* Smooth row transition and hover styling */
-.admin-table-row {
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.admin-table-row:hover td {
-    background-color: var(--primary-light) !important;
-}
-
-.dark-theme .admin-table-row:hover td {
-    background-color: rgba(96, 165, 250, 0.06) !important;
+    table-layout: fixed;
 }
 
 /* Text Column Readability Enhancements */

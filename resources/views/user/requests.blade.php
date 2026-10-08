@@ -47,7 +47,7 @@
                     <th>Borrow Date</th>
                     <th>Due Date</th>
                     <th>Status</th>
-                    <th>Action</th>
+                    <th style="text-align: center;">Action</th>
                 </tr>
             </thead>
             <tbody id="requestsTableBody">
@@ -92,7 +92,7 @@
                                 {{ $status }}
                             </span>
                         </td>
-                        <td>
+                        <td style="text-align: center;">
                             <button type="button" class="btn-view-request" onclick="openRequestDetails(this)">
                                 <i class="fa-regular fa-eye"></i> View
                             </button>
@@ -107,6 +107,14 @@
                 @endforelse
             </tbody>
         </table>
+
+        {{-- Pagination Footer --}}
+        <div class="pagination-container" id="paginationContainer">
+            <span class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 entries</span>
+            <div class="pagination-buttons" id="paginationButtons">
+                {{-- Buttons added dynamically --}}
+            </div>
+        </div>
     </div>
 
     {{-- Request Details Modal --}}
@@ -186,26 +194,96 @@
     const detailsModal = document.getElementById('detailsModal');
     const closeDetailsBtn = document.getElementById('closeDetailsBtn');
 
-    // Function to filter requests in real-time
+    // Pagination elements & state (same behavior as the Admin tables)
+    const paginationContainer = document.getElementById('paginationContainer');
+    const paginationInfo = document.getElementById('paginationInfo');
+    const paginationButtons = document.getElementById('paginationButtons');
+    const allRows = Array.from(document.querySelectorAll('.request-row'));
+    let currentPage = 1;
+    const pageSize = 10;
+
+    // Filters/search changed: go back to the first page, then re-render
     function filterRequests() {
-        const rows = document.querySelectorAll('.request-row');
+        currentPage = 1;
+        renderRequestsTable();
+    }
+
+    // Apply search + status filter, then show only the rows of the current page
+    function renderRequestsTable() {
         const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
         const filterVal = statusFilter ? statusFilter.value : 'All';
 
-        rows.forEach(row => {
+        const filtered = allRows.filter(row => {
             const equipment = (row.getAttribute('data-equipment') || '').toLowerCase();
             const category  = (row.getAttribute('data-category') || '').toLowerCase();
             const status    = row.getAttribute('data-status') || '';
 
             const matchesSearch = !query || equipment.includes(query) || category.includes(query);
             const matchesFilter = (filterVal === 'All' || status === filterVal);
-
-            if (matchesSearch && matchesFilter) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
+            return matchesSearch && matchesFilter;
         });
+
+        const totalEntries = filtered.length;
+        const totalPages = Math.ceil(totalEntries / pageSize);
+
+        if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
+
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = Math.min(startIndex + pageSize, totalEntries);
+        const pageRows = filtered.slice(startIndex, endIndex);
+
+        allRows.forEach(row => {
+            row.style.display = 'none';
+            row.classList.remove('last-visible-row');
+        });
+        pageRows.forEach(row => { row.style.display = ''; });
+        if (pageRows.length) {
+            pageRows[pageRows.length - 1].classList.add('last-visible-row');
+        }
+
+        if (totalEntries === 0) {
+            paginationContainer.style.display = 'none';
+        } else {
+            paginationContainer.style.display = 'flex';
+            paginationInfo.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${totalEntries} entries`;
+            renderPaginationButtons(totalPages);
+        }
+    }
+
+    // Render pagination buttons dynamically (same behavior as Admin Users)
+    function renderPaginationButtons(totalPages) {
+        paginationButtons.innerHTML = '';
+
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'btn-page';
+        prevBtn.innerHTML = '<i class="fa-solid fa-angle-left"></i>';
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.addEventListener('click', () => {
+            currentPage--;
+            renderRequestsTable();
+        });
+        paginationButtons.appendChild(prevBtn);
+
+        for (let i = 1; i <= totalPages; i++) {
+            const pageBtn = document.createElement('button');
+            pageBtn.className = `btn-page ${currentPage === i ? 'active' : ''}`;
+            pageBtn.textContent = i;
+            pageBtn.addEventListener('click', () => {
+                currentPage = i;
+                renderRequestsTable();
+            });
+            paginationButtons.appendChild(pageBtn);
+        }
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'btn-page';
+        nextBtn.innerHTML = '<i class="fa-solid fa-angle-right"></i>';
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.addEventListener('click', () => {
+            currentPage++;
+            renderRequestsTable();
+        });
+        paginationButtons.appendChild(nextBtn);
     }
 
     // Function to open request details modal
@@ -267,5 +345,8 @@
 
     searchInput.addEventListener('input', filterRequests);
     statusFilter.addEventListener('change', filterRequests);
+
+    // Initial render
+    renderRequestsTable();
 </script>
 @endpush

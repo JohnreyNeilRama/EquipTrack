@@ -87,10 +87,11 @@
 .history-table-card {
     background-color: var(--card-bg);
     border-radius: 20px !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04) !important;
     border: 1px solid var(--table-border, #718096) !important;
-    overflow: hidden;
+    overflow-x: auto;
     width: 100%;
+    max-width: 100%;
     margin-bottom: 40px;
 }
 
@@ -108,32 +109,147 @@
     background-color: var(--table-header) !important; /* #8AA4D2 matching screenshot */
     color: #ffffff !important;
     font-size: 14px !important;
-    font-weight: 500 !important;
-    padding: 16px 24px !important;
+    font-weight: 600 !important;
+    padding: 16px 20px !important;
     text-align: left;
     border: none !important;
     border-bottom: 1px solid var(--table-border, #718096) !important;
 }
 
 .history-table-card td {
-    padding: 16px 24px !important;
+    padding: 16px 20px !important;
     font-size: 14px !important;
     color: var(--text-main) !important;
     border-bottom: 1px solid var(--table-border, #718096) !important;
     background: transparent !important;
+    vertical-align: middle;
 }
 
 .history-table-card tr:last-child td {
     border-bottom: none !important;
 }
 
+/* Set by the page script on the last row currently shown, so filtered/paged
+   lists never double up against the pagination footer line. */
+.history-table-card tbody tr.last-visible-row td {
+    border-bottom: none !important;
+}
+
 .history-table-card tbody tr {
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s ease;
 }
 
 .history-table-card tbody tr:hover td {
-    background-color: var(--bg-color) !important;
+    background-color: rgba(56, 85, 133, 0.03) !important;
+}
+
+.dark-theme .history-table-card tbody tr:hover td {
+    background-color: rgba(96, 165, 250, 0.05) !important;
+}
+
+/* Status pills inside the table — same look as the Admin tables */
+.history-table-card .status-text {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.history-table-card .status-text.status-returned {
+    background-color: rgba(16, 185, 129, 0.08);
+    color: #10b981;
+}
+
+.history-table-card .status-text.status-late,
+.history-table-card .status-text.status-rejected {
+    background-color: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+}
+
+.history-table-card .status-text.status-borrowed {
+    background-color: rgba(56, 85, 133, 0.08);
+    color: #4f6b9c;
+}
+
+.history-table-card .status-text.status-pending {
+    background-color: rgba(71, 85, 105, 0.08);
+    color: #475569;
+}
+
+.dark-theme .history-table-card .status-text.status-returned {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}
+
+.dark-theme .history-table-card .status-text.status-late,
+.dark-theme .history-table-card .status-text.status-rejected {
+    background-color: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+}
+
+.dark-theme .history-table-card .status-text.status-borrowed {
+    background-color: rgba(96, 165, 250, 0.15);
+    color: #93c5fd;
+}
+
+.dark-theme .history-table-card .status-text.status-pending {
+    background-color: rgba(226, 232, 240, 0.1);
+    color: #cbd5e1;
+}
+
+/* Pagination footer (same design as Admin Users table) */
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+}
+
+.pagination-info {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-page {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-page:hover:not(:disabled) {
+    background-color: var(--hover-color);
+}
+
+.btn-page:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-page.active {
+    background-color: #385585;
+    color: #ffffff;
+    border-color: #385585;
+}
+
+.dark-theme .btn-page.active {
+    background-color: var(--primary-sidebar);
+    border-color: var(--primary-sidebar);
 }
 
 /* Status colors matching mockup */
