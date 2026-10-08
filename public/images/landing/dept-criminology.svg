@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Criminal justice">
+  <circle cx="64" cy="64" r="60" fill="#eff4fa" stroke="#d6e2f3" stroke-width="2"/>
+  <rect x="61" y="34" width="6" height="56" rx="3" fill="#385585"/>
+  <rect x="44" y="90" width="40" height="8" rx="4" fill="#385585"/>
+  <rect x="26" y="38" width="76" height="6" rx="3" fill="#385585"/>
+  <circle cx="64" cy="32" r="6" fill="#3b82f6"/>
+  <path d="M32 44 L20 72 M32 44 L44 72 M96 44 L84 72 M96 44 L108 72" fill="none" stroke="#385585" stroke-width="3" stroke-linecap="round"/>
+  <path d="M16 72 h32 a16 16 0 0 1 -32 0 z" fill="#385585"/>
+  <path d="M80 72 h32 a16 16 0 0 1 -32 0 z" fill="#385585"/>
+</svg>

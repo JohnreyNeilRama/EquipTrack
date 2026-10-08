@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Education">
+  <circle cx="64" cy="64" r="60" fill="#eff4fa" stroke="#d6e2f3" stroke-width="2"/>
+  <path d="M40 64 v20 c0 10 48 10 48 0 v-20 l-24 11 z" fill="#2A3F63"/>
+  <polygon points="64,34 108,54 64,74 20,54" fill="#385585"/>
+  <path d="M100 58 v24" fill="none" stroke="#3b82f6" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="100" cy="86" r="5" fill="#3b82f6"/>
+</svg>
