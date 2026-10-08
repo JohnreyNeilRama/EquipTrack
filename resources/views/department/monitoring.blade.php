@@ -87,6 +87,7 @@
                     <option value="available">Available</option>
                     <option value="reserved">Reserved</option>
                     <option value="maintenance">Maintenance</option>
+                    <option value="unavailable">Unavailable</option>
                 </select>
                 <i class="fa-solid fa-chevron-down"></i>
             </div>
@@ -113,7 +114,7 @@
                         <th style="width: 14%;">Borrow Date</th>
                         <th style="width: 14%;">Return Date</th>
                         <th style="width: 12%;">Status</th>
-                        <th style="width: 8%; text-align: center;">Actions</th>
+                        <th style="width: 8%;">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="monitoringTableBody">
@@ -124,10 +125,8 @@
             <!-- Table Footer Pagination Matching Reference Image -->
             <div class="table-footer-pagination">
                 <span class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 entries</span>
-                <div class="pagination-controls">
-                    <button class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></button>
-                    <button class="page-btn active">1</button>
-                    <button class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></button>
+                <div class="pagination-controls" id="paginationControls">
+                    <!-- Buttons added dynamically -->
                 </div>
             </div>
         </div>
@@ -140,35 +139,62 @@
         </div>
 <!-- View Details Modal -->
     <div class="modal-overlay" id="viewMonitoringModal">
-        <div class="modal-card">
-            <button class="modal-close" id="closeViewModalBtn">&times;</button>
-            <h3 class="modal-title-center">Monitoring Details</h3>
-            <p class="modal-subtitle-top">Equipment monitoring and borrower information</p>
+        <div class="eq-modal-card">
+            <div class="modal-outer-header">
+                <p class="modal-subtitle-top">Equipment monitoring record details</p>
+            </div>
+            <div class="modal-inner-card">
+                <button class="modal-close" id="closeViewModalBtn">&times;</button>
+                <h3 class="modal-title-center">Borrowing Details</h3>
             
-            <div class="view-details-card">
-                <div class="view-detail-item">
-                    <span class="label">Equipment Name</span>
-                    <span class="val" id="viewEquipmentName">-</span>
+                <!-- Borrower info block -->
+                <div class="modal-requester-profile">
+                    <img src="" alt="Avatar" class="modal-requester-avatar" id="viewBorrowerAvatar">
+                    <div class="modal-requester-meta">
+                        <span class="modal-requester-name" id="viewBorrower">-</span>
+                        <span class="modal-requester-details"><span id="viewRole">-</span> | ID: <span id="viewBorrowerId">-</span></span>
+                    </div>
                 </div>
-                <div class="view-detail-item">
-                    <span class="label">Borrower</span>
-                    <span class="val" id="viewBorrower">-</span>
+
+                <!-- Main Fields Content -->
+                <div class="detail-main-content">
+                    <div class="detail-left-side">
+                        <div class="detail-img-container">
+                            <img src="" alt="Equipment Image" id="viewEquipmentImg">
+                        </div>
+                        <div class="detail-form-group">
+                            <label class="detail-form-label">Status</label>
+                            <div class="status-badge-wrapper">
+                                <span class="status-badge" id="viewStatus">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-right-side">
+                        <div class="detail-form-grid">
+                            <div class="detail-form-group">
+                                <label class="detail-form-label">Equipment Name</label>
+                                <input type="text" id="viewEquipmentName" class="detail-form-control" readonly>
+                            </div>
+                            <div class="detail-form-group">
+                                <label class="detail-form-label">Category</label>
+                                <input type="text" id="viewCategory" class="detail-form-control" readonly>
+                            </div>
+                            <div class="detail-form-group">
+                                <label class="detail-form-label">Borrow Date</label>
+                                <input type="text" id="viewBorrowDate" class="detail-form-control" readonly>
+                            </div>
+                            <div class="detail-form-group">
+                                <label class="detail-form-label">Due Date</label>
+                                <input type="text" id="viewReturnDate" class="detail-form-control" readonly>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="view-detail-item">
-                    <span class="label">Role</span>
-                    <span class="val" id="viewRole">-</span>
-                </div>
-                <div class="view-detail-item">
-                    <span class="label">Borrow Date</span>
-                    <span class="val" id="viewBorrowDate">-</span>
-                </div>
-                <div class="view-detail-item">
-                    <span class="label">Return Date</span>
-                    <span class="val" id="viewReturnDate">-</span>
-                </div>
-                <div class="view-detail-item">
-                    <span class="label">Status</span>
-                    <span class="val" id="viewStatus">-</span>
+
+                <!-- Modal Actions Footer -->
+                <div class="modal-actions-footer">
+                    <button type="button" class="btn-modal-close" id="closeViewModalFooterBtn">Close</button>
                 </div>
             </div>
         </div>
@@ -231,6 +257,7 @@
             const filterCategorySelect = document.getElementById('filterCategory');
             const emptyStateContainer = document.getElementById('emptyStateContainer');
             const paginationInfo = document.getElementById('paginationInfo');
+            const paginationControls = document.getElementById('paginationControls');
             const toastNotif = document.getElementById('toastNotif');
             const toastMessage = document.getElementById('toastMessage');
 
@@ -244,20 +271,20 @@
             const viewMonitoringModal = document.getElementById('viewMonitoringModal');
             const closeViewModalBtn = document.getElementById('closeViewModalBtn');
 
-            // Storage Management
-            let monitoringData = JSON.parse(localStorage.getItem('equip-track-monitoring-data'));
-            if (!monitoringData || !Array.isArray(monitoringData)) {
-                monitoringData = [];
-            } else {
-                monitoringData = monitoringData.filter(m => !['MON-101', 'MON-102', 'MON-103', 'MON-104', 'MON-105'].includes(m.id));
-            }
-            localStorage.setItem('equip-track-monitoring-data', JSON.stringify(monitoringData));
+            // Monitoring rows loaded live from the database for this department
+            // (one row per active loan, or one row per equipment with no active loan).
+            let monitoringData = @json($dbMonitoring);
+
+            // Pagination state
+            let currentPage = 1;
+            const pageSize = 10;
 
             function updateSummaryCards() {
                 const totalCount = monitoringData.length;
-                const availableCount = monitoringData.filter(m => m.status === 'AVAILABLE').length;
-                const borrowedCount = monitoringData.filter(m => m.status === 'BORROWED').length;
-                const reservedCount = monitoringData.filter(m => m.status === 'RESERVED').length;
+                const availableCount = monitoringData.filter(m => m.status.toLowerCase() === 'available').length;
+                // Items currently out on loan (including overdue ones)
+                const borrowedCount = monitoringData.filter(m => ['borrowed', 'overdue'].includes(m.status.toLowerCase())).length;
+                const reservedCount = monitoringData.filter(m => ['reserved', 'on hold'].includes(m.status.toLowerCase())).length;
 
                 if (sumTotalMonitored) sumTotalMonitored.textContent = totalCount;
                 if (sumAvailable) sumAvailable.textContent = availableCount;
@@ -276,14 +303,37 @@
             function renderTable() {
                 tableBody.innerHTML = '';
 
-                monitoringData.forEach(item => {
-                    const tr = document.createElement('tr');
-                    const statusLower = item.status.toLowerCase();
+                const query = searchInput.value.toLowerCase().trim();
+                const selectedRole = filterRoleSelect.value.toLowerCase();
+                const selectedStatus = filterStatusSelect.value.toLowerCase();
+                const selectedCategory = filterCategorySelect.value.toLowerCase();
 
-                    tr.setAttribute('data-role', item.role.toLowerCase());
-                    tr.setAttribute('data-status', statusLower);
-                    tr.setAttribute('data-category', item.category.toLowerCase());
-                    tr.setAttribute('data-search', `${item.equipment} ${item.borrower} ${item.role} ${item.status}`.toLowerCase());
+                const filtered = monitoringData.filter(item => {
+                    const status = item.status.toLowerCase();
+                    const searchData = `${item.equipment} ${item.borrower} ${item.id_number} ${item.role} ${item.status}`.toLowerCase();
+
+                    const matchesSearch = searchData.includes(query);
+                    const matchesRole = (selectedRole === 'all' || item.role.toLowerCase().includes(selectedRole));
+                    const matchesCategory = (selectedCategory === 'all' || item.category.toLowerCase().includes(selectedCategory));
+                    const matchesStatus = (selectedStatus === 'all' ||
+                        status === selectedStatus ||
+                        (selectedStatus === 'maintenance' && status === 'under maintenance') ||
+                        (selectedStatus === 'reserved' && status === 'on hold'));
+
+                    return matchesSearch && matchesRole && matchesCategory && matchesStatus;
+                });
+
+                const totalEntries = filtered.length;
+                const totalPages = Math.ceil(totalEntries / pageSize);
+
+                if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
+
+                const startIndex = (currentPage - 1) * pageSize;
+                const endIndex = Math.min(startIndex + pageSize, totalEntries);
+                const pageItems = filtered.slice(startIndex, endIndex);
+
+                pageItems.forEach(item => {
+                    const tr = document.createElement('tr');
 
                     let actionContent = `
                         <button class="btn-action-view" onclick="openViewModal('${item.id}')">
@@ -306,14 +356,54 @@
                         <td class="col-date">${escapeHTML(item.borrowDate)}</td>
                         <td class="col-date">${escapeHTML(item.returnDate)}</td>
                         <td><span class="status-badge ${statusClass(item.status)}">${escapeHTML(item.status)}</span></td>
-                        <td style="text-align: center;">${actionContent}</td>
+                        <td>${actionContent}</td>
                     `;
 
                     tableBody.appendChild(tr);
                 });
 
                 updateSummaryCards();
-                filterTable();
+
+                if (paginationInfo) {
+                    paginationInfo.textContent = totalEntries > 0
+                        ? `Showing ${startIndex + 1} to ${endIndex} of ${totalEntries} entries`
+                        : 'Showing 0 to 0 of 0 entries';
+                }
+                renderPaginationButtons(totalPages);
+
+                emptyStateContainer.style.display = totalEntries === 0 ? 'flex' : 'none';
+            }
+
+            // Render pagination buttons dynamically (keeps the existing page-btn design)
+            function renderPaginationButtons(totalPages) {
+                paginationControls.innerHTML = '';
+
+                const makeBtn = (html, disabled, active, onClick) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'page-btn' + (disabled ? ' disabled' : '') + (active ? ' active' : '');
+                    btn.innerHTML = html;
+                    btn.disabled = disabled;
+                    if (!disabled) btn.addEventListener('click', onClick);
+                    return btn;
+                };
+
+                paginationControls.appendChild(makeBtn('<i class="fa-solid fa-chevron-left"></i>', currentPage <= 1, false, () => {
+                    currentPage--;
+                    renderTable();
+                }));
+
+                const pagesToShow = Math.max(1, totalPages);
+                for (let i = 1; i <= pagesToShow; i++) {
+                    paginationControls.appendChild(makeBtn(String(i), false, currentPage === i, () => {
+                        currentPage = i;
+                        renderTable();
+                    }));
+                }
+
+                paginationControls.appendChild(makeBtn('<i class="fa-solid fa-chevron-right"></i>', currentPage >= totalPages, false, () => {
+                    currentPage++;
+                    renderTable();
+                }));
             }
 
             function statusClass(status) {
@@ -321,8 +411,11 @@
                     case 'BORROWED': return 'borrowed';
                     case 'OVERDUE': return 'overdue';
                     case 'AVAILABLE': return 'available';
-                    case 'RESERVED': return 'reserved';
-                    case 'MAINTENANCE': return 'maintenance';
+                    case 'RESERVED':
+                    case 'ON HOLD': return 'reserved';
+                    case 'MAINTENANCE':
+                    case 'UNDER MAINTENANCE':
+                    case 'UNAVAILABLE': return 'maintenance';
                     default: return 'available';
                 }
             }
@@ -343,12 +436,29 @@
             window.openViewModal = function(id) {
                 const item = monitoringData.find(m => m.id === id);
                 if (item) {
-                    document.getElementById('viewEquipmentName').textContent = item.equipment;
-                    document.getElementById('viewBorrower').textContent = item.borrower;
-                    document.getElementById('viewRole').textContent = item.role;
-                    document.getElementById('viewBorrowDate').textContent = item.borrowDate;
-                    document.getElementById('viewReturnDate').textContent = item.returnDate;
-                    document.getElementById('viewStatus').textContent = item.status;
+                    document.getElementById('viewBorrowerAvatar').src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(item.borrower || 'N/A') + '&background=385585&color=fff&bold=true';
+                    document.getElementById('viewBorrower').textContent = item.borrower || '—';
+                    document.getElementById('viewRole').textContent = item.role || '—';
+                    document.getElementById('viewBorrowerId').textContent = item.id_number || 'N/A';
+
+                    document.getElementById('viewEquipmentName').value = item.equipment || '—';
+                    document.getElementById('viewCategory').value = item.category || '—';
+                    document.getElementById('viewBorrowDate').value = item.borrowDate || '—';
+                    document.getElementById('viewReturnDate').value = item.returnDate || '—';
+
+                    // Equipment picture from the equipment record; falls back to the logo if missing or broken
+                    const fallbackImg = '{{ asset('images/EquipTrack_logo.png') }}';
+                    const eqImg = document.getElementById('viewEquipmentImg');
+                    eqImg.onerror = function () {
+                        this.onerror = null;
+                        this.src = fallbackImg;
+                    };
+                    eqImg.src = item.img || fallbackImg;
+
+                    const statusBadge = document.getElementById('viewStatus');
+                    statusBadge.textContent = item.status;
+                    statusBadge.className = 'status-badge ' + statusClass(item.status);
+
                     viewMonitoringModal.classList.add('show');
                 }
             };
@@ -363,49 +473,23 @@
                 });
             }
 
+            const closeViewModalFooterBtn = document.getElementById('closeViewModalFooterBtn');
+            if (closeViewModalFooterBtn) {
+                closeViewModalFooterBtn.addEventListener('click', () => {
+                    viewMonitoringModal.classList.remove('show');
+                });
+            }
+
             viewMonitoringModal.addEventListener('click', (e) => {
                 if (e.target === viewMonitoringModal) {
                     viewMonitoringModal.classList.remove('show');
                 }
             });
 
+            // Search/filters changed: go back to the first page, then re-render
             function filterTable() {
-                const query = searchInput.value.toLowerCase().trim();
-                const selectedRole = filterRoleSelect.value.toLowerCase();
-                const selectedStatus = filterStatusSelect.value.toLowerCase();
-                const selectedCategory = filterCategorySelect.value.toLowerCase();
-
-                const rows = tableBody.querySelectorAll('tr');
-                let visibleCount = 0;
-
-                rows.forEach(row => {
-                    const searchData = row.getAttribute('data-search');
-                    const rowRole = row.getAttribute('data-role');
-                    const rowStatus = row.getAttribute('data-status');
-                    const rowCategory = row.getAttribute('data-category');
-
-                    const matchesSearch = searchData.includes(query);
-                    const matchesRole = (selectedRole === 'all' || rowRole.includes(selectedRole));
-                    const matchesStatus = (selectedStatus === 'all' || rowStatus === selectedStatus);
-                    const matchesCategory = (selectedCategory === 'all' || rowCategory.includes(selectedCategory));
-
-                    if (matchesSearch && matchesRole && matchesStatus && matchesCategory) {
-                        row.style.display = '';
-                        visibleCount++;
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-
-                if (paginationInfo) {
-                    paginationInfo.textContent = `Showing ${visibleCount > 0 ? 1 : 0} to ${visibleCount} of ${visibleCount} entries`;
-                }
-
-                if (visibleCount === 0) {
-                    emptyStateContainer.style.display = 'flex';
-                } else {
-                    emptyStateContainer.style.display = 'none';
-                }
+                currentPage = 1;
+                renderTable();
             }
 
             searchInput.addEventListener('input', filterTable);

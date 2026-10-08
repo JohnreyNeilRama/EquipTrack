@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Department\DepartmentDashboardController;
 
 use App\Http\Controllers\Department\DepartmentEquipmentController;
+use App\Http\Controllers\Department\DepartmentMonitoringController;
 use App\Http\Controllers\Department\DepartmentNotificationController;
 use App\Http\Controllers\Department\DepartmentProfileController;
 use App\Http\Controllers\Department\DepartmentRequestsController;
@@ -79,7 +80,7 @@ Route::middleware(['auth:dept', 'active'])->prefix('department')->name('departme
     Route::post('/requests/update-status', [DepartmentRequestsController::class, 'updateStatus'])->name('requests.update');
     Route::get('/users', [DepartmentUsersController::class, 'index'])->name('users');
     Route::get('/users/data', [DepartmentUsersController::class, 'data'])->name('users.data');
-    Route::get('/monitoring', fn () => view('department.monitoring', $catNames()))->name('monitoring');
+    Route::get('/monitoring', [DepartmentMonitoringController::class, 'index'])->name('monitoring');
     Route::get('/history', fn () => view('department.history', $catNames()))->name('history');
     Route::get('/notifications', [DepartmentNotificationController::class, 'index'])->name('notifications');
     Route::post('/notifications/read', [DepartmentNotificationController::class, 'markRead'])->name('notifications.read');

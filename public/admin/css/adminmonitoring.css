@@ -486,6 +486,65 @@
     .col-status { width: 18%; }
 }
 
+/* Borrowing Details Modal Sizing Override
+   adminequipment.css forces .eq-modal-card to max-width: 500px !important,
+   which also beats the inline max-width on this modal. Scoped to this modal
+   only (same approach as #userDetailsModal on the Users page). The card keeps
+   width: 100%, so it shrinks to fit smaller screens; the existing 768px rules
+   in adminusers.css still stack the layout on mobile. */
+#detailsModal .eq-modal-card {
+    max-width: 920px !important;
+}
+
+#detailsModal .modal-inner-card {
+    padding: 36px 40px;
+}
+
+#detailsModal .detail-main-content {
+    gap: 32px;
+}
+
+#detailsModal .detail-left-side {
+    width: 240px;
+}
+
+#detailsModal .detail-img-container {
+    width: 240px;
+    height: 240px;
+}
+
+#detailsModal .detail-form-grid {
+    gap: 18px 24px;
+}
+
+@media (max-width: 992px) {
+    #detailsModal .eq-modal-card {
+        max-width: 760px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    #detailsModal .modal-inner-card {
+        padding: 28px 20px;
+    }
+    #detailsModal .detail-left-side {
+        width: 100%;
+    }
+    #detailsModal .detail-img-container {
+        width: 100%;
+        max-width: 240px;
+    }
+}
+
+@media (max-width: 480px) {
+    #detailsModal.modal-overlay {
+        padding: 24px 12px;
+    }
+    #detailsModal .modal-inner-card {
+        padding: 24px 16px;
+    }
+}
+
 /* Modal Actions Footer Override Styles */
 .modal-actions-footer .btn-action-confirm {
     background-color: #10b981 !important;
