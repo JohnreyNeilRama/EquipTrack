@@ -1,0 +1,210 @@
+/* ==========================================================================
+   EquipTrack — Department top navbar (single source of truth)
+   --------------------------------------------------------------------------
+   Loaded by layouts/department.blade.php AFTER every page stylesheet, so all
+   Department pages render exactly the same navbar as the Department Dashboard
+   (the design reference). Only navbar layout/appearance lives here; colours
+   come from the existing theme variables, so light/dark themes are unchanged.
+   ========================================================================== */
+
+/* Keep the page width identical whether or not the page has a vertical
+   scrollbar. Without this, short pages (no scrollbar) are ~15px wider than
+   long pages (scrollbar), which shifts the right-aligned navbar. */
+html {
+    scrollbar-gutter: stable;
+}
+
+@supports not (scrollbar-gutter: stable) {
+    html {
+        overflow-y: scroll;
+    }
+}
+
+/* Bar: same width, height, position and alignment on every page */
+.top-navbar {
+    box-sizing: border-box;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%;
+    min-height: 96px;
+    flex-shrink: 0;
+    padding: 10px 0 30px 0;
+    margin: 0;
+    border-bottom: none;
+}
+
+/* Pill */
+.top-navbar .navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    max-width: 100%;
+    min-width: 0;
+    background: var(--card-bg);
+    padding: 8px 15px 8px 25px;
+    border-radius: 40px;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--border-color);
+}
+
+.top-navbar .navbar-divider {
+    flex-shrink: 0;
+    width: 1px;
+    height: 20px;
+    margin: 0 4px;
+    background-color: var(--border-color, #e2e8f0);
+}
+
+.top-navbar .icon-btn,
+.top-navbar .notif-wrapper {
+    flex-shrink: 0;
+}
+
+.top-navbar .icon-btn {
+    width: 36px;
+    height: 36px;
+}
+
+/* Profile / name area */
+.top-navbar .user-profile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 0 0 0 15px;
+    border-left: none;
+    border-radius: 0;
+    cursor: pointer;
+}
+
+.top-navbar .profile-avatar {
+    flex-shrink: 0;
+}
+
+/* Long names are cut with an ellipsis instead of growing the pill */
+.top-navbar .user-name {
+    display: inline-block;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.top-navbar .dropdown-arrow {
+    flex-shrink: 0;
+}
+
+/* Profile dropdown (same look as the Dashboard) */
+.top-navbar .profile-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    width: 220px;
+    max-width: calc(100vw - 32px);
+    padding: 8px;
+    background-color: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-10px);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+}
+
+.top-navbar .profile-dropdown-menu.show {
+    display: flex;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.top-navbar .dropdown-profile-header {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: 10px 12px;
+    text-align: left;
+}
+
+.top-navbar .dropdown-profile-header .header-name,
+.top-navbar .dropdown-profile-header .header-email {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.top-navbar .dropdown-profile-header .header-name {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.top-navbar .dropdown-profile-header .header-email {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.top-navbar .dropdown-divider {
+    height: 1px;
+    margin: 6px 0;
+    background-color: var(--border-color, #e2e8f0);
+}
+
+.top-navbar .profile-dropdown-menu a,
+.top-navbar .profile-dropdown-menu button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-main);
+    text-decoration: none;
+    text-align: left;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.top-navbar .profile-dropdown-menu a:hover,
+.top-navbar .profile-dropdown-menu button:hover {
+    background-color: var(--primary-light, #f1f5f9);
+    color: var(--primary-color, #385585);
+}
+
+.top-navbar .profile-dropdown-menu a.danger,
+.top-navbar .profile-dropdown-menu button.danger {
+    color: #ef4444;
+}
+
+.top-navbar .profile-dropdown-menu a.danger:hover,
+.top-navbar .profile-dropdown-menu button.danger:hover {
+    background-color: rgba(239, 68, 68, 0.08);
+    color: #dc2626;
+}
+
+/* Small screens: only the name gets tighter, nothing else moves */
+@media (max-width: 480px) {
+    .top-navbar .user-name {
+        max-width: 96px;
+    }
+}
