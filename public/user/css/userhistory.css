@@ -584,3 +584,54 @@
         height: 150px;
     }
 }
+
+/* --------------------------------------------------------------------------
+   Top navbar stability (Borrowing History page, same fix as Dashboard)
+   --------------------------------------------------------------------------
+   .navbar-right sizes itself to its content and the bar is right-aligned,
+   so a long name in .user-name used to grow the whole pill and shift its
+   position. Capping the name's width and truncating with an ellipsis keeps
+   the pill's width and position constant no matter how long the name is.
+   -------------------------------------------------------------------------- */
+.top-navbar .navbar-right {
+    max-width: 100%;
+}
+
+.top-navbar .user-profile {
+    min-width: 0;
+}
+
+.top-navbar .user-name {
+    display: inline-block;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.top-navbar .dropdown-arrow {
+    flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+    .top-navbar .user-name {
+        max-width: 96px;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Top navbar width parity with the Dashboard
+   --------------------------------------------------------------------------
+   The navbar markup/CSS is identical on every User page, but this page's
+   table is tall enough to trigger a vertical scrollbar that the (usually
+   shorter) Dashboard doesn't get. A scrollbar shrinks the usable page width,
+   which narrows and shifts .navbar-right relative to the Dashboard. Always
+   reserving the scrollbar's gutter keeps this page's width constant whether
+   or not the table actually needs to scroll, matching the Dashboard.
+   Scoped to this page only, via its own .history-table-card marker.
+   -------------------------------------------------------------------------- */
+html:has(.history-table-card) {
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+}

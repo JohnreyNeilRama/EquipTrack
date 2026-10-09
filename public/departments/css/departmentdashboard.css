@@ -1,1 +1,36 @@
 /* Department Personnel Dashboard Stylesheet - inherited from ccs/admindashboard.css and ccs/userdashboard.css */
+
+/* --------------------------------------------------------------------------
+   Top navbar stability (Department Dashboard page, same fix as User Dashboard)
+   --------------------------------------------------------------------------
+   .navbar-right sizes itself to its content and the bar is right-aligned,
+   so a long name in .user-name used to grow the whole pill and shift its
+   position. Capping the name's width and truncating with an ellipsis keeps
+   the pill's width and position constant no matter how long the name is.
+   -------------------------------------------------------------------------- */
+.top-navbar .navbar-right {
+    max-width: 100%;
+}
+
+.top-navbar .user-profile {
+    min-width: 0;
+}
+
+.top-navbar .user-name {
+    display: inline-block;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.top-navbar .dropdown-arrow {
+    flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+    .top-navbar .user-name {
+        max-width: 96px;
+    }
+}
