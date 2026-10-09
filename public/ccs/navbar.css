@@ -1,10 +1,10 @@
 /* ==========================================================================
-   EquipTrack — Department top navbar (single source of truth)
+   EquipTrack — Department & Admin top navbar (single source of truth)
    --------------------------------------------------------------------------
-   Loaded by layouts/department.blade.php AFTER every page stylesheet, so all
-   Department pages render exactly the same navbar as the Department Dashboard
-   (the design reference). Only navbar layout/appearance lives here; colours
-   come from the existing theme variables, so light/dark themes are unchanged.
+   Loaded AFTER every page stylesheet, so each page that includes it renders
+   exactly the same navbar as the Dashboard (the design reference). Only
+   navbar layout/appearance lives here; colours come from the existing theme
+   variables, so light/dark themes are unchanged.
    ========================================================================== */
 
 /* Keep the page width identical whether or not the page has a vertical
