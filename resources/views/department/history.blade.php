@@ -85,6 +85,7 @@
                     <option value="returned">Returned</option>
                     <option value="returned late">Returned Late</option>
                     <option value="damaged">Damaged</option>
+                    <option value="lost">Lost</option>
                 </select>
                 <i class="fa-solid fa-chevron-down"></i>
             </div>
@@ -105,30 +106,28 @@
             <table class="history-table">
                 <thead>
                     <tr>
-                        <th style="width: 10%;">Transaction ID</th>
-                        <th style="width: 10%;">ID Number</th>
+                        <th style="width: 13%;">Transaction ID</th>
+                        <th style="width: 12%;">ID Number</th>
                         <th style="width: 14%;">Name</th>
-                        <th style="width: 10%;">User Type</th>
-                        <th style="width: 14%;">Year Level / Attainment</th>
-                        <th style="width: 18%;">Equipment</th>
-                        <th style="width: 9%;">Borrow Date</th>
-                        <th style="width: 9%;">Return Date</th>
-                        <th style="width: 10%;">Status</th>
-                        <th style="width: 6%; text-align: center;">Action</th>
+                        <th style="width: 13%;">User Type</th>
+                        <th style="width: 11%;">Year Level / Attainment</th>
+                        <th style="width: 14%;">Equipment</th>
+                        <th class="col-status" style="width: 16%;">Status</th>
+                        <th class="col-action" style="width: 7%;">Action</th>
                     </tr>
                 </thead>
                 <tbody id="historyTableBody">
-                    <!-- Dynamic rendering via JS -->
+                    <!-- Rendered from the database records by the script below -->
                 </tbody>
             </table>
 
-            <!-- Table Footer Pagination Matching Reference Image -->
+            <!-- Table Footer Pagination -->
             <div class="table-footer-pagination">
                 <span class="pagination-info" id="paginationInfo">Showing 0 of 0 transactions</span>
-                <div class="pagination-controls">
-                    <button class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></button>
-                    <button class="page-btn active">1</button>
-                    <button class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></button>
+                <div class="pagination-controls" id="paginationControls">
+                    <button type="button" class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button type="button" class="page-btn active">1</button>
+                    <button type="button" class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
             </div>
         </div>
@@ -136,50 +135,65 @@
         <!-- Empty State Container -->
         <div class="empty-state-container" id="emptyStateContainer" style="display: none; margin-top: 20px;">
             <i class="fa-solid fa-clock-rotate-left empty-state-icon"></i>
-            <h4>No records found</h4>
-            <p>No borrowing history transactions match your search or filter parameters.</p>
+            <h4 id="emptyStateTitle">No records found</h4>
+            <p id="emptyStateText">No borrowing history transactions match your search or filter parameters.</p>
         </div>
-<!-- Transaction Details Drawer -->
-    <div class="drawer-overlay" id="drawerOverlay"></div>
-    <aside class="user-drawer" id="txnDrawer">
-        <div class="drawer-header">
-            <h3>Transaction Details</h3>
-            <button class="drawer-close-btn" id="drawerCloseBtn">&times;</button>
-        </div>
-        <div class="drawer-body">
-            <span class="drawer-txn-badge" id="drawerTxnId">TXN-0000</span>
+<!-- Transaction Details Modal -->
+    <div class="modal-overlay" id="txnDetailsModal" role="dialog" aria-modal="true" aria-labelledby="txnModalTitle">
+        <div class="eq-modal-card">
+            <div class="modal-outer-header">
+                <p class="modal-subtitle-top">Detailed view of borrowing transaction information</p>
+            </div>
+            <div class="modal-inner-card">
+                <button type="button" class="modal-close" id="drawerCloseBtn" aria-label="Close">&times;</button>
+                <h3 class="modal-title-center" id="txnModalTitle">Transaction Details</h3>
 
-            <div class="info-grid">
-                <div class="info-item"><span class="label">Full Name</span><span class="value" id="biFullName">—</span></div>
-                <div class="info-item"><span class="label">ID Number</span><span class="value" id="biIdNumber">—</span></div>
-                <div class="info-item"><span class="label">User Type</span><span class="value" id="biUserType">—</span></div>
-                <div class="info-item"><span class="label">Year / Attainment</span><span class="value" id="biLevel">—</span></div>
-                <div class="info-item full"><span class="label">Equipment Name</span><span class="value" id="eqName">—</span></div>
-                <div class="info-item full"><span class="label">Category</span><span class="value" id="eqCategory">—</span></div>
-                <div class="info-item"><span class="label">Borrow Date</span><span class="value" id="bdBorrowDate">—</span></div>
-                <div class="info-item"><span class="label">Return Date</span><span class="value" id="bdReturnDate">—</span></div>
-                <div class="info-item full"><span class="label">Return Status</span><span class="value" id="bdReturnStatus">—</span></div>
+                <div class="txn-summary-strip">
+                    <div class="txn-summary-icon"><i class="fa-solid fa-receipt"></i></div>
+                    <div class="txn-summary-meta">
+                        <span class="txn-summary-label">Transaction ID</span>
+                        <span class="txn-summary-id" id="drawerTxnId">TXN-0000</span>
+                    </div>
+                </div>
+
+                <div class="txn-section">
+                    <h4 class="txn-section-title"><i class="fa-solid fa-user"></i> Borrower Information</h4>
+                    <div class="txn-grid">
+                        <div class="txn-field"><span class="txn-label">Full Name</span><span class="txn-value" id="biFullName">—</span></div>
+                        <div class="txn-field"><span class="txn-label">ID Number</span><span class="txn-value" id="biIdNumber">—</span></div>
+                        <div class="txn-field"><span class="txn-label">User Type</span><span class="txn-value" id="biUserType">—</span></div>
+                        <div class="txn-field"><span class="txn-label">Year Level / Attainment</span><span class="txn-value" id="biLevel">—</span></div>
+                    </div>
+                </div>
+
+                <div class="txn-section">
+                    <h4 class="txn-section-title"><i class="fa-solid fa-screwdriver-wrench"></i> Equipment Information</h4>
+                    <div class="txn-grid">
+                        <div class="txn-field"><span class="txn-label">Equipment Name</span><span class="txn-value" id="eqName">—</span></div>
+                        <div class="txn-field"><span class="txn-label">Category</span><span class="txn-value" id="eqCategory">—</span></div>
+                    </div>
+                </div>
+
+                <div class="txn-section">
+                    <h4 class="txn-section-title"><i class="fa-solid fa-calendar-check"></i> Borrowing &amp; Return Details</h4>
+                    <div class="txn-grid">
+                        <div class="txn-field"><span class="txn-label">Borrow Date</span><span class="txn-value" id="bdBorrowDate">—</span></div>
+                        <div class="txn-field"><span class="txn-label">Return Date</span><span class="txn-value" id="bdReturnDate">—</span></div>
+                        <div class="txn-field txn-field-full"><span class="txn-label">Return Status</span><span class="txn-value"><span class="status-badge-dot returned" id="bdReturnStatus">—</span></span></div>
+                        <div class="txn-field txn-field-full"><span class="txn-label">Return Remarks</span><span class="txn-value txn-value-remarks" id="bdRemarks">—</span></div>
+                    </div>
+                </div>
+
+                <div class="modal-actions-footer">
+                    <button type="button" class="btn-modal-close" id="txnCloseFooterBtn">Close</button>
+                </div>
             </div>
         </div>
-    </aside>
-
-    <!-- Interactivity Script -->
-    
-
-    <!-- Data & Table Script -->
+    </div>
 @endsection
 
 @push('scripts')
 <script>
-
-
-
-
-
-
-        
-
-
         // Mobile sidebar toggle
         const sidebar = document.getElementById('sidebar');
         const sidebarScrim = document.getElementById('sidebarScrim');
@@ -204,100 +218,38 @@
                 alert('No new notifications.');
             });
         }
-    
+
 
         document.addEventListener('DOMContentLoaded', () => {
+            const URL_DATA = @json(route('department.history.data'));
+            const REFRESH_MS = 10000;
+            const PAGE_SIZE = 10;
+
             const tableBody = document.getElementById('historyTableBody');
             const searchInput = document.getElementById('searchHistory');
             const filterRoleSelect = document.getElementById('filterRole');
             const filterStatusSelect = document.getElementById('filterStatus');
             const filterCategorySelect = document.getElementById('filterCategory');
             const emptyStateContainer = document.getElementById('emptyStateContainer');
+            const emptyStateTitle = document.getElementById('emptyStateTitle');
+            const emptyStateText = document.getElementById('emptyStateText');
             const paginationInfo = document.getElementById('paginationInfo');
+            const paginationControls = document.getElementById('paginationControls');
 
-            // Drawer elements
-            const drawerOverlay = document.getElementById('drawerOverlay');
-            const txnDrawer = document.getElementById('txnDrawer');
+            // Transaction details modal elements
+            const txnModal = document.getElementById('txnDetailsModal');
             const drawerCloseBtn = document.getElementById('drawerCloseBtn');
+            const txnCloseFooterBtn = document.getElementById('txnCloseFooterBtn');
 
-            // Storage Management
-            let historyData = JSON.parse(localStorage.getItem('equip-track-history-data'));
-            if (!historyData || !Array.isArray(historyData)) {
-                historyData = [];
-            } else {
-                historyData = historyData.filter(h => !['TXN-2451', 'TXN-2452', 'TXN-2453', 'TXN-2454'].includes(h.txnid));
-            }
-            localStorage.setItem('equip-track-history-data', JSON.stringify(historyData));
-
-            function updateSummaryCards() {
-                const totalCount = historyData.length;
-                const returnedCount = historyData.filter(h => h.status.toLowerCase() === 'returned').length;
-                const lateCount = historyData.filter(h => h.status.toLowerCase() === 'returned late').length;
-                const damagedCount = historyData.filter(h => h.status.toLowerCase() === 'damaged').length;
-
-                if (document.getElementById('statTotal')) document.getElementById('statTotal').textContent = totalCount;
-                if (document.getElementById('statReturned')) document.getElementById('statReturned').textContent = returnedCount;
-                if (document.getElementById('statLate')) document.getElementById('statLate').textContent = lateCount;
-                if (document.getElementById('statDamaged')) document.getElementById('statDamaged').textContent = damagedCount;
-            }
-
-            function renderTable() {
-                tableBody.innerHTML = '';
-
-                historyData.forEach(item => {
-                    const tr = document.createElement('tr');
-                    const statusLower = item.status.toLowerCase();
-
-                    tr.setAttribute('data-role', item.userType.toLowerCase());
-                    tr.setAttribute('data-status', statusLower);
-                    tr.setAttribute('data-category', item.category.toLowerCase());
-                    tr.setAttribute('data-search', `${item.txnid} ${item.idnumber} ${item.name} ${item.equipment} ${item.userType}`.toLowerCase());
-
-                    tr.innerHTML = `
-                        <td class="col-txnid">${escapeHTML(item.txnid)}</td>
-                        <td class="col-idnum">${escapeHTML(item.idnumber)}</td>
-                        <td class="col-name">${escapeHTML(item.name)}</td>
-                        <td><span class="type-badge ${item.userType.toLowerCase() === 'faculty' ? 'type-faculty' : 'type-student'}">${item.userType.toLowerCase() === 'faculty' ? '<i class="fa-solid fa-chalkboard-user"></i> Faculty' : '<i class="fa-solid fa-user-graduate"></i> Student'}</span></td>
-                        <td>${escapeHTML(item.attainment)}</td>
-                        <td>
-                            <div class="equipment-meta-cell">
-                                <span class="equipment-name-title">${escapeHTML(item.equipment)}</span>
-                                <span class="equipment-category-sub">${escapeHTML(item.category)}</span>
-                            </div>
-                        </td>
-                        <td>${escapeHTML(item.borrowDate)}</td>
-                        <td>${escapeHTML(item.returnDate)}</td>
-                        <td>
-                            <span class="status-badge-dot ${statusClass(item.status)}">
-                                <span class="dot"></span> ${escapeHTML(item.status)}
-                            </span>
-                        </td>
-                        <td style="text-align: center;">
-                            <button class="btn-action-eye" onclick="openDrawer('${item.txnid}')">
-                                <i class="fa-solid fa-eye"></i>
-                            </button>
-                        </td>
-                    `;
-
-                    tableBody.appendChild(tr);
-                });
-
-                updateSummaryCards();
-                filterTable();
-            }
-
-            function statusClass(status) {
-                switch (status.toUpperCase()) {
-                    case 'RETURNED': return 'returned';
-                    case 'RETURNED LATE': return 'returned-late';
-                    case 'DAMAGED': return 'damaged';
-                    default: return 'returned';
-                }
-            }
+            // Borrowing history comes from the database (returned borrow
+            // transactions for this department's equipment). It is embedded on
+            // first load and refreshed from the JSON feed below.
+            let historyData = @json($dbHistory, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+            let currentPage = 1;
 
             function escapeHTML(str) {
                 if (!str) return '';
-                return String(str).replace(/[&<>'"]/g, 
+                return String(str).replace(/[&<>'"]/g,
                     tag => ({
                         '&': '&amp;',
                         '<': '&lt;',
@@ -306,6 +258,148 @@
                         '"': '&quot;'
                     }[tag] || tag)
                 );
+            }
+
+            function statusClass(status) {
+                switch (String(status).toUpperCase()) {
+                    case 'RETURNED': return 'returned';
+                    case 'RETURNED LATE': return 'returned-late';
+                    case 'DAMAGED':
+                    case 'LOST': return 'damaged';
+                    default: return 'returned';
+                }
+            }
+
+            function updateSummaryCards() {
+                const count = status => historyData.filter(h => h.status.toLowerCase() === status).length;
+
+                const set = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = value;
+                };
+
+                set('statTotal', historyData.length);
+                set('statReturned', count('returned'));
+                set('statLate', count('returned late'));
+                set('statDamaged', count('damaged'));
+            }
+
+            // Search + role / status / category filters over the full dataset
+            function getFilteredData() {
+                const query = searchInput.value.toLowerCase().trim();
+                const selectedRole = filterRoleSelect.value.toLowerCase();
+                const selectedStatus = filterStatusSelect.value.toLowerCase();
+                const selectedCategory = filterCategorySelect.value.toLowerCase();
+
+                return historyData.filter(item => {
+                    const searchData = `${item.txnid} ${item.idnumber} ${item.name} ${item.equipment} ${item.userType}`.toLowerCase();
+
+                    return searchData.includes(query)
+                        && (selectedRole === 'all' || item.userType.toLowerCase().includes(selectedRole))
+                        && (selectedStatus === 'all' || item.status.toLowerCase() === selectedStatus)
+                        && (selectedCategory === 'all' || item.category.toLowerCase().includes(selectedCategory));
+                });
+            }
+
+            function renderRows(rows) {
+                tableBody.innerHTML = '';
+
+                rows.forEach(item => {
+                    const tr = document.createElement('tr');
+                    const isFaculty = item.userType.toLowerCase() === 'faculty';
+
+                    tr.innerHTML = `
+                        <td class="col-txnid">${escapeHTML(item.txnid)}</td>
+                        <td class="col-idnum">${escapeHTML(item.idnumber)}</td>
+                        <td class="col-name" title="${escapeHTML(item.name)}">${escapeHTML(item.name)}</td>
+                        <td><span class="type-badge ${isFaculty ? 'type-faculty' : 'type-student'}">${isFaculty ? '<i class="fa-solid fa-chalkboard-user"></i> Faculty' : '<i class="fa-solid fa-user-graduate"></i> Student'}</span></td>
+                        <td>${escapeHTML(item.attainment)}</td>
+                        <td>
+                            <div class="equipment-meta-cell">
+                                <span class="equipment-name-title">${escapeHTML(item.equipment)}</span>
+                                <span class="equipment-category-sub">${escapeHTML(item.category)}</span>
+                            </div>
+                        </td>
+                        <td class="col-status">
+                            <span class="status-badge-dot ${statusClass(item.status)}">
+                                <span class="dot"></span> ${escapeHTML(item.status)}
+                            </span>
+                        </td>
+                        <td class="col-action">
+                            <button class="btn-action-eye" data-txnid="${escapeHTML(item.txnid)}" title="View details">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </td>
+                    `;
+
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            function renderPagination(totalPages) {
+                paginationControls.innerHTML = '';
+
+                const makeBtn = (html, page, extraClass) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'page-btn' + (extraClass ? ' ' + extraClass : '');
+                    btn.innerHTML = html;
+                    if (page !== null && !(extraClass || '').includes('disabled')) {
+                        btn.addEventListener('click', () => {
+                            currentPage = page;
+                            render();
+                        });
+                    }
+                    paginationControls.appendChild(btn);
+                };
+
+                makeBtn('<i class="fa-solid fa-chevron-left"></i>', currentPage - 1, currentPage <= 1 ? 'disabled' : '');
+
+                // Window of up to 5 page numbers around the current page
+                let start = Math.max(1, currentPage - 2);
+                let end = Math.min(totalPages, start + 4);
+                start = Math.max(1, end - 4);
+
+                for (let i = start; i <= end; i++) {
+                    makeBtn(String(i), i, i === currentPage ? 'active' : '');
+                }
+
+                makeBtn('<i class="fa-solid fa-chevron-right"></i>', currentPage + 1, currentPage >= totalPages ? 'disabled' : '');
+            }
+
+            function render() {
+                const filtered = getFilteredData();
+                const totalEntries = filtered.length;
+                const totalPages = Math.max(1, Math.ceil(totalEntries / PAGE_SIZE));
+
+                if (currentPage > totalPages) currentPage = totalPages;
+                if (currentPage < 1) currentPage = 1;
+
+                const startIndex = (currentPage - 1) * PAGE_SIZE;
+                const endIndex = Math.min(startIndex + PAGE_SIZE, totalEntries);
+
+                renderRows(filtered.slice(startIndex, endIndex));
+                renderPagination(totalPages);
+                updateSummaryCards();
+
+                if (paginationInfo) {
+                    paginationInfo.textContent = totalEntries > 0
+                        ? `Showing ${startIndex + 1}-${endIndex} of ${totalEntries} transactions`
+                        : 'Showing 0 of 0 transactions';
+                }
+
+                if (totalEntries === 0) {
+                    if (historyData.length === 0) {
+                        emptyStateTitle.textContent = 'No borrowing history yet';
+                        emptyStateText.textContent = 'Returned equipment from your department will appear here once borrowers return their items.';
+                    } else {
+                        emptyStateTitle.textContent = 'No records found';
+                        emptyStateText.textContent = 'No borrowing history transactions match your search or filter parameters.';
+                    }
+                    emptyStateContainer.style.display = 'flex';
+                } else {
+                    emptyStateContainer.style.display = 'none';
+                }
             }
 
             window.openDrawer = function(txnid) {
@@ -320,68 +414,68 @@
                     document.getElementById('eqCategory').textContent = item.category;
                     document.getElementById('bdBorrowDate').textContent = item.borrowDate;
                     document.getElementById('bdReturnDate').textContent = item.returnDate;
-                    document.getElementById('bdReturnStatus').textContent = item.status;
+                    const statusEl = document.getElementById('bdReturnStatus');
+                    statusEl.className = 'status-badge-dot ' + statusClass(item.status);
+                    statusEl.innerHTML = '<span class="dot"></span> ' + escapeHTML(item.status);
+                    document.getElementById('bdRemarks').textContent = item.remarks || '—';
 
-                    txnDrawer.classList.add('show');
-                    drawerOverlay.classList.add('show');
+                    txnModal.classList.add('show');
                 }
             };
 
             function closeDrawer() {
-                txnDrawer.classList.remove('show');
-                drawerOverlay.classList.remove('show');
+                txnModal.classList.remove('show');
             }
+
+            tableBody.addEventListener('click', (e) => {
+                const btn = e.target.closest('.btn-action-eye');
+                if (btn) window.openDrawer(btn.getAttribute('data-txnid'));
+            });
 
             if (drawerCloseBtn) drawerCloseBtn.addEventListener('click', closeDrawer);
-            if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
-
-            function filterTable() {
-                const query = searchInput.value.toLowerCase().trim();
-                const selectedRole = filterRoleSelect.value.toLowerCase();
-                const selectedStatus = filterStatusSelect.value.toLowerCase();
-                const selectedCategory = filterCategorySelect.value.toLowerCase();
-
-                const rows = tableBody.querySelectorAll('tr');
-                let visibleCount = 0;
-
-                rows.forEach(row => {
-                    const searchData = row.getAttribute('data-search');
-                    const rowRole = row.getAttribute('data-role');
-                    const rowStatus = row.getAttribute('data-status');
-                    const rowCategory = row.getAttribute('data-category');
-
-                    const matchesSearch = searchData.includes(query);
-                    const matchesRole = (selectedRole === 'all' || rowRole.includes(selectedRole));
-                    const matchesStatus = (selectedStatus === 'all' || rowStatus === selectedStatus);
-                    const matchesCategory = (selectedCategory === 'all' || rowCategory.includes(selectedCategory));
-
-                    if (matchesSearch && matchesRole && matchesStatus && matchesCategory) {
-                        row.style.display = '';
-                        visibleCount++;
-                    } else {
-                        row.style.display = 'none';
-                    }
+            if (txnCloseFooterBtn) txnCloseFooterBtn.addEventListener('click', closeDrawer);
+            if (txnModal) {
+                // Clicking the dimmed backdrop (outside the card) closes the modal
+                txnModal.addEventListener('click', (e) => {
+                    if (e.target === txnModal) closeDrawer();
                 });
+            }
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && txnModal.classList.contains('show')) closeDrawer();
+            });
 
-                if (paginationInfo) {
-                    paginationInfo.textContent = `Showing ${visibleCount > 0 ? 1 : 0}-${visibleCount} of ${visibleCount} transactions`;
-                }
+            const onFilterChange = () => {
+                currentPage = 1;
+                render();
+            };
 
-                if (visibleCount === 0) {
-                    emptyStateContainer.style.display = 'flex';
-                } else {
-                    emptyStateContainer.style.display = 'none';
-                }
+            searchInput.addEventListener('input', onFilterChange);
+            filterRoleSelect.addEventListener('change', onFilterChange);
+            filterStatusSelect.addEventListener('change', onFilterChange);
+            filterCategorySelect.addEventListener('change', onFilterChange);
+
+            // Pull fresh records so new returns show up without a page reload
+            function refreshHistory() {
+                return fetch(URL_DATA, { headers: { 'Accept': 'application/json' } })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.success && Array.isArray(data.history)) {
+                            historyData = data.history;
+                            render();
+                        }
+                    })
+                    .catch(err => console.error('Error loading borrowing history:', err));
             }
 
-            searchInput.addEventListener('input', filterTable);
-            filterRoleSelect.addEventListener('change', filterTable);
-            filterStatusSelect.addEventListener('change', filterTable);
-            filterCategorySelect.addEventListener('change', filterTable);
+            // First paint from the server payload, then poll in the background
+            render();
 
-            // Initial render
-            renderTable();
+            setInterval(refreshHistory, REFRESH_MS);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    refreshHistory();
+                }
+            });
         });
-    
 </script>
 @endpush
