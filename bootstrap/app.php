@@ -4,6 +4,14 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Env;
+
+// Read .env into each request's own memory instead of PHP's process-wide
+// putenv() store. On a multi-threaded Windows Apache (Laragon), one request
+// finishing can clear those shared values while another request is still
+// running, which randomly surfaced as "No application encryption key has been
+// specified" (logged as env "production") on hard refreshes and AJAX polling.
+Env::disablePutenv();
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
