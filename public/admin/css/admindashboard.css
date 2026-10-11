@@ -544,6 +544,45 @@
     font-weight: 600;
 }
 
+/* Report-style section card (mirrors the Reports page .white-card):
+   heading + table grouped in one bordered, padded card. */
+.dash-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    padding: 24px;
+    position: relative;
+    width: 100%;
+    min-width: 0;
+}
+
+.dash-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dash-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* The table sits inside the card in a bordered wrapper (no card-in-card shadow). */
+.dash-card .admin-table-card {
+    margin-top: 8px;
+    border: 1px solid var(--table-border, #718096) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+}
+
 /* Bottom Grid for Low Stock and System Summary */
 .bottom-grid {
     display: grid;
@@ -872,6 +911,15 @@
     
     .admin-table-card table {
         min-width: 500px;
+    }
+
+    .dash-card {
+        padding: 16px;
+    }
+
+    .dash-card-header {
+        flex-wrap: wrap;
+        gap: 8px;
     }
     
     .stats-scroll-container {

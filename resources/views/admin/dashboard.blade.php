@@ -90,42 +90,54 @@
 
         <!-- Recent Requests Section -->
         <div class="admin-section">
-            <h4 class="admin-section-heading">Recent Requests</h4>
-            <div class="table-container card admin-table-card">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>Equipment</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th class="action-column">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="requestsTableBody">
-                        <!-- Loaded dynamically via JavaScript -->
-                    </tbody>
-                </table>
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div class="dash-card-title">
+                        <i class="fa-solid fa-clipboard-list" style="color: var(--primary-color);"></i> Recent Requests
+                    </div>
+                </div>
+                <div class="table-container admin-table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Equipment</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th class="action-column">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requestsTableBody">
+                            <!-- Loaded dynamically via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
         <!-- Overdue Alerts Section -->
         <div class="admin-section">
-            <h4 class="admin-section-heading"><i class="fa-solid fa-triangle-exclamation warning-icon" style="color: #fbbf24;"></i> Overdue Alerts</h4>
-            <div class="table-container card admin-table-card">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>Equipment</th>
-                            <th>Due Date</th>
-                            <th>Days Late</th>
-                        </tr>
-                    </thead>
-                    <tbody id="overdueTableBody">
-                        <!-- Loaded dynamically via JavaScript -->
-                    </tbody>
-                </table>
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div class="dash-card-title">
+                        <i class="fa-solid fa-triangle-exclamation warning-icon" style="color: #fbbf24;"></i> Overdue Alerts
+                    </div>
+                </div>
+                <div class="table-container admin-table-card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Equipment</th>
+                                <th>Due Date</th>
+                                <th>Days Late</th>
+                            </tr>
+                        </thead>
+                        <tbody id="overdueTableBody">
+                            <!-- Loaded dynamically via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 

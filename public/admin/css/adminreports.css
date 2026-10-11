@@ -282,65 +282,37 @@ body {
     color: var(--primary-color);
 }
 
-/* Report Tables general styling */
-.reports-table-wrapper {
-    overflow-x: auto;
-    width: 100%;
+/* Report tables reuse the shared Admin table design (.admin-table-card, loaded from
+   admindashboard.css). Inside a white card the table gets a flat bordered frame. */
+.white-card .admin-table-card {
     margin-top: 8px;
-    border: 1px solid var(--table-border, #718096);
-    border-radius: 12px;
+    border: 1px solid var(--table-border, #718096) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
 }
 
-.reports-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
+.white-card .admin-table-card table {
+    min-width: 640px;
 }
 
-.reports-table thead {
-    border-bottom: 1px solid var(--table-border, #718096) !important;
-}
-
-.reports-table th {
-    background-color: var(--primary-light) !important;
-    color: var(--primary-color) !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 12px 16px !important;
-    border-bottom: 1px solid var(--table-border, #718096) !important;
-}
-
-.reports-table td {
-    padding: 14px 16px !important;
-    font-size: 13.5px !important;
-    color: var(--text-main) !important;
-    border-bottom: 1px solid var(--table-border, #718096) !important;
-    vertical-align: middle;
-}
-
-.reports-table tbody tr:last-child td {
-    border-bottom: none !important;
-}
-
-.reports-table tbody tr {
-    transition: background-color 0.15s ease;
-}
-
-.reports-table tbody tr:hover td {
-    background-color: rgba(56, 85, 133, 0.02) !important;
+.admin-table-card td strong {
+    font-weight: 600;
 }
 
 /* Status Badges */
 .status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
+    display: inline-block;
+    padding: 6px 14px;
     border-radius: 20px;
     font-size: 12px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* The other Admin tables use plain badges without a leading dot. */
+.status-pill::before {
+    display: none;
 }
 
 .status-pill.returned {
@@ -391,47 +363,55 @@ body {
     border-radius: 50%;
 }
 
-/* Pagination container */
-.pagination-wrapper {
+/* Pagination footer (same design as the Admin Requests / Users tables) */
+.pagination-container {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    margin-top: 16px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
 }
 
-.pagination-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+.pagination-info {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-page {
+    padding: 6px 12px;
+    border-radius: 6px;
     border: 1px solid var(--border-color);
     background-color: var(--card-bg);
     color: var(--text-main);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 }
 
-.pagination-btn:hover:not(.disabled) {
-    background-color: var(--primary-light);
-    border-color: var(--primary-color);
-    color: var(--primary-color);
+.btn-page:hover:not(:disabled) {
+    background-color: var(--hover-color, var(--primary-light));
 }
 
-.pagination-btn.active {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    color: #ffffff;
-    font-weight: 600;
-}
-
-.pagination-btn.disabled {
+.btn-page:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.btn-page.active {
+    background-color: #385585;
+    color: #ffffff;
+    border-color: #385585;
+}
+
+.dark-theme .btn-page.active {
+    background-color: var(--primary-sidebar);
+    border-color: var(--primary-sidebar);
 }
 
 /* Compact Sidebar/Analytics Card */
@@ -541,11 +521,6 @@ body {
     color: #f8fafc;
 }
 
-.dark-theme .reports-table th {
-    background-color: #1e293b !important;
-    color: #60a5fa !important;
-}
-
 .dark-theme .status-pill.returned {
     background-color: rgba(16, 185, 129, 0.15);
 }
@@ -628,7 +603,7 @@ body {
     min-width: 0;
 }
 
-.reports-table td.empty-cell .empty-clear {
+.admin-table-card td.empty-cell .empty-clear {
     margin-top: 14px;
 }
 
@@ -665,25 +640,26 @@ body {
 }
 
 /* Tables */
-.reports-table th.col-num,
-.reports-table td.col-num {
+.admin-table-card th.col-num,
+.admin-table-card td.col-num {
     text-align: center;
 }
 
-.reports-table td.empty-cell {
+.admin-table-card td.empty-cell {
     text-align: center;
     color: var(--text-muted) !important;
-    padding: 32px !important;
+    padding: 40px !important;
 }
 
-.reports-table td.empty-cell i {
+.admin-table-card td.empty-cell i {
     display: block;
-    margin-bottom: 8px;
-    font-size: 24px;
-    color: var(--border-color);
+    margin-bottom: 12px;
+    font-size: 32px;
+    color: var(--primary-color);
+    opacity: 0.7;
 }
 
-.reports-table td.empty-cell span {
+.admin-table-card td.empty-cell span {
     display: block;
     margin-top: 4px;
     font-size: 12px;
