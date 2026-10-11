@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 // borrow_transaction.request_id had no ON DELETE rule (MySQL default: RESTRICT),
@@ -12,10 +13,23 @@ use Illuminate\Support\Facades\Schema;
 // penalties, so only completed history is ever cascaded away.
 return new class extends Migration
 {
+    // SQLite (used by the test suite) cannot drop a foreign key by name, only by
+    // column. MySQL keeps using the named key exactly as before.
+    private function dropRequestForeign(Blueprint $table): void
+    {
+        if (DB::getDriverName() === 'sqlite') {
+            $table->dropForeign(['request_id']);
+
+            return;
+        }
+
+        $table->dropForeign('borrow_transaction_request_id_foreign');
+    }
+
     public function up(): void
     {
         Schema::table('borrow_transaction', function (Blueprint $table) {
-            $table->dropForeign('borrow_transaction_request_id_foreign');
+            $this->dropRequestForeign($table);
             $table->foreign('request_id', 'borrow_transaction_request_id_foreign')
                 ->references('request_id')->on('borrow_request')
                 ->cascadeOnDelete()->cascadeOnUpdate();
@@ -25,7 +39,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('borrow_transaction', function (Blueprint $table) {
-            $table->dropForeign('borrow_transaction_request_id_foreign');
+            $this->dropRequestForeign($table);
             $table->foreign('request_id', 'borrow_transaction_request_id_foreign')
                 ->references('request_id')->on('borrow_request')
                 ->cascadeOnUpdate();

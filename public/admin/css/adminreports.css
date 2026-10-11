@@ -568,6 +568,209 @@ body {
     margin-top: 8px;
 }
 
+/* ------------------------------------------------------------------
+   Reports: additions for live data (statuses, empty states, charts)
+   ------------------------------------------------------------------ */
+
+/* Elements toggled with the `hidden` attribute must stay hidden even when
+   a component rule below sets display. */
+[hidden] {
+    display: none !important;
+}
+
+.reports-scope-note {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin: -6px 0 14px;
+    line-height: 1.5;
+}
+
+/* Second row of summary cards */
+.reports-stats-row.four {
+    grid-template-columns: repeat(4, 1fr);
+    margin-top: -12px;
+}
+
+.report-stat-icon-box.red {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+/* Charts */
+.analytics-range {
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 4px;
+}
+
+.chart-container {
+    height: 200px;
+}
+
+.chart-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 12px;
+    font-size: 13px;
+    color: var(--text-muted);
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+}
+
+/* Let grid columns shrink around the charts instead of being forced wide by a canvas. */
+.analytics-section,
+.chart-container {
+    min-width: 0;
+}
+
+.reports-table td.empty-cell .empty-clear {
+    margin-top: 14px;
+}
+
+/* Filters */
+.filters-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: -6px 0 6px;
+}
+
+.form-control:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.preview-actions {
+    flex-wrap: wrap;
+}
+
+/* Preview summary line */
+.report-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 16px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.report-meta strong {
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+/* Tables */
+.reports-table th.col-num,
+.reports-table td.col-num {
+    text-align: center;
+}
+
+.reports-table td.empty-cell {
+    text-align: center;
+    color: var(--text-muted) !important;
+    padding: 32px !important;
+}
+
+.reports-table td.empty-cell i {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 24px;
+    color: var(--border-color);
+}
+
+.reports-table td.empty-cell span {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    opacity: 0.85;
+}
+
+.recent-detail {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.format-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+}
+
+/* Additional status pills (the base four are defined above) */
+.status-pill.approved {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.status-pill.rejected,
+.status-pill.lost,
+.status-pill.unavailable {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.status-pill.returned-late,
+.status-pill.damaged,
+.status-pill.on-hold {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.status-pill.available {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.status-pill.under-maintenance {
+    background-color: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+}
+
+.status-pill.approved::before,
+.status-pill.rejected::before,
+.status-pill.lost::before,
+.status-pill.unavailable::before,
+.status-pill.returned-late::before,
+.status-pill.damaged::before,
+.status-pill.on-hold::before,
+.status-pill.available::before,
+.status-pill.under-maintenance::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background-color: currentColor;
+    border-radius: 50%;
+}
+
+.dark-theme .status-pill.approved,
+.dark-theme .status-pill.rejected,
+.dark-theme .status-pill.lost,
+.dark-theme .status-pill.unavailable,
+.dark-theme .status-pill.returned-late,
+.dark-theme .status-pill.damaged,
+.dark-theme .status-pill.on-hold,
+.dark-theme .status-pill.available,
+.dark-theme .status-pill.under-maintenance {
+    filter: brightness(1.1);
+}
+
+@media (max-width: 992px) {
+    .reports-stats-row.four {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 /* Layout Responsiveness Adjustments */
 @media (max-width: 992px) {
     .reports-analytics-card {
