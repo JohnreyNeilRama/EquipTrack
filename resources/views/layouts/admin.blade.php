@@ -17,8 +17,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'EquipTrack - Admin')</title>
-    <link rel="icon" type="image/png" href="{{ asset('images/logo_only.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/logo_only.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}?v={{ filemtime(public_path('images/favicon.png')) }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/favicon.png') }}?v={{ filemtime(public_path('images/favicon.png')) }}">
     <link rel="stylesheet" href="{{ asset('ccs/global.css') }}">
     <link rel="stylesheet" href="{{ asset('user/css/usernotifications.css') }}">
     @stack('css')

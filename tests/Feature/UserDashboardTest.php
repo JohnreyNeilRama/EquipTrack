@@ -249,6 +249,33 @@ class UserDashboardTest extends TestCase
         $this->assertSame('Pending', $rows[0]['status']);
     }
 
+    public function test_tables_show_at_most_five_rows_with_the_equipment_photo_and_category(): void
+    {
+        for ($i = 1; $i <= 7; $i++) {
+            $this->makeLoan($this->user, 'Laptop ' . $i, now()->addDays($i)->toDateString());
+        }
+
+        $feed = $this->feed($this->user);
+
+        $this->assertCount(5, $feed['activeBorrows']);
+        $this->assertCount(5, $feed['recentRequests']);
+        $this->assertSame(7, $feed['stats']['activeBorrows'], 'The stat still counts every loan.');
+
+        $row = $feed['activeBorrows'][0];
+        $this->assertSame('/storage/images/eq.jpg', $row['image']);
+        $this->assertSame('Laptop', $row['category']);
+        $this->assertSame('/storage/images/eq.jpg', $feed['recentRequests'][0]['image']);
+
+        // Same equipment cell as the My Requests table, and no pagination.
+        $this->actingAs($this->user, 'user')->get(route('user.dashboard'))
+            ->assertOk()
+            ->assertSee('class="table-container card requests-table-card"', false)
+            ->assertSee('user/css/usertable.css', false)
+            ->assertSee('<span class="eq-sub" style="font-size: 12px; color: var(--text-muted);">Laptop</span>', false)
+            ->assertSee('<span class="panel-count" id="activeBorrowsCount">5</span>', false)
+            ->assertDontSee('pagination', false);
+    }
+
     public function test_reminders_cover_overdue_and_due_soon_loans_only(): void
     {
         $this->makeLoan($this->user, 'Far Away Item', now()->addDays(10)->toDateString());
@@ -362,8 +389,8 @@ class UserDashboardTest extends TestCase
             ->assertSee('Welcome back, Juan!')
             ->assertSee('Camera Canon')
             ->assertSee('Microphone')
-            ->assertSee('dash-badge-overdue', false)
-            ->assertSee('dash-badge-pending', false)
+            ->assertSee('detail-status-badge status-overdue', false)
+            ->assertSee('detail-status-badge status-pending', false)
             ->assertDontSee('<span>No active borrow items.</span>', false)
             ->assertDontSee('<span>No recent requests found.</span>', false)
             ->assertSee('href="' . route('user.returns') . '"', false)

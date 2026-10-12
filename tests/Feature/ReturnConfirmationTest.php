@@ -471,6 +471,14 @@ class ReturnConfirmationTest extends TestCase
         $dashboard = $this->actingAs($this->user, 'user')->getJson(route('user.dashboard.data'))->json();
         $this->assertSame('Pending Confirmation', $dashboard['activeBorrows'][0]['status']);
 
+        // The dashboard page: its own badge style, overdue alert and summary line.
+        $this->actingAs($this->user, 'user')->get(route('user.dashboard'))
+            ->assertOk()
+            ->assertSee('class="detail-status-badge status-pending-confirmation"', false)
+            ->assertSee('class="stat-card card is-alert" data-tone="danger" id="statOverdueCard"', false)
+            ->assertSee('1 item is past the due date. Please return it as soon as possible.')
+            ->assertSee('<span class="panel-count" id="activeBorrowsCount">1</span>', false);
+
         $history = collect($this->actingAs($this->user, 'user')->get(route('user.history'))->viewData('historyItems'));
         $this->assertSame('Pending Confirmation', $history->first()['status']);
 

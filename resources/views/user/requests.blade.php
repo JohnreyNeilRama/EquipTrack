@@ -3,7 +3,8 @@
 @section('title', 'EquipTrack - My Requests')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('user/css/userrequests.css') }}">
+<link rel="stylesheet" href="{{ asset('user/css/usertable.css') }}?v={{ filemtime(public_path('user/css/usertable.css')) }}">
+<link rel="stylesheet" href="{{ asset('user/css/userrequests.css') }}?v={{ filemtime(public_path('user/css/userrequests.css')) }}">
 @endpush
 
 @php

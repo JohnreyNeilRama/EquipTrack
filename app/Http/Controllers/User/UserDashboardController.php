@@ -69,7 +69,7 @@ class UserDashboardController extends Controller
      */
     private function activeLoans(int $userId): Collection
     {
-        return BorrowRequest::with(['equipment', 'transaction'])
+        return BorrowRequest::with(['equipment.category', 'transaction'])
             ->where('user_id', $userId)
             ->where('overall_status', 'Approved')
             ->get()
@@ -126,6 +126,7 @@ class UserDashboardController extends Controller
             ->map(fn (array $loan) => [
                 'id' => (int) $loan['request']->request_id,
                 'equipment' => $loan['request']->equipment?->name ?? 'Unknown equipment',
+                ...$this->equipmentVisual($loan['request']),
                 'borrowDate' => $this->fmt($loan['borrowDate']),
                 'dueDate' => $this->fmt($loan['dueDate']),
                 // Still out until the department confirms the submitted return.
@@ -137,10 +138,22 @@ class UserDashboardController extends Controller
             ->all();
     }
 
+    /**
+     * Photo and category shown in the equipment cell, as on the My Requests
+     * table (the logo stands in when the equipment has no photo).
+     */
+    private function equipmentVisual(BorrowRequest $request): array
+    {
+        return [
+            'image' => $request->equipment?->imageUrl() ?? asset('images/EquipTrack_logo.png'),
+            'category' => $request->equipment?->category?->category_name ?: 'General',
+        ];
+    }
+
     /** The user's latest requests, whatever their status. */
     private function recentRequests(int $userId): array
     {
-        return BorrowRequest::with('equipment')
+        return BorrowRequest::with('equipment.category')
             ->where('user_id', $userId)
             ->orderByDesc('request_id')
             ->limit(self::RECENT_REQUESTS_LIMIT)
@@ -148,6 +161,7 @@ class UserDashboardController extends Controller
             ->map(fn (BorrowRequest $request) => [
                 'id' => (int) $request->request_id,
                 'equipment' => $request->equipment?->name ?? 'Unknown equipment',
+                ...$this->equipmentVisual($request),
                 'date' => $this->fmt($request->date_requested),
                 'status' => $request->overall_status ?: 'Pending',
             ])
