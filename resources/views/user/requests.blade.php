@@ -73,7 +73,10 @@
                         data-purpose="{{ $req->purpose }}"
                         data-notes="{{ $req->notes ?: 'None' }}"
                         data-img="{{ $imgUrl }}"
-                        data-reject-reason="{{ $req->reject_reason }}">
+                        data-reject-reason="{{ $req->reject_reason }}"
+                        data-dual="{{ $req->requiresDualApproval() ? '1' : '0' }}"
+                        data-admin-status="{{ $req->admin_status ?: 'Pending' }}"
+                        data-dept-status="{{ $req->dept_status ?: 'Pending' }}">
                         <td>{{ $idx + 1 }}</td>
                         <td class="equipment-col">
                             <div class="eq-cell" style="display: flex; align-items: center; gap: 12px;">
@@ -136,6 +139,14 @@
                             <label class="detail-form-label">Request Status</label>
                             <div class="status-badge-wrapper">
                                 <span class="detail-status-badge" id="detailStatusBadge">Approved</span>
+                            </div>
+                        </div>
+                        {{-- Expensive equipment: each approver's decision --}}
+                        <div class="detail-form-group" id="detailApprovalsGroup" style="display: none;">
+                            <label class="detail-form-label">Approvals (Expensive equipment)</label>
+                            <div style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: var(--text-main);">
+                                <span>Admin: <span id="detailAdminStatus">Pending</span></span>
+                                <span>Department: <span id="detailDeptStatus">Pending</span></span>
                             </div>
                         </div>
                     </div>
@@ -328,6 +339,20 @@
             reasonGroup.style.display = 'block';
         } else {
             reasonGroup.style.display = 'none';
+        }
+
+        const approvalsGroup = document.getElementById('detailApprovalsGroup');
+        if (row.getAttribute('data-dual') === '1') {
+            const paint = (id, value) => {
+                const el = document.getElementById(id);
+                el.textContent = value;
+                el.style.color = value === 'Approved' ? '#10b981' : (value === 'Rejected' ? '#ef4444' : 'var(--text-muted)');
+            };
+            paint('detailAdminStatus', row.getAttribute('data-admin-status') || 'Pending');
+            paint('detailDeptStatus', row.getAttribute('data-dept-status') || 'Pending');
+            approvalsGroup.style.display = 'flex';
+        } else {
+            approvalsGroup.style.display = 'none';
         }
 
         detailsModal.classList.add('show');

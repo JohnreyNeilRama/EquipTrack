@@ -93,7 +93,9 @@ class AdminDashboardController extends Controller
     /** Latest borrow requests with the real status and whether they can still be acted on. */
     private function recentRequests(): array
     {
+        // Not Expensive requests are handled by the department alone.
         $rows = BorrowRequest::with(['user', 'equipment'])
+            ->visibleToAdmin()
             ->orderByDesc('request_id')
             ->limit(self::RECENT_REQUESTS_LIMIT)
             ->get();
@@ -110,7 +112,9 @@ class AdminDashboardController extends Controller
                     ? Carbon::parse($row->date_requested)->format('M d, Y')
                     : 'N/A',
                 'status' => ucfirst($status),
-                'canAct' => $status === 'Pending' && ($row->admin_status ?: 'Pending') === 'Pending',
+                'canAct' => $status === 'Pending'
+                    && ($row->admin_status ?: 'Pending') === 'Pending'
+                    && $row->adminCanReview(),
             ];
         })->all();
     }

@@ -18,6 +18,25 @@
     .status-on-hold { background-color: #ffedd5; color: #c2410c; }
     .status-under-maintenance { background-color: #fef3c7; color: #b45309; }
 
+    .eq-class-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .class-expensive { background-color: #ede9fe; color: #6d28d9; }
+    .class-not-expensive { background-color: #e2e8f0; color: #475569; }
+    .dark-theme .class-expensive { background-color: rgba(139, 92, 246, 0.18); color: #c4b5fd; }
+    .dark-theme .class-not-expensive { background-color: rgba(148, 163, 184, 0.15); color: #cbd5e1; }
+
+    .form-field-hint {
+        display: block;
+        margin-top: 6px;
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+
     .form-grid-2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -145,6 +164,19 @@
                                 </select>
                             </div>
                         </div>
+                    </div>
+
+                    {{-- Equipment Classification --}}
+                    <div class="form-group-flat">
+                        <label for="eqFormClassification">Equipment Classification <span style="color: #ef4444;">*</span></label>
+                        <div class="flat-select-wrapper" style="width: 100%;">
+                            <select id="eqFormClassification" name="classification" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                                <option value="">Select Classification</option>
+                                <option value="Expensive">Expensive</option>
+                                <option value="Not Expensive">Not Expensive</option>
+                            </select>
+                        </div>
+                        <span class="form-field-hint">Requests for Expensive equipment need approval from both the admin and the department.</span>
                     </div>
 
                     {{-- Available Quantity & Total Quantity --}}
@@ -288,6 +320,7 @@
         const eqAvailField = document.getElementById('eqFormAvail');
         const eqTotalField = document.getElementById('eqFormTotal');
         const eqStatusField = document.getElementById('eqFormStatus');
+        const eqClassificationField = document.getElementById('eqFormClassification');
         const eqAccessoriesField = document.getElementById('eqFormAccessories');
 
         // Uploader Elements
@@ -370,6 +403,10 @@
                         <div class="eq-card-meta-line">
                             <span class="label">Status :</span>
                             <span class="value"><span class="eq-status-badge ${statusClass}">${escapeHTML(item.status)}</span></span>
+                        </div>
+                        <div class="eq-card-meta-line">
+                            <span class="label">Classification :</span>
+                            <span class="value"><span class="eq-class-badge ${item.classification === 'Expensive' ? 'class-expensive' : 'class-not-expensive'}">${escapeHTML(item.classification || 'Not Expensive')}</span></span>
                         </div>
                         ${item.accessories_included ? `
                         <div class="eq-card-meta-line" style="margin-top: 4px;">
@@ -630,6 +667,7 @@
             eqAvailField.value = item.available_qty !== undefined ? item.available_qty : 0;
             eqTotalField.value = item.total_qty !== undefined ? item.total_qty : 0;
             eqStatusField.value = item.status || 'Available';
+            eqClassificationField.value = item.classification === 'Expensive' ? 'Expensive' : 'Not Expensive';
             eqAccessoriesField.value = item.accessories_included || '';
 
             if (item.image) {
@@ -693,10 +731,16 @@
                 return;
             }
 
+            if (!['Expensive', 'Not Expensive'].includes(eqClassificationField.value)) {
+                showNotification('Validation Error', 'Please select an equipment classification.', 'error');
+                return;
+            }
+
             const formData = new FormData(form);
             formData.append('_token', CSRF_TOKEN);
             fetch(URL_SAVE, {
                 method: 'POST',
+                headers: { 'Accept': 'application/json' },
                 body: formData
             })
             .then(res => res.json())

@@ -19,7 +19,7 @@ class UserHistoryController extends Controller
     {
         $userId = auth('user')->user()->user_id;
 
-        $historyItems = BorrowRequest::with(['equipment.category', 'transaction', 'admin'])
+        $historyItems = BorrowRequest::with(['equipment.category', 'transaction', 'admin', 'departmentAccount'])
             ->where('user_id', $userId)
             ->orderByDesc('request_id')
             ->get()
@@ -60,7 +60,8 @@ class UserHistoryController extends Controller
             'badge_class' => $this->badgeClass($status),
             'condition' => $condition !== '' ? $condition : '—',
             'remarks' => $remarks,
-            'handled_by' => $request->admin?->name ?: '—',
+            // Not Expensive requests are reviewed by the department alone.
+            'handled_by' => $request->admin?->name ?: ($request->departmentAccount?->full_name ?: '—'),
             'timestamp' => $borrowDateRaw
                 ? Carbon::parse($borrowDateRaw)->format('Y-m-d')
                 : ($request->date_requested ? Carbon::parse($request->date_requested)->format('Y-m-d') : ''),

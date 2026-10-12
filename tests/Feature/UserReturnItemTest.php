@@ -6,6 +6,7 @@ use App\Models\Admin;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
 use App\Models\Department;
+use App\Models\DepartmentAccount;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
 use App\Models\Student;
@@ -16,7 +17,7 @@ use Tests\TestCase;
 
 /**
  * End-to-end coverage for the user Return Item flow:
- * borrow request -> admin approval (stock -1, transaction created) ->
+ * borrow request -> department approval (stock -1, transaction created) ->
  * user return (transaction Returned, stock restored, audit written) ->
  * reflected on the returns page and on admin monitoring.
  */
@@ -27,6 +28,8 @@ class UserReturnItemTest extends TestCase
     private UserAccount $user;
 
     private Admin $admin;
+
+    private DepartmentAccount $deptAccount;
 
     private Equipment $equipment;
 
@@ -75,6 +78,16 @@ class UserReturnItemTest extends TestCase
             'username' => 'admin',
             'password' => Hash::make('password'),
         ]);
+
+        // Not Expensive equipment (the default) is reviewed by the department.
+        $this->deptAccount = DepartmentAccount::create([
+            'full_name' => 'Lab Custodian',
+            'email' => 'dept@example.com',
+            'password' => Hash::make('password'),
+            'role' => 'Department Head',
+            'department_id' => $department->department_id,
+            'status' => 'Active',
+        ]);
     }
 
     private function submitBorrowRequest(): int
@@ -94,8 +107,8 @@ class UserReturnItemTest extends TestCase
 
     private function approve(int $requestId): void
     {
-        $this->actingAs($this->admin, 'admin')
-            ->postJson(route('admin.requests.update'), [
+        $this->actingAs($this->deptAccount, 'dept')
+            ->postJson(route('department.requests.update'), [
                 'request_id' => $requestId,
                 'status' => 'Approved',
             ])

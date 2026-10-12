@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Models\DepartmentAccount;
 use App\Models\UserAccount;
+use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -111,12 +112,26 @@ class LoginController extends Controller
 
         auth($guard)->login($account, $remember); // regenerates session id
 
+        AuditLogger::log(
+            'Login',
+            'auth:' . $guard,
+            'Signed in as ' . match ($guard) {
+                'admin' => 'Administrator',
+                'dept' => 'Department account',
+                default => ($account->role ?: 'User'),
+            },
+            AuditLogger::actorFor($guard, $account),
+        );
+
         return redirect()->intended($this->dashboardFor($guard));
     }
 
     public function destroy(Request $request): RedirectResponse
     {
         foreach (['user', 'admin', 'dept'] as $guard) {
+            if ($account = auth($guard)->user()) {
+                AuditLogger::log('Logout', 'auth:' . $guard, 'Signed out', AuditLogger::actorFor($guard, $account), $request);
+            }
             auth($guard)->logout();
         }
         $request->session()->invalidate();

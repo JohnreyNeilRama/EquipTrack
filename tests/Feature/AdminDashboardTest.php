@@ -115,6 +115,23 @@ class AdminDashboardTest extends TestCase
         return $request->refresh();
     }
 
+    /** Not Expensive equipment (the default) is approved by the department alone. */
+    private function departmentApprove(int $requestId): void
+    {
+        $dept = DepartmentAccount::firstOrCreate(['email' => 'reviewer@example.com'], [
+            'full_name' => 'Lab Custodian',
+            'password' => Hash::make('password'),
+            'role' => 'Department Head',
+            'department_id' => $this->department->department_id,
+            'status' => 'Active',
+        ]);
+
+        $this->actingAs($dept, 'dept')->postJson(route('department.requests.update'), [
+            'request_id' => $requestId,
+            'status' => 'Approved',
+        ])->assertOk()->assertJson(['success' => true, 'overallStatus' => 'Approved']);
+    }
+
     private function submitBorrowRequest(Equipment $equipment): int
     {
         $response = $this->actingAs($this->user, 'user')->postJson(route('user.borrow.store'), [
@@ -176,10 +193,7 @@ class AdminDashboardTest extends TestCase
         $equipment = $this->makeEquipment(['available_qty' => 2, 'total_qty' => 2]);
         $requestId = $this->submitBorrowRequest($equipment);
 
-        $this->actingAs($this->admin, 'admin')->postJson(route('admin.requests.update'), [
-            'request_id' => $requestId,
-            'status' => 'Approved',
-        ])->assertOk()->assertJson(['success' => true]);
+        $this->departmentApprove($requestId);
 
         $payload = $this->payload();
 
@@ -195,10 +209,7 @@ class AdminDashboardTest extends TestCase
         $equipment = $this->makeEquipment(['available_qty' => 1, 'total_qty' => 1]);
         $requestId = $this->submitBorrowRequest($equipment);
 
-        $this->actingAs($this->admin, 'admin')->postJson(route('admin.requests.update'), [
-            'request_id' => $requestId,
-            'status' => 'Approved',
-        ])->assertOk();
+        $this->departmentApprove($requestId);
 
         $this->assertSame(1, $this->payload()['stats']['borrowedEquipment']);
 
@@ -308,10 +319,12 @@ class AdminDashboardTest extends TestCase
 
     public function test_recent_requests_show_real_status_and_only_pending_can_be_acted_on(): void
     {
-        $equipment = $this->makeEquipment();
+        $equipment = $this->makeEquipment(['classification' => 'Expensive']);
 
-        $pending = $this->makeRequest($equipment);
-        $approved = $this->makeRequest($equipment, ['overall_status' => 'Approved', 'admin_status' => 'Approved']);
+        $pending = $this->makeRequest($equipment, ['equipment_classification' => 'Expensive']);
+        $approved = $this->makeRequest($equipment, ['equipment_classification' => 'Expensive', 'overall_status' => 'Approved', 'admin_status' => 'Approved']);
+        // Not Expensive requests are handled by the department alone.
+        $departmentOnly = $this->makeRequest($equipment, ['equipment_classification' => 'Not Expensive']);
 
         $rows = collect($this->payload()['recentRequests']);
 
@@ -324,6 +337,8 @@ class AdminDashboardTest extends TestCase
         $approvedRow = $rows->firstWhere('id', $approved->request_id);
         $this->assertSame('Approved', $approvedRow['status']);
         $this->assertFalse($approvedRow['canAct']);
+
+        $this->assertNull($rows->firstWhere('id', $departmentOnly->request_id));
     }
 
     public function test_user_and_equipment_counts_follow_new_records(): void

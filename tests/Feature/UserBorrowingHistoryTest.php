@@ -6,6 +6,7 @@ use App\Models\Admin;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
 use App\Models\Department;
+use App\Models\DepartmentAccount;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
 use App\Models\Student;
@@ -28,6 +29,8 @@ class UserBorrowingHistoryTest extends TestCase
     private UserAccount $user;
 
     private Admin $admin;
+
+    private DepartmentAccount $deptAccount;
 
     private Equipment $equipment;
 
@@ -76,6 +79,16 @@ class UserBorrowingHistoryTest extends TestCase
             'username' => 'admin',
             'password' => Hash::make('password'),
         ]);
+
+        // Not Expensive equipment (the default) is reviewed by the department.
+        $this->deptAccount = DepartmentAccount::create([
+            'full_name' => 'Lab Custodian',
+            'email' => 'dept@example.com',
+            'password' => Hash::make('password'),
+            'role' => 'Department Head',
+            'department_id' => $department->department_id,
+            'status' => 'Active',
+        ]);
     }
 
     private function submitBorrowRequest(string $purpose = 'Research', ?string $notes = 'Handle with care'): int
@@ -95,15 +108,15 @@ class UserBorrowingHistoryTest extends TestCase
 
     private function approve(int $requestId): void
     {
-        $this->actingAs($this->admin, 'admin')
-            ->postJson(route('admin.requests.update'), ['request_id' => $requestId, 'status' => 'Approved'])
+        $this->actingAs($this->deptAccount, 'dept')
+            ->postJson(route('department.requests.update'), ['request_id' => $requestId, 'status' => 'Approved'])
             ->assertOk();
     }
 
     private function reject(int $requestId, string $reason = 'Not needed for this term'): void
     {
-        $this->actingAs($this->admin, 'admin')
-            ->postJson(route('admin.requests.update'), [
+        $this->actingAs($this->deptAccount, 'dept')
+            ->postJson(route('department.requests.update'), [
                 'request_id' => $requestId,
                 'status' => 'Rejected',
                 'reject_reason' => $reason,
@@ -164,7 +177,7 @@ class UserBorrowingHistoryTest extends TestCase
         $this->assertSame('borrowed', $row['badge_class']);
         $this->assertSame(now()->toDateString(), Carbon::parse($row['borrow_date'])->toDateString());
         $this->assertSame('—', $row['return_date']);
-        $this->assertSame('System Admin', $row['handled_by']);
+        $this->assertSame('Lab Custodian', $row['handled_by']);
     }
 
     public function test_history_updates_automatically_after_the_item_is_returned(): void
@@ -249,7 +262,7 @@ class UserBorrowingHistoryTest extends TestCase
         $this->assertSame('status-rejected', $row['status_class']);
         $this->assertSame('rejected', $row['badge_class']);
         $this->assertSame('Equipment reserved for lab use', $row['remarks']);
-        $this->assertSame('System Admin', $row['handled_by']);
+        $this->assertSame('Lab Custodian', $row['handled_by']);
     }
 
     public function test_history_page_renders_rows_with_status_and_modal_data(): void
@@ -264,7 +277,7 @@ class UserBorrowingHistoryTest extends TestCase
             ->assertSee('data-status="Borrowed"', false)
             ->assertSee('status-text status-borrowed', false)
             ->assertSee('data-badge="borrowed"', false)
-            ->assertSee('data-handled-by="System Admin"', false)
+            ->assertSee('data-handled-by="Lab Custodian"', false)
             ->assertSee('data-timestamp=', false)
             ->assertSee('id="historyEmptyState" class="empty-state-container" style="display: none;"', false);
     }

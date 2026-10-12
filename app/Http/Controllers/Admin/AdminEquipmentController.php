@@ -41,6 +41,7 @@ class AdminEquipmentController extends Controller
                     'available_qty' => (int) $e->available_qty,
                     'total_qty' => (int) $e->total_qty,
                     'status' => $e->status,
+                    'classification' => $e->classificationLabel(),
                     'accessories_included' => $e->accessories_included,
                     'category_id' => $e->category_id,
                     'category_name' => $e->category?->category_name,
@@ -67,6 +68,7 @@ class AdminEquipmentController extends Controller
         }
 
         $category = EquipmentCategory::create(['category_name' => $name]);
+        $this->audit($request, 'Added category "' . $name . '"', 'category:' . $category->category_id);
 
         return response()->json([
             'success' => true,
@@ -80,6 +82,8 @@ class AdminEquipmentController extends Controller
 
     public function save(Request $request): JsonResponse
     {
+        $isNew = (int) $request->input('equipment_id', 0) <= 0;
+
         $data = $request->validate([
             'equipment_id' => ['nullable', 'integer'],
             'name' => ['required', 'string', 'max:100'],
@@ -90,6 +94,10 @@ class AdminEquipmentController extends Controller
             'available_qty' => ['required', 'integer', 'min:0'],
             'total_qty' => ['required', 'integer', 'min:0'],
             'status' => ['required', Rule::in(['Available', 'Unavailable', 'On Hold', 'Under Maintenance'])],
+            // Required for new equipment. When an edit omits it (older clients),
+            // the record keeps its saved classification; a value that is sent
+            // must always be one of the two options.
+            'classification' => [Rule::requiredIf($isNew), 'string', Rule::in(Equipment::CLASSIFICATIONS)],
             'accessories_included' => ['nullable', 'string', 'max:150'],
             'category_id' => ['required', 'integer', Rule::exists('equipment_category', 'category_id')],
             'department_id' => ['required', 'integer', Rule::exists('department', 'department_id')],

@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\DepartmentAccount;
 use App\Models\Student;
 use App\Models\UserAccount;
+use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -51,7 +52,7 @@ class AdminUsersController extends Controller
 
         // FIX vs legacy: the student-child insert was never checked, so a failure
         // left an account without a profile row while still reporting success.
-        DB::transaction(function () use ($data, $deptId) {
+        $account = DB::transaction(function () use ($data, $deptId) {
             $account = UserAccount::create([
                 'role' => 'Student',
                 'email' => $data['email'],
@@ -67,7 +68,17 @@ class AdminUsersController extends Controller
                 'year_level' => $data['year_level'],
                 'address' => $data['address'],
             ]);
+
+            return $account;
         });
+
+        AuditLogger::log(
+            'Added student account',
+            'user_account:' . $account->user_id,
+            $data['first_name'] . ' ' . $data['last_name'] . ' (' . $data['email'] . ')',
+            null,
+            $request,
+        );
 
         return redirect()
             ->route('admin.users')
@@ -91,7 +102,7 @@ class AdminUsersController extends Controller
 
         $department = Department::find($data['department_id']);
 
-        DepartmentAccount::create([
+        $account = DepartmentAccount::create([
             'full_name' => $data['full_name'],
             'email' => $data['email'],
             'employee_id' => $data['employee_id'],
@@ -104,6 +115,14 @@ class AdminUsersController extends Controller
                     ->whereNotNull('profile_image')->where('profile_image', '!=', '')
                     ->orderBy('dept_acc_id')->value('profile_image'),
         ]);
+
+        AuditLogger::log(
+            'Added department account',
+            'department_account:' . $account->dept_acc_id,
+            $data['full_name'] . ' (' . $data['email'] . ')',
+            null,
+            $request,
+        );
 
         return redirect()
             ->route('admin.users')
@@ -122,11 +141,28 @@ class AdminUsersController extends Controller
         // FIX vs legacy: the button only mutated the client-side array and never
         // POSTed, so deactivation was never persisted.
         if ($data['target_user_type'] === 'department') {
+            $account = DepartmentAccount::find($data['target_user_id'] - 100000);
+            $entity = $account ? 'department_account:' . $account->dept_acc_id : '';
+            $name = $account ? ($account->full_name ?: $account->email) : '';
             DepartmentAccount::where('dept_acc_id', $data['target_user_id'] - 100000)
                 ->update(['status' => $data['new_status']]);
         } else {
+            $account = UserAccount::find($data['target_user_id']);
+            $entity = $account ? 'user_account:' . $account->user_id : '';
+            $name = $account ? ($account->fullName() ?: $account->email) : '';
             UserAccount::where('user_id', $data['target_user_id'])
                 ->update(['status' => $data['new_status']]);
+        }
+
+        // Only a real change is an event; re-submitting the same status is not logged.
+        if ($account && strtolower((string) $account->status) !== strtolower($data['new_status'])) {
+            AuditLogger::log(
+                $data['new_status'] === 'Active' ? 'Activated user account' : 'Deactivated user account',
+                $entity,
+                $name . ' (' . $account->email . ')',
+                null,
+                $request,
+            );
         }
 
         return redirect()
@@ -144,7 +180,11 @@ class AdminUsersController extends Controller
 
         if ($data['user_type'] === 'department') {
             // Strip the 100000 display offset before touching the database.
-            DepartmentAccount::findOrFail($data['user_id'] - 100000)->delete();
+            $account = DepartmentAccount::findOrFail($data['user_id'] - 100000);
+            $logEntity = 'department_account:' . $account->dept_acc_id;
+            $logAction = 'Deleted department account';
+            $logDetails = ($account->full_name ?: 'Department account') . ' (' . $account->email . ')';
+            $account->delete();
             $msg = 'Department account deleted successfully.';
         } else {
             $account = UserAccount::findOrFail($data['user_id']);
@@ -166,9 +206,14 @@ class AdminUsersController extends Controller
             // FKs cascade (student/faculty_member/borrow_request/borrow_transaction),
             // so one authoritative delete removes the account and its completed
             // history, and fails loudly instead of reporting false success.
+            $logEntity = 'user_account:' . $account->user_id;
+            $logAction = 'Deleted user account';
+            $logDetails = ($account->fullName() ?: 'User') . ' (' . $account->email . ')';
             $account->delete();
             $msg = 'User account deleted successfully.';
         }
+
+        AuditLogger::log($logAction, $logEntity, $logDetails, null, $request);
 
         return redirect()->route('admin.users')->with('serverMsg', $msg)->with('serverMsgType', 'success');
     }
@@ -189,6 +234,10 @@ class AdminUsersController extends Controller
         Storage::disk('public')->put($filename, file_get_contents($file->getRealPath()));
         $path = '/storage/' . $filename;
 
+        $targetExists = $data['target_user_type'] === 'department'
+            ? DepartmentAccount::whereKey($data['target_user_id'] - 100000)->exists()
+            : UserAccount::whereKey($data['target_user_id'])->exists();
+
         if ($data['target_user_type'] === 'department') {
             $account = DepartmentAccount::find($data['target_user_id'] - 100000);
             $account?->update(['profile_image' => $path]);
@@ -199,6 +248,18 @@ class AdminUsersController extends Controller
             }
         } else {
             UserAccount::where('user_id', $data['target_user_id'])->update(['profile_image' => $path]);
+        }
+
+        if ($targetExists) {
+            AuditLogger::log(
+                'Updated user profile picture',
+                $data['target_user_type'] === 'department'
+                    ? 'department_account:' . ($data['target_user_id'] - 100000)
+                    : 'user_account:' . $data['target_user_id'],
+                null,
+                null,
+                $request,
+            );
         }
 
         return redirect()

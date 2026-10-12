@@ -62,10 +62,15 @@ class UserEquipmentController extends Controller
                 return ['code' => 400, 'message' => 'Sorry, this equipment is currently unavailable for borrowing.'];
             }
 
+            $classification = $equipment->classificationLabel();
+
             $borrow = BorrowRequest::create([
                 'user_id' => $userId,
                 'equipment_id' => $equipment->equipment_id,
                 'quantity' => 1,
+                // Read from the locked equipment row: this decides whether the
+                // request needs one approval or both the admin's and the department's.
+                'equipment_classification' => $classification,
                 'purpose' => $data['purpose'],
                 'notes' => $data['notes'] ?? null,
                 'date_needed' => $data['borrow_date'],
@@ -87,6 +92,7 @@ class UserEquipmentController extends Controller
                 'code' => 200,
                 'success' => true,
                 'request_id' => $borrow->request_id,
+                'dual' => $classification === Equipment::CLASS_EXPENSIVE,
             ];
         });
 
@@ -99,7 +105,9 @@ class UserEquipmentController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Your borrowing request has been submitted successfully!',
+            'message' => !empty($result['dual'])
+                ? 'Your borrowing request has been submitted successfully! This equipment needs approval from both the admin and the department.'
+                : 'Your borrowing request has been submitted successfully!',
             'request_id' => $result['request_id'],
             'redirect' => route('user.requests'),
         ]);

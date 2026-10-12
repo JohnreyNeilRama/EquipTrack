@@ -601,3 +601,87 @@
         max-width: 96px;
     }
 }
+
+/* --------------------------------------------------------------------------
+   Status badges (Active Borrow Items + Recent Requests)
+   Same look as the badges on the My Requests page.
+   -------------------------------------------------------------------------- */
+.dash-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border-radius: 20px;
+    background-color: rgba(71, 85, 105, 0.08);
+    color: #475569;
+}
+
+.dash-badge-pending {
+    background-color: rgba(71, 85, 105, 0.08);
+    color: #475569;
+}
+
+.dash-badge-approved {
+    background-color: rgba(16, 185, 129, 0.08);
+    color: #10b981;
+}
+
+.dash-badge-borrowed {
+    background-color: rgba(56, 85, 133, 0.1);
+    color: var(--primary-color);
+}
+
+.dash-badge-rejected,
+.dash-badge-overdue {
+    background-color: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+}
+
+.dark-theme .dash-badge-pending {
+    background-color: rgba(226, 232, 240, 0.1);
+    color: #cbd5e1;
+}
+
+.dark-theme .dash-badge-approved {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}
+
+.dark-theme .dash-badge-borrowed {
+    background-color: rgba(96, 165, 250, 0.15);
+    color: #93c5fd;
+}
+
+.dark-theme .dash-badge-rejected,
+.dark-theme .dash-badge-overdue {
+    background-color: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+}
+
+/* --------------------------------------------------------------------------
+   Background-refresh failure notice (hidden unless a refresh fails)
+   -------------------------------------------------------------------------- */
+.dash-refresh-error {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--warning-color);
+    background: #fef3c7;
+    border: 1px solid var(--warning-color);
+    border-radius: 12px;
+}
+
+.dash-refresh-error[hidden] {
+    display: none;
+}
+
+.dark-theme .dash-refresh-error {
+    background: rgba(245, 158, 11, 0.12);
+}

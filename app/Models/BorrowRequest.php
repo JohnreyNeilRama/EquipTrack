@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class BorrowRequest extends Model
 {
+    public const PARTY_ADMIN = 'admin';
+
+    public const PARTY_DEPT = 'dept';
+
     protected $table = 'borrow_request';
     protected $primaryKey = 'request_id';
     public $timestamps = false;
@@ -14,6 +18,7 @@ class BorrowRequest extends Model
         'user_id',
         'equipment_id',
         'quantity',
+        'equipment_classification',
         'purpose',
         'notes',
         'date_needed',
@@ -62,6 +67,64 @@ class BorrowRequest extends Model
     public function transaction()
     {
         return $this->hasOne(BorrowTransaction::class, 'request_id', 'request_id');
+    }
+
+    /**
+     * Expensive equipment needs both the admin and the department to approve.
+     * The classification is the one copied when the request was submitted;
+     * requests from before classifications existed (NULL) and Not Expensive
+     * requests are handled by the department alone.
+     */
+    public function requiresDualApproval(): bool
+    {
+        return $this->equipment_classification === Equipment::CLASS_EXPENSIVE;
+    }
+
+    /** Classification this request was submitted under (NULL counts as Not Expensive). */
+    public function classificationLabel(): string
+    {
+        return $this->requiresDualApproval() ? Equipment::CLASS_EXPENSIVE : Equipment::CLASS_NOT_EXPENSIVE;
+    }
+
+    /**
+     * Whether the admin handles this request. Not Expensive requests (and
+     * requests from before classifications existed) belong to the department
+     * alone; only Expensive requests go to the admin as well.
+     */
+    public function adminCanReview(): bool
+    {
+        return $this->requiresDualApproval();
+    }
+
+    /**
+     * Requests listed on the admin's side: Expensive requests, plus any request
+     * the admin already reviewed before the classification workflow existed,
+     * so the admin's own past decisions stay in the history.
+     */
+    public function scopeVisibleToAdmin($query)
+    {
+        return $query->where(fn ($q) => $q
+            ->where('equipment_classification', Equipment::CLASS_EXPENSIVE)
+            ->orWhereIn('admin_status', ['Approved', 'Rejected']));
+    }
+
+    /**
+     * Whether an approval by $party makes the request fully approved.
+     *
+     *  - Not Expensive: the department's approval completes it (the admin
+     *    cannot review these requests at all).
+     *  - Expensive: only when the other party has already approved; otherwise
+     *    the approval is recorded and the request stays Pending.
+     */
+    public function approvalCompletes(string $party): bool
+    {
+        if (!$this->requiresDualApproval()) {
+            return $party === self::PARTY_DEPT;
+        }
+
+        $otherStatus = $party === self::PARTY_ADMIN ? $this->dept_status : $this->admin_status;
+
+        return $otherStatus === 'Approved';
     }
 
     /**

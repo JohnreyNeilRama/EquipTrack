@@ -5,10 +5,9 @@ namespace App\Http\Controllers\Department;
 use App\Http\Controllers\Controller;
 use App\Models\AuditTrail;
 use App\Models\BorrowRequest;
-use App\Models\EquipmentCategory;
+use App\Services\RequestTableRows;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -22,12 +21,15 @@ class DepartmentRequestsController extends Controller
 {
     public function index(): View
     {
-        $dbCategories = EquipmentCategory::orderBy('category_name')->pluck('category_name')->all();
-
         return view('department.requests', [
-            'dbCategories' => $dbCategories,
             'dbRequests' => $this->fetchDepartmentRequests(),
         ]);
+    }
+
+    /** JSON feed for live polling, same as the admin Requests page. */
+    public function data(): JsonResponse
+    {
+        return response()->json(['success' => true, 'requests' => $this->fetchDepartmentRequests()]);
     }
 
     public function updateStatus(Request $request): JsonResponse
@@ -82,38 +84,58 @@ class DepartmentRequestsController extends Controller
                 return ['code' => 400, 'message' => 'This request has already been reviewed.'];
             }
 
-            if ($data['status'] === 'Approved') {
+            // Not Expensive: the department's approval completes the request.
+            // Expensive: only if the admin already approved.
+            $completes = $data['status'] === 'Approved'
+                && $locked->approvalCompletes(BorrowRequest::PARTY_DEPT);
+
+            if ($completes) {
                 // Deducts the available quantity and creates the Active
                 // transaction; a no-op when the admin approved first.
                 $activation = $locked->activateLoan();
                 if (($activation['code'] ?? 200) !== 200) {
                     return $activation;
                 }
-            } elseif ($locked->transaction()->exists()) {
+            } elseif ($data['status'] === 'Rejected' && $locked->transaction()->exists()) {
                 // The loan is already active, so it can no longer be rejected.
                 return ['code' => 400, 'message' => 'This request is already approved and the equipment is on loan.'];
             }
+
+            $overall = match (true) {
+                $data['status'] === 'Rejected' => 'Rejected',
+                $completes => 'Approved',
+                // Expensive, waiting for the admin: not fully approved yet.
+                default => $locked->overall_status ?: 'Pending',
+            };
 
             $locked->update([
                 'dept_status' => $data['status'],
                 'dept_acc_id' => $dept->dept_acc_id,
                 'dept_reviewed_at' => $now,
-                'overall_status' => $data['status'],
+                'overall_status' => $overall,
                 'reject_reason' => $reason,
             ]);
 
             $action = $data['status'] === 'Approved'
                 ? 'Department approved borrow request #' . $locked->request_id . ' for ' . $borrow->equipment->name
-                : 'Department rejected borrow request #' . $locked->request_id . ' for ' . $borrow->equipment->name . '. Reason: ' . $reason;
+                : 'Department rejected borrow request #' . $locked->request_id . ' for ' . $borrow->equipment->name;
+
+            $details = $reason !== null
+                ? mb_substr('Reason: ' . $reason, 0, 255)
+                : ($data['status'] === 'Approved' && !$completes
+                    ? 'Expensive equipment: awaiting admin approval.'
+                    : null);
 
             AuditTrail::create([
                 'dept_acc_id' => $dept->dept_acc_id,
                 'action' => mb_substr($action, 0, 100),
                 'ip_address' => $request->ip() ?? '127.0.0.1',
                 'affected_entity' => 'borrow_request:' . $locked->request_id,
+                // The reason is kept whole here; `action` is capped at 100 characters.
+                'details' => $details,
             ]);
 
-            return ['code' => 200];
+            return ['code' => 200, 'overall' => $overall];
         });
 
         if (($result['code'] ?? 200) !== 200) {
@@ -123,17 +145,25 @@ class DepartmentRequestsController extends Controller
             ], $result['code']);
         }
 
+        $message = match (true) {
+            $data['status'] === 'Rejected' => 'Borrow request rejected.',
+            $result['overall'] === 'Approved' => 'Borrow request approved successfully!',
+            default => 'Your approval was recorded. This is Expensive equipment, so the request also needs the admin\'s approval.',
+        };
+
         return response()->json([
             'success' => true,
-            'message' => $data['status'] === 'Approved'
-                ? 'Borrow request approved successfully!'
-                : 'Borrow request rejected.',
+            'message' => $message,
+            'overallStatus' => $result['overall'],
+            'deptStatus' => $data['status'],
         ]);
     }
 
     /**
      * Borrow requests for equipment owned by the signed-in department, in the
-     * shape the requests table renders.
+     * shape the shared Requests table renders. The department reviews every
+     * request in its scope: Not Expensive ones alone, Expensive ones together
+     * with the admin.
      */
     private function fetchDepartmentRequests(): array
     {
@@ -143,33 +173,9 @@ class DepartmentRequestsController extends Controller
             return [];
         }
 
-        $rows = BorrowRequest::with([
-            'user.student',
-            'user.facultyMember',
-            'equipment.category',
-        ])
-            ->whereHas('equipment', fn ($query) => $query->where('department_id', $departmentId))
-            ->orderByDesc('request_id')
-            ->get();
-
-        $requests = [];
-
-        foreach ($rows as $row) {
-            $user = $row->user;
-            $fullName = $user?->fullName() ?: ($user?->email ?? '');
-
-            $requests[] = [
-                'id' => (int) $row->request_id,
-                'user' => $fullName !== '' ? $fullName : 'Unknown User',
-                'role' => ucfirst($user?->role ?? 'Student'),
-                'equipment' => $row->equipment?->name ?? 'Unknown Equipment',
-                'category' => $row->equipment?->category?->category_name ?: 'General',
-                'date' => $row->date_requested ? Carbon::parse($row->date_requested)->format('M d, Y') : 'N/A',
-                'status' => ucfirst($row->overall_status ?: 'Pending'),
-            ];
-        }
-
-        return $requests;
+        return RequestTableRows::fetch(
+            BorrowRequest::query()->whereHas('equipment', fn ($query) => $query->where('department_id', $departmentId)),
+            fn () => true,
+        );
     }
-
 }

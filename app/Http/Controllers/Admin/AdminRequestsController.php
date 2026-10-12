@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditTrail;
 use App\Models\BorrowRequest;
+use App\Services\RequestTableRows;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -52,6 +52,14 @@ class AdminRequestsController extends Controller
             return response()->json(['success' => false, 'message' => 'Borrow request not found.'], 404);
         }
 
+        // Not Expensive requests are handled by the department alone.
+        if (!$borrow->adminCanReview()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This request is for Not Expensive equipment and is handled by the department.',
+            ], 403);
+        }
+
         // FIX vs legacy: rows already reviewed could be re-approved/re-rejected,
         // double-logging audit entries.
         if ($borrow->admin_status !== 'Pending') {
@@ -80,23 +88,34 @@ class AdminRequestsController extends Controller
                 return ['code' => 400, 'message' => 'This request has already been reviewed.'];
             }
 
-            if ($data['status'] === 'Approved') {
+            // Expensive: this approval completes the request only if the
+            // department already approved.
+            $completes = $data['status'] === 'Approved'
+                && $locked->approvalCompletes(BorrowRequest::PARTY_ADMIN);
+
+            if ($completes) {
                 // Decrements the equipment's available quantity and creates the
-                // Active borrow_transaction. Idempotent, so approving a request
-                // the department already approved will not deduct stock twice.
+                // Active borrow_transaction (idempotent).
                 $activation = $locked->activateLoan();
                 if (($activation['code'] ?? 200) !== 200) {
                     return $activation;
                 }
-            } elseif ($locked->transaction()->exists()) {
+            } elseif ($data['status'] === 'Rejected' && $locked->transaction()->exists()) {
                 // The department may already have activated the loan. Rejecting
                 // it now would leave an active transaction with stock deducted.
                 return ['code' => 400, 'message' => 'This request is already approved and the equipment is on loan.'];
             }
 
+            $overall = match (true) {
+                $data['status'] === 'Rejected' => 'Rejected',
+                $completes => 'Approved',
+                // Expensive, waiting for the department: not fully approved yet.
+                default => $locked->overall_status ?: 'Pending',
+            };
+
             $locked->update([
                 'admin_status' => $data['status'],
-                'overall_status' => $data['status'],
+                'overall_status' => $overall,
                 'admin_id' => $admin->admin_id,
                 'admin_reviewed_at' => $now,
                 'reject_reason' => $reason,
@@ -106,16 +125,24 @@ class AdminRequestsController extends Controller
             // silently; write to the real audit_trail schema.
             $action = $data['status'] === 'Approved'
                 ? 'Approved borrow request #' . $locked->request_id . ' for ' . $borrow->equipment->name
-                : 'Rejected borrow request #' . $locked->request_id . ' for ' . $borrow->equipment->name . '. Reason: ' . $reason;
+                : 'Rejected borrow request #' . $locked->request_id . ' for ' . $borrow->equipment->name;
+
+            $details = $reason !== null
+                ? mb_substr('Reason: ' . $reason, 0, 255)
+                : ($data['status'] === 'Approved' && !$completes
+                    ? 'Expensive equipment: awaiting department approval.'
+                    : null);
 
             AuditTrail::create([
                 'admin_id' => $admin->admin_id,
                 'action' => mb_substr($action, 0, 100),
                 'ip_address' => $request->ip() ?? '127.0.0.1',
                 'affected_entity' => 'borrow_request:' . $locked->request_id,
+                // The reason is kept whole here; `action` is capped at 100 characters.
+                'details' => $details,
             ]);
 
-            return ['code' => 200];
+            return ['code' => 200, 'overall' => $overall];
         });
 
         if (($result['code'] ?? 200) !== 200) {
@@ -125,70 +152,26 @@ class AdminRequestsController extends Controller
             ], $result['code']);
         }
 
+        $message = match (true) {
+            $data['status'] === 'Rejected' => 'Borrow request rejected.',
+            $result['overall'] === 'Approved' => 'Borrow request approved successfully!',
+            default => 'Your approval was recorded. This is Expensive equipment, so the request also needs the department\'s approval.',
+        };
+
         return response()->json([
             'success' => true,
-            'message' => $data['status'] === 'Approved'
-                ? 'Borrow request approved successfully!'
-                : 'Borrow request rejected.',
+            'message' => $message,
+            'overallStatus' => $result['overall'],
+            'adminStatus' => $data['status'],
         ]);
     }
 
+    /** Expensive requests (Not Expensive ones are handled by the department alone). */
     private function fetchAllBorrowRequests(): array
     {
-        $requests = [];
-
-        $rows = BorrowRequest::with([
-            'user.student',
-            'user.facultyMember',
-            'equipment.category',
-        ])->orderByDesc('request_id')->get();
-
-        foreach ($rows as $row) {
-            $u = $row->user;
-            $fullName = $u?->fullName() ?: ($u?->email ?? '');
-            $bDateRaw = $row->borrow_date ?: $row->date_needed;
-            $dDateRaw = $row->due_date ?: $row->return_date;
-
-            $avatar = trim((string) ($u?->profile_image ?? ''));
-            if ($avatar === '') {
-                $avatar = 'https://ui-avatars.com/api/?name=' . urlencode($fullName ?: 'User') . '&background=385585&color=fff';
-            }
-
-            $rawImg = trim((string) ($row->equipment?->image ?? ''));
-            if ($rawImg === '') {
-                $eqImg = asset('images/EquipTrack_logo.png');
-            } elseif (preg_match('/^(https?:\/\/|data:|\/storage\/)/i', $rawImg)) {
-                $eqImg = $rawImg;
-            } else {
-                $eqImg = asset(ltrim($rawImg, '/'));
-            }
-
-            $fmt = fn ($v) => $v ? Carbon::parse($v)->format('M d, Y') : 'N/A';
-
-            $requests[] = [
-                'id' => (int) $row->request_id,
-                'user_id' => (int) $row->user_id,
-                'user' => $fullName !== '' ? $fullName : 'Unknown User',
-                'role' => ucfirst($u?->role ?? 'Student'),
-                'email' => $u?->email ?? '',
-                'avatar' => $avatar,
-                'equipment_id' => (int) $row->equipment_id,
-                'equipment' => $row->equipment?->name ?? 'Unknown Equipment',
-                'category' => $row->equipment?->category?->category_name ?: 'General',
-                'img' => $eqImg,
-                'quantity' => (int) ($row->quantity ?? 1),
-                'date' => $fmt($row->date_requested),
-                'fullDate' => $row->date_requested ? Carbon::parse($row->date_requested)->format('M d, Y h:i A') : 'N/A',
-                'borrowDate' => $fmt($bDateRaw),
-                'dueDate' => $fmt($dDateRaw),
-                'purpose' => $row->purpose ?: 'N/A',
-                'notes' => $row->notes ?: 'None',
-                'status' => ucfirst($row->overall_status ?? 'Pending'),
-                'adminStatus' => ucfirst($row->admin_status ?? 'Pending'),
-                'rejectReason' => $row->reject_reason ?? '',
-            ];
-        }
-
-        return $requests;
+        return RequestTableRows::fetch(
+            BorrowRequest::query()->visibleToAdmin(),
+            fn (BorrowRequest $row) => $row->adminCanReview(),
+        );
     }
 }

@@ -79,9 +79,10 @@ class EquipmentQuantitySyncTest extends TestCase
         ]);
     }
 
-    private function makeEquipment(int $available, int $total): Equipment
+    private function makeEquipment(int $available, int $total, string $classification = 'Not Expensive'): Equipment
     {
         return Equipment::create([
+            'classification' => $classification,
             'name' => 'Dell Latitude',
             'brand' => 'Dell',
             'serial_number' => 'EQ-' . uniqid(),
@@ -140,12 +141,13 @@ class EquipmentQuantitySyncTest extends TestCase
         ]);
     }
 
-    public function test_admin_approval_decreases_available_and_leaves_total_unchanged(): void
+    public function test_final_approval_decreases_available_and_leaves_total_unchanged(): void
     {
-        $equipment = $this->makeEquipment(3, 3);
+        $equipment = $this->makeEquipment(3, 3, 'Expensive');
         $requestId = $this->submitBorrowRequest($equipment);
 
-        $this->adminApprove($requestId)->assertOk()->assertJson(['success' => true]);
+        $this->deptReview($requestId)->assertOk();
+        $this->adminApprove($requestId)->assertOk()->assertJson(['success' => true, 'overallStatus' => 'Approved']);
 
         $fresh = $equipment->fresh();
         $this->assertSame(2, (int) $fresh->available_qty, 'Available quantity must decrease by the borrowed quantity.');
@@ -156,7 +158,7 @@ class EquipmentQuantitySyncTest extends TestCase
     {
         $equipment = $this->makeEquipment(2, 2);
         $requestId = $this->submitBorrowRequest($equipment);
-        $this->adminApprove($requestId)->assertOk();
+        $this->deptReview($requestId)->assertOk();
 
         $response = $this->actingAs($this->admin, 'admin')->getJson(route('admin.equipment.data'));
         $response->assertOk()->assertJson(['success' => true]);
@@ -191,10 +193,11 @@ class EquipmentQuantitySyncTest extends TestCase
 
     public function test_admin_then_department_approval_deducts_stock_only_once(): void
     {
-        $equipment = $this->makeEquipment(3, 3);
+        $equipment = $this->makeEquipment(3, 3, 'Expensive');
         $requestId = $this->submitBorrowRequest($equipment);
 
         $this->adminApprove($requestId)->assertOk();
+        $this->assertSame(3, (int) $equipment->fresh()->available_qty, 'One approval of Expensive equipment does not deduct stock.');
         $this->deptReview($requestId, 'Approved')->assertOk();
 
         $this->assertSame(2, (int) $equipment->fresh()->available_qty, 'The second approval must not deduct stock again.');
@@ -203,13 +206,14 @@ class EquipmentQuantitySyncTest extends TestCase
 
     public function test_department_then_admin_approval_deducts_stock_only_once(): void
     {
-        $equipment = $this->makeEquipment(3, 3);
+        $equipment = $this->makeEquipment(3, 3, 'Expensive');
         $requestId = $this->submitBorrowRequest($equipment);
 
         $this->deptReview($requestId, 'Approved')->assertOk();
-        $this->assertSame(2, (int) $equipment->fresh()->available_qty);
+        $this->assertSame(3, (int) $equipment->fresh()->available_qty);
 
         $this->adminApprove($requestId)->assertOk();
+        $this->assertSame(2, (int) $equipment->fresh()->available_qty);
 
         $this->assertSame(2, (int) $equipment->fresh()->available_qty, 'The admin approval must not deduct stock again.');
         $this->assertSame(1, BorrowTransaction::where('request_id', $requestId)->count());
@@ -222,14 +226,10 @@ class EquipmentQuantitySyncTest extends TestCase
         $firstRequest = $this->submitBorrowRequest($equipment);
         $secondRequest = $this->submitBorrowRequest($equipment);
 
-        $this->adminApprove($firstRequest)->assertOk();
+        $this->deptReview($firstRequest)->assertOk();
 
         $this->assertSame(0, (int) $equipment->fresh()->available_qty);
         $this->assertSame('Unavailable', $equipment->fresh()->status);
-
-        $this->adminApprove($secondRequest)
-            ->assertStatus(400)
-            ->assertJson(['success' => false]);
 
         $this->deptReview($secondRequest, 'Approved')
             ->assertStatus(400)
@@ -243,7 +243,7 @@ class EquipmentQuantitySyncTest extends TestCase
         $equipment = $this->makeEquipment(1, 1);
         $requestId = $this->submitBorrowRequest($equipment);
 
-        $this->adminApprove($requestId)->assertOk();
+        $this->deptReview($requestId)->assertOk();
         $this->assertSame(0, (int) $equipment->fresh()->available_qty);
         $this->assertSame('Unavailable', $equipment->fresh()->status);
 
@@ -260,7 +260,7 @@ class EquipmentQuantitySyncTest extends TestCase
         $equipment = $this->makeEquipment(3, 3);
         $requestId = $this->submitBorrowRequest($equipment);
 
-        $this->adminApprove($requestId)->assertOk();
+        $this->deptReview($requestId)->assertOk();
         $this->assertSame(2, (int) $equipment->fresh()->available_qty);
 
         // Simulate the admin correcting stock while the item is out on loan.
@@ -273,13 +273,13 @@ class EquipmentQuantitySyncTest extends TestCase
         $this->assertSame(3, (int) $fresh->total_qty);
     }
 
-    public function test_admin_cannot_reject_after_department_approval_activates_the_loan(): void
+    public function test_admin_cannot_reject_a_not_expensive_loan_the_department_approved(): void
     {
         $equipment = $this->makeEquipment(2, 2);
         $requestId = $this->submitBorrowRequest($equipment);
 
         $this->deptReview($requestId, 'Approved')->assertOk();
-        $this->adminApprove($requestId, 'Rejected', 'Too late')->assertStatus(400);
+        $this->adminApprove($requestId, 'Rejected', 'Too late')->assertStatus(403);
 
         $fresh = $equipment->fresh();
         $this->assertSame(1, (int) $fresh->available_qty);

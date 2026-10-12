@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminAuditController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminEquipmentController;
 use App\Http\Controllers\Admin\AdminMonitoringController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Department\DepartmentNotificationController;
 use App\Http\Controllers\Department\DepartmentProfileController;
 use App\Http\Controllers\Department\DepartmentRequestsController;
 use App\Http\Controllers\Department\DepartmentUsersController;
+use App\Http\Controllers\User\UserDashboardController;
 use App\Http\Controllers\User\UserEquipmentController;
 use App\Http\Controllers\User\UserHistoryController;
 use App\Http\Controllers\User\UserNotificationController;
@@ -65,7 +67,9 @@ Route::middleware(['auth:admin', 'active'])->prefix('admin')->name('admin.')->gr
     Route::get('/reports/data', [AdminReportsController::class, 'data'])->name('reports.data');
     Route::post('/reports/generate', [AdminReportsController::class, 'generate'])->name('reports.generate');
     Route::get('/reports/export', [AdminReportsController::class, 'export'])->name('reports.export');
-    Route::view('/audit', 'admin.audit')->name('audit');
+    Route::get('/audit', [AdminAuditController::class, 'index'])->name('audit');
+    Route::get('/audit/data', [AdminAuditController::class, 'data'])->name('audit.data');
+    Route::get('/audit/export', [AdminAuditController::class, 'export'])->name('audit.export');
     Route::get('/notifications', [AdminNotificationController::class, 'index'])->name('notifications');
     Route::post('/notifications/read', [AdminNotificationController::class, 'markRead'])->name('notifications.read');
 });
@@ -82,6 +86,7 @@ Route::middleware(['auth:dept', 'active'])->prefix('department')->name('departme
     Route::get('/equipment/data', [DepartmentEquipmentController::class, 'data'])->name('equipment.data');
     Route::post('/equipment/save', [DepartmentEquipmentController::class, 'save'])->name('equipment.save');
     Route::get('/requests', [DepartmentRequestsController::class, 'index'])->name('requests');
+    Route::get('/requests/data', [DepartmentRequestsController::class, 'data'])->name('requests.data');
     Route::post('/requests/update-status', [DepartmentRequestsController::class, 'updateStatus'])->name('requests.update');
     Route::get('/users', [DepartmentUsersController::class, 'index'])->name('users');
     Route::get('/users/data', [DepartmentUsersController::class, 'data'])->name('users.data');
@@ -94,7 +99,8 @@ Route::middleware(['auth:dept', 'active'])->prefix('department')->name('departme
 
 // User (Student / Faculty)
 Route::middleware(['auth:user', 'active'])->prefix('user')->name('user.')->group(function () {
-    Route::view('/dashboard', 'user.dashboard')->name('dashboard');
+    Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/data', [UserDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [UserProfileController::class, 'show'])->name('profile');
     Route::post('/profile', [UserProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/avatar', [UserProfileController::class, 'avatar'])->name('profile.avatar');

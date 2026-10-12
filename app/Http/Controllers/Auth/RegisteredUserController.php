@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\FacultyMember;
 use App\Models\Student;
 use App\Models\UserAccount;
+use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -49,7 +50,7 @@ class RegisteredUserController extends Controller
 
         $department = Department::orderBy('department_id')->first();
 
-        DB::transaction(function () use ($data, $role, $yearLevelMap, $department) {
+        $account = DB::transaction(function () use ($data, $role, $yearLevelMap, $department) {
             $account = UserAccount::create([
                 'role' => $role,
                 'email' => $data['email'],
@@ -76,7 +77,17 @@ class RegisteredUserController extends Controller
                     'address' => $data['address'],
                 ]);
             }
+
+            return $account;
         });
+
+        AuditLogger::log(
+            'Registered account',
+            'user_account:' . $account->user_id,
+            $role . ' self-registration (' . $account->email . ')',
+            ['user_id' => $account->user_id],
+            $request,
+        );
 
         return redirect('/login?registered=1');
     }

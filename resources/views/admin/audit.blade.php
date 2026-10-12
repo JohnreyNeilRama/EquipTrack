@@ -4,6 +4,7 @@
 
 @push('css')
 <link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
+<link rel="stylesheet" href="{{ asset('admin/css/adminequipment.css') }}">
 <link rel="stylesheet" href="{{ asset('admin/css/adminaudit.css') }}">
 @endpush
 
@@ -13,14 +14,14 @@
             <!-- Header Section -->
             <div class="audit-header-section">
                 <h1 class="audit-page-title">Audit Trail</h1>
-                <p class="audit-page-subtitle">Monitor administrator activities and system changes for accountability and security.</p>
+                <p class="audit-page-subtitle">Monitor user and administrator activities and system changes for accountability and security.</p>
             </div>
 
             <!-- Summary Statistic Cards Row -->
             <div class="audit-stats-row">
                 <div class="audit-stat-card">
                     <div class="audit-stat-header">
-                        <div class="audit-stat-value" id="statToday">0</div>
+                        <div class="audit-stat-value" id="statToday">{{ $stats['today'] }}</div>
                         <div class="audit-stat-icon-box blue">
                             <i class="fa-solid fa-bolt"></i>
                         </div>
@@ -33,7 +34,7 @@
 
                 <div class="audit-stat-card">
                     <div class="audit-stat-header">
-                        <div class="audit-stat-value" id="statWeek">0</div>
+                        <div class="audit-stat-value" id="statWeek">{{ $stats['week'] }}</div>
                         <div class="audit-stat-icon-box green">
                             <i class="fa-solid fa-calendar-days"></i>
                         </div>
@@ -46,7 +47,7 @@
 
                 <div class="audit-stat-card">
                     <div class="audit-stat-header">
-                        <div class="audit-stat-value" id="statMonth">0</div>
+                        <div class="audit-stat-value" id="statMonth">{{ $stats['month'] }}</div>
                         <div class="audit-stat-icon-box orange">
                             <i class="fa-solid fa-chart-column"></i>
                         </div>
@@ -59,14 +60,14 @@
 
                 <div class="audit-stat-card">
                     <div class="audit-stat-header">
-                        <div class="audit-stat-value" id="statAdmins">0</div>
+                        <div class="audit-stat-value" id="statActive">{{ $stats['activeToday'] }}</div>
                         <div class="audit-stat-icon-box purple">
                             <i class="fa-solid fa-users-gear"></i>
                         </div>
                     </div>
                     <div class="audit-stat-info">
-                        <div class="audit-stat-label">Active Administrators</div>
-                        <div class="audit-stat-caption">Admins active today</div>
+                        <div class="audit-stat-label">Active Users Today</div>
+                        <div class="audit-stat-caption">Accounts with activity today</div>
                     </div>
                 </div>
             </div>
@@ -76,46 +77,36 @@
                 <div class="filter-toolbar">
                     <div class="search-box">
                         <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                        <input type="text" id="auditSearchInput" placeholder="Search by administrator, module, or action...">
+                        <input type="text" id="auditSearchInput" placeholder="Search by user, module, action, or details..." maxlength="100">
                     </div>
                     <div class="filter-dropdowns">
                         <select id="filterAction" class="filter-select">
-                            <option value="All">All Actions</option>
-                            <option value="Login">Login</option>
-                            <option value="Logout">Logout</option>
-                            <option value="Added Equipment">Added Equipment</option>
-                            <option value="Updated Equipment">Updated Equipment</option>
-                            <option value="Deleted Equipment">Deleted Equipment</option>
-                            <option value="Approved Request">Approved Request</option>
-                            <option value="Rejected Request">Rejected Request</option>
-                            <option value="Confirmed Return">Confirmed Return</option>
-                            <option value="Added User">Added User</option>
-                            <option value="Updated User">Updated User</option>
-                            <option value="Deactivated User">Deactivated User</option>
+                            <option value="">All Actions</option>
+                            @foreach ($actions as $action)
+                                <option value="{{ $action }}">{{ $action }}</option>
+                            @endforeach
                         </select>
-                        
+
                         <select id="filterModule" class="filter-select">
-                            <option value="All">All Modules</option>
-                            <option value="Equipment Management">Equipment Management</option>
-                            <option value="Requests">Requests</option>
-                            <option value="Users">Users</option>
-                            <option value="Equipment Monitoring">Equipment Monitoring</option>
-                            <option value="Reports">Reports</option>
+                            <option value="">All Modules</option>
+                            @foreach ($modules as $module)
+                                <option value="{{ $module }}">{{ $module }}</option>
+                            @endforeach
                         </select>
 
                         <select id="filterDateRange" class="filter-select">
-                            <option value="All">All Dates</option>
-                            <option value="Today">Today</option>
-                            <option value="This Week">This Week</option>
-                            <option value="This Month">This Month</option>
-                            <option value="Custom">Custom Date Range</option>
+                            <option value="all">All Dates</option>
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="custom">Custom Date Range</option>
                         </select>
                     </div>
                     <button type="button" id="btnExportLogs" class="btn-export-logs">
                         <i class="fa-solid fa-download"></i> Export Logs
                     </button>
                 </div>
-                
+
                 <!-- Custom Date Range Picker Container -->
                 <div class="custom-date-container" id="customDateContainer" style="display: none;">
                     <div class="custom-date-group">
@@ -131,343 +122,414 @@
             </div>
 
             <!-- Audit Log Table & Empty State Wrapper -->
-            <div class="white-card" style="margin-top: 24px;">
-                <div id="tableContainer">
-                    <div class="reports-table-wrapper">
-                        <table class="reports-table">
+            <div class="table-container card admin-table-card audit-table-card" style="margin-top: 24px;">
+                <div id="tableContainer" style="display: none;">
+                    <div class="audit-table-scroll">
+                        <table class="audit-table" style="width: 100%;">
+                            {{-- Fixed column widths keep every header aligned with its data; Details takes the remaining space. --}}
+                            <colgroup>
+                                <col style="width: 190px;">
+                                <col style="width: 180px;">
+                                <col style="width: 130px;">
+                                <col style="width: 170px;">
+                                <col style="width: 170px;">
+                                <col>
+                                <col style="width: 140px;">
+                            </colgroup>
                             <thead>
                                 <tr>
-                                    <th>Date & Time</th>
-                                    <th>Administrator</th>
+                                    <th>Date &amp; Time</th>
+                                    <th>User</th>
                                     <th>Module</th>
                                     <th>Action</th>
+                                    <th>Affected Record</th>
                                     <th>Details</th>
                                     <th>IP Address</th>
                                 </tr>
                             </thead>
-                            <tbody id="auditTableBody">
-                                <!-- Generated Dynamically -->
-                            </tbody>
+                            <tbody id="auditTableBody"></tbody>
                         </table>
                     </div>
-                    
-                    <!-- Pagination Wrapper -->
-                    <div class="pagination-wrapper">
-                        <span id="paginationInfo" style="font-size: 13px; color: var(--text-muted); margin-right: auto;">Showing 1 to 5 of 5 entries</span>
-                        <div id="paginationButtons" style="display: flex; gap: 6px;">
-                            <!-- Generated Dynamically -->
-                        </div>
+
+                    <!-- Pagination Footer -->
+                    <div class="pagination-container">
+                        <span class="pagination-info" id="paginationInfo"></span>
+                        <div class="pagination-buttons" id="paginationButtons"></div>
                     </div>
+                </div>
+
+                <!-- Loading State (first load only) -->
+                <div id="loadingState" class="empty-state-container">
+                    <i class="fa-solid fa-spinner fa-spin empty-state-icon"></i>
+                    <h4>Loading audit records...</h4>
                 </div>
 
                 <!-- Empty State Container -->
                 <div id="emptyState" class="empty-state-container" style="display: none;">
-                    <div class="empty-state-icon">
-                        <i class="fa-solid fa-shield-halved"></i>
-                    </div>
-                    <h3 class="empty-state-title">No audit records found.</h3>
-                    <p class="empty-state-subtitle">Administrator activities will appear here once actions are performed within the system.</p>
+                    <i class="fa-solid fa-shield-halved empty-state-icon"></i>
+                    <h4 id="emptyTitle">No audit records found.</h4>
+                    <p id="emptySubtitle">Activities will appear here once actions are performed within the system.</p>
                 </div>
             </div>
         </div>
-<!-- Toast Success Notification Container -->
-    <div class="toast-notification" id="toastNotification">
-        <div class="toast-content">
-            <div style="width: 32px; height: 32px; border-radius: 50%; background-color: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 16px;" id="toastIcon">
-                <i class="fa-solid fa-circle-check"></i>
+<!-- Audit Record Details Modal -->
+    <div class="modal-overlay" id="auditDetailsModal" role="dialog" aria-modal="true" aria-labelledby="auditDetailsTitle">
+        <div class="modal-card eq-modal-card" style="max-width: 680px;">
+            <div class="modal-outer-header">
+                <p class="modal-subtitle-top">Complete audit record</p>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 2px;">
-                <span style="font-weight: 700; font-size: 14px; color: var(--text-main);" id="toastTitle">Notification Title</span>
-                <span style="font-size: 12.5px; color: var(--text-muted);" id="toastMessage">Notification details message goes here.</span>
+            <div class="modal-inner-card">
+                <button type="button" class="modal-close" id="auditDetailsClose" aria-label="Close details">&times;</button>
+                <h3 class="modal-title-center" id="auditDetailsTitle">Audit Record Details</h3>
+
+                <div class="audit-detail-grid">
+                    <div class="audit-detail-field">
+                        <span class="audit-detail-label">Date &amp; Time</span>
+                        <div class="audit-detail-value" id="detailDate"></div>
+                    </div>
+                    <div class="audit-detail-field">
+                        <span class="audit-detail-label">Record ID</span>
+                        <div class="audit-detail-value" id="detailId"></div>
+                    </div>
+                    <div class="audit-detail-field">
+                        <span class="audit-detail-label">User</span>
+                        <div class="audit-detail-value" id="detailUser"></div>
+                    </div>
+                    <div class="audit-detail-field">
+                        <span class="audit-detail-label">Role</span>
+                        <div class="audit-detail-value" id="detailRole"></div>
+                    </div>
+                    <div class="audit-detail-field">
+                        <span class="audit-detail-label">Module</span>
+                        <div class="audit-detail-value" id="detailModule"></div>
+                    </div>
+                    <div class="audit-detail-field">
+                        <span class="audit-detail-label">Action</span>
+                        <div class="audit-detail-value"><span class="status-badge" id="detailAction"></span></div>
+                    </div>
+                    <div class="audit-detail-field">
+                        <span class="audit-detail-label">IP Address</span>
+                        <div class="audit-detail-value" id="detailIp"></div>
+                    </div>
+                    <div class="audit-detail-field">
+                        <span class="audit-detail-label">Affected Record</span>
+                        <div class="audit-detail-value" id="detailEntity"></div>
+                    </div>
+                    <div class="audit-detail-field audit-detail-full">
+                        <span class="audit-detail-label">Description</span>
+                        <div class="audit-detail-value audit-detail-text" id="detailDescription"></div>
+                    </div>
+                    <div class="audit-detail-field audit-detail-full">
+                        <span class="audit-detail-label">Details / Notes</span>
+                        <div class="audit-detail-value audit-detail-text" id="detailNote"></div>
+                    </div>
+                </div>
+
+                <div class="audit-detail-footer">
+                    <button type="button" class="audit-detail-close-btn" id="auditDetailsDone">Close</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
+<!-- Toast Success Notification Container -->
+    <div class="toast-notification" id="toastNotification">
+        <div class="toast-content">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background-color: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 16px;" id="toastIconBox">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+                <span style="font-weight: 700; font-size: 14px; color: var(--text-main);" id="toastTitleText">Notification Title</span>
+                <span style="font-size: 12.5px; color: var(--text-muted);" id="toastMessageText">Notification details message goes here.</span>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const DATA_URL = @json(route('admin.audit.data'));
+    const EXPORT_URL = @json(route('admin.audit.export'));
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // Notification Bell Click
-            const notificationBtn = document.getElementById('notificationBtn');
-            if (notificationBtn) {
-                notificationBtn.addEventListener('click', () => {
-                    showNotification('Security Alerts', 'System audit security levels are optimal. No threats detected.', 'info');
-                });
-            }
+    // Everything the table shows comes from the server; this is only UI state.
+    const state = { q: '', action: '', module: '', range: 'all', from: '', to: '', sort: 'date', dir: 'desc', page: 1 };
+    let controller = null;
+    let lastTotal = 0;
+    let searchTimer = null;
+    // Full, untruncated rows from the current page of the server response, keyed by audit id.
+    const recordsById = new Map();
 
-            // Audit Trail records initialized to empty
-            const auditRecords = [];
+    const $ = (id) => document.getElementById(id);
+    const tableBody = $('auditTableBody');
+    const tableContainer = $('tableContainer');
+    const emptyState = $('emptyState');
+    const loadingState = $('loadingState');
+    const paginationInfo = $('paginationInfo');
+    const paginationButtons = $('paginationButtons');
 
-            let filteredRecords = [...auditRecords];
-            const recordsPerPage = 5;
-            let currentPage = 1;
+    function escapeHTML(value) {
+        return String(value ?? '').replace(/[&<>'"]/g,
+            tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+    }
 
-            // DOM elements
-            const auditTableBody = document.getElementById('auditTableBody');
-            const tableContainer = document.getElementById('tableContainer');
-            const emptyState = document.getElementById('emptyState');
-            const paginationInfo = document.getElementById('paginationInfo');
-            const paginationButtons = document.getElementById('paginationButtons');
+    function badgeClass(action) {
+        const a = action.toLowerCase();
+        if (a.includes('login')) return 'badge-blue';
+        if (a.includes('logout')) return 'badge-gray';
+        if (a.includes('deleted') || a.includes('deactivated') || a.includes('rejected')) return 'badge-red';
+        if (a.includes('added') || a.includes('registered') || a.includes('submitted') || a.includes('activated')) return 'badge-green';
+        if (a.includes('updated')) return 'badge-orange';
+        if (a.includes('approved')) return 'badge-purple';
+        if (a.includes('returned')) return 'badge-teal';
+        if (a.includes('exported') || a.includes('generated')) return 'badge-yellow';
+        return 'badge-blue';
+    }
 
-            const auditSearchInput = document.getElementById('auditSearchInput');
-            const filterAction = document.getElementById('filterAction');
-            const filterModule = document.getElementById('filterModule');
-            const filterDateRange = document.getElementById('filterDateRange');
+    function showToast(title, message, type) {
+        const box = $('toastIconBox');
+        $('toastTitleText').textContent = title;
+        $('toastMessageText').textContent = message;
+        const ok = type === 'success';
+        box.style.backgroundColor = ok ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+        box.style.color = ok ? '#10b981' : '#ef4444';
+        box.innerHTML = ok ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-circle-xmark"></i>';
+        const toast = $('toastNotification');
+        toast.classList.add('show');
+        clearTimeout(showToast.timer);
+        showToast.timer = setTimeout(() => toast.classList.remove('show'), 4000);
+    }
 
-            const customDateContainer = document.getElementById('customDateContainer');
-            const customStartDate = document.getElementById('customStartDate');
-            const customEndDate = document.getElementById('customEndDate');
-            const btnApplyCustomDate = document.getElementById('btnApplyCustomDate');
-            const btnExportLogs = document.getElementById('btnExportLogs');
+    function queryString(includePage) {
+        const params = new URLSearchParams();
+        ['q', 'action', 'module', 'sort', 'dir'].forEach(key => { if (state[key] !== '') params.set(key, state[key]); });
+        if (state.range !== 'all') params.set('range', state.range);
+        if (state.range === 'custom') {
+            if (state.from) params.set('from', state.from);
+            if (state.to) params.set('to', state.to);
+        }
+        if (includePage && state.page > 1) params.set('page', state.page);
+        return params.toString();
+    }
 
-            // Escape HTML helper
-            function escapeHTML(str) {
-                if (!str) return '';
-                return str.replace(/[&<>'"]/g, 
-                    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-                );
-            }
+    async function load() {
+        if (controller) controller.abort();
+        controller = new AbortController();
 
-            // Parse date string (e.g. "June 30, 2026 • 9:15 AM") into JS Date
-            function parseDateString(dateStr) {
-                const datePart = dateStr.split('•')[0].trim();
-                return new Date(datePart);
-            }
-
-            // Render table view
-            function renderTable() {
-                auditTableBody.innerHTML = '';
-
-                if (filteredRecords.length === 0) {
-                    tableContainer.style.display = 'none';
-                    emptyState.style.display = 'flex';
-                    return;
-                }
-
-                tableContainer.style.display = 'block';
-                emptyState.style.display = 'none';
-
-                const totalEntries = filteredRecords.length;
-                const totalPages = Math.ceil(totalEntries / recordsPerPage);
-
-                if (currentPage > totalPages) currentPage = totalPages;
-                if (currentPage < 1) currentPage = 1;
-
-                const startIndex = (currentPage - 1) * recordsPerPage;
-                const endIndex = Math.min(startIndex + recordsPerPage, totalEntries);
-                const pageRecords = filteredRecords.slice(startIndex, endIndex);
-
-                pageRecords.forEach(rec => {
-                    const tr = document.createElement('tr');
-                    const badgeClass = getBadgeClass(rec.action);
-
-                    tr.innerHTML = `
-                        <td><strong>${escapeHTML(rec.date)}</strong></td>
-                        <td>${escapeHTML(rec.admin)}</td>
-                        <td>${escapeHTML(rec.module)}</td>
-                        <td>
-                            <span class="status-badge ${badgeClass}">${escapeHTML(rec.action)}</span>
-                        </td>
-                        <td>${escapeHTML(rec.details)}</td>
-                        <td><code style="background-color: var(--primary-light); padding: 2px 6px; border-radius: 4px; font-size: 12px; color: var(--primary-color);">${escapeHTML(rec.ip)}</code></td>
-                    `;
-                    auditTableBody.appendChild(tr);
-                });
-
-                // Update pagination info
-                paginationInfo.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${totalEntries} entries`;
-
-                // Render pagination buttons
-                renderPagination(totalPages);
-            }
-
-            // Map Action to SaaS Badge Color
-            function getBadgeClass(action) {
-                const act = action.toLowerCase();
-                if (act.includes('login')) return 'badge-blue';
-                if (act.includes('logout')) return 'badge-gray';
-                if (act.includes('added') || act.includes('add ')) return 'badge-green';
-                if (act.includes('updated') || act.includes('update ')) return 'badge-orange';
-                if (act.includes('approved') || act.includes('approve ')) return 'badge-purple';
-                if (act.includes('deleted') || act.includes('delete ') || act.includes('deactivated') || act.includes('deactivate ')) return 'badge-red';
-                if (act.includes('confirmed') || act.includes('confirm ') || act.includes('return')) return 'badge-teal';
-                if (act.includes('exported') || act.includes('export')) return 'badge-yellow';
-                if (act.includes('rejected') || act.includes('reject ')) return 'badge-red';
-                return 'badge-blue';
-            }
-
-            function renderPagination(totalPages) {
-                paginationButtons.innerHTML = '';
-
-                // Previous Button
-                const prevBtn = document.createElement('button');
-                prevBtn.className = `pagination-btn ${currentPage === 1 ? 'disabled' : ''}`;
-                prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
-                if (currentPage !== 1) {
-                    prevBtn.addEventListener('click', () => {
-                        currentPage--;
-                        renderTable();
-                    });
-                }
-                paginationButtons.appendChild(prevBtn);
-
-                // Page Number Buttons
-                for (let i = 1; i <= totalPages; i++) {
-                    const btn = document.createElement('button');
-                    btn.className = `pagination-btn ${currentPage === i ? 'active' : ''}`;
-                    btn.textContent = i;
-                    btn.addEventListener('click', () => {
-                        currentPage = i;
-                        renderTable();
-                    });
-                    paginationButtons.appendChild(btn);
-                }
-
-                // Next Button
-                const nextBtn = document.createElement('button');
-                nextBtn.className = `pagination-btn ${currentPage === totalPages ? 'disabled' : ''}`;
-                nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
-                if (currentPage !== totalPages) {
-                    nextBtn.addEventListener('click', () => {
-                        currentPage++;
-                        renderTable();
-                    });
-                }
-                paginationButtons.appendChild(nextBtn);
-            }
-
-            // Real-time filter method
-            function filterRecords() {
-                const searchVal = auditSearchInput.value.toLowerCase().trim();
-                const actionVal = filterAction.value;
-                const moduleVal = filterModule.value;
-                const dateRangeVal = filterDateRange.value;
-
-                filteredRecords = auditRecords.filter(rec => {
-                    // Search bar filter (admin, module, action, or details)
-                    if (searchVal) {
-                        const matchesSearch = 
-                            rec.admin.toLowerCase().includes(searchVal) ||
-                            rec.module.toLowerCase().includes(searchVal) ||
-                            rec.action.toLowerCase().includes(searchVal) ||
-                            rec.details.toLowerCase().includes(searchVal);
-                        if (!matchesSearch) return false;
-                    }
-
-                    // Action dropdown filter
-                    if (actionVal !== 'All' && rec.action !== actionVal) {
-                        return false;
-                    }
-
-                    // Module dropdown filter
-                    if (moduleVal !== 'All' && rec.module !== moduleVal) {
-                        return false;
-                    }
-
-                    // Date range selection filter
-                    if (dateRangeVal !== 'All') {
-                        const recDate = parseDateString(rec.date);
-                        const refDate = new Date("2026-06-30"); // System relative anchor day
-
-                        if (dateRangeVal === 'Today') {
-                            const isToday = recDate.getFullYear() === refDate.getFullYear() &&
-                                            recDate.getMonth() === refDate.getMonth() &&
-                                            recDate.getDate() === refDate.getDate();
-                            if (!isToday) return false;
-                        } else if (dateRangeVal === 'This Week') {
-                            const diffTime = Math.abs(refDate - recDate);
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            if (diffDays > 7) return false;
-                        } else if (dateRangeVal === 'This Month') {
-                            const isThisMonth = recDate.getFullYear() === refDate.getFullYear() &&
-                                                recDate.getMonth() === refDate.getMonth();
-                            if (!isThisMonth) return false;
-                        } else if (dateRangeVal === 'Custom') {
-                            const startVal = customStartDate.value;
-                            const endVal = customEndDate.value;
-                            if (startVal) {
-                                const startDate = new Date(startVal);
-                                startDate.setHours(0,0,0,0);
-                                if (recDate < startDate) return false;
-                            }
-                            if (endVal) {
-                                const endDate = new Date(endVal);
-                                endDate.setHours(23,59,59,999);
-                                if (recDate > endDate) return false;
-                            }
-                        }
-                    }
-
-                    return true;
-                });
-
-                currentPage = 1;
-                renderTable();
-            }
-
-            // Bind Event Listeners
-            auditSearchInput.addEventListener('input', filterRecords);
-            filterAction.addEventListener('change', filterRecords);
-            filterModule.addEventListener('change', filterRecords);
-            
-            filterDateRange.addEventListener('change', () => {
-                if (filterDateRange.value === 'Custom') {
-                    customDateContainer.style.display = 'flex';
-                } else {
-                    customDateContainer.style.display = 'none';
-                    filterRecords();
-                }
+        try {
+            const response = await fetch(DATA_URL + '?' + queryString(true), {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+                signal: controller.signal,
             });
 
-            btnApplyCustomDate.addEventListener('click', filterRecords);
+            if (response.status === 422) {
+                const body = await response.json().catch(() => ({}));
+                const first = body.errors ? Object.values(body.errors)[0][0] : 'Please check the selected filters.';
+                showToast('Invalid Filter', first, 'error');
+                return;
+            }
+            if (!response.ok) throw new Error('HTTP ' + response.status);
 
-            // Export logic
-            btnExportLogs.addEventListener('click', () => {
-                if (filteredRecords.length === 0) {
-                    showNotification('Export Failed', 'There are no audit logs available to export.', 'error');
-                    return;
-                }
-                showNotification('Export Successful', `Exported ${filteredRecords.length} audit logs in CSV format successfully.`, 'success');
-            });
+            render(await response.json());
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            loadingState.style.display = 'none';
+            showToast('Could Not Load Records', 'The audit trail could not be loaded. Please refresh the page.', 'error');
+        }
+    }
 
-            // Toast system notification
-            const toastNotification = document.getElementById('toastNotification');
-            const toastTitle = document.getElementById('toastTitle');
-            const toastMessage = document.getElementById('toastMessage');
-            const toastIcon = document.getElementById('toastIcon');
-            let toastTimeout;
+    function render(data) {
+        $('statToday').textContent = data.stats.today;
+        $('statWeek').textContent = data.stats.week;
+        $('statMonth').textContent = data.stats.month;
+        $('statActive').textContent = data.stats.activeToday;
 
-            window.showNotification = function(title, message, type = 'success') {
-                clearTimeout(toastTimeout);
-                toastTitle.textContent = title;
-                toastMessage.textContent = message;
+        loadingState.style.display = 'none';
+        lastTotal = data.total;
+        state.page = data.page;
 
-                if (type === 'success') {
-                    toastIcon.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
-                    toastIcon.style.color = '#10b981';
-                    toastIcon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
-                } else if (type === 'error') {
-                    toastIcon.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
-                    toastIcon.style.color = '#ef4444';
-                    toastIcon.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
-                } else {
-                    toastIcon.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
-                    toastIcon.style.color = '#3b82f6';
-                    toastIcon.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
-                }
+        if (data.total === 0) {
+            tableContainer.style.display = 'none';
+            emptyState.style.display = 'flex';
+            if (data.hasAny) {
+                $('emptyTitle').textContent = 'No records match your filters.';
+                $('emptySubtitle').textContent = 'Try a different search or clear the filters to see all audit records.';
+            } else {
+                $('emptyTitle').textContent = 'No audit records found.';
+                $('emptySubtitle').textContent = 'Activities will appear here once actions are performed within the system.';
+            }
+            return;
+        }
 
-                toastNotification.classList.add('show');
-                toastTimeout = setTimeout(() => {
-                    toastNotification.classList.remove('show');
-                }, 4000);
-            };
+        emptyState.style.display = 'none';
+        tableContainer.style.display = 'block';
 
-            // Initial render
-            renderTable();
+        // Long values are only clipped on screen (CSS ellipsis); the full text stays in the
+        // title tooltip and in the details modal, which reads the same untouched record.
+        const clip = (value, cls = '') => `<div class="audit-truncate ${cls}" title="${escapeHTML(value)}">${escapeHTML(value)}</div>`;
+
+        recordsById.clear();
+        data.records.forEach(rec => recordsById.set(String(rec.id), rec));
+
+        tableBody.innerHTML = data.records.map(rec => `
+            <tr class="audit-row" data-id="${rec.id}" tabindex="0">
+                <td class="audit-col-date">${clip(rec.date)}</td>
+                <td>
+                    ${clip(rec.user, 'audit-user-name')}
+                    ${rec.role && rec.role !== '—' ? clip(rec.role, 'audit-user-role') : ''}
+                </td>
+                <td>${clip(rec.module)}</td>
+                <td><span class="status-badge ${badgeClass(rec.action)}" title="${escapeHTML(rec.action)}">${escapeHTML(rec.action)}</span></td>
+                <td>${clip(rec.entity)}</td>
+                <td>
+                    ${rec.description ? clip(rec.description) : ''}
+                    ${rec.note ? clip(rec.note, 'audit-note') : ''}
+                    ${!rec.description && !rec.note ? '—' : ''}
+                </td>
+                <td><code class="audit-ip" title="${escapeHTML(rec.ip)}">${escapeHTML(rec.ip)}</code></td>
+            </tr>`).join('');
+
+        paginationInfo.textContent = `Showing ${data.from} to ${data.to} of ${data.total} entries`;
+        renderPagination(data.page, data.lastPage);
+    }
+
+    function pageButton(label, page, { active = false, disabled = false } = {}) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-page' + (active ? ' active' : '');
+        btn.disabled = disabled;
+        btn.innerHTML = label;
+        if (!disabled && !active) {
+            btn.addEventListener('click', () => { state.page = page; load(); });
+        }
+        return btn;
+    }
+
+    function renderPagination(current, last) {
+        paginationButtons.innerHTML = '';
+        paginationButtons.appendChild(pageButton('<i class="fa-solid fa-angle-left"></i>', current - 1, { disabled: current === 1 }));
+
+        const pages = new Set([1, last, current - 1, current, current + 1]);
+        let previous = 0;
+        [...pages].filter(p => p >= 1 && p <= last).sort((a, b) => a - b).forEach(p => {
+            if (p - previous > 1) {
+                const gap = document.createElement('span');
+                gap.textContent = '…';
+                gap.style.cssText = 'align-self: center; color: var(--text-muted);';
+                paginationButtons.appendChild(gap);
+            }
+            paginationButtons.appendChild(pageButton(String(p), p, { active: p === current }));
+            previous = p;
         });
-    
+
+        paginationButtons.appendChild(pageButton('<i class="fa-solid fa-angle-right"></i>', current + 1, { disabled: current === last }));
+    }
+
+    function reload() { state.page = 1; load(); }
+
+    // Full-details modal
+    const detailModal = $('auditDetailsModal');
+    let detailReturnFocus = null;
+
+    function setDetail(id, value) {
+        const el = $(id);
+        const text = String(value ?? '').trim();
+        el.textContent = text !== '' ? text : '—';
+        el.classList.toggle('is-empty', text === '' || text === '—');
+    }
+
+    function openDetails(id) {
+        const rec = recordsById.get(String(id));
+        if (!rec) return;
+
+        setDetail('detailDate', rec.date);
+        setDetail('detailId', '#' + rec.id);
+        setDetail('detailUser', rec.user);
+        setDetail('detailRole', rec.role);
+        setDetail('detailModule', rec.module);
+        setDetail('detailEntity', rec.entity);
+        setDetail('detailDescription', rec.description);
+        setDetail('detailNote', rec.note);
+        setDetail('detailIp', rec.ip);
+
+        const badge = $('detailAction');
+        badge.textContent = rec.action;
+        badge.className = 'status-badge ' + badgeClass(rec.action);
+
+        detailReturnFocus = document.activeElement;
+        detailModal.classList.add('show');
+        $('auditDetailsClose').focus();
+    }
+
+    function closeDetails() {
+        if (!detailModal.classList.contains('show')) return;
+        detailModal.classList.remove('show');
+        if (detailReturnFocus && typeof detailReturnFocus.focus === 'function') detailReturnFocus.focus();
+        detailReturnFocus = null;
+    }
+
+    tableBody.addEventListener('click', (e) => {
+        const row = e.target.closest('tr.audit-row');
+        if (!row) return;
+        // Let the Admin select/copy text (e.g. an IP address) without opening the modal.
+        if (String(window.getSelection()).trim() !== '') return;
+        openDetails(row.dataset.id);
+    });
+
+    tableBody.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const row = e.target.closest('tr.audit-row');
+        if (!row || e.target !== row) return;
+        e.preventDefault();
+        openDetails(row.dataset.id);
+    });
+
+    $('auditDetailsClose').addEventListener('click', closeDetails);
+    $('auditDetailsDone').addEventListener('click', closeDetails);
+    detailModal.addEventListener('click', (e) => { if (e.target === detailModal) closeDetails(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDetails(); });
+
+    // Controls
+    $('auditSearchInput').addEventListener('input', (e) => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => { state.q = e.target.value.trim(); reload(); }, 300);
+    });
+    $('filterAction').addEventListener('change', (e) => { state.action = e.target.value; reload(); });
+    $('filterModule').addEventListener('change', (e) => { state.module = e.target.value; reload(); });
+
+    $('filterDateRange').addEventListener('change', (e) => {
+        state.range = e.target.value;
+        if (state.range === 'custom') {
+            $('customDateContainer').style.display = 'flex';
+        } else {
+            $('customDateContainer').style.display = 'none';
+            reload();
+        }
+    });
+
+    $('btnApplyCustomDate').addEventListener('click', () => {
+        state.from = $('customStartDate').value;
+        state.to = $('customEndDate').value;
+        if (!state.from && !state.to) {
+            showToast('Select a Date', 'Choose a start date, an end date, or both.', 'error');
+            return;
+        }
+        reload();
+    });
+
+    $('btnExportLogs').addEventListener('click', () => {
+        if (lastTotal === 0) {
+            showToast('Export Failed', 'There are no audit logs available to export.', 'error');
+            return;
+        }
+        // The server exports everything the current filters match and records the export.
+        window.location.href = EXPORT_URL + '?' + queryString(false);
+        showToast('Export Started', 'Your CSV download of the filtered audit logs is starting.', 'success');
+        setTimeout(load, 1500);
+    });
+
+    load();
+});
 </script>
 @endpush

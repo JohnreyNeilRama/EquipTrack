@@ -269,244 +269,346 @@ body {
     border-color: var(--primary-color);
 }
 
-/* Status Badges */
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
+/* ------------------------------------------------------------------
+   Audit table: the shared Admin table card
+   (.table-container.card.admin-table-card from admindashboard.css gives the
+   border, blue header, padding and typography used on Requests / Users).
+   Only audit-specific details are added here.
+   ------------------------------------------------------------------ */
+
+/* Keep the card edges clean; the table scrolls inside, the footer stays put. */
+.audit-table-card.admin-table-card {
+    overflow: hidden;
 }
 
-/* Blue - Login */
+.audit-table-scroll {
+    overflow-x: auto;
+    width: 100%;
+}
+
+/* Seven columns need room; narrower screens scroll the table sideways.
+   A fixed layout (widths come from the <colgroup>) keeps every header over its data
+   and stops long values from stretching the table. */
+.audit-table-card table.audit-table {
+    table-layout: fixed;
+    min-width: 1240px;
+}
+
+.audit-table th {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
+.audit-table td {
+    overflow: hidden;
+}
+
+/* Display-only clipping: the stored value is untouched and shown in full in the details modal. */
+.audit-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.audit-table td.audit-col-date {
+    white-space: nowrap;
+}
+
+/* Action badge clips instead of widening its column */
+.audit-table .status-badge {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
+/* Clickable rows open the full-details modal */
+.audit-table tbody tr.audit-row {
+    cursor: pointer;
+}
+
+.audit-table tbody tr.audit-row:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+}
+
+/* Sortable headers */
+.admin-table-card th.audit-sortable {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.admin-table-card th.audit-sortable .sort-icon {
+    margin-left: 6px;
+    opacity: 0.6;
+    font-size: 11px;
+}
+
+.admin-table-card th.audit-sortable.sorted .sort-icon {
+    opacity: 1;
+}
+
+/* Row hover (same tint as the Requests / Users rows) */
+.audit-table-card tbody tr:hover td {
+    background-color: rgba(56, 85, 133, 0.03) !important;
+}
+
+.dark-theme .audit-table-card tbody tr:hover td {
+    background-color: rgba(96, 165, 250, 0.05) !important;
+}
+
+/* User cell: name with a small uppercase role (same as the Requests "requester" cell) */
+.audit-user-name {
+    display: block;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.audit-user-role {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.audit-note {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.audit-ip {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    background-color: var(--primary-light);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--primary-color);
+}
+
+/* Status badges: same pill shape and type as the Requests / Users badges */
+.status-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
 .status-badge.badge-blue {
     background-color: rgba(59, 130, 246, 0.08);
     color: #3b82f6;
 }
-.status-badge.badge-blue::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    background-color: #3b82f6;
-    border-radius: 50%;
-}
 
-/* Gray - Logout */
 .status-badge.badge-gray {
     background-color: rgba(100, 116, 139, 0.08);
     color: #64748b;
 }
-.status-badge.badge-gray::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    background-color: #64748b;
-    border-radius: 50%;
-}
 
-/* Green - Added */
 .status-badge.badge-green {
     background-color: rgba(16, 185, 129, 0.08);
     color: #10b981;
 }
-.status-badge.badge-green::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    background-color: #10b981;
-    border-radius: 50%;
-}
 
-/* Orange - Updated */
 .status-badge.badge-orange {
     background-color: rgba(245, 158, 11, 0.08);
     color: #f59e0b;
 }
-.status-badge.badge-orange::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    background-color: #f59e0b;
-    border-radius: 50%;
-}
 
-/* Purple - Approved */
 .status-badge.badge-purple {
     background-color: rgba(139, 92, 246, 0.08);
     color: #8b5cf6;
 }
-.status-badge.badge-purple::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    background-color: #8b5cf6;
-    border-radius: 50%;
-}
 
-/* Red - Deleted/Deactivated */
 .status-badge.badge-red {
     background-color: rgba(239, 68, 68, 0.08);
     color: #ef4444;
 }
-.status-badge.badge-red::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    background-color: #ef4444;
-    border-radius: 50%;
-}
 
-/* Teal - Confirmed Return */
 .status-badge.badge-teal {
     background-color: rgba(20, 184, 166, 0.08);
     color: #14b8a6;
 }
-.status-badge.badge-teal::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    background-color: #14b8a6;
-    border-radius: 50%;
-}
 
-/* Yellow - Exported */
 .status-badge.badge-yellow {
     background-color: rgba(234, 179, 8, 0.08);
     color: #eab308;
 }
-.status-badge.badge-yellow::before {
-    content: "";
-    width: 6px;
-    height: 6px;
-    background-color: #eab308;
-    border-radius: 50%;
-}
 
-/* Table Card Wrapper */
-.reports-table-wrapper {
-    overflow-x: auto;
-    width: 100%;
-    margin-top: 8px;
-}
-
-.reports-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-}
-
-.reports-table th {
-    background-color: var(--primary-light) !important;
-    color: var(--primary-color) !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 12px 16px !important;
-    border-bottom: 1px solid var(--border-color) !important;
-}
-
-.reports-table td {
-    padding: 14px 16px !important;
-    font-size: 13.5px !important;
-    color: var(--text-main) !important;
-    border-bottom: 1px solid var(--border-color) !important;
-    vertical-align: middle;
-}
-
-.reports-table tbody tr:last-child td {
-    border-bottom: none !important;
-}
-
-.reports-table tbody tr {
-    transition: background-color 0.15s ease;
-}
-
-.reports-table tbody tr:hover td {
-    background-color: rgba(56, 85, 133, 0.02) !important;
-}
-
-/* Pagination container */
-.pagination-wrapper {
+/* Pagination footer (same design as the Admin Requests / Users tables) */
+.pagination-container {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    margin-top: 16px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
 }
 
-.pagination-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+.pagination-info {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-page {
+    padding: 6px 12px;
+    border-radius: 6px;
     border: 1px solid var(--border-color);
     background-color: var(--card-bg);
     color: var(--text-main);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 }
 
-.pagination-btn:hover:not(.disabled) {
-    background-color: var(--primary-light);
-    border-color: var(--primary-color);
-    color: var(--primary-color);
+.btn-page:hover:not(:disabled) {
+    background-color: var(--hover-color);
 }
 
-.pagination-btn.active {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    color: #ffffff;
-    font-weight: 600;
-}
-
-.pagination-btn.disabled {
+.btn-page:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-/* Empty State Styling */
+.btn-page.active {
+    background-color: #385585;
+    color: #ffffff;
+    border-color: #385585;
+}
+
+.dark-theme .btn-page.active {
+    background-color: var(--primary-sidebar);
+    border-color: var(--primary-sidebar);
+}
+
+/* Full-details modal (shell comes from the shared modal-overlay / modal-inner-card styles) */
+#auditDetailsModal:not(.show) {
+    visibility: hidden;
+}
+
+.audit-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.audit-detail-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    text-align: left;
+}
+
+.audit-detail-full {
+    grid-column: 1 / -1;
+}
+
+.audit-detail-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.audit-detail-value {
+    display: flex;
+    align-items: center;
+    min-height: 42px;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-color, #f8fafc);
+    color: var(--text-main);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+/* Long free text wraps in full; very long text scrolls inside its box */
+.audit-detail-value.audit-detail-text {
+    display: block;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.audit-detail-value.is-empty {
+    color: var(--text-muted);
+}
+
+.audit-detail-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.audit-detail-close-btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color, #f8fafc);
+    color: var(--text-main);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.audit-detail-close-btn:hover {
+    background-color: var(--primary-light);
+}
+
+/* Empty / loading state (same as the Admin Users empty state) */
 .empty-state-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 40px;
+    padding: 40px 20px;
+    color: var(--text-muted);
     text-align: center;
 }
 
 .empty-state-icon {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background-color: rgba(51, 78, 126, 0.05);
-    color: var(--primary-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-    margin-bottom: 20px;
-    border: 1px solid rgba(51, 78, 126, 0.1);
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: #cbd5e1;
 }
 
-.empty-state-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text-main);
+.empty-state-container h4 {
+    font-size: 18px;
+    font-weight: 600;
     margin-bottom: 8px;
+    color: var(--text-main);
 }
 
-.empty-state-subtitle {
+.empty-state-container p {
     font-size: 14px;
-    color: var(--text-muted);
-    max-width: 400px;
-    line-height: 1.5;
 }
 
 /* Dark Mode overrides specifically for audit */
@@ -526,11 +628,6 @@ body {
     color: #f8fafc;
 }
 
-.dark-theme .reports-table th {
-    background-color: #1e293b !important;
-    color: #60a5fa !important;
-}
-
 .dark-theme .status-badge.badge-blue { background-color: rgba(59, 130, 246, 0.15); }
 .dark-theme .status-badge.badge-gray { background-color: rgba(148, 163, 184, 0.15); }
 .dark-theme .status-badge.badge-green { background-color: rgba(16, 185, 129, 0.15); }
@@ -539,12 +636,6 @@ body {
 .dark-theme .status-badge.badge-red { background-color: rgba(239, 68, 68, 0.15); }
 .dark-theme .status-badge.badge-teal { background-color: rgba(20, 184, 166, 0.15); }
 .dark-theme .status-badge.badge-yellow { background-color: rgba(234, 179, 8, 0.15); }
-
-.dark-theme .empty-state-icon {
-    background-color: rgba(96, 165, 250, 0.05);
-    color: #60a5fa;
-    border-color: rgba(96, 165, 250, 0.1);
-}
 
 /* Layout Responsiveness Adjustments */
 @media (max-width: 1024px) {
@@ -566,5 +657,23 @@ body {
     }
     .filter-select {
         width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .audit-detail-grid {
+        grid-template-columns: 1fr;
+    }
+    #auditDetailsModal .modal-inner-card {
+        padding: 24px 18px;
+    }
+    .audit-table-card .pagination-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px;
+    }
+    .audit-table-card .pagination-buttons {
+        flex-wrap: wrap;
     }
 }

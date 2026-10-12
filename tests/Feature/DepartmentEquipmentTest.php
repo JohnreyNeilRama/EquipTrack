@@ -219,6 +219,8 @@ class DepartmentEquipmentTest extends TestCase
             'available_qty' => 1,
             'total_qty' => 1,
             'status' => 'Available',
+            // Required when the admin adds new equipment.
+            'classification' => 'Not Expensive',
             'category_id' => $this->category->category_id,
             'department_id' => $this->department->department_id,
         ])->assertOk()->assertJson(['success' => true]);
