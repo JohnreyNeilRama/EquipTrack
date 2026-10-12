@@ -54,6 +54,13 @@
                             $status = ($dueDateRaw && \Illuminate\Support\Carbon::parse($dueDateRaw)->startOfDay()->lt(now()->startOfDay()))
                                 ? 'Overdue'
                                 : 'Borrowed';
+                            // A submitted return stays on this list until the department confirms it.
+                            $returnStatus = $item->transaction?->return_status;
+                            $awaitingConfirmation = $returnStatus === \App\Models\BorrowTransaction::RETURN_PENDING;
+                            $returnRejected = $returnStatus === \App\Models\BorrowTransaction::RETURN_REJECTED;
+                            if ($awaitingConfirmation) {
+                                $status = 'Pending Confirmation';
+                            }
                             $imgUrl = $resolveImg($eq->image ?? '');
                         @endphp
                         <tr class="return-row"
@@ -77,12 +84,21 @@
                             <td>{{ $bDateFormatted }}</td>
                             <td @if ($status === 'Overdue') style="color: #ef4444; font-weight: 600;" @endif>{{ $dDateFormatted }}</td>
                             <td>
-                                <span class="status-text status-{{ strtolower($status) }}">{{ $status }}</span>
+                                <span class="status-text status-{{ \Illuminate\Support\Str::slug($status) }}">{{ $status }}</span>
+                                @if ($returnRejected)
+                                    <span class="return-rejected-note" title="{{ $item->transaction->return_reject_reason }}">
+                                        Return rejected: {{ \Illuminate\Support\Str::limit($item->transaction->return_reject_reason, 60) }}
+                                    </span>
+                                @endif
                             </td>
                             <td>
-                                <button type="button" class="btn-return-action" onclick="openReturnModal(this)">
-                                    <i class="fa-solid fa-rotate-left"></i> Return Item
-                                </button>
+                                @if ($awaitingConfirmation)
+                                    <span class="awaiting-confirmation-note"><i class="fa-solid fa-hourglass-half"></i> Awaiting department</span>
+                                @else
+                                    <button type="button" class="btn-return-action" onclick="openReturnModal(this)">
+                                        <i class="fa-solid fa-rotate-left"></i> Return Item
+                                    </button>
+                                @endif
                             </td>
                         </tr>
                     @endforeach
@@ -332,17 +348,16 @@
 
                 if (response.ok && data.success) {
                     closeModal();
-                    showToast('Success', data.message || `Returned ${eqName} in ${condition} condition.`, 'success');
+                    showToast('Return Submitted', data.message || `Return of ${eqName} submitted for confirmation.`, 'success');
 
+                    // The item stays listed as Pending Confirmation until the
+                    // department verifies the physical return.
                     if (row) {
-                        row.style.transition = 'all 0.5s ease';
-                        row.style.opacity = '0';
-                        row.style.transform = 'translateX(-20px)';
-
-                        setTimeout(() => {
-                            row.remove();
-                            reindexTable();
-                        }, 500);
+                        row.setAttribute('data-status', 'Pending Confirmation');
+                        const statusCell = row.querySelector('.status-text').parentElement;
+                        statusCell.innerHTML = '<span class="status-text status-pending-confirmation">Pending Confirmation</span>';
+                        const actionCell = row.querySelector('.btn-return-action').parentElement;
+                        actionCell.innerHTML = '<span class="awaiting-confirmation-note"><i class="fa-solid fa-hourglass-half"></i> Awaiting department</span>';
                     }
                 } else {
                     closeModal();

@@ -132,12 +132,18 @@ class EquipmentQuantitySyncTest extends TestCase
             ->postJson(route('department.requests.update'), $payload);
     }
 
+    /** The user returns the item and the department confirms it in Good condition. */
     private function returnItem(int $requestId)
     {
-        return $this->actingAs($this->user, 'user')->postJson(route('user.returns.store'), [
+        $this->actingAs($this->user, 'user')->postJson(route('user.returns.store'), [
             'request_id' => $requestId,
             'condition' => 'Good',
             'remarks' => 'Returned in good shape',
+        ])->assertOk();
+
+        return $this->actingAs($this->deptAccount, 'dept')->postJson(route('department.returns.confirm'), [
+            'transaction_id' => BorrowTransaction::where('request_id', $requestId)->value('transaction_id'),
+            'condition' => 'Good',
         ]);
     }
 

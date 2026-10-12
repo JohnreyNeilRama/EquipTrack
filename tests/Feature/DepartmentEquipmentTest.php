@@ -368,11 +368,19 @@ class DepartmentEquipmentTest extends TestCase
         $this->assertSame(1, $row['total']);
         $this->assertSame('Unavailable', $row['status']);
 
-        // Returning the item restores it, leaving Total untouched.
+        // Returning the item and the department confirming it restores it,
+        // leaving Total untouched.
         $this->actingAs($this->user, 'user')->postJson(route('user.returns.store'), [
             'request_id' => $requestId,
             'condition' => 'Good',
             'remarks' => '',
+        ])->assertOk();
+
+        $this->assertSame(0, collect($this->deptEquipment($this->deptAccount))->firstWhere('id', $equipment->equipment_id)['available']);
+
+        $this->actingAs($this->deptAccount, 'dept')->postJson(route('department.returns.confirm'), [
+            'transaction_id' => \App\Models\BorrowTransaction::where('request_id', $requestId)->value('transaction_id'),
+            'condition' => 'Good',
         ])->assertOk();
 
         $row = collect($this->deptEquipment($this->deptAccount))->firstWhere('id', $equipment->equipment_id);

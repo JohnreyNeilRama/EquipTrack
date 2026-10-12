@@ -19,6 +19,7 @@ use App\Http\Controllers\Department\DepartmentMonitoringController;
 use App\Http\Controllers\Department\DepartmentNotificationController;
 use App\Http\Controllers\Department\DepartmentProfileController;
 use App\Http\Controllers\Department\DepartmentRequestsController;
+use App\Http\Controllers\Department\DepartmentReturnsController;
 use App\Http\Controllers\Department\DepartmentUsersController;
 use App\Http\Controllers\User\UserDashboardController;
 use App\Http\Controllers\User\UserEquipmentController;
@@ -88,6 +89,10 @@ Route::middleware(['auth:dept', 'active'])->prefix('department')->name('departme
     Route::get('/requests', [DepartmentRequestsController::class, 'index'])->name('requests');
     Route::get('/requests/data', [DepartmentRequestsController::class, 'data'])->name('requests.data');
     Route::post('/requests/update-status', [DepartmentRequestsController::class, 'updateStatus'])->name('requests.update');
+    Route::get('/returns', [DepartmentReturnsController::class, 'index'])->name('returns');
+    Route::get('/returns/data', [DepartmentReturnsController::class, 'data'])->name('returns.data');
+    Route::post('/returns/confirm', [DepartmentReturnsController::class, 'confirm'])->name('returns.confirm');
+    Route::post('/returns/reject', [DepartmentReturnsController::class, 'reject'])->name('returns.reject');
     Route::get('/users', [DepartmentUsersController::class, 'index'])->name('users');
     Route::get('/users/data', [DepartmentUsersController::class, 'data'])->name('users.data');
     Route::get('/monitoring', [DepartmentMonitoringController::class, 'index'])->name('monitoring');

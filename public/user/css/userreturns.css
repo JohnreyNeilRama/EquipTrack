@@ -110,6 +110,33 @@
     font-weight: 600;
 }
 
+/* Return Confirmation: submitted, waiting for the department to verify it */
+.status-text.status-pending-confirmation {
+    color: #b45309;
+    font-weight: 600;
+}
+
+.dark-theme .status-text.status-pending-confirmation {
+    color: #fbbf24;
+}
+
+.awaiting-confirmation-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.return-rejected-note {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #ef4444;
+}
+
 /* Action button */
 .btn-return-action {
     background-color: #4f6b9c; /* Soft blue matching return button in screenshot */

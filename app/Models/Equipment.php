@@ -33,6 +33,22 @@ class Equipment extends Model
         'department_id',
     ];
 
+    /**
+     * Public URL of the photo the admin uploaded in Equipment Management, or
+     * null when the record has none. Uploaded files are stored as
+     * "/storage/images/..."; full URLs and data URIs are used as they are.
+     */
+    public function imageUrl(): ?string
+    {
+        $raw = trim((string) $this->image);
+
+        if ($raw === '') {
+            return null;
+        }
+
+        return preg_match('/^(https?:\/\/|data:|\/storage\/)/i', $raw) ? $raw : asset(ltrim($raw, '/'));
+    }
+
     /** Classification of this record; rows without one count as Not Expensive. */
     public function classificationLabel(): string
     {

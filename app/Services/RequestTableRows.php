@@ -39,14 +39,7 @@ class RequestTableRows
             $avatar = 'https://ui-avatars.com/api/?name=' . urlencode($fullName ?: 'User') . '&background=385585&color=fff';
         }
 
-        $rawImg = trim((string) ($row->equipment?->image ?? ''));
-        if ($rawImg === '') {
-            $eqImg = asset('images/EquipTrack_logo.png');
-        } elseif (preg_match('/^(https?:\/\/|data:|\/storage\/)/i', $rawImg)) {
-            $eqImg = $rawImg;
-        } else {
-            $eqImg = asset(ltrim($rawImg, '/'));
-        }
+        $eqImg = $row->equipment?->imageUrl() ?? asset('images/EquipTrack_logo.png');
 
         $fmt = fn ($v) => $v ? Carbon::parse($v)->format('M d, Y') : 'N/A';
 

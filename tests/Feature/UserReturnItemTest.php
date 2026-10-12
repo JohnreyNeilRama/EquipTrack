@@ -18,7 +18,8 @@ use Tests\TestCase;
 /**
  * End-to-end coverage for the user Return Item flow:
  * borrow request -> department approval (stock -1, transaction created) ->
- * user return (transaction Returned, stock restored, audit written) ->
+ * user return (Pending Confirmation) -> department confirmation
+ * (transaction Returned, stock restored, audit written) ->
  * reflected on the returns page and on admin monitoring.
  */
 class UserReturnItemTest extends TestCase
@@ -116,6 +117,16 @@ class UserReturnItemTest extends TestCase
             ->assertJson(['success' => true]);
     }
 
+    /** The department verifies the physical return (Return Confirmation). */
+    private function confirmReturn(int $requestId, string $condition = 'Good', ?string $remarks = null)
+    {
+        return $this->actingAs($this->deptAccount, 'dept')->postJson(route('department.returns.confirm'), [
+            'transaction_id' => BorrowTransaction::where('request_id', $requestId)->value('transaction_id'),
+            'condition' => $condition,
+            'remarks' => $remarks,
+        ]);
+    }
+
     private function returnItem(int $requestId, string $condition = 'Good', string $remarks = 'No visible damage')
     {
         return $this->actingAs($this->user, 'user')->postJson(route('user.returns.store'), [
@@ -185,11 +196,19 @@ class UserReturnItemTest extends TestCase
             ->assertOk()
             ->assertJson(['success' => true]);
 
+        // Submitting only starts the Return Confirmation: still out, stock untouched.
         $transaction = BorrowTransaction::where('request_id', $requestId)->first();
+        $this->assertSame('Active', $transaction->status);
+        $this->assertSame('Pending Confirmation', $transaction->return_status);
+        $this->assertSame('Good — No visible damage', $transaction->reported_condition);
+        $this->assertSame(1, (int) $this->equipment->fresh()->available_qty);
+
+        $this->confirmReturn($requestId, 'Good', 'Checked, all parts present')->assertOk();
+
+        $transaction->refresh();
         $this->assertSame('Returned', $transaction->status);
         $this->assertSame(now()->toDateString(), $transaction->return_date->toDateString());
-        $this->assertStringContainsString('Good', (string) $transaction->condition_on_return);
-        $this->assertStringContainsString('No visible damage', (string) $transaction->condition_on_return);
+        $this->assertSame('Good — Checked, all parts present', $transaction->condition_on_return);
 
         $equipment = $this->equipment->fresh();
         $this->assertSame(2, (int) $equipment->available_qty);
@@ -207,6 +226,16 @@ class UserReturnItemTest extends TestCase
         $this->approve($requestId);
         $this->returnItem($requestId)->assertOk();
 
+        // Listed as Pending Confirmation until the department confirms it.
+        $this->actingAs($this->user, 'user')
+            ->get(route('user.returns'))
+            ->assertOk()
+            ->assertSee('Dell Latitude')
+            ->assertSee('data-status="Pending Confirmation"', false)
+            ->assertDontSee('onclick="openReturnModal(this)"', false);
+
+        $this->confirmReturn($requestId)->assertOk();
+
         $this->actingAs($this->user, 'user')
             ->get(route('user.returns'))
             ->assertOk()
@@ -220,6 +249,14 @@ class UserReturnItemTest extends TestCase
 
         $this->returnItem($requestId)->assertOk();
 
+        // Already awaiting confirmation.
+        $this->returnItem($requestId)
+            ->assertStatus(400)
+            ->assertJson(['success' => false]);
+
+        $this->confirmReturn($requestId)->assertOk();
+
+        // Already returned.
         $this->returnItem($requestId)
             ->assertStatus(400)
             ->assertJson(['success' => false]);
@@ -298,6 +335,7 @@ class UserReturnItemTest extends TestCase
         ]);
 
         $this->returnItem($borrow->request_id)->assertOk();
+        $this->confirmReturn($borrow->request_id)->assertOk();
 
         $this->assertSame(
             'Returned',
@@ -321,6 +359,7 @@ class UserReturnItemTest extends TestCase
         $this->assertSame('2020-0001', $borrowed['id_number']);
 
         $this->returnItem($requestId)->assertOk();
+        $this->confirmReturn($requestId)->assertOk();
 
         $afterReturn = collect(
             $this->actingAs($this->admin, 'admin')

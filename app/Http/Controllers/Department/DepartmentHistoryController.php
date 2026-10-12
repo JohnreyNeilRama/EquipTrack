@@ -114,6 +114,11 @@ class DepartmentHistoryController extends Controller
             return 'Damaged';
         }
 
+        // Recorded by the department's return inspection.
+        if (strcasecmp($conditionType, 'Incomplete') === 0) {
+            return 'Incomplete';
+        }
+
         if (strcasecmp($conditionType, 'Lost') === 0) {
             return 'Lost';
         }

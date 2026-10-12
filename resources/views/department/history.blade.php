@@ -85,6 +85,7 @@
                     <option value="returned">Returned</option>
                     <option value="returned late">Returned Late</option>
                     <option value="damaged">Damaged</option>
+                    <option value="incomplete">Incomplete</option>
                     <option value="lost">Lost</option>
                 </select>
                 <i class="fa-solid fa-chevron-down"></i>
@@ -265,6 +266,7 @@
                     case 'RETURNED': return 'returned';
                     case 'RETURNED LATE': return 'returned-late';
                     case 'DAMAGED':
+                    case 'INCOMPLETE':
                     case 'LOST': return 'damaged';
                     default: return 'returned';
                 }

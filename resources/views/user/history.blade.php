@@ -27,6 +27,7 @@
                         <option value="Overdue">Overdue</option>
                         <option value="Returned">Returned</option>
                         <option value="Late Return">Late Return</option>
+                        <option value="Pending Confirmation">Pending Confirmation</option>
                         <option value="Pending">Pending</option>
                         <option value="Rejected">Rejected</option>
                     </select>

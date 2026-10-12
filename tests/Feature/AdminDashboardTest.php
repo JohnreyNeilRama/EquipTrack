@@ -132,6 +132,16 @@ class AdminDashboardTest extends TestCase
         ])->assertOk()->assertJson(['success' => true, 'overallStatus' => 'Approved']);
     }
 
+    /** The department verifies the physical return (Return Confirmation). */
+    private function departmentConfirmReturn(int $requestId): void
+    {
+        $this->actingAs(DepartmentAccount::where('email', 'reviewer@example.com')->firstOrFail(), 'dept')
+            ->postJson(route('department.returns.confirm'), [
+                'transaction_id' => \App\Models\BorrowTransaction::where('request_id', $requestId)->value('transaction_id'),
+                'condition' => 'Good',
+            ])->assertOk();
+    }
+
     private function submitBorrowRequest(Equipment $equipment): int
     {
         $response = $this->actingAs($this->user, 'user')->postJson(route('user.borrow.store'), [
@@ -218,6 +228,11 @@ class AdminDashboardTest extends TestCase
             'condition' => 'Good',
             'remarks' => '',
         ])->assertOk();
+
+        // Still borrowed until the department confirms the physical return.
+        $this->assertSame(1, $this->payload()['stats']['borrowedEquipment']);
+
+        $this->departmentConfirmReturn($requestId);
 
         $payload = $this->payload();
 

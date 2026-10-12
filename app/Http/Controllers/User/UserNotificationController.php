@@ -20,7 +20,8 @@ use Illuminate\Support\Str;
  * Notifications are derived live from the signed-in user's own borrowing
  * records, so they always match the real request status and return dates and
  * can never be duplicated: each one has a deterministic key
- * (request-{id}-approved, request-{id}-rejected, overdue-{transaction_id}).
+ * (request-{id}-approved, request-{id}-rejected, overdue-{transaction_id},
+ * return-{transaction_id}-confirmed, return-{transaction_id}-rejected-{time}).
  * Only the read state is stored (user_notification_reads).
  *
  * Every query is scoped to the authenticated user.
@@ -126,6 +127,7 @@ class UserNotificationController extends Controller
     {
         return collect($this->statusNotifications($userId))
             ->merge($this->overdueNotifications($userId))
+            ->merge($this->returnNotifications($userId))
             ->sortByDesc(fn (array $n) => $n['at']->getTimestamp())
             ->take(self::LIMIT)
             ->values()
@@ -204,6 +206,11 @@ class UserNotificationController extends Controller
                 continue;
             }
 
+            // The user already handed it back; the department is verifying it.
+            if ($loan->isReturnPending()) {
+                continue;
+            }
+
             $equipment = $loan->request?->equipment?->name ?? 'The borrowed equipment';
             $daysLate = $due ? (int) abs($due->diffInDays($today)) : 0;
 
@@ -224,6 +231,57 @@ class UserNotificationController extends Controller
                 'type' => 'overdue',
                 'title' => 'Overdue Equipment',
                 'message' => $message,
+                'url' => route('user.returns'),
+                'at' => $at,
+            ];
+        }
+
+        return $notifications;
+    }
+
+    /** One notice per return the department confirmed or rejected. */
+    private function returnNotifications(int $userId): array
+    {
+        $since = now()->subDays(self::STATUS_WINDOW_DAYS);
+
+        $loans = BorrowTransaction::with('request.equipment')
+            ->whereIn('return_status', [BorrowTransaction::RETURN_CONFIRMED, BorrowTransaction::RETURN_REJECTED])
+            ->where('return_reviewed_at', '>=', $since)
+            ->whereHas('request', fn ($query) => $query->where('user_id', $userId))
+            ->get();
+
+        $notifications = [];
+
+        foreach ($loans as $loan) {
+            $equipment = $loan->request?->equipment?->name ?? 'the equipment';
+            $at = Carbon::parse($loan->return_reviewed_at);
+
+            if ($loan->return_status === BorrowTransaction::RETURN_CONFIRMED) {
+                $condition = $loan->inspected_condition ?: 'Good';
+
+                $notifications[] = [
+                    'key' => 'return-' . $loan->transaction_id . '-confirmed',
+                    'type' => 'approved',
+                    'title' => 'Return Confirmed',
+                    'message' => 'The department confirmed the return of ' . $equipment
+                        . ($condition !== 'Good' ? ' (recorded as ' . $condition . ').' : '.'),
+                    'url' => route('user.history'),
+                    'at' => $at,
+                ];
+
+                continue;
+            }
+
+            $reason = trim((string) $loan->return_reject_reason);
+
+            $notifications[] = [
+                // A return can be rejected again after a resubmission: one notice per decision.
+                'key' => 'return-' . $loan->transaction_id . '-rejected-' . $at->getTimestamp(),
+                'type' => 'rejected',
+                'title' => 'Return Rejected',
+                'message' => 'The department could not confirm the return of ' . $equipment . '.'
+                    . ($reason !== '' ? ' Reason: ' . Str::limit($reason, 120) : '')
+                    . ' The item is still on loan to you.',
                 'url' => route('user.returns'),
                 'at' => $at,
             ];

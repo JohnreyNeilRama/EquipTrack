@@ -37,7 +37,17 @@ class AuditCatalog
         ]],
 
         // Returns
-        ['label' => 'Returned Equipment', 'module' => 'Returns', 'prefixes' => ['Returned borrow request' => 'Borrow request']],
+        ['label' => 'Returned Equipment', 'module' => 'Returns', 'prefixes' => [
+            // Written before Return Confirmation, when a return settled the loan at once.
+            'Returned borrow request' => 'Borrow request',
+            'Submitted return for borrow request' => 'Return of borrow request',
+        ]],
+        ['label' => 'Confirmed Return', 'module' => 'Returns', 'prefixes' => [
+            'Department confirmed return of borrow request' => 'Return of borrow request (department)',
+        ]],
+        ['label' => 'Rejected Return', 'module' => 'Returns', 'prefixes' => [
+            'Department rejected return of borrow request' => 'Return of borrow request (department)',
+        ]],
 
         // User management
         ['label' => 'Registered Account', 'module' => 'Users', 'prefixes' => ['Registered account' => 'Account']],

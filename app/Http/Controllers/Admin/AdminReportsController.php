@@ -49,7 +49,7 @@ class AdminReportsController extends Controller
     /** Status filter values available for each report type (empty = no status filter). */
     private const STATUSES = [
         'borrowing' => ['Pending', 'Approved', 'Rejected', 'Borrowed', 'Overdue', 'Returned'],
-        'return' => ['Returned', 'Returned Late', 'Damaged', 'Lost'],
+        'return' => ['Returned', 'Returned Late', 'Damaged', 'Incomplete', 'Lost'],
         'inventory' => ['Available', 'Unavailable', 'On Hold', 'Under Maintenance'],
         'overdue' => [],
         'activity' => [],
@@ -337,11 +337,16 @@ class AdminReportsController extends Controller
         ];
     }
 
-    /** Damaged / Lost from the recorded condition; otherwise Returned Late when past due. */
+    /** Damaged / Incomplete / Lost from the recorded condition; otherwise Returned Late when past due. */
     private function returnStatus($transaction, string $conditionType): string
     {
         if (strcasecmp($conditionType, 'Damaged') === 0) {
             return 'Damaged';
+        }
+
+        // Recorded by the department's return inspection.
+        if (strcasecmp($conditionType, 'Incomplete') === 0) {
+            return 'Incomplete';
         }
 
         if (strcasecmp($conditionType, 'Lost') === 0) {

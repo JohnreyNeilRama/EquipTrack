@@ -124,6 +124,16 @@ class UserBorrowingHistoryTest extends TestCase
             ->assertOk();
     }
 
+    /** The department verifies the physical return (Return Confirmation). */
+    private function confirmReturn(int $requestId, string $condition, ?string $remarks = null): void
+    {
+        $this->actingAs($this->deptAccount, 'dept')->postJson(route('department.returns.confirm'), [
+            'transaction_id' => BorrowTransaction::where('request_id', $requestId)->value('transaction_id'),
+            'condition' => $condition,
+            'remarks' => $remarks,
+        ])->assertOk();
+    }
+
     private function historyRows(): Collection
     {
         return collect(
@@ -197,6 +207,13 @@ class UserBorrowingHistoryTest extends TestCase
             ->assertJson(['success' => true]);
 
         $row = $this->historyRow();
+        $this->assertSame('Pending Confirmation', $row['status']);
+        $this->assertSame('status-pending', $row['status_class']);
+        $this->assertSame('—', $row['return_date']);
+
+        $this->confirmReturn($requestId, 'Good', 'No visible damage');
+
+        $row = $this->historyRow();
 
         $this->assertSame('Returned', $row['status']);
         $this->assertSame('status-returned', $row['status_class']);
@@ -223,6 +240,7 @@ class UserBorrowingHistoryTest extends TestCase
                 'remarks' => 'Screen flickers',
             ])
             ->assertOk();
+        $this->confirmReturn($requestId, 'Damaged', 'Screen flickers');
 
         $row = $this->historyRow();
 

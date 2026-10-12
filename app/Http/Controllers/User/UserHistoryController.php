@@ -69,8 +69,9 @@ class UserHistoryController extends Controller
     }
 
     /**
-     * Returned / Late Return for settled transactions, Borrowed / Overdue for
-     * items still out, and Pending / Rejected for requests not yet loaned.
+     * Returned / Late Return for settled transactions, Pending Confirmation for
+     * returns the department has not verified yet, Borrowed / Overdue for items
+     * still out, and Pending / Rejected for requests not yet loaned.
      */
     private function resolveStatus(BorrowRequest $request, $dueDateRaw, $returnDateRaw): string
     {
@@ -83,6 +84,11 @@ class UserHistoryController extends Controller
 
         $isOut = ($request->transaction && $request->transaction->status !== 'Returned')
             || $request->overall_status === 'Approved';
+
+        // Returned by the user, waiting for the department to verify it.
+        if ($isOut && $request->transaction?->isReturnPending()) {
+            return 'Pending Confirmation';
+        }
 
         if ($isOut) {
             $isOverdue = $dueDateRaw
@@ -119,7 +125,7 @@ class UserHistoryController extends Controller
             'Returned' => 'status-returned',
             'Late Return', 'Overdue' => 'status-late',
             'Rejected' => 'status-rejected',
-            'Pending' => 'status-pending',
+            'Pending', 'Pending Confirmation' => 'status-pending',
             default => 'status-borrowed',
         };
     }
@@ -129,7 +135,7 @@ class UserHistoryController extends Controller
         return match ($status) {
             'Returned' => 'approved',
             'Borrowed' => 'borrowed',
-            'Pending' => 'pending',
+            'Pending', 'Pending Confirmation' => 'pending',
             default => 'rejected',
         };
     }

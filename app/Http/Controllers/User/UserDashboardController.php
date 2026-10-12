@@ -128,7 +128,10 @@ class UserDashboardController extends Controller
                 'equipment' => $loan['request']->equipment?->name ?? 'Unknown equipment',
                 'borrowDate' => $this->fmt($loan['borrowDate']),
                 'dueDate' => $this->fmt($loan['dueDate']),
-                'status' => $this->isOverdue($loan, $today) ? 'Overdue' : 'Borrowed',
+                // Still out until the department confirms the submitted return.
+                'status' => $loan['request']->transaction?->isReturnPending()
+                    ? 'Pending Confirmation'
+                    : ($this->isOverdue($loan, $today) ? 'Overdue' : 'Borrowed'),
             ])
             ->values()
             ->all();

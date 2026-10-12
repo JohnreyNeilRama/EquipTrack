@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditTrail;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
-use App\Models\Equipment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +16,8 @@ class UserReturnsController extends Controller
     /**
      * Lists the signed-in user's currently borrowed equipment: approved
      * borrow requests that have not been settled with a Returned
-     * borrow_transaction yet.
+     * borrow_transaction yet. Returns awaiting the department's confirmation
+     * (or rejected by it) stay listed with their return status.
      */
     public function index(): View
     {
@@ -35,10 +35,10 @@ class UserReturnsController extends Controller
     }
 
     /**
-     * Processes a return submitted from the Return Item page. Marks the
-     * borrowing record (borrow_transaction) as Returned with the reported
-     * condition, restores the equipment stock/status, and writes an audit
-     * trail entry — all inside one transaction.
+     * Submits a return from the Return Item page. The return is recorded as
+     * Pending Confirmation with the condition the user reported; the loan
+     * stays Active (still out, stock untouched) until the department that owns
+     * the equipment physically verifies it on its Return Confirmation page.
      */
     public function store(Request $request): JsonResponse
     {
@@ -68,67 +68,55 @@ class UserReturnsController extends Controller
                 return ['code' => 400, 'message' => 'Only approved borrows can be returned.'];
             }
 
-            $transaction = $borrow->transaction;
+            $transaction = $borrow->transaction
+                ? BorrowTransaction::where('transaction_id', $borrow->transaction->transaction_id)->lockForUpdate()->first()
+                : null;
+
             if ($transaction && $transaction->status === 'Returned') {
                 return ['code' => 400, 'message' => 'This item has already been returned.'];
             }
 
-            $today = now()->toDateString();
+            if ($transaction && $transaction->isReturnPending()) {
+                return ['code' => 400, 'message' => 'This return is already awaiting the department\'s confirmation.'];
+            }
+
             $remarks = trim($data['remarks'] ?? '');
-            $conditionText = mb_substr(
+            $reported = mb_substr(
                 $data['condition'] . ($remarks !== '' ? ' — ' . $remarks : ''),
                 0,
                 150
             );
 
-            // A pre-existing transaction was created when the request was
-            // approved, i.e. stock was decremented at that point and must be
-            // restored now. Legacy approved rows have no transaction and never
-            // touched stock, so their return must not inflate the counts.
-            $restoreStock = $transaction !== null;
+            $pending = [
+                'return_status' => BorrowTransaction::RETURN_PENDING,
+                'return_submitted_at' => now(),
+                'reported_condition' => $reported,
+                // A new submission starts a new review (a rejected one is kept in the audit trail).
+                'inspected_condition' => null,
+                'inspection_remarks' => null,
+                'return_reviewed_by' => null,
+                'return_reviewed_at' => null,
+                'return_reject_reason' => null,
+            ];
 
             if ($transaction) {
-                $transaction->update([
-                    'return_date' => $today,
-                    'condition_on_return' => $conditionText,
-                    'status' => 'Returned',
-                ]);
+                $transaction->update($pending);
             } else {
-                BorrowTransaction::create([
+                // Approved before loans were tracked: stock was never deducted,
+                // so confirming this return must not add stock back.
+                BorrowTransaction::create($pending + [
                     'request_id' => $borrow->request_id,
                     'borrow_date' => $borrow->borrow_date ?: $borrow->date_needed,
                     'due_date' => $borrow->due_date ?: $borrow->return_date,
-                    'return_date' => $today,
-                    'condition_on_return' => $conditionText,
-                    'status' => 'Returned',
+                    'status' => 'Active',
+                    'return_restores_stock' => false,
                 ]);
-            }
-
-            if ($restoreStock) {
-                $equipment = Equipment::where('equipment_id', $borrow->equipment_id)
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($equipment) {
-                    $equipment->available_qty = min(
-                        (int) $equipment->total_qty,
-                        (int) $equipment->available_qty + max(1, (int) $borrow->quantity)
-                    );
-
-                    // Only revive stock-driven unavailability; never override
-                    // admin-set states like On Hold / Under Maintenance.
-                    if ($equipment->status === 'Unavailable' && $equipment->available_qty > 0) {
-                        $equipment->status = 'Available';
-                    }
-
-                    $equipment->save();
-                }
             }
 
             AuditTrail::create([
                 'user_id' => $userId,
                 'action' => mb_substr(
-                    'Returned borrow request #' . $borrow->request_id . ' for '
+                    'Submitted return for borrow request #' . $borrow->request_id . ' for '
                         . ($borrow->equipment?->name ?? 'equipment') . ' (' . $data['condition'] . ' condition)',
                     0,
                     100
@@ -150,7 +138,8 @@ class UserReturnsController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Equipment returned successfully!',
+            'message' => 'Your return has been submitted. It is pending confirmation until the department checks the equipment.',
+            'returnStatus' => BorrowTransaction::RETURN_PENDING,
         ]);
     }
 }
