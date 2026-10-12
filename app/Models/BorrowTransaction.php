@@ -39,8 +39,6 @@ class BorrowTransaction extends Model
         'return_reviewed_at',
         'return_reject_reason',
         'return_restores_stock',
-        'penalty_amount',
-        'penalty_status',
     ];
 
     protected $casts = [
@@ -50,7 +48,6 @@ class BorrowTransaction extends Model
         'return_submitted_at' => 'datetime',
         'return_reviewed_at' => 'datetime',
         'return_restores_stock' => 'boolean',
-        'penalty_amount' => 'decimal:2',
     ];
 
     public function request()

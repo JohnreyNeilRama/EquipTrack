@@ -136,6 +136,31 @@ class UserReturnItemTest extends TestCase
         ]);
     }
 
+    public function test_penalty_columns_are_gone_and_users_with_open_loans_still_cannot_be_deleted(): void
+    {
+        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('borrow_transaction', 'penalty_amount'));
+        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('borrow_transaction', 'penalty_status'));
+
+        $requestId = $this->submitBorrowRequest();
+        $this->approve($requestId);
+
+        $delete = fn () => $this->actingAs($this->admin, 'admin')->post(route('admin.users.delete'), [
+            'user_id' => $this->user->user_id,
+            'user_type' => 'student',
+        ]);
+
+        // Equipment still on loan: refused.
+        $delete()->assertRedirect(route('admin.users'))->assertSessionHas('serverMsgType', 'error');
+        $this->assertNotNull($this->user->fresh());
+
+        // Returned and confirmed: the account can be deleted.
+        $this->returnItem($requestId)->assertOk();
+        $this->confirmReturn($requestId)->assertOk();
+
+        $delete()->assertRedirect(route('admin.users'))->assertSessionHas('serverMsgType', 'success');
+        $this->assertNull($this->user->fresh());
+    }
+
     public function test_borrow_request_starts_as_pending(): void
     {
         $requestId = $this->submitBorrowRequest();

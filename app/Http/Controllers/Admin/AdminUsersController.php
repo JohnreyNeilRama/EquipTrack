@@ -189,17 +189,16 @@ class AdminUsersController extends Controller
         } else {
             $account = UserAccount::findOrFail($data['user_id']);
 
-            // Refuse to delete users who still hold equipment or owe a penalty;
-            // deleting them would erase the only record of an open loan.
+            // Refuse to delete users who still hold equipment; deleting them
+            // would erase the only record of an open loan.
             $hasOpenLoans = BorrowTransaction::whereHas('request', fn ($q) => $q->where('user_id', $account->user_id))
-                ->where(fn ($q) => $q->whereIn('status', ['Active', 'Overdue'])
-                    ->orWhere('penalty_status', 'Unpaid'))
+                ->whereIn('status', ['Active', 'Overdue'])
                 ->exists();
 
             if ($hasOpenLoans) {
                 return redirect()
                     ->route('admin.users')
-                    ->with('serverMsg', 'This user cannot be deleted because they have active or overdue borrowed equipment, or an unpaid penalty. Resolve those first, or deactivate the account instead.')
+                    ->with('serverMsg', 'This user cannot be deleted because they have active or overdue borrowed equipment. Resolve those first, or deactivate the account instead.')
                     ->with('serverMsgType', 'error');
             }
 
