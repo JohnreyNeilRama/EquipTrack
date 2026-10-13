@@ -447,20 +447,59 @@
     transition: all 0.2s;
 }
 
-.page-btn:hover:not(.disabled) {
-    background-color: var(--primary-light, #f1f5f9);
-    border-color: #cbd5e1;
+/* Hover applies to inactive pages only, so it can never wash out the active page
+   (the old hover rule outranked .active and turned it light with white text). */
+.page-btn:hover:not(.disabled):not(.active) {
+    background-color: rgba(43, 66, 111, 0.08);
+    border-color: #2b426f;
+    color: #2b426f;
+}
+
+.page-btn:focus {
+    outline: none;
+}
+
+.page-btn:focus-visible {
+    box-shadow: 0 0 0 3px rgba(43, 66, 111, 0.3);
 }
 
 .page-btn.active {
     background-color: #2b426f;
     color: #ffffff;
     border-color: #2b426f;
+    cursor: default;
+}
+
+.page-btn.active:hover {
+    background-color: #1f3254;
+    border-color: #1f3254;
+    color: #ffffff;
 }
 
 .page-btn.disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+.dark-theme .page-btn:hover:not(.disabled):not(.active) {
+    background-color: rgba(59, 130, 246, 0.15);
+    border-color: #3b82f6;
+    color: #f8fafc;
+}
+
+.dark-theme .page-btn:focus-visible {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+}
+
+.dark-theme .page-btn.active {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+.dark-theme .page-btn.active:hover {
+    background-color: #1d4ed8;
+    border-color: #1d4ed8;
 }
 
 /* Modal Overlay Styling */

@@ -477,12 +477,26 @@ body {
     color: var(--text-main);
     font-size: 13px;
     font-weight: 500;
+    font-family: inherit;
+    min-width: 34px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.btn-page:hover:not(:disabled) {
-    background-color: var(--hover-color);
+/* Hover applies to inactive pages only, so it can never wash out the active page.
+   (The old rule used an undefined --hover-color, which rendered transparent.) */
+.btn-page:hover:not(:disabled):not(.active) {
+    background-color: rgba(56, 85, 133, 0.08);
+    border-color: #385585;
+    color: #385585;
+}
+
+.btn-page:focus {
+    outline: none;
+}
+
+.btn-page:focus-visible {
+    box-shadow: 0 0 0 3px rgba(56, 85, 133, 0.3);
 }
 
 .btn-page:disabled {
@@ -494,11 +508,35 @@ body {
     background-color: #385585;
     color: #ffffff;
     border-color: #385585;
+    font-weight: 600;
+    cursor: default;
+}
+
+.btn-page.active:hover {
+    background-color: #2A3F63;
+    border-color: #2A3F63;
+    color: #ffffff;
+}
+
+.dark-theme .btn-page:hover:not(:disabled):not(.active) {
+    background-color: rgba(59, 130, 246, 0.15);
+    border-color: #3b82f6;
+    color: #f8fafc;
+}
+
+.dark-theme .btn-page:focus-visible {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
 }
 
 .dark-theme .btn-page.active {
-    background-color: var(--primary-sidebar);
-    border-color: var(--primary-sidebar);
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+.dark-theme .btn-page.active:hover {
+    background-color: #1d4ed8;
+    border-color: #1d4ed8;
 }
 
 /* Full-details modal (shell comes from the shared modal-overlay / modal-inner-card styles) */
