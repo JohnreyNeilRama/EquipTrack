@@ -34,3 +34,114 @@
         max-width: 96px;
     }
 }
+
+/* --------------------------------------------------------------------------
+   Quick Stats (Department Dashboard only)
+   --------------------------------------------------------------------------
+   The shared admindashboard.css lays the five cards out as a scrolling row
+   with a 220px minimum each, which overflows on common laptop widths (the
+   fifth card was cut off at 1366px). Here they become a grid that always
+   fits: 5 across, 3 + 2 on tablets, 2 + 2 + 1 on phones. Sized by the
+   section's own width, so the sidebar collapsing is accounted for.
+   -------------------------------------------------------------------------- */
+.admin-section:has(> .stats-scroll-container) {
+    container-type: inline-size;
+    container-name: quickstats;
+}
+
+.stats-scroll-container {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    overflow: visible;
+    padding: 4px 0;
+}
+
+.stats-scroll-container .quick-stat-card:last-child {
+    grid-column: 1 / -1;
+}
+
+@container quickstats (max-width: 339px) {
+    .stats-scroll-container {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@container quickstats (min-width: 560px) {
+    .stats-scroll-container {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 16px;
+    }
+    .stats-scroll-container .quick-stat-card {
+        grid-column: span 2;
+    }
+    .stats-scroll-container .quick-stat-card:nth-child(n + 4) {
+        grid-column: span 3;
+    }
+}
+
+@container quickstats (min-width: 900px) {
+    .stats-scroll-container {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    .stats-scroll-container .quick-stat-card,
+    .stats-scroll-container .quick-stat-card:nth-child(n + 4),
+    .stats-scroll-container .quick-stat-card:last-child {
+        grid-column: auto;
+    }
+}
+
+.stats-scroll-container .quick-stat-card {
+    min-width: 0;
+    padding: 20px;
+}
+
+/* Title across the top, number beside the icon, description underneath:
+   text gets the card's full width instead of the column left of the icon. */
+.quick-stat-card-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+    row-gap: 6px;
+    align-items: center;
+}
+
+.quick-stat-card-info {
+    display: contents;
+}
+
+.quick-stat-card-title {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.quick-stat-card-value {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.quick-stat-icon-wrapper {
+    grid-column: 2;
+    grid-row: 2;
+    width: 40px;
+    height: 40px;
+}
+
+.quick-stat-card-desc {
+    grid-column: 1 / -1;
+    grid-row: 3;
+}
+
+@container quickstats (max-width: 559px) {
+    .stats-scroll-container .quick-stat-card {
+        padding: 16px;
+    }
+    .quick-stat-icon-wrapper {
+        width: 36px;
+        height: 36px;
+        font-size: 15px;
+    }
+}
