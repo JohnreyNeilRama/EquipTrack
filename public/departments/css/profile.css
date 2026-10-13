@@ -50,7 +50,7 @@
 
 .profile-dropdown-menu a {
     padding: 10px 16px;
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--text-main, #333333);
     text-decoration: none;
@@ -80,11 +80,12 @@
 }
 
 .page-title-section h2 {
-    font-size: 24px;
-    font-weight: 800;
-    color: var(--text-main, #334155);
+    font-size: var(--fs-page-title);
+    font-weight: 700;
+    color: var(--page-title-color);
     margin: 0 0 6px 0;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
 }
 
 .page-title-section p {
@@ -161,7 +162,7 @@
 
 .profile-card-left .account-name {
     font-size: 16px;
-    font-weight: 800;
+    font-weight: 700;
     color: var(--text-main, #0f172a);
     margin: 0 0 6px 0;
     letter-spacing: 0.3px;
@@ -169,7 +170,7 @@
 }
 
 .profile-card-left .account-role {
-    font-size: 13.5px;
+    font-size: 13px;
     color: var(--text-muted, #64748b);
     margin: 0 0 16px 0;
     font-weight: 500;
@@ -184,7 +185,7 @@
     background-color: #bbf7d0;
     color: #166534;
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0.5px;
     text-transform: uppercase;
 }
@@ -197,7 +198,7 @@
     color: var(--danger-color, #ef4444);
     border: 1px solid var(--danger-color, #ef4444);
     font-family: inherit;
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
@@ -238,10 +239,11 @@
 }
 
 .form-section-header {
-    font-size: 17px;
-    font-weight: 800;
+    font-size: var(--fs-card-title);
+    font-weight: 600;
     color: var(--text-main, #2b364b);
     margin: 0 0 20px 0;
+    line-height: 1.4;
 }
 
 .form-group-item {
@@ -252,7 +254,7 @@
 }
 
 .form-group-item label {
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text-main, #334155);
 }

@@ -3,7 +3,7 @@
 .track-status-header {
     font-size: 18px;
     font-weight: 600;
-    color: var(--section-title-color); /* Sleek dark blue matching header in screenshot */
+    color: var(--page-title-color);
     margin-bottom: 24px;
     letter-spacing: -0.2px;
 }
@@ -268,11 +268,12 @@
 }
 
 .modal-title-center {
-    font-size: 22px;
+    font-size: var(--fs-modal-title);
     font-weight: 700;
     color: var(--section-title-color);
     text-align: center;
     margin: 0 0 6px 0;
+    line-height: 1.3;
 }
 
 .modal-subtitle-center {

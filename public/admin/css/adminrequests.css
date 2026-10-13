@@ -146,9 +146,10 @@
 }
 
 .modal-requester-name {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: var(--fs-card-title);
+    font-weight: 600;
     color: var(--text-main);
+    line-height: 1.4;
 }
 
 .modal-requester-details {

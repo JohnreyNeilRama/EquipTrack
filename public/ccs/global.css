@@ -28,6 +28,21 @@
     --sidebar-item-active-text: #2A3F63; /* Darker blue text to match sidebar bg */
     --sidebar-item-active-radius: 12px;
     --sidebar-item-active-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+    /* Type scale shared by the Admin, Department and User accounts */
+    --fs-page-title: 24px;
+    --fs-modal-title: 20px;
+    --fs-section: 18px;
+    --fs-card-title: 16px;
+    --fs-body: 14px;
+    --fs-table-head: 13px;
+    --fs-label: 13px;
+    --fs-small: 12px;
+    --fs-badge: 11px;
+    --fs-stat: 28px;
+
+    /* Page titles match the sidebar background in every account */
+    --page-title-color: var(--sidebar-bg);
 }
 
 .dark-theme {
@@ -56,6 +71,10 @@
     --sidebar-item-active-text: #60a5fa;
     --sidebar-item-active-radius: 0 8px 8px 0;
     --sidebar-item-active-shadow: none;
+
+    /* The dark sidebar (#070a13) would vanish on the dark page background,
+       so dark-mode titles stay off-white like the other headings. */
+    --page-title-color: #f8fafc;
 }
 
 .dark-theme .stat-icon.info {
@@ -97,8 +116,28 @@ body {
     min-height: 100vh;
     background-color: var(--bg-color);
     color: var(--text-main);
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+}
+
+/* Base rhythm for the type scale. Zero/low-specificity so any component
+   rule that sets its own line-height still wins. */
+h1, h2, h3, h4, h5, h6 {
+    line-height: 1.3;
+}
+
+td {
+    line-height: 1.45;
+}
+
+:where(table, .pagination-info, .pagination-buttons, .pagination-controls) {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Pills and badges stay compact instead of inheriting the 1.5 body rhythm. */
+:where([class*="badge"], [class*="pill"], [class*="chip"]) {
+    line-height: 1.25;
 }
 
 /* Sidebar */
@@ -379,7 +418,7 @@ body {
 }
 
 .dropdown-profile-header .header-name {
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--text-main);
 }
@@ -485,16 +524,17 @@ body {
 }
 
 .banner-text h2 {
-    color: var(--text-main);
-    font-size: 28px;
-    font-weight: 800;
+    color: var(--page-title-color);
+    font-size: var(--fs-page-title);
+    font-weight: 700;
     margin-bottom: 8px;
-    letter-spacing: -0.5px;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
 }
 
 .banner-text p {
     color: var(--text-muted);
-    font-size: 15px;
+    font-size: var(--fs-body);
     font-weight: 400;
 }
 
@@ -524,10 +564,11 @@ body {
 }
 
 .section-title {
-    font-size: 20px;
-    font-weight: 700;
+    font-size: var(--fs-section);
+    font-weight: 600;
     color: var(--section-title-color);
     letter-spacing: 0px;
+    line-height: 1.35;
 }
 
 .view-all {
@@ -592,11 +633,12 @@ body {
 }
 
 .stat-value {
-    font-size: 28px;
-    font-weight: 800;
+    font-size: var(--fs-stat);
+    font-weight: 700;
     color: var(--text-main);
     line-height: 1.1;
     margin-bottom: 4px;
+    font-variant-numeric: tabular-nums;
 }
 
 .stat-title {
@@ -627,8 +669,8 @@ thead {
 th {
     padding: 16px 24px;
     text-align: left;
-    font-weight: 700;
-    font-size: 14px;
+    font-weight: 600;
+    font-size: var(--fs-table-head);
     color: #ffffff;
     text-transform: none;
     letter-spacing: normal;
@@ -696,10 +738,11 @@ tbody tr:hover td {
 
 .card-title {
     color: var(--text-main);
-    font-size: 17px;
-    font-weight: 700;
+    font-size: var(--fs-card-title);
+    font-weight: 600;
     margin-bottom: 20px;
     letter-spacing: -0.2px;
+    line-height: 1.4;
 }
 
 .action-grid {

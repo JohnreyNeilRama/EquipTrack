@@ -104,7 +104,7 @@
 }
 
 .dropdown-profile-header .header-name {
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--text-main);
 }
@@ -180,10 +180,12 @@
 }
 
 .welcome-text h3 {
-    font-size: 22px;
+    font-size: var(--fs-page-title);
     font-weight: 700;
-    color: var(--primary-color);
+    color: var(--page-title-color);
     margin: 0 0 8px 0;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
 }
 
 .welcome-text p {
@@ -270,10 +272,11 @@
 }
 
 .stat-card-value {
-    font-size: 28px;
+    font-size: var(--fs-stat);
     font-weight: 700;
     color: var(--text-main);
-    line-height: 1;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
 }
 
 .stat-icon-wrapper {
@@ -364,6 +367,7 @@
     color: var(--text-main);
     font-family: 'Inter', sans-serif;
     line-height: 1;
+    font-variant-numeric: tabular-nums;
 }
 
 .quick-stat-card-desc {
@@ -467,7 +471,7 @@
 .admin-table-card th {
     background-color: var(--table-header) !important;
     color: #ffffff !important;
-    font-size: 14px !important;
+    font-size: var(--fs-table-head) !important;
     font-weight: 600 !important;
     padding: 16px 20px !important;
     text-align: left;
@@ -567,12 +571,13 @@
 }
 
 .dash-card-title {
-    font-size: 16px;
-    font-weight: 700;
+    font-size: var(--fs-card-title);
+    font-weight: 600;
     color: var(--text-main);
     display: flex;
     align-items: center;
     gap: 8px;
+    line-height: 1.4;
 }
 
 /* The table sits inside the card in a bordered wrapper (no card-in-card shadow). */
@@ -654,9 +659,10 @@
 }
 
 .stock-item-name {
-    font-size: 15px;
+    font-size: var(--fs-card-title);
     font-weight: 600;
     color: var(--text-main);
+    line-height: 1.4;
 }
 
 .stock-status-label {
@@ -719,9 +725,10 @@
 }
 
 .summary-hero-label {
-    font-size: 15px;
+    font-size: var(--fs-card-title);
     font-weight: 600;
     color: var(--text-main);
+    line-height: 1.4;
 }
 
 .summary-hero-desc {
@@ -732,9 +739,10 @@
 
 .summary-hero-value {
     font-size: 32px;
-    font-weight: 800;
+    font-weight: 700;
     color: var(--primary-color);
     line-height: 1;
+    font-variant-numeric: tabular-nums;
 }
 
 .summary-segment-bar {

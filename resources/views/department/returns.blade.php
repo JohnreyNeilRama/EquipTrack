@@ -119,7 +119,7 @@
         align-items: center;
         gap: 10px;
         margin: 0;
-        font-size: 14.5px;
+        font-size: 14px;
         font-weight: 700;
         color: var(--text-main);
     }
@@ -139,7 +139,7 @@
     .dark-theme .review-step { background-color: #3b82f6; }
     .review-hint {
         margin: -4px 0 0;
-        font-size: 12.5px;
+        font-size: 12px;
         color: var(--text-muted);
     }
 
@@ -251,7 +251,7 @@
     }
     .reported-notes {
         margin: 0;
-        font-size: 13.5px;
+        font-size: 13px;
         line-height: 1.5;
         color: var(--text-main);
         white-space: pre-line;
@@ -280,7 +280,7 @@
     .review-field-label .req { color: #ef4444; text-transform: none; letter-spacing: 0; }
     .review-field-label .optional { font-weight: 500; text-transform: none; letter-spacing: 0; }
     .char-counter {
-        font-size: 11.5px;
+        font-size: 11px;
         color: var(--text-muted);
         white-space: nowrap;
     }
@@ -346,12 +346,12 @@
         min-width: 0;
     }
     .condition-option-name {
-        font-size: 13.5px;
+        font-size: 13px;
         font-weight: 700;
         color: var(--text-main);
     }
     .condition-option-desc {
-        font-size: 11.5px;
+        font-size: 11px;
         line-height: 1.35;
         color: var(--text-muted);
     }
@@ -380,7 +380,7 @@
         bottom: 10px;
         padding: 5px 10px;
         border-radius: 14px;
-        font-size: 11.5px;
+        font-size: 11px;
         font-weight: 600;
         color: #ffffff;
         background-color: rgba(15, 23, 42, 0.75);
@@ -400,7 +400,7 @@
 
     .reject-hint {
         margin: 10px 0 0;
-        font-size: 12.5px;
+        font-size: 12px;
         color: var(--text-muted);
         text-align: left;
     }

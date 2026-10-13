@@ -15,10 +15,12 @@
 }
 
 .equipment-header-section h2 {
-    font-size: 24px;
+    font-size: var(--fs-page-title);
     font-weight: 700;
-    color: var(--section-title-color);
+    color: var(--page-title-color);
     margin: 0 0 6px 0;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
 }
 
 .equipment-header-section p {
@@ -197,11 +199,12 @@
 }
 
 .eq-card-title {
-    font-size: 18px;
-    font-weight: 700;
+    font-size: var(--fs-card-title);
+    font-weight: 600;
     margin: 0 0 4px 0;
     color: #ffffff;
     letter-spacing: -0.2px;
+    line-height: 1.4;
 }
 
 .eq-card-meta-line {
@@ -216,7 +219,7 @@
 
 .eq-card-meta-line span.label {
     opacity: 0.8;
-    font-size: 13.5px;
+    font-size: 13px;
     white-space: nowrap;
     flex-shrink: 0;
 }
@@ -392,11 +395,12 @@
 }
 
 .modal-title-center {
-    font-size: 22px;
+    font-size: var(--fs-modal-title);
     font-weight: 700;
     color: var(--section-title-color);
     text-align: center;
     margin: 0 0 24px 0;
+    line-height: 1.3;
 }
 
 /* Close button inside modal */
@@ -439,7 +443,7 @@
     background-color: #385585;
     color: #ffffff;
     font-weight: 600;
-    font-size: 15px;
+    font-size: 14px;
     border: none;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(56, 85, 133, 0.15);
@@ -523,7 +527,7 @@
 }
 
 .dropzone-text .main-text {
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text-main);
     margin: 0;
@@ -662,7 +666,7 @@
     height: 34px;
     padding: 0 14px;
     border-radius: 17px;
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 600;
     border: none;
     cursor: pointer;

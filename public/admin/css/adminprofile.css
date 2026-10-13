@@ -14,11 +14,12 @@
 }
 
 .profile-page-title {
-    font-size: 28px;
+    font-size: var(--fs-page-title);
     font-weight: 700;
-    color: var(--text-main);
-    letter-spacing: -0.5px;
+    color: var(--page-title-color);
+    letter-spacing: -0.02em;
     margin-bottom: 6px;
+    line-height: 1.25;
 }
 
 .profile-page-subtitle {
@@ -107,14 +108,15 @@
 }
 
 .profile-card-name {
-    font-size: 19px;
+    font-size: var(--fs-section);
     font-weight: 700;
     color: var(--text-main);
     margin-bottom: 4px;
+    line-height: 1.35;
 }
 
 .profile-card-role {
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--text-muted);
     margin-bottom: 2px;
@@ -157,7 +159,7 @@
     background-color: transparent;
     color: var(--danger-color, #ef4444);
     font-family: inherit;
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -186,10 +188,11 @@
 }
 
 .form-section-title {
-    font-size: 16px;
-    font-weight: 700;
+    font-size: var(--fs-card-title);
+    font-weight: 600;
     color: var(--primary-color, #385585);
     margin-bottom: 20px;
+    line-height: 1.4;
 }
 
 .profile-form-group {

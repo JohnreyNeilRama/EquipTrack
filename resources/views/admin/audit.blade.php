@@ -240,7 +240,7 @@
             </div>
             <div style="display: flex; flex-direction: column; gap: 2px;">
                 <span style="font-weight: 700; font-size: 14px; color: var(--text-main);" id="toastTitleText">Notification Title</span>
-                <span style="font-size: 12.5px; color: var(--text-muted);" id="toastMessageText">Notification details message goes here.</span>
+                <span style="font-size: 12px; color: var(--text-muted);" id="toastMessageText">Notification details message goes here.</span>
             </div>
         </div>
     </div>

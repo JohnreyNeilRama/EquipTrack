@@ -29,7 +29,7 @@
 .requests-table-card th {
     background-color: var(--table-header) !important; /* #8AA4D2 matching screenshot */
     color: #ffffff !important;
-    font-size: 14px !important;
+    font-size: var(--fs-table-head) !important;
     font-weight: 600 !important;
     padding: 16px 20px !important;
     text-align: left;

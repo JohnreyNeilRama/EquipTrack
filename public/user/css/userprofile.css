@@ -93,11 +93,12 @@
 }
 
 .profile-name {
-    font-size: 20px;
-    font-weight: 800;
+    font-size: var(--fs-section);
+    font-weight: 700;
     color: var(--text-main);
     margin-bottom: 6px;
     letter-spacing: -0.3px;
+    line-height: 1.35;
 }
 
 .profile-role {
@@ -139,9 +140,10 @@
 }
 
 .stat-num {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: var(--fs-card-title);
+    font-weight: 600;
     color: var(--text-main);
+    line-height: 1.4;
 }
 
 .btn-logout {
@@ -153,7 +155,7 @@
     border: 1px solid var(--danger-color, #ef4444);
     border-radius: 8px;
     font-family: inherit;
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -196,11 +198,12 @@
 }
 
 .details-title {
-    font-size: 22px;
-    font-weight: 800;
+    font-size: var(--fs-section);
+    font-weight: 600;
     color: var(--section-title-color);
     margin-bottom: 8px;
     letter-spacing: -0.5px;
+    line-height: 1.35;
 }
 
 .details-subtitle {
