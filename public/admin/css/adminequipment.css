@@ -24,7 +24,7 @@
 }
 
 .equipment-header-section p {
-    font-size: 14px;
+    font-size: var(--fs-body);
     color: var(--text-muted);
     margin: 0;
 }
@@ -60,7 +60,7 @@
     border: 1px solid var(--border-color);
     background-color: var(--card-bg);
     color: var(--text-main);
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 500;
     outline: none;
     transition: all 0.25s;
@@ -95,7 +95,7 @@
     border: 1px solid var(--border-color);
     background-color: var(--card-bg);
     color: var(--text-main);
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     outline: none;
     cursor: pointer;
@@ -120,7 +120,7 @@
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: var(--fs-label);
     pointer-events: none;
 }
 
@@ -130,7 +130,7 @@
     border-radius: 23px;
     background-color: #385585;
     color: #ffffff;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     border: none;
     cursor: pointer;
@@ -208,7 +208,7 @@
 }
 
 .eq-card-meta-line {
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 500;
     display: flex;
     justify-content: space-between;
@@ -219,7 +219,7 @@
 
 .eq-card-meta-line span.label {
     opacity: 0.8;
-    font-size: 13px;
+    font-size: var(--fs-label);
     white-space: nowrap;
     flex-shrink: 0;
 }
@@ -240,7 +240,7 @@
     flex: 1;
     height: 42px;
     border-radius: 10px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     cursor: pointer;
     border: none;
@@ -296,7 +296,7 @@
 }
 
 .form-group-flat label {
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 600;
     color: var(--text-muted);
 }
@@ -309,7 +309,7 @@
     border: 1px solid var(--border-color);
     background-color: var(--card-bg);
     color: var(--text-main);
-    font-size: 14px;
+    font-size: var(--fs-body);
     outline: none;
     transition: border-color 0.2s;
 }
@@ -375,7 +375,7 @@
 }
 
 .modal-subtitle-top {
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 600;
     color: #e2e8f0;
     text-transform: uppercase;
@@ -443,7 +443,7 @@
     background-color: #385585;
     color: #ffffff;
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--fs-body);
     border: none;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(56, 85, 133, 0.15);
@@ -527,7 +527,7 @@
 }
 
 .dropzone-text .main-text {
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 600;
     color: var(--text-main);
     margin: 0;
@@ -543,7 +543,7 @@
 }
 
 .dropzone-text .sub-text {
-    font-size: 12px;
+    font-size: var(--fs-small);
     color: var(--text-muted);
     margin: 0;
 }
@@ -569,7 +569,7 @@
 }
 
 .or-separator {
-    font-size: 12px;
+    font-size: var(--fs-small);
     font-weight: 700;
     text-transform: uppercase;
     color: var(--text-muted);
@@ -599,7 +599,7 @@
 .url-input-container input {
     flex: 1;
     height: 38px;
-    font-size: 13px;
+    font-size: var(--fs-label);
     border-radius: 8px;
 }
 
@@ -609,7 +609,7 @@
     border-radius: 8px;
     background-color: #385585;
     color: #ffffff;
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 600;
     border: none;
     cursor: pointer;
@@ -666,7 +666,7 @@
     height: 34px;
     padding: 0 14px;
     border-radius: 17px;
-    font-size: 12px;
+    font-size: var(--fs-small);
     font-weight: 600;
     border: none;
     cursor: pointer;

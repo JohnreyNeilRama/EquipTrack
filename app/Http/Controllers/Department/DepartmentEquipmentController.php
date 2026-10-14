@@ -66,6 +66,7 @@ class DepartmentEquipmentController extends Controller
                     'category' => $e->category?->category_name ?: 'General',
                     'categoryId' => $e->category_id,
                     'accessories' => $e->accessories_included,
+                    'classification' => $e->classification ?: 'Not Expensive',
                 ];
             });
 

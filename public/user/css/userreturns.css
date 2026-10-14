@@ -1,11 +1,12 @@
 /* Return Item styling matching system theme */
 
 .manage-return-header {
-    font-size: 18px;
-    font-weight: 600;
+    font-size: var(--fs-page-title);
+    font-weight: 700;
     color: var(--page-title-color);
     margin-bottom: 24px;
-    letter-spacing: -0.2px;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
 }
 
 /* Search Bar Aligned Right */
@@ -24,7 +25,7 @@
 .search-wrapper input {
     width: 100%;
     padding: 10px 40px 10px 20px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     color: var(--text-main);
     border: 1px solid var(--border-color);
     border-radius: 20px;
@@ -81,7 +82,7 @@
 
 .returns-table-card td {
     padding: 16px 24px !important;
-    font-size: 14px !important;
+    font-size: var(--fs-body) !important;
     color: var(--text-main) !important;
     border-bottom: 1px solid var(--table-border, #718096) !important;
     background: transparent !important;
@@ -98,7 +99,7 @@
 /* Status design */
 .status-text {
     font-weight: 500;
-    font-size: 14px;
+    font-size: var(--fs-body);
 }
 
 .status-borrowed {
@@ -124,7 +125,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 600;
     color: var(--text-muted);
 }
@@ -132,7 +133,7 @@
 .return-rejected-note {
     display: block;
     margin-top: 4px;
-    font-size: 12px;
+    font-size: var(--fs-small);
     font-weight: 500;
     color: #ef4444;
 }
@@ -144,7 +145,7 @@
     border: none;
     border-radius: 6px;
     padding: 6px 20px;
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s;
@@ -222,7 +223,7 @@
 }
 
 .modal-subtitle-center {
-    font-size: 11px;
+    font-size: var(--fs-badge);
     font-weight: 600;
     color: var(--text-muted);
     text-align: center;
@@ -306,7 +307,7 @@
 }
 
 .detail-form-label {
-    font-size: 11px;
+    font-size: var(--fs-badge);
     font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -317,7 +318,7 @@
 .detail-form-control {
     width: 100%;
     padding: 10px 14px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 500;
     color: var(--text-main);
     background-color: var(--bg-color);
@@ -383,7 +384,7 @@
     border: none;
     border-radius: 10px;
     padding: 12px 24px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -400,7 +401,7 @@
     border: none;
     border-radius: 10px;
     padding: 12px 24px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -460,14 +461,14 @@
 }
 
 .toast-title {
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 700;
     color: var(--text-main);
     margin-bottom: 2px;
 }
 
 .toast-desc {
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 500;
     color: var(--text-muted);
 }
@@ -498,7 +499,7 @@
 }
 
 .empty-state-container p {
-    font-size: 14px;
+    font-size: var(--fs-body);
     color: var(--text-muted);
     margin: 0;
 }

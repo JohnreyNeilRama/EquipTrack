@@ -102,7 +102,7 @@
 }
 
 .profile-role {
-    font-size: 14px;
+    font-size: var(--fs-body);
     color: var(--primary-color);
     font-weight: 600;
     background: var(--primary-light);
@@ -134,7 +134,7 @@
 }
 
 .stat-label {
-    font-size: 14px;
+    font-size: var(--fs-body);
     color: var(--text-muted);
     font-weight: 500;
 }
@@ -155,7 +155,7 @@
     border: 1px solid var(--danger-color, #ef4444);
     border-radius: 8px;
     font-family: inherit;
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 700;
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -207,7 +207,7 @@
 }
 
 .details-subtitle {
-    font-size: 14px;
+    font-size: var(--fs-body);
     color: var(--text-muted);
     font-weight: 400;
 }
@@ -218,7 +218,7 @@
     color: white;
     border: none;
     border-radius: 10px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     cursor: pointer;
     display: inline-flex;
@@ -258,7 +258,7 @@
 }
 
 .form-group label {
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     color: var(--text-main);
 }
@@ -283,7 +283,7 @@
     padding: 14px 16px 14px 45px; /* Leave space for icon */
     border: 1px solid var(--border-color);
     border-radius: 10px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     color: var(--text-main);
     outline: none;
     background-color: var(--card-bg);
@@ -353,7 +353,7 @@
     color: var(--text-muted);
     border: 1px solid var(--border-color);
     border-radius: 10px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -371,7 +371,7 @@
     color: white;
     border: none;
     border-radius: 10px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;

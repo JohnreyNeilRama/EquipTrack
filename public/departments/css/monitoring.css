@@ -32,13 +32,13 @@
 }
 
 .dropdown-profile-header .header-name {
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 700;
     color: var(--text-main, #333333);
 }
 
 .dropdown-profile-header .header-email {
-    font-size: 12px;
+    font-size: var(--fs-small);
     color: var(--text-muted, #666666);
 }
 
@@ -50,7 +50,7 @@
 
 .profile-dropdown-menu a {
     padding: 10px 16px;
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 500;
     color: var(--text-main, #333333);
     text-decoration: none;
@@ -89,7 +89,7 @@
 }
 
 .page-title-section p {
-    font-size: 14px;
+    font-size: var(--fs-body);
     color: var(--text-muted, #64748b);
     margin: 0;
 }
@@ -100,11 +100,13 @@
 }
 
 .monitoring-summary-section .section-subtitle {
-    font-size: var(--fs-card-title);
+    font-size: var(--fs-label);
     font-weight: 600;
-    color: var(--text-main, #334155);
-    margin: 0 0 14px 0;
+    color: var(--text-muted, #64748b);
+    margin: 0 0 12px 0;
     line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .summary-cards-grid {
@@ -139,7 +141,7 @@
 }
 
 .summary-card-label {
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 600;
     color: var(--text-muted, #64748b);
 }
@@ -215,7 +217,7 @@
     border: 1px solid var(--border-color, #e2e8f0);
     background-color: var(--bg-color, #f0f2f5);
     color: var(--text-main, #333333);
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 500;
     outline: none;
     transition: all 0.25s;
@@ -248,7 +250,7 @@
     border: 1px solid var(--border-color, #e2e8f0);
     background-color: var(--bg-color, #f0f2f5);
     color: var(--text-main, #333333);
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     outline: none;
     cursor: pointer;
@@ -263,7 +265,7 @@
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted, #666666);
-    font-size: 13px;
+    font-size: var(--fs-label);
     pointer-events: none;
 }
 
@@ -315,7 +317,7 @@
 
 .monitoring-table td {
     padding: 16px 20px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 400;
     color: var(--text-main, #333333);
     border-bottom: 1px solid var(--table-border, #718096);
@@ -345,7 +347,7 @@
     gap: 6px;
     padding: 6px 16px;
     border-radius: 20px;
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 600;
 }
 
@@ -386,7 +388,7 @@
     background-color: #ffffff;
     color: #2b364b;
     border: 1px solid #cbd5e1;
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -401,7 +403,7 @@
 }
 
 .btn-action-view i {
-    font-size: 13px;
+    font-size: var(--fs-label);
     color: #2b364b;
 }
 
@@ -420,7 +422,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: var(--fs-body);
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -441,7 +443,7 @@
 }
 
 .pagination-info {
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 500;
     color: var(--text-muted, #64748b);
 }
@@ -462,7 +464,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -532,7 +534,7 @@
     border-radius: 12px;
     background-color: #1e293b;
     color: #ffffff;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     display: flex;
@@ -635,7 +637,7 @@
 }
 
 .view-detail-item .label {
-    font-size: 12px;
+    font-size: var(--fs-small);
     font-weight: 600;
     color: var(--text-muted, #64748b);
     text-transform: uppercase;
@@ -643,7 +645,7 @@
 }
 
 .view-detail-item .val {
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 700;
     color: var(--text-main, #1e293b);
 }
@@ -678,7 +680,7 @@
 }
 
 .empty-state-container p {
-    font-size: 14px;
+    font-size: var(--fs-body);
     color: var(--text-muted, #64748b);
     margin: 0;
 }
@@ -736,7 +738,7 @@
 }
 
 #viewMonitoringModal .modal-subtitle-top {
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 600;
     color: #e2e8f0;
     text-transform: uppercase;
@@ -824,7 +826,7 @@
 }
 
 #viewMonitoringModal .modal-requester-details {
-    font-size: 12px;
+    font-size: var(--fs-small);
     color: var(--text-muted, #64748b);
 }
 
@@ -886,7 +888,7 @@
 }
 
 #viewMonitoringModal .detail-form-label {
-    font-size: 11px;
+    font-size: var(--fs-badge);
     font-weight: 600;
     color: var(--text-muted, #64748b);
     text-transform: uppercase;
@@ -899,7 +901,7 @@
     border-radius: 8px;
     background-color: var(--bg-color, #f8fafc);
     color: var(--text-main, #334155);
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-family: inherit;
     outline: none;
     width: 100%;
@@ -919,7 +921,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: var(--fs-badge);
     font-weight: 600;
     padding: 4px 10px;
     border-radius: 12px;
@@ -981,7 +983,7 @@
 #viewMonitoringModal .modal-actions-footer button {
     padding: 10px 24px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;

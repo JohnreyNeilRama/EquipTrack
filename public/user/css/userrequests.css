@@ -1,11 +1,12 @@
 /* Design layout styling for My Request page */
 
 .track-status-header {
-    font-size: 18px;
-    font-weight: 600;
+    font-size: var(--fs-page-title);
+    font-weight: 700;
     color: var(--page-title-color);
     margin-bottom: 24px;
-    letter-spacing: -0.2px;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
 }
 
 /* Search & Filter Row */
@@ -25,7 +26,7 @@
 .search-wrapper input {
     width: 100%;
     padding: 10px 40px 10px 20px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     color: var(--text-main);
     border: 1px solid var(--border-color);
     border-radius: 20px;
@@ -60,7 +61,7 @@
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 10px 45px 10px 20px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 500;
     color: var(--text-main);
     outline: none;
@@ -90,7 +91,7 @@
 }
 
 .pagination-info {
-    font-size: 14px;
+    font-size: var(--fs-body);
     color: var(--text-muted);
 }
 
@@ -105,7 +106,7 @@
     border: 1px solid var(--border-color);
     background-color: var(--card-bg);
     color: var(--text-main);
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 500;
     font-family: inherit;
     min-width: 34px;
@@ -172,7 +173,7 @@
 /* Status text styling */
 .status-text {
     font-weight: 500;
-    font-size: 14px;
+    font-size: var(--fs-body);
 }
 
 .status-pending {
@@ -194,7 +195,7 @@
     border: none;
     border-radius: 6px;
     padding: 6px 20px;
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s;
@@ -277,7 +278,7 @@
 }
 
 .modal-subtitle-center {
-    font-size: 11px;
+    font-size: var(--fs-badge);
     font-weight: 600;
     color: var(--text-muted);
     text-align: center;
@@ -362,7 +363,7 @@
 }
 
 .detail-form-label {
-    font-size: 11px;
+    font-size: var(--fs-badge);
     font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -373,7 +374,7 @@
 .detail-form-control {
     width: 100%;
     padding: 10px 14px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 500;
     color: var(--text-main);
     background-color: var(--bg-color);
@@ -399,7 +400,7 @@
 }
 
 .detail-status-badge {
-    font-size: 12px;
+    font-size: var(--fs-small);
     font-weight: 700;
     padding: 6px 16px;
     border-radius: 20px;

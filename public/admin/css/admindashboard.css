@@ -3,8 +3,8 @@
 :root {
     --admin-gutter-y: 32px;
     --admin-section-gap: 32px;
-    --admin-heading-size: 18px;
-    --admin-heading-weight: 700;
+    --admin-heading-size: var(--fs-section);
+    --admin-heading-weight: 600;
     --admin-card-radius: 20px;
     --admin-table-pad-y: 16px;
     --admin-table-pad-x: 20px;
@@ -13,7 +13,7 @@
 
 /* Page Header & Breadcrumbs (Not used but kept for style fallback) */
 .page-header-title h2 {
-    font-size: 20px;
+    font-size: var(--fs-page-title);
     font-weight: 700;
     color: var(--text-main);
     margin: 0;
@@ -62,7 +62,7 @@
 }
 
 .user-name {
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     color: var(--text-main);
 }
@@ -104,13 +104,13 @@
 }
 
 .dropdown-profile-header .header-name {
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 700;
     color: var(--text-main);
 }
 
 .dropdown-profile-header .header-email {
-    font-size: 11px;
+    font-size: var(--fs-badge);
     color: var(--text-muted);
 }
 
@@ -125,7 +125,7 @@
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 500;
     color: var(--text-main);
     text-decoration: none;
@@ -170,7 +170,7 @@
     align-items: center;
     padding: 4px 12px;
     border-radius: 20px;
-    font-size: 11px;
+    font-size: var(--fs-badge);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -180,7 +180,7 @@
 }
 
 .welcome-text h3 {
-    font-size: var(--fs-page-title);
+    font-size: var(--fs-display);
     font-weight: 700;
     color: var(--page-title-color);
     margin: 0 0 8px 0;
@@ -189,7 +189,7 @@
 }
 
 .welcome-text p {
-    font-size: 14px;
+    font-size: var(--fs-body);
     color: var(--text-muted);
     margin: 0;
 }
@@ -266,7 +266,7 @@
 }
 
 .stat-card-title {
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 600;
     color: var(--text-muted);
 }
@@ -354,7 +354,7 @@
 }
 
 .quick-stat-card-title {
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 500; /* Inter Medium */
     color: var(--text-muted);
     font-family: 'Inter', sans-serif;
@@ -362,7 +362,7 @@
 }
 
 .quick-stat-card-value {
-    font-size: 24px;
+    font-size: var(--fs-stat);
     font-weight: 700; /* Inter Bold */
     color: var(--text-main);
     font-family: 'Inter', sans-serif;
@@ -371,7 +371,7 @@
 }
 
 .quick-stat-card-desc {
-    font-size: 12px;
+    font-size: var(--fs-small);
     font-weight: 400; /* Inter Regular */
     color: var(--text-muted); /* gray */
     font-family: 'Inter', sans-serif;
@@ -483,7 +483,7 @@
 
 .admin-table-card td {
     padding: 16px 20px !important;
-    font-size: 14px !important;
+    font-size: var(--fs-body) !important;
     color: var(--text-main) !important;
     border-bottom: 1px solid var(--table-border, #718096) !important;
     background: transparent !important;
@@ -516,7 +516,7 @@
     border: none;
     border-radius: 6px;
     padding: 6px 16px;
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s, transform 0.1s;
@@ -666,7 +666,7 @@
 }
 
 .stock-status-label {
-    font-size: 12px;
+    font-size: var(--fs-small);
     font-weight: 500;
 }
 
@@ -681,7 +681,7 @@
 .stock-pill {
     padding: 6px 14px;
     border-radius: 20px;
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 600;
 }
 
@@ -732,7 +732,7 @@
 }
 
 .summary-hero-desc {
-    font-size: 12px;
+    font-size: var(--fs-small);
     color: var(--text-muted);
     margin: 0;
 }
@@ -810,7 +810,7 @@
 }
 
 .detail-label {
-    font-size: 11px;
+    font-size: var(--fs-badge);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -866,14 +866,14 @@
 }
 
 .toast-title {
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 700;
     color: var(--text-main);
     margin-bottom: 2px;
 }
 
 .toast-desc {
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 500;
     color: var(--text-muted);
 }

@@ -97,13 +97,13 @@
 }
 
 .dropdown-profile-header .header-name {
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 700;
     color: var(--text-main, #333333);
 }
 
 .dropdown-profile-header .header-email {
-    font-size: 12px;
+    font-size: var(--fs-small);
     color: var(--text-muted, #666666);
 }
 
@@ -115,7 +115,7 @@
 
 .profile-dropdown-menu a {
     padding: 10px 16px;
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 500;
     color: var(--text-main, #333333);
     text-decoration: none;
@@ -145,11 +145,13 @@
 }
 
 .requests-summary-section .section-subtitle {
-    font-size: var(--fs-card-title);
+    font-size: var(--fs-label);
     font-weight: 600;
-    color: var(--text-main, #334155);
-    margin: 0 0 14px 0;
+    color: var(--text-muted, #64748b);
+    margin: 0 0 12px 0;
     line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .summary-cards-grid {
@@ -221,7 +223,7 @@
 .dark-theme .summary-card-icon.icon-red { background-color: rgba(239, 68, 68, 0.15); color: #f87171; }
 
 .summary-card-label {
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 600;
     color: var(--text-muted, #666666);
 }

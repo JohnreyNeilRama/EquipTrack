@@ -3,7 +3,7 @@
 @section('title', 'EquipTrack')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('departments/css/equipment.css') }}">
+<link rel="stylesheet" href="{{ asset('departments/css/equipment.css') }}?v={{ filemtime(public_path('departments/css/equipment.css')) }}">
 @endpush
 
 @section('content')
@@ -58,7 +58,7 @@
                             <i class="fa-solid fa-ban"></i>
                         </div>
                     </div>
-                    <span class="summary-card-label">Unavailable</span>
+                    <span class="summary-card-label" title="Units on hand that can't be borrowed: Unavailable, On Hold or Under Maintenance">Out of Service</span>
                 </div>
             </div>
         </div>
@@ -66,7 +66,7 @@
         <!-- Controls Bar (Filter Container Card) -->
         <div class="filter-card-container">
             <div class="search-box-right-icon">
-                <input type="text" id="searchEquipment" placeholder="Search equipment...">
+                <input type="text" id="searchEquipment" placeholder="Search by name, brand, model or serial no..." aria-label="Search equipment">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
 
@@ -82,9 +82,11 @@
 
             <div class="filter-select-item">
                 <select id="filterStatus">
-                    <option value="all">Status</option>
+                    <option value="all">All Statuses</option>
                     <option value="available">Available</option>
                     <option value="unavailable">Unavailable</option>
+                    <option value="on hold">On Hold</option>
+                    <option value="under maintenance">Under Maintenance</option>
                 </select>
                 <i class="fa-solid fa-chevron-down"></i>
             </div>
@@ -101,9 +103,9 @@
 
         <!-- Empty State Container -->
         <div class="empty-state-container" id="emptyStateContainer" style="display: none; margin-top: 20px;">
-            <i class="fa-solid fa-boxes-stacked empty-state-icon"></i>
-            <h4>No equipment found</h4>
-            <p>No inventory items match your current search query or category filter.</p>
+            <i class="fa-solid fa-boxes-stacked empty-state-icon" id="emptyStateIcon"></i>
+            <h4 id="emptyStateTitle">No equipment found</h4>
+            <p id="emptyStateDesc">No inventory items match your current search query or category filter.</p>
         </div>
 <!-- Equipment Modal (Add / Edit) -->
     <div class="modal-overlay" id="equipmentModal">
@@ -200,6 +202,8 @@
                             <select id="eqFormStatus" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 36px 8px 14px; border-radius: 8px;">
                                 <option value="Available">Available</option>
                                 <option value="Unavailable">Unavailable</option>
+                                <option value="On Hold">On Hold</option>
+                                <option value="Under Maintenance">Under Maintenance</option>
                             </select>
                             <i class="fa-solid fa-chevron-down" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted); font-size: 13px;"></i>
                         </div>
@@ -230,12 +234,28 @@
 
                     <div class="view-details-grid">
                         <div class="view-detail-item">
+                            <span class="label">Brand / Model</span>
+                            <span class="val" id="viewModalBrand">—</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="label">Serial Number</span>
+                            <span class="val" id="viewModalSerial">—</span>
+                        </div>
+                        <div class="view-detail-item">
                             <span class="label">Category</span>
                             <span class="val" id="viewModalCategory">Laptop</span>
                         </div>
                         <div class="view-detail-item">
                             <span class="label">Status</span>
                             <span class="val" id="viewModalStatus">Available</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="label">Classification</span>
+                            <span class="val" id="viewModalClass">Not Expensive</span>
+                        </div>
+                        <div class="view-detail-item">
+                            <span class="label">Accessories</span>
+                            <span class="val" id="viewModalAccessories">—</span>
                         </div>
                         <div class="view-detail-item">
                             <span class="label">Available Stock</span>
@@ -380,6 +400,15 @@
             const CSRF_TOKEN = @json(csrf_token());
             const DEPARTMENT_NAME = @json($departmentName);
             const CATEGORY_MAP = @json($dbCategoryMap);
+            const FALLBACK_IMG = @json(asset('images/logo_only.png'));
+
+            // Same status colours as the Admin Equipment Management cards
+            const STATUS_CLASS = {
+                'available': 'status-available',
+                'unavailable': 'status-unavailable',
+                'on hold': 'status-on-hold',
+                'under maintenance': 'status-under-maintenance'
+            };
 
             let equipment = [];
 
@@ -401,17 +430,27 @@
                     .catch(err => console.error('Error loading department equipment:', err));
             }
 
-            // Recalculate summary card metrics
+            // Summary metrics, all counted in units so the four cards add up:
+            // Registered = Ready + Borrowed + Out of Service.
             function updateSummaryCards() {
-                const totalRegistered = equipment.reduce((acc, curr) => acc + (parseInt(curr.total) || 0), 0);
-                const totalReady = equipment.reduce((acc, curr) => acc + (parseInt(curr.available) || 0), 0);
-                const totalBorrowed = Math.max(0, totalRegistered - totalReady);
-                const totalUnavailable = equipment.filter(e => e.status === 'Unavailable').length;
+                let registered = 0, ready = 0, borrowed = 0, outOfService = 0;
+                equipment.forEach(e => {
+                    const total = parseInt(e.total) || 0;
+                    const avail = parseInt(e.available) || 0;
+                    registered += total;
+                    borrowed += Math.max(0, total - avail);
+                    if (String(e.status).toLowerCase() === 'available') ready += avail;
+                    else outOfService += avail;
+                });
 
-                sumRegistered.textContent = totalRegistered;
-                sumReady.textContent = totalReady;
-                sumBorrowed.textContent = totalBorrowed;
-                sumUnavailable.textContent = totalUnavailable;
+                sumRegistered.textContent = registered;
+                sumReady.textContent = ready;
+                sumBorrowed.textContent = borrowed;
+                sumUnavailable.textContent = outOfService;
+            }
+
+            function brandModel(item) {
+                return [item.brand, item.model].filter(v => v && String(v).trim()).join(' · ');
             }
 
             // Render equipment cards
@@ -419,39 +458,66 @@
                 grid.innerHTML = '';
                 equipment.forEach(item => {
                     const card = document.createElement('div');
-                    card.className = 'eq-card-admin';
-                    card.setAttribute('data-category', item.category.toLowerCase());
-                    card.setAttribute('data-status', item.status.toLowerCase());
-                    card.setAttribute('data-id', item.id);
+                    const status = String(item.status || 'Available');
+                    const statusKey = status.toLowerCase();
+                    const available = parseInt(item.available) || 0;
+                    const total = parseInt(item.total) || 0;
+                    const pct = total > 0 ? Math.round((available / total) * 100) : 0;
+                    const stockClass = available === 0 ? 'is-empty' : (available <= Math.max(1, Math.floor(total * 0.25)) ? 'is-low' : '');
+                    const isExpensive = item.classification === 'Expensive';
+                    const subtitle = brandModel(item);
 
-                    const isContain = item.name.toLowerCase().includes('calculator') || item.name.toLowerCase().includes('microphone') || item.name.toLowerCase().includes('projector');
+                    card.className = 'eq-card-admin';
+                    card.setAttribute('data-category', String(item.category || '').toLowerCase());
+                    card.setAttribute('data-status', statusKey);
+                    card.setAttribute('data-id', item.id);
+                    card.setAttribute('data-search', [item.name, item.brand, item.model, item.serial_number].filter(Boolean).join(' ').toLowerCase());
 
                     card.innerHTML = `
                         <div class="eq-card-img-wrapper">
-                            <img src="${escapeHTML(item.imgUrl)}" alt="${escapeHTML(item.name)}" class="${isContain ? 'fit-contain' : ''}">
+                            <img src="${escapeHTML(item.imgUrl || FALLBACK_IMG)}" alt="${escapeHTML(item.name)}" loading="lazy" class="${item.imgUrl ? '' : 'is-fallback'}"
+                                 onerror="this.onerror=null; this.src='${FALLBACK_IMG}'; this.classList.add('is-fallback');">
                         </div>
                         <div class="eq-card-details">
-                            <h4 class="eq-card-title">${escapeHTML(item.name)}</h4>
-                            <div class="eq-card-meta-line">
-                                <span class="label">Category :</span>
-                                <span class="value cat-val">${escapeHTML(item.category)}</span>
+                            <div class="eq-card-heading">
+                                <h4 class="eq-card-title" title="${escapeHTML(item.name)}">${escapeHTML(item.name)}</h4>
+                                <span class="eq-status-badge ${STATUS_CLASS[statusKey] || 'status-unavailable'}">${escapeHTML(status)}</span>
                             </div>
-                            <div class="eq-card-meta-line">
-                                <span class="label">Available :</span>
-                                <span class="value avail-val">${escapeHTML(item.available)}</span>
-                            </div>
-                            <div class="eq-card-meta-line">
-                                <span class="label">Total Quantity :</span>
-                                <span class="value total-val">${escapeHTML(item.total)}</span>
-                            </div>
-                            <div class="eq-card-meta-line">
-                                <span class="label">Status :</span>
-                                <span class="value status-val">${escapeHTML(item.status)}</span>
+                            ${subtitle ? `<p class="eq-card-subtitle">${escapeHTML(subtitle)}</p>` : ''}
+
+                            <dl class="eq-card-specs">
+                                <div class="eq-spec-row">
+                                    <dt>Serial No.</dt>
+                                    <dd class="mono">${escapeHTML(item.serial_number || '—')}</dd>
+                                </div>
+                                <div class="eq-spec-row">
+                                    <dt>Category</dt>
+                                    <dd class="cat-val">${escapeHTML(item.category)}</dd>
+                                </div>
+                                <div class="eq-spec-row">
+                                    <dt>Classification</dt>
+                                    <dd><span class="eq-class-badge ${isExpensive ? 'class-expensive' : 'class-not-expensive'}">${escapeHTML(item.classification || 'Not Expensive')}</span></dd>
+                                </div>
+                                ${item.accessories ? `
+                                <div class="eq-spec-row">
+                                    <dt>Accessories</dt>
+                                    <dd>${escapeHTML(item.accessories)}</dd>
+                                </div>` : ''}
+                            </dl>
+
+                            <div class="eq-stock ${stockClass}">
+                                <div class="eq-stock-text">
+                                    <span><strong class="avail-val">${available}</strong> / <span class="total-val">${total}</span> available</span>
+                                    ${available === 0 ? '<span class="eq-stock-flag">None left</span>' : ''}
+                                </div>
+                                <div class="eq-stock-bar" role="progressbar" aria-label="Available units" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${available}">
+                                    <span style="width: ${pct}%"></span>
+                                </div>
                             </div>
                         </div>
                         <div class="eq-card-actions">
-                            <button class="btn-card-edit" onclick="openEditModal(${item.id})">Edit</button>
-                            <button class="btn-card-view" onclick="openViewModal(${item.id})">View</button>
+                            <button type="button" class="btn-card-edit" onclick="openEditModal(${item.id})"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i> Edit</button>
+                            <button type="button" class="btn-card-view" onclick="openViewModal(${item.id})"><i class="fa-regular fa-eye" aria-hidden="true"></i> View</button>
                         </div>
                     `;
                     grid.appendChild(card);
@@ -459,9 +525,11 @@
                 updateSummaryCards();
             }
 
+            // Escapes text for HTML. Numbers (including 0) are kept, so a zero
+            // quantity shows as "0" instead of a blank.
             function escapeHTML(str) {
-                if (!str) return '';
-                return String(str).replace(/[&<>'"]/g, 
+                if (str === null || str === undefined) return '';
+                return String(str).replace(/[&<>'"]/g,
                     tag => ({
                         '&': '&amp;',
                         '<': '&lt;',
@@ -561,11 +629,11 @@
                 let visibleCount = 0;
 
                 cards.forEach(card => {
-                    const title = card.querySelector('.eq-card-title').textContent.toLowerCase();
+                    const haystack = card.getAttribute('data-search') || '';
                     const cardCategory = card.getAttribute('data-category').toLowerCase();
                     const cardStatus = card.getAttribute('data-status').toLowerCase();
 
-                    const matchesSearch = title.includes(query);
+                    const matchesSearch = haystack.includes(query);
                     const matchesCategory = (category === 'all' || cardCategory.includes(category));
                     const matchesStatus = (status === 'all' || cardStatus === status);
 
@@ -578,6 +646,13 @@
                 });
 
                 if (visibleCount === 0) {
+                    // Different message when nothing is assigned vs. nothing matches
+                    const noneAssigned = equipment.length === 0;
+                    document.getElementById('emptyStateTitle').textContent = noneAssigned ? 'No equipment assigned yet' : 'No equipment found';
+                    document.getElementById('emptyStateDesc').textContent = noneAssigned
+                        ? 'Equipment assigned to your department will appear here. Use "Add Equipment" to register an item.'
+                        : 'No items match your search or filters. Try a different keyword or clear the filters.';
+                    document.getElementById('emptyStateIcon').className = 'fa-solid ' + (noneAssigned ? 'fa-boxes-stacked' : 'fa-magnifying-glass') + ' empty-state-icon';
                     emptyStateContainer.style.display = 'flex';
                 } else {
                     emptyStateContainer.style.display = 'none';
@@ -663,11 +738,16 @@
                 if (!item) return;
 
                 viewModalTitle.textContent = item.name;
-                viewModalImg.src = item.imgUrl;
+                viewModalImg.onerror = function () { this.onerror = null; this.src = FALLBACK_IMG; };
+                viewModalImg.src = item.imgUrl || FALLBACK_IMG;
+                document.getElementById('viewModalBrand').textContent = brandModel(item) || '—';
+                document.getElementById('viewModalSerial').textContent = item.serial_number || '—';
+                document.getElementById('viewModalClass').textContent = item.classification || 'Not Expensive';
+                document.getElementById('viewModalAccessories').textContent = item.accessories || '—';
                 viewModalCategory.textContent = item.category;
                 viewModalStatus.textContent = item.status;
-                viewModalAvail.textContent = item.available;
-                viewModalTotal.textContent = item.total;
+                viewModalAvail.textContent = String(item.available ?? 0);
+                viewModalTotal.textContent = String(item.total ?? 0);
                 if (viewModalDepartment) viewModalDepartment.textContent = DEPARTMENT_NAME;
 
                 viewModal.classList.add('show');

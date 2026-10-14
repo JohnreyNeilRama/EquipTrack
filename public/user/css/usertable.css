@@ -39,7 +39,7 @@
 
 .requests-table-card td {
     padding: 16px 20px !important;
-    font-size: 14px !important;
+    font-size: var(--fs-body) !important;
     color: var(--text-main) !important;
     border-bottom: 1px solid var(--table-border, #718096) !important;
     background: transparent !important;
@@ -71,7 +71,7 @@
 /* Status badges inside the table — same look as the Admin tables
    (the modal badge keeps its own styling) */
 .requests-table-card .detail-status-badge {
-    font-size: 12px;
+    font-size: var(--fs-small);
     font-weight: 600;
     padding: 6px 14px;
     border-radius: 20px;

@@ -31,7 +31,7 @@
         display: inline-block;
         padding: 3px 10px;
         border-radius: 10px;
-        font-size: 12px;
+        font-size: var(--fs-small);
         font-weight: 600;
         white-space: nowrap;
     }
@@ -45,13 +45,13 @@
     .condition-source {
         display: block;
         margin-top: 4px;
-        font-size: 11px;
+        font-size: var(--fs-badge);
         font-weight: 600;
         color: var(--text-muted);
     }
 
     .equipment-id {
-        font-size: 13px;
+        font-size: var(--fs-label);
         color: var(--text-muted);
         white-space: nowrap;
     }
@@ -63,7 +63,7 @@
 
     .photo-indicator {
         margin-left: 4px;
-        font-size: 11px;
+        font-size: var(--fs-badge);
         color: var(--text-muted);
     }
 
@@ -99,8 +99,8 @@
     }
     .review-title {
         margin: 0;
-        font-size: 20px;
-        font-weight: 700;
+        font-size: var(--fs-modal-title);
+        font-weight: 600;
         color: var(--text-main);
     }
     .review-requester {
@@ -119,8 +119,8 @@
         align-items: center;
         gap: 10px;
         margin: 0;
-        font-size: 14px;
-        font-weight: 700;
+        font-size: var(--fs-body);
+        font-weight: 600;
         color: var(--text-main);
     }
     .review-step {
@@ -130,8 +130,8 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 12px;
-        font-weight: 700;
+        font-size: var(--fs-small);
+        font-weight: 600;
         color: #ffffff;
         background-color: #385585;
         flex-shrink: 0;
@@ -139,7 +139,7 @@
     .dark-theme .review-step { background-color: #3b82f6; }
     .review-hint {
         margin: -4px 0 0;
-        font-size: 12px;
+        font-size: var(--fs-small);
         color: var(--text-muted);
     }
 
@@ -167,7 +167,7 @@
         justify-content: center;
         gap: 8px;
         color: var(--text-muted);
-        font-size: 13px;
+        font-size: var(--fs-label);
         font-weight: 600;
     }
     .equipment-photo-placeholder i {
@@ -180,7 +180,7 @@
         bottom: 10px;
         padding: 4px 10px;
         border-radius: 12px;
-        font-size: 11px;
+        font-size: var(--fs-badge);
         font-weight: 600;
         color: #ffffff;
         background-color: rgba(15, 23, 42, 0.7);
@@ -205,8 +205,8 @@
     }
     .review-info-wide { grid-column: 1 / -1; }
     .review-info-item dt {
-        font-size: 11px;
-        font-weight: 700;
+        font-size: var(--fs-badge);
+        font-weight: 600;
         letter-spacing: 0.5px;
         text-transform: uppercase;
         color: var(--text-muted);
@@ -214,7 +214,7 @@
     }
     .review-info-item dd {
         margin: 0;
-        font-size: 14px;
+        font-size: var(--fs-body);
         font-weight: 600;
         color: var(--text-main);
         overflow-wrap: anywhere;
@@ -243,15 +243,15 @@
         gap: 10px;
     }
     .reported-label {
-        font-size: 12px;
-        font-weight: 700;
+        font-size: var(--fs-small);
+        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         color: var(--text-muted);
     }
     .reported-notes {
         margin: 0;
-        font-size: 13px;
+        font-size: var(--fs-label);
         line-height: 1.5;
         color: var(--text-main);
         white-space: pre-line;
@@ -270,8 +270,8 @@
         gap: 10px;
     }
     .review-field-label {
-        font-size: 12px;
-        font-weight: 700;
+        font-size: var(--fs-small);
+        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         color: var(--text-muted);
@@ -280,7 +280,7 @@
     .review-field-label .req { color: #ef4444; text-transform: none; letter-spacing: 0; }
     .review-field-label .optional { font-weight: 500; text-transform: none; letter-spacing: 0; }
     .char-counter {
-        font-size: 11px;
+        font-size: var(--fs-badge);
         color: var(--text-muted);
         white-space: nowrap;
     }
@@ -346,12 +346,12 @@
         min-width: 0;
     }
     .condition-option-name {
-        font-size: 13px;
-        font-weight: 700;
+        font-size: var(--fs-label);
+        font-weight: 600;
         color: var(--text-main);
     }
     .condition-option-desc {
-        font-size: 11px;
+        font-size: var(--fs-badge);
         line-height: 1.35;
         color: var(--text-muted);
     }
@@ -380,7 +380,7 @@
         bottom: 10px;
         padding: 5px 10px;
         border-radius: 14px;
-        font-size: 11px;
+        font-size: var(--fs-badge);
         font-weight: 600;
         color: #ffffff;
         background-color: rgba(15, 23, 42, 0.75);
@@ -400,7 +400,7 @@
 
     .reject-hint {
         margin: 10px 0 0;
-        font-size: 12px;
+        font-size: var(--fs-small);
         color: var(--text-muted);
         text-align: left;
     }

@@ -62,7 +62,7 @@
 }
 
 .notif-title {
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 700;
     color: var(--text-main);
 }
@@ -71,7 +71,7 @@
     background: none;
     border: none;
     font-family: inherit;
-    font-size: 12px;
+    font-size: var(--fs-small);
     font-weight: 600;
     color: var(--primary-color);
     cursor: pointer;
@@ -163,13 +163,13 @@
 }
 
 .notif-item-title {
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 700;
     color: var(--text-main);
 }
 
 .notif-item-msg {
-    font-size: 12px;
+    font-size: var(--fs-small);
     font-weight: 400;
     line-height: 1.4;
     color: var(--text-muted);
@@ -177,7 +177,7 @@
 }
 
 .notif-item-time {
-    font-size: 11px;
+    font-size: var(--fs-badge);
     color: var(--text-muted);
     opacity: 0.85;
 }
@@ -188,7 +188,7 @@
     align-items: center;
     gap: 8px;
     padding: 32px 16px;
-    font-size: 13px;
+    font-size: var(--fs-label);
     color: var(--text-muted);
 }
 

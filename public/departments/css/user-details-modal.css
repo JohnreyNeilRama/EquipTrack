@@ -40,7 +40,7 @@
 }
 
 #viewUserModal .modal-subtitle-top {
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 600;
     color: #e2e8f0;
     text-transform: uppercase;
@@ -133,7 +133,7 @@
 }
 
 #viewUserModal .modal-requester-details {
-    font-size: 12px;
+    font-size: var(--fs-small);
     color: var(--text-muted);
 }
 
@@ -192,7 +192,7 @@
 }
 
 #viewUserModal .detail-form-label {
-    font-size: 11px;
+    font-size: var(--fs-badge);
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -205,7 +205,7 @@
     border-radius: 8px;
     background-color: var(--bg-color, #f8fafc);
     color: var(--text-main);
-    font-size: 14px;
+    font-size: var(--fs-body);
     outline: none;
     width: 100%;
 }
@@ -226,7 +226,7 @@
 /* Status badge (overrides the table badge style from users.css, inside the modal only) */
 #viewUserModal .status-badge {
     display: inline-block;
-    font-size: 12px;
+    font-size: var(--fs-small);
     font-weight: 600;
     padding: 6px 14px;
     border-radius: 20px;
@@ -268,7 +268,7 @@
 #viewUserModal .modal-actions-footer button {
     padding: 10px 24px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;

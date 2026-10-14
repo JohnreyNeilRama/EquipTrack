@@ -18,7 +18,7 @@
     border-radius: 23px;
     background-color: #385585;
     color: #ffffff;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     border: none;
     cursor: pointer;
@@ -49,7 +49,7 @@
     color: var(--text-muted);
     padding: 6px 12px;
     border-radius: 17px;
-    font-size: 12px;
+    font-size: var(--fs-small);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -66,7 +66,7 @@
     color: #ef4444;
     padding: 6px 12px;
     border-radius: 17px;
-    font-size: 12px;
+    font-size: var(--fs-small);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -105,13 +105,13 @@
 }
 
 .user-sub-text {
-    font-size: 12px;
+    font-size: var(--fs-small);
     color: var(--text-muted);
 }
 
 /* Improved Status Badges */
 .status-badge {
-    font-size: 12px;
+    font-size: var(--fs-small);
     font-weight: 600;
     padding: 6px 14px;
     border-radius: 20px;
@@ -199,7 +199,7 @@
 }
 
 .detail-form-label {
-    font-size: 11px;
+    font-size: var(--fs-badge);
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -212,7 +212,7 @@
     border-radius: 8px;
     background-color: var(--bg-color, #f8fafc);
     color: var(--text-main);
-    font-size: 14px;
+    font-size: var(--fs-body);
     outline: none;
     width: 100%;
 }
@@ -268,7 +268,7 @@
 }
 
 .modal-requester-details {
-    font-size: 12px;
+    font-size: var(--fs-small);
     color: var(--text-muted);
 }
 
@@ -285,7 +285,7 @@
 .modal-actions-footer button {
     padding: 10px 24px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--fs-body);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -315,7 +315,7 @@
 }
 
 .pagination-info {
-    font-size: 14px;
+    font-size: var(--fs-body);
     color: var(--text-muted);
 }
 
@@ -330,7 +330,7 @@
     border: 1px solid var(--border-color);
     background-color: var(--card-bg);
     color: var(--text-main);
-    font-size: 13px;
+    font-size: var(--fs-label);
     font-weight: 500;
     font-family: inherit;
     min-width: 34px;
@@ -419,7 +419,7 @@
 }
 
 .empty-state-container p {
-    font-size: 14px;
+    font-size: var(--fs-body);
 }
 
 @media (max-width: 768px) {
