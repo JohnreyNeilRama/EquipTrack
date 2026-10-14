@@ -34,7 +34,6 @@ class BorrowTransaction extends Model
         'reported_condition',
         'inspected_condition',
         'inspection_remarks',
-        'return_photo',
         'return_reviewed_by',
         'return_reviewed_at',
         'return_reject_reason',

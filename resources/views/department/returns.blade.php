@@ -61,12 +61,6 @@
         white-space: nowrap;
     }
 
-    .photo-indicator {
-        margin-left: 4px;
-        font-size: var(--fs-badge);
-        color: var(--text-muted);
-    }
-
     /* ------------------------------------------------------------------
        Return Review form
        ------------------------------------------------------------------ */
@@ -359,33 +353,6 @@
     .condition-option.is-selected[data-tone="damaged"] { border-color: #ef4444; background-color: rgba(239, 68, 68, 0.05); box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12); }
     .condition-option.is-selected[data-tone="incomplete"] { border-color: #f59e0b; background-color: rgba(245, 158, 11, 0.06); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.14); }
 
-    .result-photo-link {
-        display: block;
-        position: relative;
-        border-radius: 10px;
-        overflow: hidden;
-        border: 1px solid var(--border-color);
-        background-color: #0f172a;
-        margin-top: 4px;
-    }
-    .result-photo-link img {
-        display: block;
-        width: 100%;
-        max-height: 260px;
-        object-fit: contain;
-    }
-    .result-photo-hint {
-        position: absolute;
-        right: 10px;
-        bottom: 10px;
-        padding: 5px 10px;
-        border-radius: 14px;
-        font-size: var(--fs-badge);
-        font-weight: 600;
-        color: #ffffff;
-        background-color: rgba(15, 23, 42, 0.75);
-    }
-
     .review-footer {
         flex-shrink: 0;
         margin: 0 -4px;
@@ -658,15 +625,6 @@
                                 <dt>Reason for Rejection</dt>
                                 <dd id="resultReason">—</dd>
                             </div>
-                            <div class="review-info-item review-info-wide" id="resultPhotoGroup">
-                                <dt>Equipment Photo</dt>
-                                <dd>
-                                    <a href="#" target="_blank" rel="noopener" class="result-photo-link" id="resultPhotoLink" title="Open the full-size photo">
-                                        <img src="" alt="Photo of the returned equipment" id="resultPhoto">
-                                        <span class="result-photo-hint"><i class="fa-solid fa-up-right-from-square"></i> Open full size</span>
-                                    </a>
-                                </dd>
-                            </div>
                         </dl>
                     </section>
                 </div>
@@ -844,7 +802,7 @@
                     <td><span class="status-badge ${STATUS_CLASS[r.status] || 'status-pending'}">${escapeHTML(r.status)}</span></td>
                     <td>
                         ${conditionTag(r.condition)}
-                        <span class="condition-source">${r.conditionSource === 'inspected' ? 'Inspected' : 'Reported by user'}${r.photo ? ' <i class="fa-solid fa-camera photo-indicator" title="Photo attached"></i>' : ''}</span>
+                        <span class="condition-source">${r.conditionSource === 'inspected' ? 'Inspected' : 'Reported by user'}</span>
                     </td>
                     <td class="action-cell" style="text-align: center;">${actionHtml}</td>
                 `;
@@ -990,16 +948,6 @@
                 document.getElementById('resultRemarks').textContent = r.inspectionRemarks || 'None';
                 document.getElementById('resultReason').textContent = r.rejectReason || 'No reason provided.';
                 document.getElementById('resultReviewer').textContent = r.reviewedBy !== '—' ? `${r.reviewedBy} · ${r.reviewedAt}` : '—';
-
-                const photoGroup = document.getElementById('resultPhotoGroup');
-                if (confirmed && r.photo) {
-                    document.getElementById('resultPhoto').src = r.photo;
-                    document.getElementById('resultPhotoLink').href = r.photo;
-                    photoGroup.style.display = 'block';
-                } else {
-                    document.getElementById('resultPhoto').src = '';
-                    photoGroup.style.display = 'none';
-                }
 
                 footer.innerHTML = `<button type="button" class="btn-modal-close" style="width: 100%;" id="reviewCancelBtn">Close</button>`;
             }

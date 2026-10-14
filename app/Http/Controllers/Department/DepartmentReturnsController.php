@@ -245,8 +245,6 @@ class DepartmentReturnsController extends Controller
                     : ($transaction->inspected_condition ?: $this->splitCondition($transaction->condition_on_return)[0]),
                 'conditionSource' => $pending || $transaction->return_status === BorrowTransaction::RETURN_REJECTED ? 'reported' : 'inspected',
                 'inspectionRemarks' => $transaction->inspection_remarks ?? '',
-                // Photos attached before the upload field was removed.
-                'photo' => $transaction->return_photo ?: null,
                 'rejectReason' => $transaction->return_reject_reason ?? '',
                 'reviewedBy' => $transaction->returnReviewer?->full_name ?: ($transaction->return_reviewed_by ? 'Department staff' : '—'),
                 'reviewedAt' => $transaction->return_reviewed_at ? $fmtDateTime($transaction->return_reviewed_at) : '—',

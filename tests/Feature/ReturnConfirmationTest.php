@@ -14,6 +14,7 @@ use App\Models\UserAccount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -290,8 +291,8 @@ class ReturnConfirmationTest extends TestCase
             'photo' => UploadedFile::fake()->image('laptop.jpg'),
         ], ['Accept' => 'application/json'])->assertOk();
 
-        $this->assertNull($this->transaction($id)->return_photo);
-        $this->assertNull($this->deptRows()->firstWhere('requestId', $id)['photo']);
+        $this->assertFalse(Schema::hasColumn('borrow_transaction', 'return_photo'));
+        $this->assertArrayNotHasKey('photo', $this->deptRows()->firstWhere('requestId', $id));
         $this->assertSame([], Storage::disk('public')->allFiles());
     }
 
