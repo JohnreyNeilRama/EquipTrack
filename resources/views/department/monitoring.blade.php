@@ -335,19 +335,23 @@
                 pageItems.forEach(item => {
                     const tr = document.createElement('tr');
 
-                    let actionContent = `
-                        <button class="btn-action-view" onclick="openViewModal('${item.id}')">
-                            <i class="fa-solid fa-eye"></i> View
-                        </button>
+                    // View is on every row; overdue rows also get the notice bell.
+                    const actionContent = `
+                        <div class="monitoring-actions">
+                            <button type="button" class="btn-action-view" onclick="openViewModal('${item.id}')">
+                                <i class="fa-solid fa-eye" aria-hidden="true"></i> View
+                            </button>
+                            ${item.status === 'OVERDUE' ? `
+                            <button type="button" class="btn-action-alert" title="Send Overdue Notice" aria-label="Send overdue notice" onclick="sendOverdueNotice('${item.borrower}')">
+                                <i class="fa-solid fa-bell" aria-hidden="true"></i>
+                            </button>` : ''}
+                        </div>
                     `;
 
-                    if (item.status === 'OVERDUE') {
-                        actionContent = `
-                            <button class="btn-action-alert" title="Send Overdue Notice" onclick="sendOverdueNotice('${item.borrower}')">
-                                <i class="fa-solid fa-bell"></i>
-                            </button>
-                        `;
-                    }
+                    // Clicking the row (outside its buttons) is a shortcut to View
+                    tr.addEventListener('click', (e) => {
+                        if (!e.target.closest('button, a, input, select')) openViewModal(item.id);
+                    });
 
                     tr.innerHTML = `
                         <td class="col-equipment">${escapeHTML(item.equipment)}</td>

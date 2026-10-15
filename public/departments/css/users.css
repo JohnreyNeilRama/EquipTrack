@@ -300,12 +300,14 @@
     border-bottom: 1px solid var(--table-border, #718096);
 }
 
+/* Clicking a row is a shortcut to its details (same as the View button) */
 .users-table tbody tr {
+    cursor: pointer;
     transition: background-color 0.2s ease;
 }
 
 .users-table tbody tr:hover td {
-    background-color: rgba(56, 85, 133, 0.015);
+    background-color: var(--primary-light, #eff4fa);
 }
 
 .users-table td {
@@ -412,6 +414,86 @@
 
 .btn-action-view:hover i {
     color: #385585;
+}
+
+/* --------------------------------------------------------------------------
+   Users table: User Type / Status badges and the View button in light and
+   dark mode. Same colour pairs as the Return Confirmation table (its
+   condition tags and View button), so the text stays readable on either
+   background. The View button also takes its size and shape (32px tall,
+   6px × 14px padding, 6px corners).
+   -------------------------------------------------------------------------- */
+.users-table .user-type-badge.student {
+    background-color: #e0e7ff;
+    color: #3b5585;
+}
+
+.users-table .user-type-badge.faculty,
+.users-table .status-badge.active {
+    background-color: #d1fae5;
+    color: #047857;
+}
+
+.users-table .status-badge.inactive {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+.dark-theme .users-table .user-type-badge.student {
+    background-color: rgba(96, 165, 250, 0.15);
+    color: #93c5fd;
+}
+
+.dark-theme .users-table .user-type-badge.faculty,
+.dark-theme .users-table .status-badge.active {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}
+
+.dark-theme .users-table .status-badge.inactive {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+.users-table .btn-action-view {
+    height: 32px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    background-color: rgba(56, 85, 133, 0.08);
+    border-color: rgba(56, 85, 133, 0.35);
+    color: #385585;
+    box-shadow: none;
+}
+
+.users-table .btn-action-view i {
+    color: inherit;
+}
+
+.users-table .btn-action-view:hover {
+    background-color: #385585;
+    border-color: #385585;
+    color: #ffffff;
+}
+
+.users-table .btn-action-view:focus-visible {
+    outline: 2px solid #385585;
+    outline-offset: 2px;
+}
+
+.dark-theme .users-table .btn-action-view {
+    background-color: #334155;
+    border-color: #475569;
+    color: #93c5fd;
+}
+
+.dark-theme .users-table .btn-action-view:hover {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+.dark-theme .users-table .btn-action-view:focus-visible {
+    outline-color: #60a5fa;
 }
 
 /* Table Footer & Pagination Matching Screenshot */

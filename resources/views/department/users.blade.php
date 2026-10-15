@@ -277,11 +277,16 @@
                         <td class="col-attainment">${escapeHTML(user.attainment)}</td>
                         <td><span class="status-badge ${statusClass}">${escapeHTML(user.status)}</span></td>
                         <td>
-                            <button class="btn-action-view" onclick="openViewUserModal(${Number(user.id)})">
-                                <i class="fa-solid fa-eye"></i> View
+                            <button type="button" class="btn-action-view" onclick="openViewUserModal(${Number(user.id)})">
+                                <i class="fa-solid fa-eye" aria-hidden="true"></i> View
                             </button>
                         </td>
                     `;
+
+                    // Clicking the row (outside its button) is a shortcut to View
+                    tr.addEventListener('click', (e) => {
+                        if (!e.target.closest('button, a, input, select')) openViewUserModal(Number(user.id));
+                    });
 
                     tableBody.appendChild(tr);
                 });

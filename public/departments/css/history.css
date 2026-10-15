@@ -282,7 +282,7 @@
    padding match the other EquipTrack tables (e.g. Department Users). */
 .history-table {
     width: 100%;
-    min-width: 1040px;
+    min-width: 1100px;
     table-layout: fixed;
     border-collapse: collapse;
     text-align: left;
@@ -307,7 +307,7 @@
     border-bottom: 1px solid var(--table-border, #718096);
 }
 
-/* Status and Action are centered so badges and the eye button line up
+/* Status and Action are centered so badges and the View button line up
    under their headers. */
 .history-table th.col-status,
 .history-table td.col-status,
@@ -316,7 +316,9 @@
     text-align: center;
 }
 
+/* Clicking a row is a shortcut to its details (same as the View button) */
 .history-table tbody tr {
+    cursor: pointer;
     transition: background-color 0.2s;
 }
 
@@ -356,7 +358,7 @@
     box-sizing: border-box;
 }
 
-.history-table td.col-action .btn-action-eye {
+.history-table td.col-action .btn-action-view {
     margin: 0 auto;
 }
 
@@ -468,28 +470,134 @@
     background-color: #ef4444;
 }
 
-/* Action Eye Button Matching Screenshot */
-.btn-action-eye {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background-color: #ffffff;
-    color: #2b364b;
-    border: 1px solid #cbd5e1;
+/* View button: same style as Department Users and Equipment Monitoring */
+.btn-action-view {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: var(--fs-small);
+    gap: 6px;
+    height: 36px;
+    padding: 0 18px;
+    border-radius: 20px;
+    background-color: #ffffff;
+    color: #2b364b;
+    border: 1px solid #cbd5e1;
+    font-family: inherit;
+    font-size: var(--fs-label);
+    font-weight: 600;
+    white-space: nowrap;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.btn-action-eye:hover {
+.btn-action-view:hover {
     border-color: #385585;
     color: #385585;
     background-color: #f8fafc;
-    transform: scale(1.08);
+    transform: translateY(-1px);
+}
+
+.btn-action-view i {
+    font-size: var(--fs-label);
+    color: #2b364b;
+}
+
+.btn-action-view:hover i {
+    color: #385585;
+}
+
+/* --------------------------------------------------------------------------
+   History table: User Type / Status badges and the View button in light and
+   dark mode. Same colour pairs as the Department Users and Return
+   Confirmation tables (and, for Status, the details modal below), so the
+   text stays readable on either background. The View button also takes the
+   Return Confirmation size and shape (32px tall, 6px × 14px padding, 6px
+   corners). The status dot follows the text colour.
+   -------------------------------------------------------------------------- */
+.history-table .type-badge.type-student {
+    background-color: #e0e7ff;
+    color: #3b5585;
+}
+
+.history-table .type-badge.type-faculty,
+.history-table .status-badge-dot.returned {
+    background-color: #d1fae5;
+    color: #047857;
+}
+
+.history-table .status-badge-dot.returned-late {
+    background-color: #ffedd5;
+    color: #c2410c;
+}
+
+.history-table .status-badge-dot.damaged {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+.history-table .status-badge-dot .dot {
+    background-color: currentColor;
+}
+
+.dark-theme .history-table .type-badge.type-student {
+    background-color: rgba(96, 165, 250, 0.15);
+    color: #93c5fd;
+}
+
+.dark-theme .history-table .type-badge.type-faculty,
+.dark-theme .history-table .status-badge-dot.returned {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}
+
+.dark-theme .history-table .status-badge-dot.returned-late {
+    background-color: rgba(249, 115, 22, 0.15);
+    color: #fb923c;
+}
+
+.dark-theme .history-table .status-badge-dot.damaged {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+.history-table .btn-action-view {
+    height: 32px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    background-color: rgba(56, 85, 133, 0.08);
+    border-color: rgba(56, 85, 133, 0.35);
+    color: #385585;
+}
+
+.history-table .btn-action-view i {
+    color: inherit;
+}
+
+.history-table .btn-action-view:hover {
+    background-color: #385585;
+    border-color: #385585;
+    color: #ffffff;
+}
+
+.history-table .btn-action-view:focus-visible {
+    outline: 2px solid #385585;
+    outline-offset: 2px;
+}
+
+.dark-theme .history-table .btn-action-view {
+    background-color: #334155;
+    border-color: #475569;
+    color: #93c5fd;
+}
+
+.dark-theme .history-table .btn-action-view:hover {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+.dark-theme .history-table .btn-action-view:focus-visible {
+    outline-color: #60a5fa;
 }
 
 /* Table Footer & Pagination Matching Screenshot */

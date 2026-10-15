@@ -122,6 +122,39 @@
         white-space: nowrap;
     }
 
+    /* View button (reviewed returns). The shared dark style is a faint indigo
+       tint with no border, which nearly disappears on the dark table; here it
+       gets a solid slate fill, a visible border and EquipTrack blue text. Light
+       mode gets the same treatment in the light palette. Same size and shape
+       as the Review button. */
+    .returns-table .btn-view-only {
+        background-color: rgba(56, 85, 133, 0.08);
+        border: 1px solid rgba(56, 85, 133, 0.35);
+        color: #385585;
+    }
+    .returns-table .btn-view-only:hover {
+        background-color: #385585;
+        border-color: #385585;
+        color: #ffffff;
+    }
+    .returns-table .btn-view-only:focus-visible {
+        outline: 2px solid #385585;
+        outline-offset: 2px;
+    }
+    .dark-theme .returns-table .btn-view-only {
+        background-color: #334155;
+        border-color: #475569;
+        color: #93c5fd;
+    }
+    .dark-theme .returns-table .btn-view-only:hover {
+        background-color: #2563eb;
+        border-color: #2563eb;
+        color: #ffffff;
+    }
+    .dark-theme .returns-table .btn-view-only:focus-visible {
+        outline-color: #60a5fa;
+    }
+
     .return-id {
         font-weight: 600;
         white-space: nowrap;

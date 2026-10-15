@@ -107,14 +107,14 @@
             <table class="history-table">
                 <thead>
                     <tr>
-                        <th style="width: 13%;">Transaction ID</th>
-                        <th style="width: 12%;">ID Number</th>
-                        <th style="width: 14%;">Name</th>
-                        <th style="width: 13%;">User Type</th>
+                        <th style="width: 12%;">Transaction ID</th>
+                        <th style="width: 11%;">ID Number</th>
+                        <th style="width: 13%;">Name</th>
+                        <th style="width: 11%;">User Type</th>
                         <th style="width: 11%;">Year Level / Attainment</th>
-                        <th style="width: 14%;">Equipment</th>
-                        <th class="col-status" style="width: 16%;">Status</th>
-                        <th class="col-action" style="width: 7%;">Action</th>
+                        <th style="width: 15%;">Equipment</th>
+                        <th class="col-status" style="width: 15%;">Status</th>
+                        <th class="col-action" style="width: 12%;">Action</th>
                     </tr>
                 </thead>
                 <tbody id="historyTableBody">
@@ -309,6 +309,7 @@
                 rows.forEach(item => {
                     const tr = document.createElement('tr');
                     const isFaculty = item.userType.toLowerCase() === 'faculty';
+                    tr.dataset.txnid = item.txnid;
 
                     tr.innerHTML = `
                         <td class="col-txnid">${escapeHTML(item.txnid)}</td>
@@ -328,8 +329,8 @@
                             </span>
                         </td>
                         <td class="col-action">
-                            <button class="btn-action-eye" data-txnid="${escapeHTML(item.txnid)}" title="View details">
-                                <i class="fa-solid fa-eye"></i>
+                            <button type="button" class="btn-action-view" data-txnid="${escapeHTML(item.txnid)}">
+                                <i class="fa-solid fa-eye" aria-hidden="true"></i> View
                             </button>
                         </td>
                     `;
@@ -429,9 +430,18 @@
                 txnModal.classList.remove('show');
             }
 
+            // The View button opens the details; clicking anywhere else on the
+            // row is a shortcut to the same details.
             tableBody.addEventListener('click', (e) => {
-                const btn = e.target.closest('.btn-action-eye');
-                if (btn) window.openDrawer(btn.getAttribute('data-txnid'));
+                const btn = e.target.closest('.btn-action-view');
+                if (btn) {
+                    window.openDrawer(btn.getAttribute('data-txnid'));
+                    return;
+                }
+                const row = e.target.closest('tr[data-txnid]');
+                if (row && !e.target.closest('button, a, input, select')) {
+                    window.openDrawer(row.dataset.txnid);
+                }
             });
 
             if (drawerCloseBtn) drawerCloseBtn.addEventListener('click', closeDrawer);
