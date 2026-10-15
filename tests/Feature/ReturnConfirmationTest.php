@@ -330,6 +330,22 @@ class ReturnConfirmationTest extends TestCase
             ->assertSee('No equipment photo available');
     }
 
+    public function test_each_return_shows_its_borrowers_own_profile_picture(): void
+    {
+        // No profile picture: no URL, so the form draws an initials avatar.
+        $id = $this->borrow();
+        $this->submitReturn($id);
+        $this->assertNull($this->deptRows()->firstWhere('requestId', $id)['avatar']);
+
+        // An uploaded picture is passed through as stored.
+        $this->user->update(['profile_image' => '/storage/images/user-1-profile.jpg']);
+        $this->assertSame('/storage/images/user-1-profile.jpg', $this->deptRows()->firstWhere('requestId', $id)['avatar']);
+
+        // An older relative path resolves the same way as equipment photos.
+        $this->user->update(['profile_image' => 'images/legacy-avatar.png']);
+        $this->assertSame(asset('images/legacy-avatar.png'), $this->deptRows()->firstWhere('requestId', $id)['avatar']);
+    }
+
     public function test_only_listed_conditions_are_accepted(): void
     {
         $id = $this->borrow();

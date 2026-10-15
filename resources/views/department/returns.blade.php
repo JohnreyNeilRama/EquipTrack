@@ -10,8 +10,8 @@
 @include('partials.requests.styles')
 <link rel="stylesheet" href="{{ asset('departments/css/requests.css') }}">
 <style>
-    /* Ten columns: tighter cells than the six-column requests table so the
-       Action column stays in view on laptop screens. */
+    /* Seven columns: slightly tighter cells than the six-column requests table
+       so the Action column stays in view on laptop screens. */
     .admin-table-card .returns-table th,
     .admin-table-card .returns-table td {
         padding-left: 12px !important;
@@ -50,9 +50,75 @@
         color: var(--text-muted);
     }
 
+    /* Long free text is shortened with "…" so one value can't stretch the
+       row or squeeze the Status / Condition / Action columns. Each cell keeps
+       its full text in a hover tooltip, and the review modal shows it in full. */
+
+    /* User and Equipment share the table's width (max-width: 0 lets their
+       text shorten instead of widening the table), with a floor so names stay
+       readable when the table itself scrolls on small screens. */
+    .returns-table .col-user {
+        width: 20%;
+        min-width: 120px;
+        max-width: 0;
+    }
+    .returns-table .col-equipment {
+        width: 26%;
+        min-width: 140px;
+        max-width: 0;
+    }
+
+    /* Borrower name: one line */
+    .returns-table .requester-name {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Equipment cell: name (up to two lines), then the serial number and, only
+       when more than one unit was borrowed, a "×N" marker. Department and
+       quantity are in the review modal. */
+    .returns-table .equipment-name {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        overflow: hidden;
+        font-weight: 500;
+        overflow-wrap: anywhere;
+    }
+    .equipment-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 2px;
+        min-width: 0;
+    }
     .equipment-id {
-        font-size: var(--fs-label);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: var(--fs-small);
         color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+    }
+    .equipment-qty {
+        flex-shrink: 0;
+        padding: 0 6px;
+        border-radius: 6px;
+        font-size: var(--fs-small);
+        font-weight: 600;
+        line-height: 1.5;
+        color: var(--text-muted);
+        background-color: var(--bg-color);
+        border: 1px solid var(--border-color);
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Dates are short and fixed-format: kept on one line, never shortened */
+    .returns-table .col-submitted {
         white-space: nowrap;
     }
 
@@ -137,50 +203,208 @@
         color: var(--text-muted);
     }
 
-    /* Original equipment photo (from Equipment Management) */
-    .equipment-photo {
-        position: relative;
-        margin: 0;
-        height: 200px;
-        border-radius: 12px;
-        overflow: hidden;
+    /* The returned item: reference photo beside its name and details */
+    .return-item {
+        display: grid;
+        grid-template-columns: 200px minmax(0, 1fr);
+        gap: 18px;
+        align-items: start;
+        padding: 14px;
         border: 1px solid var(--border-color);
+        border-radius: 14px;
         background-color: var(--bg-color);
     }
-    .equipment-photo img {
+
+    /* Original equipment photo (from Equipment Management). Same treatment as
+       the equipment cards: the whole item is shown, never stretched or
+       cropped, with a blurred copy of the photo filling the spare space. */
+    .return-photo {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .return-photo-frame {
+        position: relative;
+        aspect-ratio: 4 / 3;
+        border-radius: 12px;
+        overflow: hidden;
+        background-color: #f1f5f9;
+        box-shadow: inset 0 0 0 1px var(--border-color);
+        isolation: isolate;
+    }
+    .return-photo-link {
+        position: absolute;
+        inset: 0;
+        display: block;
+        cursor: zoom-in;
+    }
+    .return-photo-link:focus-visible {
+        outline: 3px solid rgba(56, 85, 133, 0.45);
+        outline-offset: -3px;
+    }
+    .return-photo-backdrop {
+        position: absolute;
+        top: -32px;
+        left: -32px;
+        width: calc(100% + 64px);
+        height: calc(100% + 64px);
+        max-width: none;
+        object-fit: cover;
+        filter: blur(16px);
+    }
+    .return-photo-img {
+        position: relative;
+        display: block;
         width: 100%;
         height: 100%;
         object-fit: contain;
-        display: block;
+        transition: transform 0.3s ease;
     }
-    .equipment-photo-placeholder {
-        height: 100%;
+    .return-photo-link:hover .return-photo-img { transform: scale(1.03); }
+    .return-photo-zoom {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
         display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: var(--fs-small);
+        color: #ffffff;
+        background-color: rgba(15, 23, 42, 0.6);
+        opacity: 0.85;
+        transition: opacity 0.2s, background-color 0.2s;
+    }
+    .return-photo-link:hover .return-photo-zoom,
+    .return-photo-link:focus-visible .return-photo-zoom {
+        opacity: 1;
+        background-color: rgba(15, 23, 42, 0.8);
+    }
+    .return-photo-placeholder {
+        position: absolute;
+        inset: 0;
+        display: none;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        color: var(--text-muted);
-        font-size: var(--fs-label);
+        gap: 6px;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        color: #94a3b8;
+        font-size: var(--fs-small);
+        font-weight: 500;
+    }
+    .return-photo-placeholder i { font-size: 26px; }
+    .return-photo-frame.is-missing .return-photo-link { display: none; }
+    .return-photo-frame.is-missing .return-photo-placeholder { display: flex; }
+    .return-photo figcaption {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: var(--fs-small);
         font-weight: 600;
+        color: var(--text-muted);
     }
-    .equipment-photo-placeholder i {
-        font-size: 34px;
-        opacity: 0.6;
+    .dark-theme .return-photo-frame { background-color: #0f172a; }
+    .dark-theme .return-photo-placeholder {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: #64748b;
     }
-    .equipment-photo figcaption {
-        position: absolute;
-        left: 10px;
-        bottom: 10px;
-        padding: 4px 10px;
-        border-radius: 12px;
+    @media (prefers-reduced-motion: reduce) {
+        .return-photo-img { transition: none; }
+        .return-photo-link:hover .return-photo-img { transform: none; }
+    }
+
+    .return-item-body {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        padding-top: 2px;
+    }
+    .return-item-label,
+    .return-item-facts dt,
+    .return-dates dt {
         font-size: var(--fs-badge);
         font-weight: 600;
-        color: #ffffff;
-        background-color: rgba(15, 23, 42, 0.7);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--text-muted);
     }
+    .return-item-name {
+        margin: 2px 0 0;
+        font-size: var(--fs-card-title);
+        font-weight: 600;
+        line-height: 1.35;
+        color: var(--text-main);
+        overflow-wrap: anywhere;
+    }
+    .return-item-category {
+        margin: 2px 0 0;
+        font-size: var(--fs-label);
+        color: var(--text-muted);
+    }
+    .return-item-facts {
+        margin: 14px 0 0;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-color);
+    }
+    .return-item-facts dd,
+    .return-dates dd {
+        margin: 3px 0 0;
+        font-size: var(--fs-body);
+        font-weight: 600;
+        color: var(--text-main);
+        overflow-wrap: anywhere;
+    }
+    .return-item-facts dd.mono {
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.02em;
+    }
+    .return-item-hint {
+        margin: 12px 0 0;
+        font-size: var(--fs-small);
+        line-height: 1.4;
+        color: var(--text-muted);
+    }
+
+    /* Borrow / due / submitted dates as one divided strip */
+    .return-dates {
+        margin: 0;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .return-dates > div {
+        padding: 10px 14px;
+        min-width: 0;
+    }
+    .return-dates > div + div {
+        border-left: 1px solid var(--border-color);
+    }
+
     @media (max-width: 640px) {
-        .equipment-photo { height: 160px; }
+        .return-item {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 14px;
+        }
+        .return-photo-frame {
+            aspect-ratio: 16 / 10;
+            max-height: 220px;
+        }
+        .return-dates {
+            grid-template-columns: minmax(0, 1fr);
+        }
+        .return-dates > div + div {
+            border-left: none;
+            border-top: 1px solid var(--border-color);
+        }
     }
 
     /* Read-only facts as compact tiles instead of disabled inputs */
@@ -458,11 +682,8 @@
                 <thead>
                     <tr>
                         <th>Return ID</th>
-                        <th>User</th>
-                        <th>Department</th>
-                        <th>Equipment</th>
-                        <th>Equipment ID</th>
-                        <th>Qty</th>
+                        <th class="col-user">User</th>
+                        <th class="col-equipment">Equipment</th>
                         <th>Submitted</th>
                         <th>Status</th>
                         <th>Condition</th>
@@ -511,38 +732,54 @@
                     <section class="review-section">
                         <h4 class="review-section-title"><span class="review-step">1</span> Return Information</h4>
 
-                        {{-- Original photo from Equipment Management, to compare with the returned unit --}}
-                        <figure class="equipment-photo">
-                            <img src="" alt="" id="reviewEquipmentImg" style="display: none;">
-                            <div class="equipment-photo-placeholder" id="reviewEquipmentPlaceholder">
-                                <i class="fa-regular fa-image"></i>
-                                <span>No equipment photo available</span>
-                            </div>
-                            <figcaption>Original equipment photo</figcaption>
-                        </figure>
+                        {{-- The returned item: its reference photo beside what it is --}}
+                        <div class="return-item">
+                            {{-- Original photo from Equipment Management, to compare with the returned unit --}}
+                            <figure class="return-photo">
+                                <div class="return-photo-frame" id="reviewEquipmentFrame">
+                                    <a href="#" class="return-photo-link" id="reviewEquipmentLink" target="_blank" rel="noopener" title="Open the full-size photo">
+                                        <img src="" alt="" class="return-photo-backdrop" id="reviewEquipmentBackdrop" aria-hidden="true">
+                                        <img src="" alt="" class="return-photo-img" id="reviewEquipmentImg">
+                                        <span class="return-photo-zoom" aria-hidden="true"><i class="fa-solid fa-up-right-and-down-left-from-center"></i></span>
+                                    </a>
+                                    <div class="return-photo-placeholder" id="reviewEquipmentPlaceholder">
+                                        <i class="fa-regular fa-image" aria-hidden="true"></i>
+                                        <span>No equipment photo available</span>
+                                    </div>
+                                </div>
+                                <figcaption>
+                                    <i class="fa-regular fa-image" aria-hidden="true"></i> Reference photo
+                                </figcaption>
+                            </figure>
 
-                        <dl class="review-info-grid">
-                            <div class="review-info-item review-info-wide">
-                                <dt>Equipment</dt>
-                                <dd id="reviewEquipment">—</dd>
+                            <div class="return-item-body">
+                                <span class="return-item-label">Equipment</span>
+                                <p class="return-item-name" id="reviewEquipment">—</p>
+                                <p class="return-item-category" id="reviewEquipmentCategory">—</p>
+                                <dl class="return-item-facts">
+                                    <div>
+                                        <dt>Equipment ID / Serial No.</dt>
+                                        <dd class="mono" id="reviewEquipmentId">—</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Quantity Borrowed</dt>
+                                        <dd id="reviewQty">—</dd>
+                                    </div>
+                                </dl>
+                                <p class="return-item-hint" id="reviewEquipmentHint">Compare the returned unit with this photo from Equipment Management.</p>
                             </div>
-                            <div class="review-info-item">
-                                <dt>Equipment ID / Serial No.</dt>
-                                <dd id="reviewEquipmentId">—</dd>
-                            </div>
-                            <div class="review-info-item">
-                                <dt>Quantity Borrowed</dt>
-                                <dd id="reviewQty">—</dd>
-                            </div>
-                            <div class="review-info-item">
+                        </div>
+
+                        <dl class="return-dates">
+                            <div>
                                 <dt>Borrow Date</dt>
                                 <dd id="reviewBorrowDate">—</dd>
                             </div>
-                            <div class="review-info-item">
+                            <div>
                                 <dt>Due Date</dt>
                                 <dd id="reviewDueDate">—</dd>
                             </div>
-                            <div class="review-info-item review-info-wide">
+                            <div>
                                 <dt>Return Submitted</dt>
                                 <dd id="reviewSubmitted">—</dd>
                             </div>
@@ -756,7 +993,7 @@
             if (filtered.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="10" class="no-requests-message">
+                        <td colspan="7" class="no-requests-message">
                             <i class="fa-solid fa-folder-open"></i>
                             No returns found matching your query.
                         </td>
@@ -789,16 +1026,20 @@
 
                 tr.innerHTML = `
                     <td><span class="return-id">${escapeHTML(r.returnId)}</span></td>
-                    <td>
+                    <td class="col-user">
                         <div class="requester-info">
-                            <span class="requester-name">${escapeHTML(r.user)}</span>
+                            <span class="requester-name" title="${escapeHTML(r.user)}">${escapeHTML(r.user)}</span>
+                            <span class="requester-role">${escapeHTML(r.role)}</span>
                         </div>
                     </td>
-                    <td>${escapeHTML(r.department)}</td>
-                    <td>${escapeHTML(r.equipment)}</td>
-                    <td><span class="equipment-id">${escapeHTML(r.equipmentId)}</span></td>
-                    <td>${escapeHTML(r.quantity)}</td>
-                    <td>${escapeHTML(r.submitted)}</td>
+                    <td class="col-equipment">
+                        <span class="equipment-name" title="${escapeHTML(r.equipment)}">${escapeHTML(r.equipment)}</span>
+                        <span class="equipment-meta">
+                            <span class="equipment-id" title="${escapeHTML(r.equipmentId)}">${escapeHTML(r.equipmentId)}</span>
+                            ${Number(r.quantity) > 1 ? `<span class="equipment-qty" title="Quantity borrowed">×${escapeHTML(r.quantity)}</span>` : ''}
+                        </span>
+                    </td>
+                    <td class="col-submitted">${escapeHTML(r.submitted)}</td>
                     <td><span class="status-badge ${STATUS_CLASS[r.status] || 'status-pending'}">${escapeHTML(r.status)}</span></td>
                     <td>
                         ${conditionTag(r.condition)}
@@ -871,12 +1112,17 @@
         // The photo the admin uploaded for this equipment; a placeholder when
         // there is none or the file cannot be loaded.
         const equipmentImg = document.getElementById('reviewEquipmentImg');
-        const equipmentPlaceholder = document.getElementById('reviewEquipmentPlaceholder');
+        const equipmentFrame = document.getElementById('reviewEquipmentFrame');
+        const equipmentLink = document.getElementById('reviewEquipmentLink');
+        const equipmentBackdrop = document.getElementById('reviewEquipmentBackdrop');
+        const equipmentHint = document.getElementById('reviewEquipmentHint');
 
         function showEquipmentPlaceholder() {
-            equipmentImg.style.display = 'none';
+            equipmentFrame.classList.add('is-missing');
+            equipmentHint.hidden = true;
             equipmentImg.removeAttribute('src');
-            equipmentPlaceholder.style.display = 'flex';
+            equipmentBackdrop.removeAttribute('src');
+            equipmentLink.removeAttribute('href');
         }
 
         function showEquipmentPhoto(url, name) {
@@ -886,18 +1132,52 @@
             }
             equipmentImg.alt = `Photo of ${name}`;
             equipmentImg.src = url;
-            equipmentImg.style.display = 'block';
-            equipmentPlaceholder.style.display = 'none';
+            equipmentBackdrop.src = url;
+            equipmentLink.href = url;
+            equipmentLink.setAttribute('aria-label', `Open the full-size photo of ${name}`);
+            equipmentFrame.classList.remove('is-missing');
+            equipmentHint.hidden = false;
         }
 
         equipmentImg.addEventListener('error', showEquipmentPlaceholder);
+
+        // Borrower avatar: their own profile picture; otherwise (or if it can't
+        // be loaded) their initials on the EquipTrack blue, drawn locally so it
+        // never depends on an outside service.
+        const borrowerAvatar = document.getElementById('reviewUserAvatar');
+
+        function initialsAvatar(name) {
+            const initials = String(name || '')
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map(word => Array.from(word)[0])
+                .join('')
+                .toUpperCase()
+                .replace(/[&<>"']/g, '') || 'U';
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">`
+                + `<rect width="96" height="96" fill="#385585"/>`
+                + `<text x="48" y="48" dy="0.35em" text-anchor="middle" fill="#ffffff" `
+                + `font-family="Inter, Segoe UI, Arial, sans-serif" font-size="36" font-weight="600">${initials}</text></svg>`;
+            return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+        }
+
+        function showBorrowerAvatar(url, name) {
+            const fallback = initialsAvatar(name);
+            borrowerAvatar.alt = `${name || 'Borrower'}'s profile picture`;
+            borrowerAvatar.onerror = function () {
+                this.onerror = null;
+                this.src = fallback;
+            };
+            borrowerAvatar.src = url || fallback;
+        }
 
         window.openReviewModal = function (id) {
             const r = returns.find(item => item.id === id);
             if (!r) return;
 
             document.getElementById('reviewTitle').textContent = `Return ${r.returnId}`;
-            document.getElementById('reviewUserAvatar').src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(r.user) + '&background=385585&color=fff';
+            showBorrowerAvatar(r.avatar, r.user);
             document.getElementById('reviewUserName').textContent = r.user;
             document.getElementById('reviewUserMeta').textContent = `${r.role} · ${r.department}`;
 
@@ -911,7 +1191,8 @@
             document.getElementById('reviewReportedRemarks').textContent = r.reportedRemarks || 'No notes from the user.';
 
             showEquipmentPhoto(r.equipmentImage, r.equipment);
-            document.getElementById('reviewEquipment').textContent = `${r.equipment} (${r.category})`;
+            document.getElementById('reviewEquipment').textContent = r.equipment;
+            document.getElementById('reviewEquipmentCategory').textContent = r.category;
             document.getElementById('reviewEquipmentId').textContent = r.equipmentId;
             document.getElementById('reviewQty').textContent = r.quantity + ' pc(s)';
             document.getElementById('reviewBorrowDate').textContent = r.borrowDate;

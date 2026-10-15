@@ -225,6 +225,8 @@ class DepartmentReturnsController extends Controller
                 'user' => $fullName !== '' ? $fullName : 'Unknown User',
                 'role' => ucfirst($user?->role ?? 'Student'),
                 'email' => $user?->email ?? '',
+                // The borrower's own profile picture (null: the form shows an initials avatar).
+                'avatar' => $this->profileImageUrl($user?->profile_image),
                 'department' => $user?->department?->department_name ?: '—',
                 'equipment' => $equipment->name,
                 'category' => $equipment->category?->category_name ?: 'General',
@@ -253,6 +255,22 @@ class DepartmentReturnsController extends Controller
         }
 
         return $rows;
+    }
+
+    /**
+     * A stored profile picture as a URL the browser can load: full URLs, data
+     * URIs and "/storage/..." paths as they are, older relative paths through
+     * asset() (the same rule as Equipment::imageUrl()); null when there is none.
+     */
+    private function profileImageUrl(?string $value): ?string
+    {
+        $raw = trim((string) $value);
+
+        if ($raw === '') {
+            return null;
+        }
+
+        return preg_match('/^(https?:\/\/|data:|\/storage\/)/i', $raw) ? $raw : asset(ltrim($raw, '/'));
     }
 
     /** "Condition — remarks" → [condition, remarks]. */
