@@ -108,170 +108,202 @@
             <p id="emptyStateDesc">No inventory items match your current search query or category filter.</p>
         </div>
 <!-- Equipment Modal (Add / Edit) -->
-    <div class="modal-overlay" id="equipmentModal">
+    <div class="modal-overlay" id="equipmentModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalSubtitle">
         <div class="modal-card eq-modal-card">
-            <div class="modal-outer-header">
-                <p class="modal-subtitle-top" id="modalSubtitle">Provide details for the inventory item</p>
-            </div>
-            <div class="modal-inner-card">
-                <button class="modal-close" id="closeModalBtn">&times;</button>
-                <h3 class="modal-title-center" id="modalTitle">Add New Equipment</h3>
-                
-                <form id="equipmentForm" class="new-modal-form" style="padding-top: 10px;">
+            <header class="eq-modal-header">
+                <div class="eq-modal-icon" aria-hidden="true"><i class="fa-solid fa-plus" id="modalIcon"></i></div>
+                <div class="eq-modal-heading">
+                    <h3 class="eq-modal-title" id="modalTitle">Add New Equipment</h3>
+                    <p class="eq-modal-subtitle" id="modalSubtitle">Provide details for the inventory item</p>
+                </div>
+                <button type="button" class="modal-close" id="closeModalBtn" aria-label="Close">&times;</button>
+            </header>
+
+            <form id="equipmentForm" class="eq-modal-form">
+                <div class="eq-modal-body">
                     <input type="hidden" id="editItemId" value="">
-                    
-                    <div class="form-group-flat">
-                        <label>Equipment Name</label>
-                        <input type="text" id="eqFormName" class="form-control-flat" required placeholder="e.g., Laptop Dell XPS">
-                    </div>
 
-                    <div class="form-group-flat">
-                        <label>Category</label>
-                        <div class="flat-select-wrapper" style="width: 100%; position: relative;">
-                            <select id="eqFormCategory" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 36px 8px 14px; border-radius: 8px;">
-                                @foreach ($dbCategories as $cat)
-                                    <option value="{{ $cat }}">{{ $cat }}</option>
-                                @endforeach
-                            </select>
-                            <i class="fa-solid fa-chevron-down" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted); font-size: 13px;"></i>
-                        </div>
-                    </div>
-
-                    <div class="form-group-flat">
-                        <label>Equipment Image</label>
+                    <section class="eq-form-section" aria-labelledby="eqPhotoHeading">
+                        <h4 class="eq-form-section-title" id="eqPhotoHeading">Equipment Photo</h4>
                         <div class="image-upload-wrapper" id="imageUploadWrapper">
-                            <!-- Dropzone State -->
-                            <div class="image-dropzone" id="imageDropzone">
-                                <i class="fa-solid fa-cloud-arrow-up cloud-icon"></i>
-                                <div class="dropzone-text">
-                                    <p class="main-text">Drag and drop or <span class="browse-link">browse image</span></p>
-                                    <p class="sub-text">PNG, JPG, JPEG, or WEBP up to 5MB</p>
-                                </div>
-                                <input type="file" id="imageFileInput" accept="image/*" class="file-input-hidden">
-                            </div>
+                            <!-- Dropzone State: click, keyboard or drag a file -->
+                            <label class="image-dropzone" id="imageDropzone" for="imageFileInput" tabindex="0">
+                                <span class="dropzone-icon" aria-hidden="true"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+                                <span class="dropzone-text">
+                                    <span class="main-text">Drag and drop or <span class="browse-link">browse</span> to upload</span>
+                                    <span class="sub-text">PNG, JPG, JPEG or WEBP, up to 5 MB</span>
+                                </span>
+                            </label>
+                            <input type="file" id="imageFileInput" accept="image/*" class="file-input-hidden">
 
                             <!-- URL Input Alternative -->
                             <div class="image-url-alternative" id="imageUrlAlternative">
-                                <span class="or-separator">or</span>
+                                <span class="or-separator">or use an image link</span>
                                 <div class="url-input-container">
-                                    <input type="url" id="eqFormImg" class="form-control-flat" placeholder="Paste image URL here...">
+                                    {{-- type="text", not "url": stored photos are paths like /storage/images/…, which a url field rejects and silently blocks the save --}}
+                                    <input type="text" inputmode="url" autocomplete="off" id="eqFormImg" class="form-control-flat" placeholder="https://example.com/photo.jpg" aria-label="Image URL">
                                     <button type="button" class="btn-apply-url" id="btnApplyUrl">Apply</button>
                                 </div>
                             </div>
 
                             <!-- Image Preview State -->
                             <div class="image-preview-container" id="imagePreviewContainer" style="display: none;">
-                                <img src="" alt="Preview" id="imagePreviewImg">
+                                <img src="" alt="" class="preview-backdrop" id="imagePreviewBackdrop" aria-hidden="true">
+                                <img src="" alt="Selected equipment photo" id="imagePreviewImg">
                                 <div class="preview-actions-overlay">
                                     <button type="button" class="btn-preview-action replace" id="btnReplacePreview">
-                                        <i class="fa-solid fa-arrows-rotate"></i> Change
+                                        <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i> Change
                                     </button>
                                     <button type="button" class="btn-preview-action remove" id="btnRemovePreview">
-                                        <i class="fa-solid fa-trash-can"></i> Remove
+                                        <i class="fa-solid fa-trash-can" aria-hidden="true"></i> Remove
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </section>
 
-                    <div class="form-row-flat">
+                    <section class="eq-form-section" aria-labelledby="eqBasicHeading">
+                        <h4 class="eq-form-section-title" id="eqBasicHeading">Basic Information</h4>
                         <div class="form-group-flat">
-                            <label>Brand</label>
-                            <input type="text" id="eqFormBrand" class="form-control-flat" required maxlength="50" placeholder="e.g., Dell">
+                            <label for="eqFormName">Equipment Name <span class="req" aria-hidden="true">*</span></label>
+                            <input type="text" id="eqFormName" class="form-control-flat" required maxlength="100" placeholder="e.g., Laptop Dell XPS">
                         </div>
-                        <div class="form-group-flat">
-                            <label>Serial Number</label>
-                            <input type="text" id="eqFormSerial" class="form-control-flat" required maxlength="50" placeholder="e.g., SN-000123">
+                        <div class="form-row-flat">
+                            <div class="form-group-flat">
+                                <label for="eqFormCategory">Category <span class="req" aria-hidden="true">*</span></label>
+                                <div class="select-wrapper">
+                                    <select id="eqFormCategory" class="form-control-flat" required>
+                                        @foreach ($dbCategories as $cat)
+                                            <option value="{{ $cat }}">{{ $cat }}</option>
+                                        @endforeach
+                                    </select>
+                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                </div>
+                            </div>
+                            <div class="form-group-flat">
+                                <label for="eqFormStatus">Status <span class="req" aria-hidden="true">*</span></label>
+                                <div class="select-wrapper">
+                                    <select id="eqFormStatus" class="form-control-flat" required>
+                                        <option value="Available">Available</option>
+                                        <option value="Unavailable">Unavailable</option>
+                                        <option value="On Hold">On Hold</option>
+                                        <option value="Under Maintenance">Under Maintenance</option>
+                                    </select>
+                                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </section>
 
-                    <div class="form-row-flat">
-                        <div class="form-group-flat">
-                            <label>Available Quantity</label>
-                            <input type="number" id="eqFormAvail" class="form-control-flat" min="0" required value="4">
+                    <section class="eq-form-section" aria-labelledby="eqIdentHeading">
+                        <h4 class="eq-form-section-title" id="eqIdentHeading">Identification</h4>
+                        <div class="form-row-flat">
+                            <div class="form-group-flat">
+                                <label for="eqFormBrand">Brand <span class="req" aria-hidden="true">*</span></label>
+                                <input type="text" id="eqFormBrand" class="form-control-flat" required maxlength="50" placeholder="e.g., Dell">
+                            </div>
+                            <div class="form-group-flat">
+                                <label for="eqFormSerial">Serial Number <span class="req" aria-hidden="true">*</span></label>
+                                <input type="text" id="eqFormSerial" class="form-control-flat mono" required maxlength="50" placeholder="e.g., SN-000123" aria-describedby="eqSerialHint">
+                                <p class="form-hint" id="eqSerialHint">Must be unique across all equipment.</p>
+                            </div>
                         </div>
-                        <div class="form-group-flat">
-                            <label>Total Quantity</label>
-                            <input type="number" id="eqFormTotal" class="form-control-flat" min="0" required value="10">
-                        </div>
-                    </div>
+                    </section>
 
-                    <div class="form-group-flat">
-                        <label>Status</label>
-                        <div class="flat-select-wrapper" style="width: 100%; position: relative;">
-                            <select id="eqFormStatus" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 36px 8px 14px; border-radius: 8px;">
-                                <option value="Available">Available</option>
-                                <option value="Unavailable">Unavailable</option>
-                                <option value="On Hold">On Hold</option>
-                                <option value="Under Maintenance">Under Maintenance</option>
-                            </select>
-                            <i class="fa-solid fa-chevron-down" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted); font-size: 13px;"></i>
+                    <section class="eq-form-section" aria-labelledby="eqStockHeading">
+                        <h4 class="eq-form-section-title" id="eqStockHeading">Inventory</h4>
+                        <div class="form-row-flat">
+                            <div class="form-group-flat">
+                                <label for="eqFormAvail">Available Quantity <span class="req" aria-hidden="true">*</span></label>
+                                <input type="number" id="eqFormAvail" class="form-control-flat" min="0" required value="4" inputmode="numeric" aria-describedby="eqQtyHint">
+                            </div>
+                            <div class="form-group-flat">
+                                <label for="eqFormTotal">Total Quantity <span class="req" aria-hidden="true">*</span></label>
+                                <input type="number" id="eqFormTotal" class="form-control-flat" min="0" required value="10" inputmode="numeric" aria-describedby="eqQtyHint">
+                            </div>
                         </div>
-                    </div>
+                        <p class="form-hint" id="eqQtyHint" aria-live="polite">Available units can't be more than the total.</p>
+                    </section>
+                </div>
 
-                    <div class="form-submit-container" style="margin-top: 24px;">
-                        <button type="submit" class="btn-submit-request" id="submitBtn">Add Item</button>
-                    </div>
-                </form>
-            </div>
+                <footer class="eq-modal-footer">
+                    <p class="eq-modal-footnote"><span class="req" aria-hidden="true">*</span> Required</p>
+                    <button type="button" class="btn-modal-secondary" id="cancelModalBtn">Cancel</button>
+                    <button type="submit" class="btn-submit-request" id="submitBtn">Add Item</button>
+                </footer>
+            </form>
         </div>
     </div>
 
     <!-- View Equipment Modal -->
-    <div class="modal-overlay" id="viewEquipmentModal">
+    <div class="modal-overlay" id="viewEquipmentModal" role="dialog" aria-modal="true" aria-labelledby="viewModalTitle">
         <div class="modal-card eq-modal-card">
-            <div class="modal-outer-header">
-                <p class="modal-subtitle-top">Equipment Information</p>
-            </div>
-            <div class="modal-inner-card">
-                <button class="modal-close" id="closeViewModalBtn">&times;</button>
-                <h3 class="modal-title-center" id="viewModalTitle">Laptop Dell XPS</h3>
-                
-                <div class="view-details-card">
-                    <div class="view-details-img">
-                        <img src="" alt="Equipment Image" id="viewModalImg">
-                    </div>
+            <header class="eq-modal-header">
+                <div class="eq-modal-icon" aria-hidden="true"><i class="fa-solid fa-circle-info"></i></div>
+                <div class="eq-modal-heading">
+                    <h3 class="eq-modal-title" id="viewModalTitle">Equipment Details</h3>
+                    <p class="eq-modal-subtitle" id="viewModalSubtitle">Equipment Information</p>
+                </div>
+                <button type="button" class="modal-close" id="closeViewModalBtn" aria-label="Close">&times;</button>
+            </header>
 
-                    <div class="view-details-grid">
-                        <div class="view-detail-item">
-                            <span class="label">Brand / Model</span>
-                            <span class="val" id="viewModalBrand">—</span>
-                        </div>
-                        <div class="view-detail-item">
-                            <span class="label">Serial Number</span>
-                            <span class="val" id="viewModalSerial">—</span>
-                        </div>
-                        <div class="view-detail-item">
-                            <span class="label">Category</span>
-                            <span class="val" id="viewModalCategory">Laptop</span>
-                        </div>
-                        <div class="view-detail-item">
-                            <span class="label">Status</span>
-                            <span class="val" id="viewModalStatus">Available</span>
-                        </div>
-                        <div class="view-detail-item">
-                            <span class="label">Classification</span>
-                            <span class="val" id="viewModalClass">Not Expensive</span>
-                        </div>
-                        <div class="view-detail-item">
-                            <span class="label">Accessories</span>
-                            <span class="val" id="viewModalAccessories">—</span>
-                        </div>
-                        <div class="view-detail-item">
-                            <span class="label">Available Stock</span>
-                            <span class="val" id="viewModalAvail">4</span>
-                        </div>
-                        <div class="view-detail-item">
-                            <span class="label">Total Quantity</span>
-                            <span class="val" id="viewModalTotal">10</span>
-                        </div>
-                        <div class="view-detail-item full">
-                            <span class="label">Department Assignment</span>
-                            <span class="val" id="viewModalDepartment">{{ $departmentName }}</span>
+            <div class="eq-modal-body">
+                <!-- Same frame as the equipment cards: whole item shown, blurred fill, placeholder -->
+                <div class="eq-card-img-wrapper view-media" id="viewModalMedia">
+                    <img src="" alt="" class="eq-card-img-backdrop" id="viewModalImgBackdrop" aria-hidden="true">
+                    <img src="" alt="" class="eq-card-img" id="viewModalImg">
+                    <div class="eq-card-img-placeholder">
+                        <i class="fa-regular fa-image" aria-hidden="true"></i>
+                        <span>No image available</span>
+                    </div>
+                </div>
+
+                <div class="view-summary">
+                    <div class="view-badges">
+                        <span class="eq-status-badge" id="viewModalStatus">Available</span>
+                        <span class="eq-class-badge" id="viewModalClass">Not Expensive</span>
+                    </div>
+                    <div class="view-stock" id="viewModalStock">
+                        <p class="view-stock-text"><strong id="viewModalAvail">0</strong> of <span id="viewModalTotal">0</span> units available</p>
+                        <div class="view-stock-bar" role="progressbar" aria-label="Available units" aria-valuemin="0" id="viewModalStockBar">
+                            <span id="viewModalStockFill"></span>
                         </div>
                     </div>
                 </div>
+
+                <section class="eq-form-section" aria-labelledby="viewDetailsHeading">
+                    <h4 class="eq-form-section-title" id="viewDetailsHeading">Details</h4>
+                    <dl class="view-details-list">
+                        <div>
+                            <dt>Brand / Model</dt>
+                            <dd id="viewModalBrand">—</dd>
+                        </div>
+                        <div>
+                            <dt>Serial Number</dt>
+                            <dd class="mono" id="viewModalSerial">—</dd>
+                        </div>
+                        <div>
+                            <dt>Category</dt>
+                            <dd id="viewModalCategory">—</dd>
+                        </div>
+                        <div>
+                            <dt>Accessories</dt>
+                            <dd id="viewModalAccessories">—</dd>
+                        </div>
+                        <div>
+                            <dt>Department</dt>
+                            <dd id="viewModalDepartment">{{ $departmentName }}</dd>
+                        </div>
+                    </dl>
+                </section>
             </div>
+
+            <footer class="eq-modal-footer">
+                <button type="button" class="btn-modal-secondary" id="viewCloseBtn">Close</button>
+                <button type="button" class="btn-submit-request" id="viewEditBtn">
+                    <i class="fa-regular fa-pen-to-square" aria-hidden="true"></i> Edit Equipment
+                </button>
+            </footer>
         </div>
     </div>
 
@@ -353,6 +385,9 @@
             
             const modalTitle = document.getElementById('modalTitle');
             const modalSubtitle = document.getElementById('modalSubtitle');
+            const modalIcon = document.getElementById('modalIcon');
+            const cancelModalBtn = document.getElementById('cancelModalBtn');
+            const qtyHint = document.getElementById('eqQtyHint');
             const submitBtn = document.getElementById('submitBtn');
             const editItemIdInput = document.getElementById('editItemId');
             
@@ -372,6 +407,7 @@
             const btnApplyUrl = document.getElementById('btnApplyUrl');
             const imagePreviewContainer = document.getElementById('imagePreviewContainer');
             const imagePreviewImg = document.getElementById('imagePreviewImg');
+            const imagePreviewBackdrop = document.getElementById('imagePreviewBackdrop');
             const btnReplacePreview = document.getElementById('btnReplacePreview');
             const btnRemovePreview = document.getElementById('btnRemovePreview');
 
@@ -385,6 +421,15 @@
             const viewModalAvail = document.getElementById('viewModalAvail');
             const viewModalTotal = document.getElementById('viewModalTotal');
             const viewModalDepartment = document.getElementById('viewModalDepartment');
+            const viewModalSubtitle = document.getElementById('viewModalSubtitle');
+            const viewModalMedia = document.getElementById('viewModalMedia');
+            const viewModalImgBackdrop = document.getElementById('viewModalImgBackdrop');
+            const viewModalStock = document.getElementById('viewModalStock');
+            const viewModalStockBar = document.getElementById('viewModalStockBar');
+            const viewModalStockFill = document.getElementById('viewModalStockFill');
+            const viewCloseBtn = document.getElementById('viewCloseBtn');
+            const viewEditBtn = document.getElementById('viewEditBtn');
+            let viewedItemId = null;
 
             // Toast
             const toast = document.getElementById('toast');
@@ -400,7 +445,6 @@
             const CSRF_TOKEN = @json(csrf_token());
             const DEPARTMENT_NAME = @json($departmentName);
             const CATEGORY_MAP = @json($dbCategoryMap);
-            const FALLBACK_IMG = @json(asset('images/logo_only.png'));
 
             // Same status colours as the Admin Equipment Management cards
             const STATUS_CLASS = {
@@ -466,6 +510,7 @@
                     const stockClass = available === 0 ? 'is-empty' : (available <= Math.max(1, Math.floor(total * 0.25)) ? 'is-low' : '');
                     const isExpensive = item.classification === 'Expensive';
                     const subtitle = brandModel(item);
+                    const imgUrl = item.imgUrl ? escapeHTML(item.imgUrl) : '';
 
                     card.className = 'eq-card-admin';
                     card.setAttribute('data-category', String(item.category || '').toLowerCase());
@@ -474,9 +519,15 @@
                     card.setAttribute('data-search', [item.name, item.brand, item.model, item.serial_number].filter(Boolean).join(' ').toLowerCase());
 
                     card.innerHTML = `
-                        <div class="eq-card-img-wrapper">
-                            <img src="${escapeHTML(item.imgUrl || FALLBACK_IMG)}" alt="${escapeHTML(item.name)}" loading="lazy" class="${item.imgUrl ? '' : 'is-fallback'}"
-                                 onerror="this.onerror=null; this.src='${FALLBACK_IMG}'; this.classList.add('is-fallback');">
+                        <div class="eq-card-img-wrapper${imgUrl ? '' : ' is-missing'}">
+                            ${imgUrl ? `
+                            <img class="eq-card-img-backdrop" src="${imgUrl}" alt="" aria-hidden="true" loading="lazy" decoding="async">
+                            <img class="eq-card-img" src="${imgUrl}" alt="${escapeHTML(item.name)}" loading="lazy" decoding="async"
+                                 onerror="this.onerror=null; this.parentElement.classList.add('is-missing');">` : ''}
+                            <div class="eq-card-img-placeholder">
+                                <i class="fa-regular fa-image" aria-hidden="true"></i>
+                                <span>No image available</span>
+                            </div>
                         </div>
                         <div class="eq-card-details">
                             <div class="eq-card-heading">
@@ -543,6 +594,7 @@
             // Image Preview Helpers
             function showPreview(url) {
                 imagePreviewImg.src = url;
+                imagePreviewBackdrop.src = url;
                 eqImgField.value = url;
                 imageDropzone.style.display = 'none';
                 imageUrlAlternative.style.display = 'none';
@@ -551,6 +603,7 @@
 
             function resetUploader() {
                 imagePreviewImg.src = "";
+                imagePreviewBackdrop.src = "";
                 imageFileInput.value = "";
                 eqImgField.value = "";
                 imageDropzone.style.display = 'flex';
@@ -594,6 +647,15 @@
                 const file = dt.files[0];
                 handleFile(file);
             }, false);
+
+            // The dropzone is a <label> for the file input, so a click opens the
+            // file picker; Enter / Space do the same from the keyboard.
+            imageDropzone.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    imageFileInput.click();
+                }
+            });
 
             btnApplyUrl.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -684,20 +746,48 @@
                 }, 3500);
             }
 
+            // Available can't exceed Total: flagged as soon as it is typed
+            // (the submit check below still blocks the save).
+            const QTY_HINT = "Available units can't be more than the total.";
+
+            function updateQtyState() {
+                const available = parseInt(eqAvailField.value) || 0;
+                const total = parseInt(eqTotalField.value) || 0;
+                const invalid = available > total;
+                eqAvailField.classList.toggle('is-invalid', invalid);
+                eqAvailField.setAttribute('aria-invalid', invalid ? 'true' : 'false');
+                qtyHint.classList.toggle('is-error', invalid);
+                qtyHint.textContent = invalid
+                    ? `Available (${available}) is more than the total (${total}).`
+                    : QTY_HINT;
+            }
+
+            eqAvailField.addEventListener('input', updateQtyState);
+            eqTotalField.addEventListener('input', updateQtyState);
+
+            function openFormModal() {
+                updateQtyState();
+                modal.querySelector('.eq-modal-body').scrollTop = 0;
+                modal.classList.add('show');
+                setTimeout(() => eqNameField.focus({ preventScroll: true }), 50);
+            }
+
             // Open Add Modal
             addBtn.addEventListener('click', () => {
                 form.reset();
                 editItemIdInput.value = "";
                 modalTitle.textContent = "Add New Equipment";
                 modalSubtitle.textContent = "Provide details for the inventory item";
+                modalIcon.className = 'fa-solid fa-plus';
                 submitBtn.textContent = "Add Item";
-                
+
                 showPreview("https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60");
-                modal.classList.add('show');
+                openFormModal();
             });
 
             // Close Add/Edit Modal
             closeModalBtn.addEventListener('click', closeModal);
+            cancelModalBtn.addEventListener('click', closeModal);
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     closeModal();
@@ -722,45 +812,93 @@
                 eqAvailField.value = item.available;
                 eqTotalField.value = item.total;
                 eqStatusField.value = item.status;
-                
-                showPreview(item.imgUrl);
+
+                // No photo on file: show the upload box instead of a broken preview
+                if (item.imgUrl) {
+                    showPreview(item.imgUrl);
+                } else {
+                    resetUploader();
+                }
 
                 modalTitle.textContent = "Edit Equipment";
                 modalSubtitle.textContent = "Update inventory details for this item";
+                modalIcon.className = 'fa-solid fa-pen-to-square';
                 submitBtn.textContent = "Save Changes";
-                
-                modal.classList.add('show');
+
+                openFormModal();
             };
 
             // Open View Modal
             window.openViewModal = function(id) {
                 const item = equipment.find(e => e.id == id);
                 if (!item) return;
+                viewedItemId = item.id;
+
+                const status = String(item.status || 'Available');
+                const classification = item.classification || 'Not Expensive';
+                const available = parseInt(item.available) || 0;
+                const total = parseInt(item.total) || 0;
+                const pct = total > 0 ? Math.round((available / total) * 100) : 0;
 
                 viewModalTitle.textContent = item.name;
-                viewModalImg.onerror = function () { this.onerror = null; this.src = FALLBACK_IMG; };
-                viewModalImg.src = item.imgUrl || FALLBACK_IMG;
+                viewModalSubtitle.textContent = item.category || 'Equipment Information';
+
+                // Image: same frame as the cards; placeholder when missing or broken
+                viewModalMedia.classList.toggle('is-missing', !item.imgUrl);
+                viewModalImg.alt = item.name;
+                viewModalImg.onerror = function () { this.onerror = null; viewModalMedia.classList.add('is-missing'); };
+                viewModalImg.src = item.imgUrl || '';
+                viewModalImgBackdrop.src = item.imgUrl || '';
+
+                viewModalStatus.textContent = status;
+                viewModalStatus.className = 'eq-status-badge ' + (STATUS_CLASS[status.toLowerCase()] || 'status-unavailable');
+                const viewModalClass = document.getElementById('viewModalClass');
+                viewModalClass.textContent = classification;
+                viewModalClass.className = 'eq-class-badge ' + (classification === 'Expensive' ? 'class-expensive' : 'class-not-expensive');
+
+                viewModalAvail.textContent = String(available);
+                viewModalTotal.textContent = String(total);
+                viewModalStock.classList.toggle('is-empty', available === 0);
+                viewModalStock.classList.toggle('is-low', available > 0 && available <= Math.max(1, Math.floor(total * 0.25)));
+                viewModalStockBar.setAttribute('aria-valuemax', String(total));
+                viewModalStockBar.setAttribute('aria-valuenow', String(available));
+                viewModalStockFill.style.width = pct + '%';
+
                 document.getElementById('viewModalBrand').textContent = brandModel(item) || '—';
                 document.getElementById('viewModalSerial').textContent = item.serial_number || '—';
-                document.getElementById('viewModalClass').textContent = item.classification || 'Not Expensive';
                 document.getElementById('viewModalAccessories').textContent = item.accessories || '—';
-                viewModalCategory.textContent = item.category;
-                viewModalStatus.textContent = item.status;
-                viewModalAvail.textContent = String(item.available ?? 0);
-                viewModalTotal.textContent = String(item.total ?? 0);
+                viewModalCategory.textContent = item.category || '—';
                 if (viewModalDepartment) viewModalDepartment.textContent = DEPARTMENT_NAME;
 
+                viewModal.querySelector('.eq-modal-body').scrollTop = 0;
                 viewModal.classList.add('show');
+                setTimeout(() => closeViewModalBtn.focus({ preventScroll: true }), 50);
             };
 
-            closeViewModalBtn.addEventListener('click', () => {
+            function closeViewModal() {
                 viewModal.classList.remove('show');
+            }
+
+            closeViewModalBtn.addEventListener('click', closeViewModal);
+            viewCloseBtn.addEventListener('click', closeViewModal);
+
+            // Jump straight from the details to the edit form for the same item
+            viewEditBtn.addEventListener('click', () => {
+                closeViewModal();
+                if (viewedItemId !== null) window.openEditModal(viewedItemId);
             });
 
             viewModal.addEventListener('click', (e) => {
                 if (e.target === viewModal) {
-                    viewModal.classList.remove('show');
+                    closeViewModal();
                 }
+            });
+
+            // Escape closes whichever equipment modal is open
+            document.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape') return;
+                if (modal.classList.contains('show')) closeModal();
+                else if (viewModal.classList.contains('show')) closeViewModal();
             });
 
             // Form Submit (Add / Edit)
@@ -800,6 +938,11 @@
                 payload.append('total_qty', total);
                 payload.append('status', status);
 
+                // Lock the button while saving so the request can't be sent twice
+                const submitLabel = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving…';
+
                 fetch(URL_SAVE, {
                     method: 'POST',
                     headers: {
@@ -824,6 +967,10 @@
                 })
                 .catch(() => {
                     showNotification('System Error', 'An unexpected error occurred while saving equipment.', 'error');
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = submitLabel;
                 });
             });
 
