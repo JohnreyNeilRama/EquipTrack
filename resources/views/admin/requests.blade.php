@@ -18,7 +18,7 @@
             <p>Review, approve, or reject student and faculty borrowing requests.</p>
         </div>
 
-        @include('partials.requests.table')
+        @include('partials.requests.table', ['showRequestId' => true, 'tableClass' => 'requests-table-compact'])
     </div>
 
     @include('partials.requests.modals')
@@ -29,5 +29,6 @@
     'party' => 'admin',
     'dataUrl' => route('admin.requests.data'),
     'updateUrl' => route('admin.requests.update'),
+    'showRequestId' => true,
 ])
 @endpush

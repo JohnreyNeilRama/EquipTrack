@@ -59,7 +59,7 @@
             </div>
         </div>
 
-        @include('partials.requests.table')
+        @include('partials.requests.table', ['showRequestId' => true, 'combineUserRole' => true, 'tableClass' => 'requests-table-compact'])
     </div>
 
     @include('partials.requests.modals')
@@ -110,5 +110,7 @@
     'party' => 'dept',
     'dataUrl' => route('department.requests.data'),
     'updateUrl' => route('department.requests.update'),
+    'showRequestId' => true,
+    'combineUserRole' => true,
 ])
 @endpush

@@ -430,7 +430,9 @@ class DepartmentDashboardTest extends TestCase
         $response->assertOk()
             ->assertViewHas('recentRequestsLimit', 5)
             ->assertSee('class="recent-requests-table"', false)
-            ->assertSeeInOrder(['Request ID', 'User', 'Role', 'Equipment', 'Date', 'Status', 'Action']);
+            ->assertSeeInOrder(['<th>Request ID</th>', '<th class="col-user">User</th>', '<th>Equipment</th>', '<th>Date</th>', '<th>Status</th>', 'Action</th>'], false)
+            // The role shows under the user's name, not in its own column.
+            ->assertDontSee('<th>Role</th>', false);
 
         // Same reviewable rows as the Borrow Requests page, only for this department.
         $rows = collect($response->viewData('dbRequests'));

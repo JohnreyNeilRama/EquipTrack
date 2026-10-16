@@ -69,7 +69,7 @@
     }
     /* Short fixed-format values stay on one line: the headers and the Date */
     .recent-requests-table th,
-    .recent-requests-table td:nth-child(5) {
+    .recent-requests-table td.col-date {
         white-space: nowrap;
     }
 </style>
@@ -171,7 +171,8 @@
                 Recent Borrow Requests
                 <a href="{{ route('department.requests') }}" class="view-all" style="margin-left: auto; font-size: 13px; font-weight: 600; color: var(--primary-color);">View All Requests &rarr;</a>
             </h4>
-            {{-- Same columns as the Borrow Requests table, plus Request ID; rendered,
+            {{-- Same columns as the Borrow Requests table, plus Request ID, with the
+                 role under the user's name (Return Confirmation style); rendered,
                  reviewed and kept current by the shared Requests script below. --}}
             <div class="table-container card admin-table-card">
                 <table class="recent-requests-table" style="width: 100%;">
@@ -179,7 +180,6 @@
                         <tr>
                             <th>Request ID</th>
                             <th class="col-user">User</th>
-                            <th>Role</th>
                             <th>Equipment</th>
                             <th>Date</th>
                             <th>Status</th>
@@ -452,5 +452,6 @@
     'updateUrl' => route('department.requests.update'),
     'limit' => $recentRequestsLimit,
     'showRequestId' => true,
+    'combineUserRole' => true,
 ])
 @endpush

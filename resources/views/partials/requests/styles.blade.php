@@ -250,4 +250,92 @@
         margin-bottom: 12px;
         opacity: 0.7;
     }
+
+    /* ------------------------------------------------------------------
+       Compact requests table (Admin Requests + Department Borrow Requests,
+       via $tableClass = 'requests-table-compact'): same layout as the
+       Department dashboard's Recent Borrow Requests table (Request ID
+       column, tighter cells, one-line values).
+       ------------------------------------------------------------------ */
+    .admin-table-card .requests-table-compact th,
+    .admin-table-card .requests-table-compact td {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+    .admin-table-card .requests-table-compact th:first-child,
+    .admin-table-card .requests-table-compact td:first-child {
+        padding-left: 20px !important;
+    }
+
+    /* Long user names end in "…" (full name on hover and in the details modal) */
+    .requests-table-compact .col-user {
+        width: 22%;
+        min-width: 120px;
+        max-width: 0;
+    }
+    .requests-table-compact .requester-name {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .requests-table-compact .col-request-id {
+        font-weight: 600;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Headers, the Date and the Status labels stay on one line: the badge and
+       "Admin: … Department: …" side by side, never stacked letter-group by group */
+    .requests-table-compact th,
+    .requests-table-compact td.col-date,
+    .requests-table-compact .status-badge {
+        white-space: nowrap;
+    }
+    .requests-table-compact .approval-parties {
+        flex-wrap: nowrap;
+    }
+    .requests-table-compact .approval-party {
+        white-space: nowrap;
+    }
+
+    /* Approve / Reject sit side by side, and stack only when the one-line
+       Status leaves too little room (laptop widths), so the table never
+       overflows its card. */
+    .requests-table-compact .action-buttons {
+        flex-wrap: wrap;
+        row-gap: 6px !important;
+    }
+    .requests-table-compact .action-buttons button {
+        min-width: 78px;
+    }
+
+    /* View button: same light / dark styling as the other Department tables */
+    .requests-table-compact .btn-view-only {
+        background-color: rgba(56, 85, 133, 0.08);
+        border: 1px solid rgba(56, 85, 133, 0.35);
+        color: #385585;
+    }
+    .requests-table-compact .btn-view-only:hover {
+        background-color: #385585;
+        border-color: #385585;
+        color: #ffffff;
+    }
+    .requests-table-compact .btn-view-only:focus-visible {
+        outline: 2px solid #385585;
+        outline-offset: 2px;
+    }
+    .dark-theme .requests-table-compact .btn-view-only {
+        background-color: #334155;
+        border-color: #475569;
+        color: #93c5fd;
+    }
+    .dark-theme .requests-table-compact .btn-view-only:hover {
+        background-color: #2563eb;
+        border-color: #2563eb;
+        color: #ffffff;
+    }
+    .dark-theme .requests-table-compact .btn-view-only:focus-visible {
+        outline-color: #60a5fa;
+    }
 </style>

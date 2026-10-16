@@ -11,6 +11,8 @@
       $limit          show only the newest N requests, without search, filter
                       or pagination (default: null, the full paginated table)
       $showRequestId  add a leading Request ID column (default: false)
+      $combineUserRole show the role under the user's name (Return Confirmation
+                      style) instead of in its own Role column (default: false)
 --}}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -27,7 +29,11 @@
         // Compact mode: newest LIMIT rows only, optional Request ID column
         const LIMIT = @json($limit ?? null);
         const SHOW_REQUEST_ID = @json($showRequestId ?? false);
-        const COLUMN_COUNT = SHOW_REQUEST_ID ? 7 : 6;
+        const COMBINE_USER_ROLE = @json($combineUserRole ?? false);
+        const COLUMN_COUNT = (SHOW_REQUEST_ID ? 7 : 6) - (COMBINE_USER_ROLE ? 1 : 0);
+        // The compact layouts give the User cell a class hook and the full
+        // name as a tooltip, so the page can shorten long names with "…".
+        const TRUNCATE_USER = Boolean(LIMIT || SHOW_REQUEST_ID);
 
         // Initial requests dataset loaded directly from the database
         let requests = @json($dbRequests, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
@@ -178,14 +184,15 @@
 
                 tr.innerHTML = `
                     ${SHOW_REQUEST_ID ? `<td class="col-request-id">#${escapeHTML(req.id)}</td>` : ''}
-                    <td${LIMIT ? ' class="col-user"' : ''}>
+                    <td${TRUNCATE_USER ? ' class="col-user"' : ''}>
                         <div class="requester-info">
-                            <span class="requester-name"${LIMIT ? ` title="${escapeHTML(req.user)}"` : ''}>${escapeHTML(req.user)}</span>
+                            <span class="requester-name"${TRUNCATE_USER ? ` title="${escapeHTML(req.user)}"` : ''}>${escapeHTML(req.user)}</span>
+                            ${COMBINE_USER_ROLE ? `<span class="requester-role">${escapeHTML(req.role)}</span>` : ''}
                         </div>
                     </td>
-                    <td>${escapeHTML(req.role)}</td>
+                    ${COMBINE_USER_ROLE ? '' : `<td>${escapeHTML(req.role)}</td>`}
                     <td>${escapeHTML(req.equipment)}${qtyBadge}${classTag}</td>
-                    <td>${escapeHTML(req.date)}</td>
+                    <td${TRUNCATE_USER ? ' class="col-date"' : ''}>${escapeHTML(req.date)}</td>
                     <td>
                         <span class="status-badge ${statusClass}">${escapeHTML(req.status)}</span>
                         ${approvalsHtml(req)}

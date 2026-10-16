@@ -1,4 +1,8 @@
-{{-- Shared Requests controls bar and table (Admin Requests + Department Borrow Requests). --}}
+{{-- Shared Requests controls bar and table (Admin Requests + Department Borrow Requests).
+     Optional: $showRequestId adds a leading Request ID column (pair it with the
+     script's showRequestId); $combineUserRole shows the role under the user's
+     name instead of in its own column (pair it with the script's option);
+     $tableClass is a class hook for page styles. --}}
         {{-- Controls bar (Search & Filters) --}}
         <div class="controls-bar">
             <div class="controls-left">
@@ -20,11 +24,18 @@
 
         {{-- Requests Table Card --}}
         <div class="table-container card admin-table-card">
-            <table style="width: 100%;">
+            <table @if (!empty($tableClass)) class="{{ $tableClass }}" @endif style="width: 100%;">
                 <thead>
                     <tr>
-                        <th>User</th>
-                        <th>Role</th>
+                        @if (!empty($showRequestId))
+                            <th>Request ID</th>
+                            <th class="col-user">User</th>
+                        @else
+                            <th>User</th>
+                        @endif
+                        @if (empty($combineUserRole))
+                            <th>Role</th>
+                        @endif
                         <th>Equipment</th>
                         <th>Date</th>
                         <th>Status</th>
