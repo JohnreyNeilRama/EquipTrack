@@ -7,6 +7,7 @@ use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
 use App\Models\Equipment;
 use App\Models\UserAccount;
+use App\Services\RequestTableRows;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -32,7 +33,30 @@ class DepartmentDashboardController extends Controller
 
     public function index(): View
     {
-        return view('department.dashboard', ['dashboard' => $this->buildDashboard()]);
+        return view('department.dashboard', [
+            'dashboard' => $this->buildDashboard(),
+            'dbRequests' => $this->reviewableRequests(),
+            'recentRequestsLimit' => self::RECENT_REQUESTS_LIMIT,
+        ]);
+    }
+
+    /**
+     * The department's borrow requests in the shape the shared Requests table
+     * renders (same source as the Borrow Requests page), so the Recent Borrow
+     * Requests table can show, approve and reject them the same way.
+     */
+    private function reviewableRequests(): array
+    {
+        $departmentId = $this->departmentId();
+
+        if (!$departmentId) {
+            return [];
+        }
+
+        return RequestTableRows::fetch(
+            BorrowRequest::query()->whereHas('equipment', fn ($query) => $query->where('department_id', $departmentId)),
+            fn () => true,
+        );
     }
 
     /** JSON feed so the cards and tables stay current without a reload. */

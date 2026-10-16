@@ -6,6 +6,11 @@
       $dataUrl    JSON feed polled for live updates
       $updateUrl  Approve / Reject endpoint for that reviewer
       $dbRequests initial rows (App\Services\RequestTableRows)
+
+    Optional (compact "recent requests" table, e.g. the Department dashboard):
+      $limit          show only the newest N requests, without search, filter
+                      or pagination (default: null, the full paginated table)
+      $showRequestId  add a leading Request ID column (default: false)
 --}}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -18,6 +23,11 @@
         const PARTY = @json($party);
         const OWN_STATUS_KEY = PARTY === 'admin' ? 'adminStatus' : 'deptStatus';
         const AWAITING_LABEL = PARTY === 'admin' ? 'Awaiting Department' : 'Awaiting Admin';
+
+        // Compact mode: newest LIMIT rows only, optional Request ID column
+        const LIMIT = @json($limit ?? null);
+        const SHOW_REQUEST_ID = @json($showRequestId ?? false);
+        const COLUMN_COUNT = SHOW_REQUEST_ID ? 7 : 6;
 
         // Initial requests dataset loaded directly from the database
         let requests = @json($dbRequests, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
@@ -92,8 +102,8 @@
 
         // Render Table function
         function renderTable() {
-            const query = searchInput.value.toLowerCase().trim();
-            const filter = filterSelect.value;
+            const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            const filter = filterSelect ? filterSelect.value : 'all';
             tableBody.innerHTML = '';
 
             const filtered = requests.filter(req => {
@@ -107,13 +117,13 @@
             if (filtered.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="no-requests-message">
+                        <td colspan="${COLUMN_COUNT}" class="no-requests-message">
                             <i class="fa-solid fa-folder-open"></i>
-                            No requests found matching your query.
+                            ${LIMIT ? 'No recent borrow requests found.' : 'No requests found matching your query.'}
                         </td>
                     </tr>
                 `;
-                paginationContainer.style.display = 'none';
+                if (paginationContainer) paginationContainer.style.display = 'none';
                 return;
             }
 
@@ -124,9 +134,10 @@
 
             const startIndex = (currentPage - 1) * pageSize;
             const endIndex = Math.min(startIndex + pageSize, totalEntries);
-            const paginatedRequests = filtered.slice(startIndex, endIndex);
+            // Rows arrive newest first, so the compact table shows the newest LIMIT
+            const paginatedRequests = LIMIT ? filtered.slice(0, LIMIT) : filtered.slice(startIndex, endIndex);
 
-            paginationContainer.style.display = 'flex';
+            if (paginationContainer) paginationContainer.style.display = 'flex';
 
             paginatedRequests.forEach(req => {
                 const tr = document.createElement('tr');
@@ -166,9 +177,10 @@
                 const classTag = req.requiresBothApprovals ? `<span class="class-tag-expensive">Expensive</span>` : '';
 
                 tr.innerHTML = `
-                    <td>
+                    ${SHOW_REQUEST_ID ? `<td class="col-request-id">#${escapeHTML(req.id)}</td>` : ''}
+                    <td${LIMIT ? ' class="col-user"' : ''}>
                         <div class="requester-info">
-                            <span class="requester-name">${escapeHTML(req.user)}</span>
+                            <span class="requester-name"${LIMIT ? ` title="${escapeHTML(req.user)}"` : ''}>${escapeHTML(req.user)}</span>
                         </div>
                     </td>
                     <td>${escapeHTML(req.role)}</td>
@@ -183,8 +195,8 @@
                 tableBody.appendChild(tr);
             });
 
-            paginationInfo.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${totalEntries} entries`;
-            renderPaginationButtons(totalPages);
+            if (paginationInfo) paginationInfo.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${totalEntries} entries`;
+            if (paginationButtons) renderPaginationButtons(totalPages);
         }
 
         // Render pagination buttons dynamically (same behavior as Admin Users)
@@ -411,12 +423,12 @@
             document.dispatchEvent(new CustomEvent('requests:updated', { detail: { requests } }));
         }
 
-        // Event Listeners for search & filters
-        searchInput.addEventListener('input', () => {
+        // Event Listeners for search & filters (absent in the compact table)
+        if (searchInput) searchInput.addEventListener('input', () => {
             currentPage = 1;
             renderTable();
         });
-        filterSelect.addEventListener('change', () => {
+        if (filterSelect) filterSelect.addEventListener('change', () => {
             currentPage = 1;
             renderTable();
         });

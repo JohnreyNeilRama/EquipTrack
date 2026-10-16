@@ -417,6 +417,31 @@ class DepartmentDashboardTest extends TestCase
         $this->assertSame('CCS Projector', $data['recentRequests'][0]['equipment']);
     }
 
+    public function test_recent_borrow_requests_table_uses_the_borrow_requests_rows(): void
+    {
+        $eqA = $this->makeEquipment($this->deptA, ['name' => 'CCS Projector']);
+        $this->makeRequest($eqA, $this->userA, ['dept_status' => 'Pending', 'overall_status' => 'Pending']);
+
+        $eqB = $this->makeEquipment($this->deptB, ['name' => 'CCJ Camera']);
+        $this->makeRequest($eqB, $this->userB, ['dept_status' => 'Pending', 'overall_status' => 'Pending']);
+
+        $response = $this->actingAs($this->deptAccountA, 'dept')->get(route('department.dashboard'));
+
+        $response->assertOk()
+            ->assertViewHas('recentRequestsLimit', 5)
+            ->assertSee('class="recent-requests-table"', false)
+            ->assertSeeInOrder(['Request ID', 'User', 'Role', 'Equipment', 'Date', 'Status', 'Action']);
+
+        // Same reviewable rows as the Borrow Requests page, only for this department.
+        $rows = collect($response->viewData('dbRequests'));
+        $this->assertCount(1, $rows);
+        $this->assertSame('Alice Smith', $rows[0]['user']);
+        $this->assertSame('CCS Projector', $rows[0]['equipment']);
+        $this->assertSame('Pending', $rows[0]['status']);
+        $this->assertSame('Pending', $rows[0]['deptStatus']);
+        $this->assertTrue($rows[0]['canReview']);
+    }
+
     public function test_stats_update_after_borrow_approval_and_return(): void
     {
         $eqA = $this->makeEquipment($this->deptA, ['total_qty' => 4, 'available_qty' => 4]);

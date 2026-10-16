@@ -4,7 +4,75 @@
 
 @push('css')
 <link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
+{{-- Recent Borrow Requests: same table, badges, buttons and details modal as the Borrow Requests page --}}
+<link rel="stylesheet" href="{{ asset('admin/css/adminequipment.css') }}">
+<link rel="stylesheet" href="{{ asset('admin/css/adminrequests.css') }}">
+@include('partials.requests.styles')
 <link rel="stylesheet" href="{{ asset('departments/css/departmentdashboard.css') }}">
+<style>
+    /* Recent Borrow Requests: long user names end in "…" (full name on hover
+       and in the details modal), so one name can't stretch the table. */
+    .recent-requests-table .col-user {
+        width: 22%;
+        min-width: 120px;
+        max-width: 0;
+    }
+    .recent-requests-table .requester-name {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .recent-requests-table .col-request-id {
+        font-weight: 600;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+    /* Seven columns: tighter side padding (same as the Return Confirmation
+       table) so Approve + Reject fit without pushing the table off the card. */
+    .admin-table-card .recent-requests-table th,
+    .admin-table-card .recent-requests-table td {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+    .admin-table-card .recent-requests-table th:first-child,
+    .admin-table-card .recent-requests-table td:first-child {
+        padding-left: 20px !important;
+    }
+    /* View button: same light / dark styling as the other Department tables */
+    .recent-requests-table .btn-view-only {
+        background-color: rgba(56, 85, 133, 0.08);
+        border: 1px solid rgba(56, 85, 133, 0.35);
+        color: #385585;
+    }
+    .recent-requests-table .btn-view-only:hover {
+        background-color: #385585;
+        border-color: #385585;
+        color: #ffffff;
+    }
+    .recent-requests-table .btn-view-only:focus-visible {
+        outline: 2px solid #385585;
+        outline-offset: 2px;
+    }
+    .dark-theme .recent-requests-table .btn-view-only {
+        background-color: #334155;
+        border-color: #475569;
+        color: #93c5fd;
+    }
+    .dark-theme .recent-requests-table .btn-view-only:hover {
+        background-color: #2563eb;
+        border-color: #2563eb;
+        color: #ffffff;
+    }
+    .dark-theme .recent-requests-table .btn-view-only:focus-visible {
+        outline-color: #60a5fa;
+    }
+    /* Short fixed-format values stay on one line: the headers and the Date */
+    .recent-requests-table th,
+    .recent-requests-table td:nth-child(5) {
+        white-space: nowrap;
+    }
+</style>
 @endpush
 
 @section('content')
@@ -103,33 +171,23 @@
                 Recent Borrow Requests
                 <a href="{{ route('department.requests') }}" class="view-all" style="margin-left: auto; font-size: 13px; font-weight: 600; color: var(--primary-color);">View All Requests &rarr;</a>
             </h4>
+            {{-- Same columns as the Borrow Requests table, plus Request ID; rendered,
+                 reviewed and kept current by the shared Requests script below. --}}
             <div class="table-container card admin-table-card">
-                <table>
+                <table class="recent-requests-table" style="width: 100%;">
                     <thead>
                         <tr>
                             <th>Request ID</th>
-                            <th>Borrower Name</th>
+                            <th class="col-user">User</th>
+                            <th>Role</th>
                             <th>Equipment</th>
-                            <th>Request Date</th>
+                            <th>Date</th>
                             <th>Status</th>
+                            <th class="action-column" style="text-align: center;">Action</th>
                         </tr>
                     </thead>
                     <tbody id="requestsTableBody">
-                        @forelse ($dashboard['recentRequests'] ?? [] as $req)
-                            <tr class="admin-table-row">
-                                <td>#{{ $req['id'] }}</td>
-                                <td>{{ $req['user'] }}</td>
-                                <td>{{ $req['equipment'] }}</td>
-                                <td>{{ $req['date'] }}</td>
-                                <td>{{ $req['status'] }}</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" style="text-align: center; color: var(--text-muted, #64748b); padding: 32px;">
-                                    No recent borrow requests found.
-                                </td>
-                            </tr>
-                        @endforelse
+                        {{-- Loaded dynamically via JavaScript --}}
                     </tbody>
                 </table>
             </div>
@@ -145,7 +203,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Borrower Name</th>
+                            <th>User</th>
                             <th>Equipment</th>
                             <th>Due Date</th>
                             <th>Days Overdue</th>
@@ -181,7 +239,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Borrower Name</th>
+                            <th>User</th>
                             <th>Equipment</th>
                             <th>Due Date</th>
                             <th>Days Remaining</th>
@@ -215,6 +273,20 @@
             </div>
         </div>
 <!-- Interactivity -->
+
+    {{-- Details / Reject modals shared with the Borrow Requests page --}}
+    @include('partials.requests.modals')
+
+    {{-- Toast for approve / reject results (used by showNotification) --}}
+    <div class="toast-notification" id="toast">
+        <div class="toast-content">
+            <i class="fa-solid fa-circle-check toast-icon" id="toastIcon"></i>
+            <div class="toast-message">
+                <span class="toast-title" id="toastTitle">Success</span>
+                <span class="toast-desc" id="toastMsg">Action processed successfully!</span>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
@@ -262,37 +334,6 @@
             eqCard.title = (stats.totalEquipmentUnits || 0) + ' units in total, ' +
                 (stats.availableUnits || 0) + ' currently available.';
         }
-    }
-
-    function renderRecentRequests(rows) {
-        const tableBody = document.getElementById('requestsTableBody');
-        if (!tableBody) return;
-
-        tableBody.innerHTML = '';
-
-        if (!rows.length) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="5" style="text-align: center; color: var(--text-muted, #64748b); padding: 32px;">
-                        No recent borrow requests found.
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-
-        rows.forEach(req => {
-            const tr = document.createElement('tr');
-            tr.className = 'admin-table-row';
-            tr.innerHTML = `
-                <td>#${escapeHTML(req.id)}</td>
-                <td>${escapeHTML(req.user)}</td>
-                <td>${escapeHTML(req.equipment)}</td>
-                <td>${escapeHTML(req.date)}</td>
-                <td>${escapeHTML(req.status)}</td>
-            `;
-            tableBody.appendChild(tr);
-        });
     }
 
     function renderOverdue(rows) {
@@ -368,7 +409,7 @@
     function applyDashboard(payload) {
         if (!payload) return;
         renderStats(payload.stats || {});
-        renderRecentRequests(payload.recentRequests || []);
+        // Recent Borrow Requests is rendered and refreshed by the shared Requests script
         renderOverdue(payload.overdue || []);
         renderUpcoming(payload.upcoming || []);
     }
@@ -404,4 +445,12 @@
     }
     
 </script>
+{{-- Recent Borrow Requests: the Borrow Requests table script in compact mode --}}
+@include('partials.requests.script', [
+    'party' => 'dept',
+    'dataUrl' => route('department.requests.data'),
+    'updateUrl' => route('department.requests.update'),
+    'limit' => $recentRequestsLimit,
+    'showRequestId' => true,
+])
 @endpush
