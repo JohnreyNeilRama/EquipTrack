@@ -248,7 +248,7 @@
                 <div class="report-meta" id="reportMeta"></div>
 
                 <div class="table-container admin-table-card">
-                    <table>
+                    <table class="admin-report-table">
                         <thead>
                             <tr id="previewTableHead"></tr>
                         </thead>
@@ -279,7 +279,7 @@
                 </div>
 
                 <div class="table-container admin-table-card">
-                    <table>
+                    <table class="admin-report-table">
                         <thead>
                             <tr>
                                 <th>Report Name</th>

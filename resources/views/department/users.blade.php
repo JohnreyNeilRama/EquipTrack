@@ -271,7 +271,7 @@
                     tr.setAttribute('data-search', `${user.fullName} ${user.idNumber} ${user.userType} ${user.attainment}`.toLowerCase());
 
                     tr.innerHTML = `
-                        <td class="col-fullname">${escapeHTML(user.fullName)}</td>
+                        <td class="col-fullname"><span class="fullname-text" title="${escapeHTML(user.fullName)}">${escapeHTML(user.fullName)}</span></td>
                         <td class="col-id">${escapeHTML(user.idNumber)}</td>
                         <td><span class="user-type-badge ${badgeClass}">${escapeHTML(user.userType)}</span></td>
                         <td class="col-attainment">${escapeHTML(user.attainment)}</td>

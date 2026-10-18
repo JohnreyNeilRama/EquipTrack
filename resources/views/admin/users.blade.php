@@ -111,10 +111,10 @@
 
         {{-- Users Table Card --}}
         <div class="table-container card admin-table-card">
-            <table style="width: 100%;">
+            <table class="admin-users-table" style="width: 100%;">
                 <thead>
                     <tr>
-                        <th>User</th>
+                        <th class="col-user">User</th>
                         <th>ID Number</th>
                         <th>Role</th>
                         <th>Academic Info</th>
@@ -553,9 +553,9 @@
                     const fullName = user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
 
                     tr.innerHTML = `
-                        <td>
+                        <td class="col-user">
                             <div class="user-details-cell">
-                                <span class="user-name-text">${escapeHTML(fullName)}</span>
+                                <span class="user-name-text" title="${escapeHTML(fullName)}">${escapeHTML(fullName)}</span>
                             </div>
                         </td>
                         <td><strong>${escapeHTML(user.id_number)}</strong></td>

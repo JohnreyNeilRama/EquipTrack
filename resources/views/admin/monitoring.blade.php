@@ -170,7 +170,7 @@
 
             <!-- Table Card matching Users page exactly -->
             <div class="table-container card admin-table-card" style="display: none;">
-                <table style="width: 100%;">
+                <table class="admin-monitoring-table" style="width: 100%;">
                     <thead>
                         <tr>
                             <th class="col-equipment">Equipment</th>

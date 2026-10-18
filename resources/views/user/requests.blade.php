@@ -39,7 +39,7 @@
 
     {{-- Table Container --}}
     <div class="table-container card requests-table-card">
-        <table>
+        <table class="my-requests-table">
             <thead>
                 <tr>
                     <th>No.</th>

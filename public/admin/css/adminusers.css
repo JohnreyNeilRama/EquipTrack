@@ -104,6 +104,45 @@
     color: var(--text-main);
 }
 
+/* User column: a 20% share of the table, one line per name; long names end
+   in "…" (full name on hover and in the View Details modal). max-width: 0
+   lets the text shorten instead of widening the column. */
+.admin-table-card th.col-user {
+    width: 20%;
+}
+
+.admin-table-card td.col-user {
+    max-width: 0;
+    /* Room for typical full names; only genuinely long ones get the "…" */
+    min-width: 190px;
+}
+
+.admin-table-card td.col-user .user-details-cell {
+    min-width: 0;
+}
+
+.admin-table-card td.col-user .user-name-text {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Users table (7 columns): tighter side padding, same as the Return
+   Confirmation and Requests tables, so it fits its card on laptop screens
+   instead of scrolling sideways. Scoped to this table, since this stylesheet
+   is also loaded by the Monitoring page. */
+.admin-table-card .admin-users-table th,
+.admin-table-card .admin-users-table td {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+}
+
+.admin-table-card .admin-users-table th:first-child,
+.admin-table-card .admin-users-table td:first-child {
+    padding-left: 20px !important;
+}
+
 .user-sub-text {
     font-size: var(--fs-small);
     color: var(--text-muted);

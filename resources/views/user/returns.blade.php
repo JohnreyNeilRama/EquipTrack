@@ -30,7 +30,7 @@
 
         <!-- Table Container -->
         <div class="table-container card returns-table-card">
-            <table @if ($returnItems->isEmpty()) style="display: none;" @endif>
+            <table class="my-returns-table" @if ($returnItems->isEmpty()) style="display: none;" @endif>
                 <thead>
                     <tr>
                         <th class="col-no">No.</th>

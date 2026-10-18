@@ -331,6 +331,35 @@
     font-weight: 600;
 }
 
+/* Tighter side padding (same as the Admin Users, Return Confirmation and
+   Requests tables) so the table fits its card down to ~1024px laptops
+   instead of scrolling sideways. */
+.users-table th,
+.users-table td {
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+.users-table th:first-child,
+.users-table td:first-child {
+    padding-left: 20px;
+}
+
+/* Full Name: keeps its 20% share of the table and stays on one line; long
+   names end in "…" (full name on hover and in the View Details modal).
+   max-width: 0 lets the text shorten instead of widening the column. */
+.users-table td.col-fullname {
+    max-width: 0;
+    min-width: 140px;
+}
+
+.users-table td.col-fullname .fullname-text {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .users-table td.col-attainment {
     color: var(--text-main, #333333);
 }

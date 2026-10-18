@@ -517,3 +517,17 @@ html:has(.requests-table-card) {
     overflow-y: scroll;
     scrollbar-gutter: stable;
 }
+
+/* Tighter side padding so the table fits at narrow desktop widths (mobile keeps its own padding) */
+@media (min-width: 769px) {
+    .requests-table-card .my-requests-table th,
+    .requests-table-card .my-requests-table td {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    .requests-table-card .my-requests-table th:first-child,
+    .requests-table-card .my-requests-table td:first-child {
+        padding-left: 20px !important;
+    }
+}
