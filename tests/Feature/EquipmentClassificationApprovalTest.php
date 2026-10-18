@@ -343,26 +343,20 @@ class EquipmentClassificationApprovalTest extends TestCase
         $this->assertSame(array_keys($adminRow), array_keys($deptRow));
         $this->assertTrue($deptRow['canReview']);
 
-        // Same compact table (Request ID column, truncating User column) and the
-        // same modals on both pages; the department shows the role under the
-        // user's name instead of in its own column.
-        $headers = [
-            'admin.requests' => ['<th>Request ID</th>', '<th class="col-user">User</th>', '<th>Role</th>', '<th>Equipment</th>', '<th>Date</th>', '<th>Status</th>', 'Action</th>'],
-            'department.requests' => ['<th>Request ID</th>', '<th class="col-user">User</th>', '<th>Equipment</th>', '<th>Date</th>', '<th>Status</th>', 'Action</th>'],
-        ];
-
+        // Same compact table on both pages (Request ID column, truncating User
+        // column with the role under the name, no separate Role column) and the
+        // same modals.
         foreach ([[$this->admin, 'admin', 'admin.requests'], [$this->deptAccount, 'dept', 'department.requests']] as [$account, $guard, $route]) {
             $this->actingAs($account, $guard)->get(route($route))
                 ->assertOk()
                 ->assertSee('class="table-container card admin-table-card"', false)
                 ->assertSee('class="requests-table-compact"', false)
-                ->assertSeeInOrder($headers[$route], false)
+                ->assertSeeInOrder(['<th>Request ID</th>', '<th class="col-user">User</th>', '<th>Equipment</th>', '<th>Date</th>', '<th>Status</th>', 'Action</th>'], false)
+                ->assertDontSee('<th>Role</th>', false)
+                ->assertSee('const COMBINE_USER_ROLE = true', false)
                 ->assertSee('id="detailsModal"', false)
                 ->assertSee('id="rejectReasonModal"', false);
         }
-
-        $this->actingAs($this->deptAccount, 'dept')->get(route('department.requests'))
-            ->assertDontSee('<th>Role</th>', false);
 
         // Each reviewer polls its own feed and posts to its own endpoint.
         $this->actingAs($this->deptAccount, 'dept')->get(route('department.requests'))

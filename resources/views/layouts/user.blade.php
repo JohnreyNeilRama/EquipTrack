@@ -13,6 +13,21 @@
     <link rel="stylesheet" href="{{ asset('ccs/global.css') }}">
     <link rel="stylesheet" href="{{ asset('user/css/usernotifications.css') }}">
     @stack('css')
+    <style>
+        /* Profile dropdown: long names and emails stay on one line and end in
+           "…" (same rule as the Admin and Department navbars in ccs/navbar.css). */
+        .top-navbar .dropdown-profile-header {
+            min-width: 0;
+        }
+        .top-navbar .dropdown-profile-header .header-name,
+        .top-navbar .dropdown-profile-header .header-email {
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>

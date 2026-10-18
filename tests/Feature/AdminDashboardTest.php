@@ -169,6 +169,28 @@ class AdminDashboardTest extends TestCase
         $response->assertSee('lowStockCard');
     }
 
+    public function test_recent_requests_table_uses_the_requests_page_rows(): void
+    {
+        $expensiveId = $this->submitBorrowRequest($this->makeEquipment(['name' => 'Canon EOS', 'classification' => 'Expensive']));
+        $cheapId = $this->submitBorrowRequest($this->makeEquipment(['name' => 'HDMI Cable']));
+
+        $response = $this->actingAs($this->admin, 'admin')->get(route('admin.dashboard'));
+
+        $response->assertOk()
+            ->assertViewHas('recentRequestsLimit', 5)
+            ->assertSee('class="requests-table-compact"', false)
+            ->assertSeeInOrder(['<th>Request ID</th>', '<th class="col-user">User</th>', '<th>Equipment</th>', '<th>Date</th>', '<th>Status</th>', 'Action</th>'], false)
+            ->assertSee('id="detailsModal"', false)
+            ->assertSee('id="rejectReasonModal"', false);
+
+        // Same rows as the Admin Requests page: only Expensive requests, which
+        // the admin can still review.
+        $rows = collect($response->viewData('dbRequests'));
+        $this->assertNotNull($rows->firstWhere('id', $expensiveId));
+        $this->assertNull($rows->firstWhere('id', $cheapId));
+        $this->assertTrue($rows->firstWhere('id', $expensiveId)['canReview']);
+    }
+
     public function test_dashboard_reports_zeros_and_empty_tables_when_there_are_no_records(): void
     {
         // setUp creates the single student account; everything else is empty.

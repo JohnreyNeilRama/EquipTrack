@@ -4,6 +4,10 @@
 
 @push('css')
 <link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
+{{-- Recent Requests: same table, badges, buttons and details modal as the Requests page --}}
+<link rel="stylesheet" href="{{ asset('admin/css/adminequipment.css') }}">
+<link rel="stylesheet" href="{{ asset('admin/css/adminrequests.css') }}">
+@include('partials.requests.styles')
 @endpush
 
 @section('content')
@@ -96,15 +100,19 @@
                         <i class="fa-solid fa-clipboard-list" style="color: var(--primary-color);"></i> Recent Requests
                     </div>
                 </div>
+                {{-- Same compact table as the Requests page (Request ID, user with role
+                     underneath); rendered, reviewed and kept current by the shared
+                     Requests script below. --}}
                 <div class="table-container admin-table-card">
-                    <table>
+                    <table class="requests-table-compact" style="width: 100%;">
                         <thead>
                             <tr>
-                                <th>User</th>
+                                <th>Request ID</th>
+                                <th class="col-user">User</th>
                                 <th>Equipment</th>
                                 <th>Date</th>
                                 <th>Status</th>
-                                <th class="action-column">Action</th>
+                                <th class="action-column" style="text-align: center;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="requestsTableBody">
@@ -199,6 +207,9 @@
             </div>
         </div>
 <!-- Success Toast Notification -->
+    {{-- Details / Reject modals shared with the Requests page --}}
+    @include('partials.requests.modals')
+
     <div class="toast-notification" id="toast">
         <div class="toast-content">
             <i class="fa-solid fa-circle-check toast-icon" id="toastIcon"></i>
@@ -233,8 +244,6 @@
         // reflected. `showNotification` comes from the shared admin shell.
         // ---------------------------------------------------------------------
         const URL_DATA = @json(route('admin.dashboard.data'));
-        const URL_REQUESTS = @json(route('admin.requests.update'));
-        const CSRF_TOKEN = @json(csrf_token());
         const REFRESH_MS = 30000;
 
         // Rendered by the server on first paint so the page never flashes empty
@@ -245,7 +254,7 @@
             dashboard = payload;
             renderStats(payload.stats || {});
             renderSummary(payload.summary || {});
-            renderRequests(payload.recentRequests || []);
+            // Recent Requests is rendered and refreshed by the shared Requests script
             renderOverdue(payload.overdue || []);
             renderLowStock(payload.lowStock || []);
         }
@@ -302,47 +311,6 @@
                     <div class="segment-fill pending" style="width: ${pct(summary.pending)}%;"></div>
                 `;
             }
-        }
-
-        // Recent Requests table (latest requests with their real status)
-        function renderRequests(rows) {
-            const tableBody = document.getElementById('requestsTableBody');
-            if (!tableBody) return;
-
-            tableBody.innerHTML = '';
-
-            if (!rows.length) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">
-                            <i class="fa-solid fa-inbox" style="color: var(--text-muted); font-size: 20px; margin-bottom: 8px; display: block;"></i>
-                            No recent requests found.
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            rows.forEach(req => {
-                const tr = document.createElement('tr');
-                tr.className = 'admin-table-row';
-
-                const actionCell = req.canAct
-                    ? `<div class="action-buttons">
-                           <button class="btn-approve" onclick="handleRequestAction(this, ${req.id}, 'Approved')">Approve</button>
-                           <button class="btn-reject" onclick="handleRequestAction(this, ${req.id}, 'Rejected')">Reject</button>
-                       </div>`
-                    : `<span style="color: var(--text-muted); font-size: 13px;">Reviewed</span>`;
-
-                tr.innerHTML = `
-                    <td>${escapeHTML(req.user)}</td>
-                    <td>${escapeHTML(req.equipment)}</td>
-                    <td>${escapeHTML(req.date)}</td>
-                    <td>${escapeHTML(req.status)}</td>
-                    <td class="action-cell">${actionCell}</td>
-                `;
-                tableBody.appendChild(tr);
-            });
         }
 
         // Overdue Alerts table
@@ -424,51 +392,6 @@
             );
         }
 
-        // Approve / Reject straight from the dashboard, then refresh every figure.
-        window.handleRequestAction = function (button, id, action) {
-            const row = button ? button.closest('.admin-table-row') : null;
-            if (row) row.style.opacity = '0.5';
-            if (button) button.disabled = true;
-
-            const payload = new FormData();
-            payload.append('request_id', id);
-            payload.append('status', action);
-            if (action === 'Rejected') {
-                // The endpoint requires a reason for rejections.
-                payload.append('reject_reason', 'Rejected from the admin dashboard.');
-            }
-
-            fetch(URL_REQUESTS, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': CSRF_TOKEN,
-                    'Accept': 'application/json'
-                },
-                body: payload
-            })
-                .then(res => res.json().then(data => ({ ok: res.ok, data })))
-                .then(({ ok, data }) => {
-                    if (ok && data.success) {
-                        showNotification(
-                            action === 'Approved' ? 'Approved' : 'Rejected',
-                            data.message || 'Request updated successfully.',
-                            action === 'Approved' ? 'success' : 'error'
-                        );
-                        refreshDashboard();
-                        return;
-                    }
-
-                    if (row) row.style.opacity = '1';
-                    if (button) button.disabled = false;
-                    showNotification('Update Failed', (data && data.message) || 'Unable to update the request.', 'error');
-                })
-                .catch(() => {
-                    if (row) row.style.opacity = '1';
-                    if (button) button.disabled = false;
-                    showNotification('System Error', 'An unexpected error occurred while updating the request.', 'error');
-                });
-        };
-
         // First paint from the server payload, then stay live: poll in the
         // background and refresh whenever the tab regains focus.
         applyDashboard(dashboard);
@@ -480,4 +403,13 @@
             }
         });
 </script>
+{{-- Recent Requests: the Requests table script in compact mode --}}
+@include('partials.requests.script', [
+    'party' => 'admin',
+    'dataUrl' => route('admin.requests.data'),
+    'updateUrl' => route('admin.requests.update'),
+    'limit' => $recentRequestsLimit,
+    'showRequestId' => true,
+    'combineUserRole' => true,
+])
 @endpush

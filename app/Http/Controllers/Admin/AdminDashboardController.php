@@ -8,6 +8,7 @@ use App\Models\BorrowTransaction;
 use App\Models\DepartmentAccount;
 use App\Models\Equipment;
 use App\Models\UserAccount;
+use App\Services\RequestTableRows;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -33,7 +34,24 @@ class AdminDashboardController extends Controller
 
     public function index(): View
     {
-        return view('admin.dashboard', ['dashboard' => $this->buildDashboard()]);
+        return view('admin.dashboard', [
+            'dashboard' => $this->buildDashboard(),
+            'dbRequests' => $this->reviewableRequests(),
+            'recentRequestsLimit' => self::RECENT_REQUESTS_LIMIT,
+        ]);
+    }
+
+    /**
+     * The requests the admin handles, in the shape the shared Requests table
+     * renders (same source as the Admin Requests page), so the Recent Requests
+     * table can show, approve and reject them the same way.
+     */
+    private function reviewableRequests(): array
+    {
+        return RequestTableRows::fetch(
+            BorrowRequest::query()->visibleToAdmin(),
+            fn (BorrowRequest $row) => $row->adminCanReview(),
+        );
     }
 
     /** JSON feed used to keep the dashboard current without a manual reload. */
