@@ -1239,3 +1239,18 @@
         max-width: 96px;
     }
 }
+
+/* Equipment name: one line, ending in "…" when it doesn't fit its column
+   (full name on hover and in the View modal), so a long name can't widen
+   the table or push the other columns around. */
+.monitoring-table td.col-equipment {
+    max-width: 0;
+    min-width: 150px;
+}
+
+.monitoring-table td.col-equipment .equipment-name-text {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

@@ -819,3 +819,18 @@ body {
 .admin-table-card .admin-report-table td:first-child {
     padding-left: 20px !important;
 }
+
+/* Report preview: the Equipment column keeps long names on one line, ending
+   in "…" (full name on hover), so they can't widen the table. */
+.admin-report-table td.col-equipment-truncate {
+    width: 20%;
+    max-width: 0;
+    min-width: 150px;
+}
+
+.admin-report-table .report-equipment-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

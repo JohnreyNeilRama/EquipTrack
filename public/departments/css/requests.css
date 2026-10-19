@@ -279,15 +279,32 @@
 }
 
 .dept-requests-table th:nth-child(2) {
-    width: 22%;
+    width: 18%;
 }
 
 .dept-requests-table th:nth-child(3) {
-    width: 30%;
+    width: 26%;
 }
 
 .dept-requests-table th:nth-child(6) {
-    width: 14%;
+    width: 12%;
+}
+
+/* The equipment name shortens with "…" instead of widening its column, so on
+   laptop screens the shares above leave room for the fixed-width Request ID,
+   Date and Status columns; wide screens can afford the larger shares. */
+@media (min-width: 1760px) {
+    .dept-requests-table th:nth-child(2) {
+        width: 22%;
+    }
+
+    .dept-requests-table th:nth-child(3) {
+        width: 30%;
+    }
+
+    .dept-requests-table th:nth-child(6) {
+        width: 14%;
+    }
 }
 
 .dept-requests-table td.action-cell {

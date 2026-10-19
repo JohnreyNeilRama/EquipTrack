@@ -109,9 +109,9 @@
                     <tr>
                         <th style="width: 12%;">Transaction ID</th>
                         <th style="width: 11%;">ID Number</th>
-                        <th class="col-user" style="width: 24%;">User</th>
+                        <th class="col-user" style="width: 21%;">User</th>
                         <th style="width: 11%;">Year Level / Attainment</th>
-                        <th style="width: 15%;">Equipment</th>
+                        <th style="width: 18%;">Equipment</th>
                         <th class="col-status" style="width: 15%;">Status</th>
                         <th class="col-action" style="width: 12%;">Action</th>
                     </tr>
@@ -322,7 +322,7 @@
                         <td>${escapeHTML(item.attainment)}</td>
                         <td>
                             <div class="equipment-meta-cell">
-                                <span class="equipment-name-title">${escapeHTML(item.equipment)}</span>
+                                <span class="equipment-name-title" title="${escapeHTML(item.equipment)}">${escapeHTML(item.equipment)}</span>
                                 <span class="equipment-category-sub">${escapeHTML(item.category)}</span>
                             </div>
                         </td>

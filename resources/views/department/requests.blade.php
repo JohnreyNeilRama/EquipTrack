@@ -113,5 +113,6 @@
     'showRequestId' => true,
     'combineUserRole' => true,
     'stackEquipmentTag' => true,
+    'truncateEquipment' => true,
 ])
 @endpush

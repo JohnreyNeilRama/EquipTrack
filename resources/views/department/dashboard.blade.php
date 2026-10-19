@@ -72,6 +72,41 @@
     .recent-requests-table td.col-date {
         white-space: nowrap;
     }
+    /* Column widths sized to their content (same as the Borrow Requests
+       table): Request ID and Date shrink to fit; User and Equipment share the
+       rest, Equipment getting the larger part. Status here can wrap onto two
+       lines, so it keeps a minimum width instead of shrinking (on screens
+       wide enough for the table to fit). Columns: 1 Request ID, 2 User,
+       3 Equipment, 4 Date, 5 Status, 6 Action. */
+    .recent-requests-table th:nth-child(1),
+    .recent-requests-table th:nth-child(4) {
+        width: 1%;
+    }
+    .recent-requests-table th:nth-child(2) {
+        width: 22%;
+    }
+    .recent-requests-table th:nth-child(3) {
+        width: 30%;
+    }
+    @media (min-width: 1100px) {
+        .recent-requests-table td:nth-child(5) {
+            min-width: 170px;
+        }
+    }
+    /* Overdue Alerts / Upcoming Returns: the equipment name stays on one line
+       and ends in "…" (full name on hover; the full list is on the
+       Monitoring page). */
+    td.col-alert-equipment {
+        width: 35%;
+        max-width: 0;
+        min-width: 150px;
+    }
+    .alert-equipment-name {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 </style>
 @endpush
 
@@ -213,7 +248,7 @@
                         @forelse ($dashboard['overdue'] ?? [] as $row)
                             <tr class="admin-table-row">
                                 <td>{{ $row['user'] }}</td>
-                                <td>{{ $row['equipment'] }}</td>
+                                <td class="col-alert-equipment"><span class="alert-equipment-name" title="{{ $row['equipment'] }}">{{ $row['equipment'] }}</span></td>
                                 <td>{{ $row['dueDate'] }}</td>
                                 <td><span class="days-late">{{ $row['daysLateText'] }}</span></td>
                             </tr>
@@ -249,7 +284,7 @@
                         @forelse ($dashboard['upcoming'] ?? [] as $row)
                             <tr class="admin-table-row">
                                 <td>{{ $row['user'] }}</td>
-                                <td>{{ $row['equipment'] }}</td>
+                                <td class="col-alert-equipment"><span class="alert-equipment-name" title="{{ $row['equipment'] }}">{{ $row['equipment'] }}</span></td>
                                 <td>{{ $row['dueDate'] }}</td>
                                 <td>
                                     @if ($row['statusType'] === 'today')
@@ -358,7 +393,7 @@
             tr.className = 'admin-table-row';
             tr.innerHTML = `
                 <td>${escapeHTML(row.user)}</td>
-                <td>${escapeHTML(row.equipment)}</td>
+                <td class="col-alert-equipment"><span class="alert-equipment-name" title="${escapeHTML(row.equipment)}">${escapeHTML(row.equipment)}</span></td>
                 <td>${escapeHTML(row.dueDate)}</td>
                 <td><span class="days-late">${escapeHTML(row.daysLateText)}</span></td>
             `;
@@ -398,7 +433,7 @@
 
             tr.innerHTML = `
                 <td>${escapeHTML(row.user)}</td>
-                <td>${escapeHTML(row.equipment)}</td>
+                <td class="col-alert-equipment"><span class="alert-equipment-name" title="${escapeHTML(row.equipment)}">${escapeHTML(row.equipment)}</span></td>
                 <td>${escapeHTML(row.dueDate)}</td>
                 <td>${daysBadge}</td>
             `;
@@ -454,5 +489,6 @@
     'showRequestId' => true,
     'combineUserRole' => true,
     'stackEquipmentTag' => true,
+    'truncateEquipment' => true,
 ])
 @endpush

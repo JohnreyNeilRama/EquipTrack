@@ -15,6 +15,9 @@
                       style) instead of in its own Role column (default: false)
       $stackEquipmentTag show the "Expensive" tag on its own line under the
                       equipment name instead of beside it (default: false)
+      $truncateEquipment keep the equipment name on one line, ending in "…"
+                      (full name on hover and in the details modal); needs
+                      $stackEquipmentTag (default: false)
 --}}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -33,6 +36,7 @@
         const SHOW_REQUEST_ID = @json($showRequestId ?? false);
         const COMBINE_USER_ROLE = @json($combineUserRole ?? false);
         const STACK_EQUIPMENT_TAG = @json($stackEquipmentTag ?? false);
+        const TRUNCATE_EQUIPMENT = STACK_EQUIPMENT_TAG && @json($truncateEquipment ?? false);
         const COLUMN_COUNT = (SHOW_REQUEST_ID ? 7 : 6) - (COMBINE_USER_ROLE ? 1 : 0);
         // The compact layouts give the User cell a class hook and the full
         // name as a tooltip, so the page can shorten long names with "…".
@@ -194,7 +198,9 @@
                         </div>
                     </td>
                     ${COMBINE_USER_ROLE ? '' : `<td>${escapeHTML(req.role)}</td>`}
-                    ${STACK_EQUIPMENT_TAG
+                    ${TRUNCATE_EQUIPMENT
+                        ? `<td class="col-equipment-truncate"><div class="equipment-stack"><span class="equipment-stack-name equipment-line"><span class="equipment-name-text" title="${escapeHTML(req.equipment)}">${escapeHTML(req.equipment)}</span>${qtyBadge}</span>${classTag}</div></td>`
+                        : STACK_EQUIPMENT_TAG
                         ? `<td><div class="equipment-stack"><span class="equipment-stack-name">${escapeHTML(req.equipment)}${qtyBadge}</span>${classTag}</div></td>`
                         : `<td>${escapeHTML(req.equipment)}${qtyBadge}${classTag}</td>`}
                     <td${TRUNCATE_USER ? ' class="col-date"' : ''}>${escapeHTML(req.date)}</td>

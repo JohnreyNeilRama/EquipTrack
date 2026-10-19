@@ -58,14 +58,21 @@
        text shorten instead of widening the table), with a floor so names stay
        readable when the table itself scrolls on small screens. */
     .returns-table .col-user {
-        width: 20%;
+        width: 22%;
         min-width: 120px;
         max-width: 0;
     }
     .returns-table .col-equipment {
-        width: 26%;
+        width: 30%;
         min-width: 140px;
         max-width: 0;
+    }
+    /* Return ID and Submitted hold short, one-line values, so they shrink to
+       fit (same column widths as the Borrow Requests table). Status,
+       Condition and Action keep their natural widths. */
+    .returns-table th:nth-child(1),
+    .returns-table th:nth-child(4) {
+        width: 1%;
     }
 
     /* Borrower name: one line */
@@ -76,17 +83,15 @@
         white-space: nowrap;
     }
 
-    /* Equipment cell: name (up to two lines), then the serial number and, only
+    /* Equipment cell: name (one line, ending in "…"), then the serial number and, only
        when more than one unit was borrowed, a "×N" marker. Department and
        quantity are in the review modal. */
     .returns-table .equipment-name {
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
+        display: block;
         overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         font-weight: 500;
-        overflow-wrap: anywhere;
     }
     .equipment-meta {
         display: flex;

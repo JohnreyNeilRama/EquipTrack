@@ -344,3 +344,67 @@
 .dark-theme .admin-table-row:hover td {
     background-color: rgba(96, 165, 250, 0.05) !important;
 }
+
+/* ------------------------------------------------------------------
+   Admin Requests table and the Admin Dashboard's Recent Requests table:
+   column widths sized to their content (same as the Department Borrow
+   Requests table). Request ID, Date and Status hold
+   short, one-line values, so they shrink to fit (width: 1%); User and
+   Equipment share the remaining space, with Equipment getting the larger
+   part. Action keeps room for Approve / Reject, which sit side by side on
+   wide screens and stack on laptop screens. Columns: 1 Request ID,
+   2 User, 3 Equipment, 4 Date, 5 Status, 6 Action.
+   ------------------------------------------------------------------ */
+.admin-requests-table th:nth-child(1),
+.admin-requests-table th:nth-child(4),
+.admin-requests-table th:nth-child(5) {
+    width: 1%;
+}
+
+.admin-requests-table th:nth-child(2) {
+    width: 18%;
+}
+
+.admin-requests-table th:nth-child(3) {
+    width: 26%;
+}
+
+.admin-requests-table th:nth-child(6) {
+    width: 12%;
+}
+
+/* The equipment name shortens with "…" instead of widening its column, so on
+   laptop screens the shares above leave room for the fixed-width Request ID,
+   Date and Status columns; wide screens can afford the larger shares. */
+@media (min-width: 1760px) {
+    .admin-requests-table th:nth-child(2) {
+        width: 22%;
+    }
+
+    .admin-requests-table th:nth-child(3) {
+        width: 30%;
+    }
+
+    .admin-requests-table th:nth-child(6) {
+        width: 14%;
+    }
+}
+
+.admin-requests-table td.action-cell {
+    min-width: 104px;
+}
+
+/* Admin Dashboard Overdue Alerts: the equipment name stays on one line and
+   ends in "…" (full name on hover; the full list is on Equipment Monitoring). */
+td.col-alert-equipment {
+    width: 35%;
+    max-width: 0;
+    min-width: 150px;
+}
+
+.alert-equipment-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

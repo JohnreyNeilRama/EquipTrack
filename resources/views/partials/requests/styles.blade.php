@@ -235,6 +235,30 @@
         margin-left: 0;
         line-height: 1.4;
     }
+    /* Optional ($truncateEquipment): the equipment name stays on one line and
+       ends in "…"; the quantity note beside it and the tag below stay whole.
+       The full name is in the hover tooltip and the details modal. */
+    td.col-equipment-truncate {
+        max-width: 0;
+        min-width: 150px;
+    }
+    .equipment-line {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+        min-width: 0;
+        max-width: 100%;
+    }
+    .equipment-line .equipment-name-text {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .equipment-line > span:not(.equipment-name-text) {
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
     .approval-parties {
         display: flex;
         flex-wrap: wrap;

@@ -104,7 +104,7 @@
                      underneath); rendered, reviewed and kept current by the shared
                      Requests script below. --}}
                 <div class="table-container admin-table-card">
-                    <table class="requests-table-compact" style="width: 100%;">
+                    <table class="requests-table-compact admin-requests-table" style="width: 100%;">
                         <thead>
                             <tr>
                                 <th>Request ID</th>
@@ -337,7 +337,7 @@
                 tr.className = 'admin-table-row';
                 tr.innerHTML = `
                     <td>${escapeHTML(item.user)}</td>
-                    <td>${escapeHTML(item.equipment)}</td>
+                    <td class="col-alert-equipment"><span class="alert-equipment-name" title="${escapeHTML(item.equipment)}">${escapeHTML(item.equipment)}</span></td>
                     <td>${escapeHTML(item.dueDate)}</td>
                     <td><span class="days-late">${escapeHTML(item.daysLate)}</span></td>
                 `;
@@ -412,5 +412,6 @@
     'showRequestId' => true,
     'combineUserRole' => true,
     'stackEquipmentTag' => true,
+    'truncateEquipment' => true,
 ])
 @endpush

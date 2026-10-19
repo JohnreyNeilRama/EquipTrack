@@ -354,7 +354,7 @@
                     });
 
                     tr.innerHTML = `
-                        <td class="col-equipment">${escapeHTML(item.equipment)}</td>
+                        <td class="col-equipment"><span class="equipment-name-text" title="${escapeHTML(item.equipment)}">${escapeHTML(item.equipment)}</span></td>
                         <td class="col-borrower">${escapeHTML(item.borrower)}</td>
                         <td class="col-role">${escapeHTML(item.role)}</td>
                         <td class="col-date">${escapeHTML(item.borrowDate)}</td>

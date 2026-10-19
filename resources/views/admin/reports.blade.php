@@ -570,6 +570,12 @@
         if (column.kind === 'num') {
             return '<td class="col-num">' + escapeHTML(text) + '</td>';
         }
+        // Equipment names stay on one line, ending in "…" (full name on hover).
+        // The printed report and CSV export always show the full name.
+        if (column.key === 'equipment') {
+            const name = index === 0 ? '<strong>' + escapeHTML(text) + '</strong>' : escapeHTML(text);
+            return '<td class="col-equipment-truncate"><span class="report-equipment-name" title="' + escapeHTML(text) + '">' + name + '</span></td>';
+        }
         return '<td>' + (index === 0 ? '<strong>' + escapeHTML(text) + '</strong>' : escapeHTML(text)) + '</td>';
     }
 

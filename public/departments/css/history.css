@@ -1134,3 +1134,17 @@
     letter-spacing: 0.5px;
     white-space: nowrap;
 }
+
+/* Equipment name: one line, ending in "…" when it doesn't fit (full name on
+   hover and in the details modal). The category below stays visible. */
+.history-table .equipment-meta-cell {
+    min-width: 0;
+}
+
+.history-table .equipment-name-title {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow-wrap: normal;
+}
