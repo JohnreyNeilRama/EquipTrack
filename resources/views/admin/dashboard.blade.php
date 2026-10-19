@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
 {{-- Recent Requests: same table, badges, buttons and details modal as the Requests page --}}
 <link rel="stylesheet" href="{{ asset('admin/css/adminequipment.css') }}">
-<link rel="stylesheet" href="{{ asset('admin/css/adminrequests.css') }}">
+<link rel="stylesheet" href="{{ asset('admin/css/adminrequests.css') }}?v={{ filemtime(public_path('admin/css/adminrequests.css')) }}">
 @include('partials.requests.styles')
 @endpush
 
@@ -104,7 +104,7 @@
                      underneath); rendered, reviewed and kept current by the shared
                      Requests script below. --}}
                 <div class="table-container admin-table-card">
-                    <table class="requests-table-compact admin-requests-table" style="width: 100%;">
+                    <table class="requests-table-compact admin-requests-table admin-requests-page-table" style="width: 100%;">
                         <thead>
                             <tr>
                                 <th>Request ID</th>

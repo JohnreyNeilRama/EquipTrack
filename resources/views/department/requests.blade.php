@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="{{ asset('admin/css/adminequipment.css') }}">
 <link rel="stylesheet" href="{{ asset('admin/css/adminrequests.css') }}">
 @include('partials.requests.styles')
-<link rel="stylesheet" href="{{ asset('departments/css/requests.css') }}">
+<link rel="stylesheet" href="{{ asset('departments/css/requests.css') }}?v={{ filemtime(public_path('departments/css/requests.css')) }}">
 @endpush
 
 @section('content')

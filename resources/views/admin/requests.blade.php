@@ -5,7 +5,7 @@
 @push('css')
 <link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
 <link rel="stylesheet" href="{{ asset('admin/css/adminequipment.css') }}">
-<link rel="stylesheet" href="{{ asset('admin/css/adminrequests.css') }}">
+<link rel="stylesheet" href="{{ asset('admin/css/adminrequests.css') }}?v={{ filemtime(public_path('admin/css/adminrequests.css')) }}">
 @include('partials.requests.styles')
 @endpush
 
@@ -18,7 +18,7 @@
             <p>Review, approve, or reject student and faculty borrowing requests.</p>
         </div>
 
-        @include('partials.requests.table', ['showRequestId' => true, 'combineUserRole' => true, 'tableClass' => 'requests-table-compact admin-requests-table'])
+        @include('partials.requests.table', ['showRequestId' => true, 'combineUserRole' => true, 'tableClass' => 'requests-table-compact admin-requests-table admin-requests-page-table'])
     </div>
 
     @include('partials.requests.modals')

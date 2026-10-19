@@ -179,7 +179,7 @@ class AdminDashboardTest extends TestCase
 
         $response->assertOk()
             ->assertViewHas('recentRequestsLimit', 5)
-            ->assertSee('class="requests-table-compact admin-requests-table"', false)
+            ->assertSee('class="requests-table-compact admin-requests-table admin-requests-page-table"', false)
             ->assertSeeInOrder(['<th>Request ID</th>', '<th class="col-user">User</th>', '<th>Equipment</th>', '<th>Date</th>', '<th>Status</th>', 'Action</th>'], false)
             ->assertSee('id="detailsModal"', false)
             ->assertSee('id="rejectReasonModal"', false);

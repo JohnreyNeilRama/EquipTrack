@@ -408,3 +408,37 @@ td.col-alert-equipment {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* ------------------------------------------------------------------
+   Admin Requests page and Admin Dashboard Recent Requests table: Status and
+   Action laid out like the Department Dashboard's Recent Borrow Requests
+   table.
+   ------------------------------------------------------------------ */
+
+/* Status: the badge sits on top and, for Expensive requests, "Admin: …" and
+   "Department: …" each sit on their own line below it (4px apart) instead of
+   one long line. The 170px minimum width applies from 1400px up: below that
+   the Admin layout (wider sidebar, narrower dashboard card) has no room to
+   spare, and the stacked labels fit without it. */
+.requests-table-compact.admin-requests-page-table th:nth-child(5),
+.requests-table-compact.admin-requests-page-table th:nth-child(6) {
+    width: auto;
+}
+
+.requests-table-compact.admin-requests-page-table .approval-parties {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+@media (min-width: 1400px) {
+    .requests-table-compact.admin-requests-page-table td:nth-child(5) {
+        min-width: 170px;
+    }
+}
+
+/* Action: Approve and Reject sit side by side (View is centered), and the
+   column takes the width they need instead of a fixed share. */
+.requests-table-compact.admin-requests-page-table .action-buttons {
+    flex-wrap: nowrap;
+}

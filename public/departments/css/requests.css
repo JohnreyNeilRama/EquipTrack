@@ -264,18 +264,38 @@
 }
 
 /* ------------------------------------------------------------------
-   Borrow Requests table: column widths sized to their content.
-   Request ID, Date and Status hold short, one-line values, so they shrink
-   to fit (width: 1%); User and Equipment share the remaining space, with
-   Equipment getting the larger part for longer equipment names. Action
-   keeps room for Approve / Reject, which sit side by side on wide screens
-   and stack on laptop screens. Columns: 1 Request ID, 2 User,
-   3 Equipment, 4 Date, 5 Status, 6 Action.
+   Borrow Requests table: column widths sized to their content, with the
+   Status and Action columns laid out like the Department Dashboard's Recent
+   Borrow Requests table. Request ID and Date hold short, one-line values, so
+   they shrink to fit (width: 1%); User and Equipment share the remaining
+   space, with Equipment getting the larger part for longer equipment names.
+   Columns: 1 Request ID, 2 User, 3 Equipment, 4 Date, 5 Status, 6 Action.
    ------------------------------------------------------------------ */
 .dept-requests-table th:nth-child(1),
-.dept-requests-table th:nth-child(4),
-.dept-requests-table th:nth-child(5) {
+.dept-requests-table th:nth-child(4) {
     width: 1%;
+}
+
+/* Status: the badge sits on top and, for Expensive requests, "Admin: …" and
+   "Department: …" each sit on their own line below it (4px apart) instead of
+   one long line; the column keeps a minimum width (on screens wide enough for
+   the table to fit) so each label stays whole. */
+.requests-table-compact.dept-requests-table .approval-parties {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+@media (min-width: 1100px) {
+    .dept-requests-table td:nth-child(5) {
+        min-width: 170px;
+    }
+}
+
+/* Action: Approve and Reject sit side by side (View is centered), and the
+   column takes the width they need instead of a fixed share. */
+.requests-table-compact.dept-requests-table .action-buttons {
+    flex-wrap: nowrap;
 }
 
 .dept-requests-table th:nth-child(2) {
@@ -286,13 +306,9 @@
     width: 26%;
 }
 
-.dept-requests-table th:nth-child(6) {
-    width: 12%;
-}
-
 /* The equipment name shortens with "…" instead of widening its column, so on
    laptop screens the shares above leave room for the fixed-width Request ID,
-   Date and Status columns; wide screens can afford the larger shares. */
+   Date, Status and Action columns; wide screens can afford the larger shares. */
 @media (min-width: 1760px) {
     .dept-requests-table th:nth-child(2) {
         width: 22%;
@@ -301,12 +317,4 @@
     .dept-requests-table th:nth-child(3) {
         width: 30%;
     }
-
-    .dept-requests-table th:nth-child(6) {
-        width: 14%;
-    }
-}
-
-.dept-requests-table td.action-cell {
-    min-width: 104px;
 }
