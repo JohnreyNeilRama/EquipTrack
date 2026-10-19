@@ -262,3 +262,34 @@
         max-width: 96px;
     }
 }
+
+/* ------------------------------------------------------------------
+   Borrow Requests table: column widths sized to their content.
+   Request ID, Date and Status hold short, one-line values, so they shrink
+   to fit (width: 1%); User and Equipment share the remaining space, with
+   Equipment getting the larger part for longer equipment names. Action
+   keeps room for Approve / Reject, which sit side by side on wide screens
+   and stack on laptop screens. Columns: 1 Request ID, 2 User,
+   3 Equipment, 4 Date, 5 Status, 6 Action.
+   ------------------------------------------------------------------ */
+.dept-requests-table th:nth-child(1),
+.dept-requests-table th:nth-child(4),
+.dept-requests-table th:nth-child(5) {
+    width: 1%;
+}
+
+.dept-requests-table th:nth-child(2) {
+    width: 22%;
+}
+
+.dept-requests-table th:nth-child(3) {
+    width: 30%;
+}
+
+.dept-requests-table th:nth-child(6) {
+    width: 14%;
+}
+
+.dept-requests-table td.action-cell {
+    min-width: 104px;
+}

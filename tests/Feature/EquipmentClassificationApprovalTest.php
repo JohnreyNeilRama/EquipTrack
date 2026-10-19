@@ -350,7 +350,8 @@ class EquipmentClassificationApprovalTest extends TestCase
             $this->actingAs($account, $guard)->get(route($route))
                 ->assertOk()
                 ->assertSee('class="table-container card admin-table-card"', false)
-                ->assertSee('class="requests-table-compact"', false)
+                // The Department page adds its own column-width class after it.
+                ->assertSee('class="requests-table-compact', false)
                 ->assertSeeInOrder(['<th>Request ID</th>', '<th class="col-user">User</th>', '<th>Equipment</th>', '<th>Date</th>', '<th>Status</th>', 'Action</th>'], false)
                 ->assertDontSee('<th>Role</th>', false)
                 ->assertSee('const COMBINE_USER_ROLE = true', false)

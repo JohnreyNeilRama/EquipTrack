@@ -31,5 +31,6 @@
     'updateUrl' => route('admin.requests.update'),
     'showRequestId' => true,
     'combineUserRole' => true,
+    'stackEquipmentTag' => true,
 ])
 @endpush

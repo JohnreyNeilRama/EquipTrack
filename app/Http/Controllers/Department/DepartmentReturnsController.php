@@ -234,6 +234,8 @@ class DepartmentReturnsController extends Controller
                 // The photo the admin uploaded when adding the equipment (null: none).
                 'equipmentImage' => $equipment->imageUrl(),
                 'quantity' => max(1, (int) ($borrow->quantity ?? 1)),
+                // Shows the "Expensive" tag in the table (display only).
+                'requiresBothApprovals' => $borrow->requiresDualApproval(),
                 'borrowDate' => $fmtDate($transaction->borrow_date),
                 'dueDate' => $fmtDate($transaction->due_date),
                 'submitted' => $fmtDate($transaction->return_submitted_at),

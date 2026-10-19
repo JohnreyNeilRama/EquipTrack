@@ -411,5 +411,6 @@
     'limit' => $recentRequestsLimit,
     'showRequestId' => true,
     'combineUserRole' => true,
+    'stackEquipmentTag' => true,
 ])
 @endpush

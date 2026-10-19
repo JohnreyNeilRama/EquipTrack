@@ -104,6 +104,18 @@
         color: var(--text-muted);
         font-variant-numeric: tabular-nums;
     }
+    /* Expensive tag sits in the line under the name, after the serial number;
+       when there is not enough room it moves to its own line instead of
+       shortening the serial number. */
+    .equipment-meta:has(.class-tag-expensive) {
+        flex-wrap: wrap;
+        row-gap: 4px;
+    }
+    .equipment-meta .class-tag-expensive {
+        flex-shrink: 0;
+        margin-left: 0;
+        line-height: 1.4;
+    }
     .equipment-qty {
         flex-shrink: 0;
         padding: 0 6px;
@@ -1070,6 +1082,7 @@
                         <span class="equipment-meta">
                             <span class="equipment-id" title="${escapeHTML(r.equipmentId)}">${escapeHTML(r.equipmentId)}</span>
                             ${Number(r.quantity) > 1 ? `<span class="equipment-qty" title="Quantity borrowed">×${escapeHTML(r.quantity)}</span>` : ''}
+                            ${r.requiresBothApprovals ? '<span class="class-tag-expensive">Expensive</span>' : ''}
                         </span>
                     </td>
                     <td class="col-submitted">${escapeHTML(r.submitted)}</td>

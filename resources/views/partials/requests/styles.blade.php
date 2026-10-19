@@ -223,6 +223,18 @@
         background-color: rgba(139, 92, 246, 0.18);
         color: #c4b5fd;
     }
+    /* Optional ($stackEquipmentTag): equipment name on top, the Expensive tag
+       on its own line underneath (like the role under the user's name). */
+    .equipment-stack {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    .equipment-stack .class-tag-expensive {
+        margin-left: 0;
+        line-height: 1.4;
+    }
     .approval-parties {
         display: flex;
         flex-wrap: wrap;
