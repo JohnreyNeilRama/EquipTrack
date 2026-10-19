@@ -366,6 +366,7 @@
             document.getElementById('modalBorrowDate').value = req.borrowDate;
             document.getElementById('modalDueDate').value = req.dueDate;
             document.getElementById('modalPurpose').value = req.purpose;
+            document.getElementById('modalInstructor').value = req.instructor || 'N/A';
             document.getElementById('modalNotes').value = req.notes || 'None';
 
             const reasonGroup = document.getElementById('modalReasonGroup');

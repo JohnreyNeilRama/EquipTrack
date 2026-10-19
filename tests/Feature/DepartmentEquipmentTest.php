@@ -352,6 +352,7 @@ class DepartmentEquipmentTest extends TestCase
             'borrow_date' => now()->toDateString(),
             'return_date' => now()->addDays(3)->toDateString(),
             'purpose' => 'Research',
+            'instructor_name' => 'Prof. Santos',
             'notes' => '',
         ])->assertOk();
 

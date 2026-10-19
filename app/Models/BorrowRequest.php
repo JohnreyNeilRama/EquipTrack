@@ -20,6 +20,7 @@ class BorrowRequest extends Model
         'quantity',
         'equipment_classification',
         'purpose',
+        'instructor_name',
         'notes',
         'date_needed',
         'return_date',

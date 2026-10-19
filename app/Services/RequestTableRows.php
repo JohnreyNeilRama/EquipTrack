@@ -60,6 +60,7 @@ class RequestTableRows
             'borrowDate' => $fmt($bDateRaw),
             'dueDate' => $fmt($dDateRaw),
             'purpose' => $row->purpose ?: 'N/A',
+            'instructor' => $row->instructor_name ?: 'N/A',
             'notes' => $row->notes ?: 'None',
             'status' => ucfirst($row->overall_status ?: 'Pending'),
             'adminStatus' => ucfirst($row->admin_status ?: 'Pending'),

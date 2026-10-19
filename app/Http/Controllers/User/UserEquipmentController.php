@@ -28,7 +28,11 @@ class UserEquipmentController extends Controller
             $categoryCounts[$cName] = ($categoryCounts[$cName] ?? 0) + 1;
         }
 
-        return view('user.equipment', compact('dbCategories', 'dbEquipment', 'categoryCounts'));
+        // Faculty members are the instructors themselves, so their form has no
+        // Instructor Name field (see store()).
+        $askInstructor = auth('user')->user()->role !== 'Faculty';
+
+        return view('user.equipment', compact('dbCategories', 'dbEquipment', 'categoryCounts', 'askInstructor'));
     }
 
     /**
@@ -37,19 +41,28 @@ class UserEquipmentController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        // Students name their instructor; faculty members don't (they are the
+        // instructors), so for them the field is neither required nor saved.
+        $askInstructor = auth('user')->user()->role !== 'Faculty';
+
         $data = $request->validate([
             'equipment_id' => ['required', 'integer', 'min:1'],
             'borrow_date' => ['required', 'date'],
             'return_date' => ['required', 'date', 'after_or_equal:borrow_date'],
             'purpose' => ['required', 'string', 'max:255'],
+            'instructor_name' => [$askInstructor ? 'required' : 'nullable', 'string', 'max:150'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ], [
             'return_date.after_or_equal' => 'Return date cannot be earlier than borrow date.',
+            'instructor_name.required' => "Please enter your instructor's name.",
+            'instructor_name.max' => "The instructor's name may not be longer than 150 characters.",
         ]);
 
         $userId = auth('user')->user()->user_id;
 
-        $result = DB::transaction(function () use ($request, $data, $userId) {
+        $instructorName = $askInstructor ? trim($data['instructor_name']) : null;
+
+        $result = DB::transaction(function () use ($request, $data, $userId, $instructorName) {
             $equipment = Equipment::where('equipment_id', $data['equipment_id'])
                 ->lockForUpdate()
                 ->first();
@@ -72,6 +85,7 @@ class UserEquipmentController extends Controller
                 // request needs one approval or both the admin's and the department's.
                 'equipment_classification' => $classification,
                 'purpose' => $data['purpose'],
+                'instructor_name' => $instructorName,
                 'notes' => $data['notes'] ?? null,
                 'date_needed' => $data['borrow_date'],
                 'borrow_date' => $data['borrow_date'],

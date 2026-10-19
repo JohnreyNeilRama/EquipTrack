@@ -63,11 +63,15 @@
                     </div>
                 </div>
 
-                {{-- Purpose & Notes Section --}}
+                {{-- Purpose, Instructor & Notes Section --}}
                 <div class="detail-text-grid">
                     <div class="detail-form-group">
                         <label class="detail-form-label">Purpose of Borrowing</label>
                         <textarea id="modalPurpose" class="detail-form-control textarea-control" rows="3" readonly></textarea>
+                    </div>
+                    <div class="detail-form-group">
+                        <label class="detail-form-label">Instructor Name</label>
+                        <input type="text" id="modalInstructor" class="detail-form-control" readonly>
                     </div>
                     <div class="detail-form-group">
                         <label class="detail-form-label">Additional Notes</label>

@@ -97,6 +97,7 @@ class ReturnConfirmationTest extends TestCase
             'borrow_date' => now()->toDateString(),
             'return_date' => now()->addDays(3)->toDateString(),
             'purpose' => 'Thesis demo',
+            'instructor_name' => 'Prof. Santos',
         ])->assertOk()->json('request_id');
 
         $this->actingAs($this->deptAccount, 'dept')->postJson(route('department.requests.update'), [

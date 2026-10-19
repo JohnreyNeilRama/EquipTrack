@@ -750,3 +750,9 @@
 .dark-theme .dash-refresh-error {
     background: rgba(245, 158, 11, 0.12);
 }
+
+/* Dashboard tables have fewer columns, so the equipment column (one-line
+   name, see usertable.css) takes half of the width. */
+.dash-table-section .requests-table-card td.equipment-col {
+    width: 50%;
+}

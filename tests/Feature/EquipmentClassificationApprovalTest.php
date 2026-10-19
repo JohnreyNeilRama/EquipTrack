@@ -136,6 +136,7 @@ class EquipmentClassificationApprovalTest extends TestCase
             'borrow_date' => now()->toDateString(),
             'return_date' => now()->addDays(3)->toDateString(),
             'purpose' => 'Thesis demo',
+            'instructor_name' => 'Prof. Santos',
         ]);
 
         $response->assertOk()->assertJson(['success' => true]);

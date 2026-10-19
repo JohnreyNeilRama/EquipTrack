@@ -72,6 +72,7 @@
                         data-due-date="{{ $dDateFormatted }}"
                         data-status="{{ $status }}"
                         data-purpose="{{ $req->purpose }}"
+                        data-instructor="{{ $req->instructor_name ?: 'N/A' }}"
                         data-notes="{{ $req->notes ?: 'None' }}"
                         data-img="{{ $imgUrl }}"
                         data-reject-reason="{{ $req->reject_reason }}"
@@ -83,7 +84,7 @@
                             <div class="eq-cell" style="display: flex; align-items: center; gap: 12px;">
                                 <img src="{{ $imgUrl }}" alt="{{ $eqName }}" class="eq-thumb" style="width: 42px; height: 42px; border-radius: 8px; object-fit: cover; background: #fff;" onerror="this.onerror=null; this.src='{{ asset('images/EquipTrack_logo.png') }}';">
                                 <div class="eq-info" style="display: flex; flex-direction: column;">
-                                    <span class="eq-title" style="font-weight: 600; color: var(--text-main);">{{ $eqName }}</span>
+                                    <span class="eq-title" style="font-weight: 600; color: var(--text-main);" title="{{ $eqName }}">{{ $eqName }}</span>
                                     <span class="eq-sub" style="font-size: 12px; color: var(--text-muted);">{{ $eqCat }}</span>
                                 </div>
                             </div>
@@ -179,11 +180,15 @@
                     </div>
                 </div>
 
-                {{-- Lower Section: Purpose & Notes --}}
+                {{-- Lower Section: Purpose, Instructor & Notes --}}
                 <div class="detail-lower-section">
                     <div class="detail-form-group">
                         <label class="detail-form-label">Borrowing Purpose</label>
                         <textarea id="detailPurpose" class="detail-form-control textarea-control" readonly rows="2"></textarea>
+                    </div>
+                    <div class="detail-form-group">
+                        <label class="detail-form-label">Instructor Name</label>
+                        <input type="text" id="detailInstructor" class="detail-form-control" readonly>
                     </div>
                     <div class="detail-form-group">
                         <label class="detail-form-label">Additional Notes</label>
@@ -309,6 +314,7 @@
         const dueDate = row.getAttribute('data-due-date');
         const status = row.getAttribute('data-status');
         const purpose = row.getAttribute('data-purpose');
+        const instructor = row.getAttribute('data-instructor') || 'N/A';
         const notes = row.getAttribute('data-notes') || 'N/A';
         const imgUrl = row.getAttribute('data-img');
         const rejectReason = row.getAttribute('data-reject-reason');
@@ -319,6 +325,7 @@
         document.getElementById('detailBorrowDate').value = borrowDate;
         document.getElementById('detailDueDate').value = dueDate;
         document.getElementById('detailPurpose').value = purpose;
+        document.getElementById('detailInstructor').value = instructor;
         document.getElementById('detailNotes').value = notes;
 
         const imgElement = document.getElementById('detailEqImg');

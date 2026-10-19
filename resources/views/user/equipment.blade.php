@@ -175,7 +175,7 @@
                         </div>
                     </div>
 
-                    {{-- Lower section: Purpose and Notes --}}
+                    {{-- Lower section: Purpose, Instructor Name and Notes --}}
                     <div class="form-lower-section">
                         <div class="form-horizontal-group align-start">
                             <label class="flat-label">Purpose:</label>
@@ -190,6 +190,14 @@
                                 </select>
                             </div>
                         </div>
+
+                        {{-- Students only: faculty members are the instructors themselves --}}
+                        @if ($askInstructor)
+                        <div class="form-horizontal-group">
+                            <label class="flat-label" for="borrowInstructor">Instructor Name:</label>
+                            <input type="text" id="borrowInstructor" class="flat-control" maxlength="150" autocomplete="off" placeholder="Enter your instructor's name" required>
+                        </div>
+                        @endif
 
                         <div class="form-horizontal-group align-start">
                             <label class="flat-label">Notes:</label>
@@ -359,6 +367,9 @@
                 const borrowDate = borrowDateInput ? borrowDateInput.value : '';
                 const returnDate = returnDateInput ? returnDateInput.value : '';
                 const purpose    = document.getElementById('borrowPurpose').value;
+                // Only students have this field (faculty members are the instructors)
+                const instructorInput = document.getElementById('borrowInstructor');
+                const instructor = instructorInput ? instructorInput.value.trim() : '';
                 const notes      = document.getElementById('borrowNotes').value;
                 const submitBtn  = borrowForm.querySelector('.btn-submit-request');
 
@@ -382,12 +393,18 @@
                     return;
                 }
 
+                if (instructorInput && !instructor) {
+                    alert("Please enter your instructor's name.");
+                    return;
+                }
+
                 const formData = new FormData();
                 formData.append('_token', CSRF_TOKEN);
                 formData.append('equipment_id', eqId);
                 formData.append('borrow_date', borrowDate);
                 formData.append('return_date', returnDate);
                 formData.append('purpose', purpose);
+                if (instructorInput) formData.append('instructor_name', instructor);
                 formData.append('notes', notes);
 
                 if (submitBtn) {

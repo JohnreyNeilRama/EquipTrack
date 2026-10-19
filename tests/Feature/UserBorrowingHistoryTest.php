@@ -98,6 +98,7 @@ class UserBorrowingHistoryTest extends TestCase
             'borrow_date' => now()->toDateString(),
             'return_date' => now()->addDays(3)->toDateString(),
             'purpose' => $purpose,
+            'instructor_name' => 'Prof. Santos',
             'notes' => $notes,
         ]);
 

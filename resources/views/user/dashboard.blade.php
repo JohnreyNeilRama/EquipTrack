@@ -116,7 +116,7 @@
                                         <div class="eq-cell" style="display: flex; align-items: center; gap: 12px;">
                                             <img src="{{ $row['image'] }}" alt="{{ $row['equipment'] }}" class="eq-thumb" style="width: 42px; height: 42px; border-radius: 8px; object-fit: cover; background: #fff;" onerror="this.onerror=null; this.src='{{ asset('images/EquipTrack_logo.png') }}';">
                                             <div class="eq-info" style="display: flex; flex-direction: column;">
-                                                <span class="eq-title" style="font-weight: 600; color: var(--text-main);">{{ $row['equipment'] }}</span>
+                                                <span class="eq-title" style="font-weight: 600; color: var(--text-main);" title="{{ $row['equipment'] }}">{{ $row['equipment'] }}</span>
                                                 <span class="eq-sub" style="font-size: 12px; color: var(--text-muted);">{{ $row['category'] }}</span>
                                             </div>
                                         </div>
@@ -165,7 +165,7 @@
                                         <div class="eq-cell" style="display: flex; align-items: center; gap: 12px;">
                                             <img src="{{ $row['image'] }}" alt="{{ $row['equipment'] }}" class="eq-thumb" style="width: 42px; height: 42px; border-radius: 8px; object-fit: cover; background: #fff;" onerror="this.onerror=null; this.src='{{ asset('images/EquipTrack_logo.png') }}';">
                                             <div class="eq-info" style="display: flex; flex-direction: column;">
-                                                <span class="eq-title" style="font-weight: 600; color: var(--text-main);">{{ $row['equipment'] }}</span>
+                                                <span class="eq-title" style="font-weight: 600; color: var(--text-main);" title="{{ $row['equipment'] }}">{{ $row['equipment'] }}</span>
                                                 <span class="eq-sub" style="font-size: 12px; color: var(--text-muted);">{{ $row['category'] }}</span>
                                             </div>
                                         </div>
@@ -325,7 +325,7 @@
                 + ' style="width: 42px; height: 42px; border-radius: 8px; object-fit: cover; background: #fff;"'
                 + ' onerror="this.onerror=null; this.src=\'' + escapeHTML(FALLBACK_IMG) + '\';">'
                 + '<div class="eq-info" style="display: flex; flex-direction: column;">'
-                + '<span class="eq-title" style="font-weight: 600; color: var(--text-main);">' + escapeHTML(row.equipment) + '</span>'
+                + '<span class="eq-title" style="font-weight: 600; color: var(--text-main);" title="' + escapeHTML(row.equipment) + '">' + escapeHTML(row.equipment) + '</span>'
                 + '<span class="eq-sub" style="font-size: 12px; color: var(--text-muted);">' + escapeHTML(row.category || 'General') + '</span>'
                 + '</div></div></td>';
         }
