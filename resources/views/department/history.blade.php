@@ -109,8 +109,7 @@
                     <tr>
                         <th style="width: 12%;">Transaction ID</th>
                         <th style="width: 11%;">ID Number</th>
-                        <th style="width: 13%;">Name</th>
-                        <th style="width: 11%;">User Type</th>
+                        <th class="col-user" style="width: 24%;">User</th>
                         <th style="width: 11%;">Year Level / Attainment</th>
                         <th style="width: 15%;">Equipment</th>
                         <th class="col-status" style="width: 15%;">Status</th>
@@ -314,8 +313,12 @@
                     tr.innerHTML = `
                         <td class="col-txnid">${escapeHTML(item.txnid)}</td>
                         <td class="col-idnum">${escapeHTML(item.idnumber)}</td>
-                        <td class="col-name" title="${escapeHTML(item.name)}">${escapeHTML(item.name)}</td>
-                        <td><span class="type-badge ${isFaculty ? 'type-faculty' : 'type-student'}">${isFaculty ? '<i class="fa-solid fa-chalkboard-user"></i> Faculty' : '<i class="fa-solid fa-user-graduate"></i> Student'}</span></td>
+                        <td class="col-user">
+                            <div class="requester-info">
+                                <span class="requester-name" title="${escapeHTML(item.name)}">${escapeHTML(item.name)}</span>
+                                <span class="requester-role">${isFaculty ? 'Faculty' : 'Student'}</span>
+                            </div>
+                        </td>
                         <td>${escapeHTML(item.attainment)}</td>
                         <td>
                             <div class="equipment-meta-cell">

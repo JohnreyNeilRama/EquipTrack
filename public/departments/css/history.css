@@ -1101,3 +1101,36 @@
         max-width: 96px;
     }
 }
+
+/* User column: name on top, user type below (same layout as the User column
+   in Return Confirmation). A long name is cut off with an ellipsis on one line;
+   the full name shows in a hover tooltip and in the details modal. */
+.history-table td.col-user {
+    overflow: hidden;
+}
+
+.history-table .requester-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.history-table .requester-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.history-table .requester-role {
+    font-size: var(--fs-badge);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
