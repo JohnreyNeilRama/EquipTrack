@@ -99,15 +99,26 @@ class DepartmentMonitoringController extends Controller
                     && Carbon::parse($transaction->due_date)->startOfDay()->lt(now()->startOfDay()))
                     || $transaction->status === 'Overdue';
 
+                // Whole days past the due date (overdue) or left until it (shown
+                // as "Due today" / "Due tomorrow" in the table). Display only.
+                $daysFromDue = $transaction->due_date
+                    ? (int) now()->startOfDay()->diffInDays(Carbon::parse($transaction->due_date)->startOfDay(), false)
+                    : null;
+
                 $loanRows[] = [
                     'equipment' => $equipment->name,
                     'category' => $category,
+                    'serial' => $equipment->serial_number ?: '',
                     'borrower' => $user->fullName() ?: $user->email,
                     'id_number' => $idNumber,
                     'role' => ucfirst($user->role),
+                    // Their own profile picture (null: the View window draws initials).
+                    'avatar' => $this->profileImageUrl($user->profile_image),
                     'status' => $isOverdue ? 'Overdue' : 'Borrowed',
                     'borrowDate' => $fmt($transaction->borrow_date),
                     'returnDate' => $fmt($transaction->due_date),
+                    'daysOverdue' => $daysFromDue !== null && $daysFromDue < 0 ? -$daysFromDue : 0,
+                    'daysUntilDue' => $daysFromDue !== null && $daysFromDue >= 0 ? $daysFromDue : null,
                     'img' => $img,
                 ];
             }
@@ -121,12 +132,16 @@ class DepartmentMonitoringController extends Controller
             $rows[] = [
                 'equipment' => $equipment->name,
                 'category' => $category,
+                'serial' => $equipment->serial_number ?: '',
                 'borrower' => '—',
                 'id_number' => '—',
                 'role' => '—',
+                'avatar' => null,
                 'status' => $equipment->status,
                 'borrowDate' => '—',
                 'returnDate' => '—',
+                'daysOverdue' => 0,
+                'daysUntilDue' => null,
                 'img' => $img,
             ];
         }
@@ -138,5 +153,17 @@ class DepartmentMonitoringController extends Controller
         unset($row);
 
         return $rows;
+    }
+
+    /** Stored profile picture path or URL → a URL the page can load (null when there is none). */
+    private function profileImageUrl(?string $value): ?string
+    {
+        $raw = trim((string) $value);
+
+        if ($raw === '') {
+            return null;
+        }
+
+        return preg_match('/^(https?:\/\/|data:|\/storage\/)/i', $raw) ? $raw : asset(ltrim($raw, '/'));
     }
 }

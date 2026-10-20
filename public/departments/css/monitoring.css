@@ -313,7 +313,7 @@
     transition: background-color 0.2s ease;
 }
 
-/* View, plus the overdue-notice bell when the loan is overdue */
+/* Row actions (View) */
 .monitoring-actions {
     display: flex;
     align-items: center;
@@ -420,34 +420,12 @@
     color: #385585;
 }
 
-/* Overdue Bell Alert Action Button */
-.btn-action-alert {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background-color: #fef3c7;
-    color: #d97706;
-    border: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--fs-body);
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.btn-action-alert:hover {
-    background-color: #fde68a;
-    transform: scale(1.08);
-}
-
 /* --------------------------------------------------------------------------
-   Monitoring table: Status badges, the View button and the overdue-notice
-   bell in light and dark mode. Same colour pairs as the Department Users,
+   Monitoring table: Status badges and the View button in light and dark
+   mode. Same colour pairs as the Department Users,
    Borrowing History and Return Confirmation tables, so the text stays
    readable on either background. The View button also takes the Return
-   Confirmation size and shape (32px tall, 6px × 14px padding, 6px corners);
-   the bell matches its 32px height so the two line up.
+   Confirmation size and shape (32px tall, 6px × 14px padding, 6px corners).
    -------------------------------------------------------------------------- */
 .monitoring-table .status-badge.available {
     background-color: #d1fae5;
@@ -519,8 +497,7 @@
     color: #ffffff;
 }
 
-.monitoring-table .btn-action-view:focus-visible,
-.monitoring-table .btn-action-alert:focus-visible {
+.monitoring-table .btn-action-view:focus-visible {
     outline: 2px solid #385585;
     outline-offset: 2px;
 }
@@ -537,24 +514,7 @@
     color: #ffffff;
 }
 
-.monitoring-table .btn-action-alert {
-    width: 32px;
-    height: 32px;
-    font-size: var(--fs-label);
-    color: #b45309;
-}
-
-.dark-theme .monitoring-table .btn-action-alert {
-    background-color: rgba(245, 158, 11, 0.15);
-    color: #fbbf24;
-}
-
-.dark-theme .monitoring-table .btn-action-alert:hover {
-    background-color: rgba(245, 158, 11, 0.28);
-}
-
-.dark-theme .monitoring-table .btn-action-view:focus-visible,
-.dark-theme .monitoring-table .btn-action-alert:focus-visible {
+.dark-theme .monitoring-table .btn-action-view:focus-visible {
     outline-color: #60a5fa;
 }
 
@@ -649,32 +609,6 @@
 .dark-theme .page-btn.active:hover {
     background-color: #1d4ed8;
     border-color: #1d4ed8;
-}
-
-/* Toast Notifications */
-.toast-notification {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    padding: 14px 22px;
-    border-radius: 12px;
-    background-color: #1e293b;
-    color: #ffffff;
-    font-size: var(--fs-body);
-    font-weight: 600;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    z-index: 10000;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.toast-notification.show {
-    opacity: 1;
-    transform: translateY(0);
 }
 
 /* Modal Overlay Styling */
@@ -825,383 +759,399 @@
 }
 
 /* =====================================================================
-   View Monitoring Details modal
-   Mirrors the Admin "Borrowing Details" modal (admin/css/adminequipment.css,
-   adminusers.css and adminmonitoring.css). Everything is scoped to
+   View Monitoring Details modal: same layout as the Department Equipment
+   details window (icon + title header, sections, footer). Scoped to
    #viewMonitoringModal so no other modal or page element is affected.
+   Header and footer stay put; only the body scrolls on short screens.
    ===================================================================== */
-#viewMonitoringModal {
-    background-color: rgba(15, 23, 42, 0.5);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    align-items: flex-start;
-    overflow-y: auto;
-    padding: 40px 20px;
-}
-
-#viewMonitoringModal .eq-modal-card {
-    background-color: transparent;
-    box-shadow: none;
-    border: none;
+#viewMonitoringModal .mon-modal-card {
     width: 100%;
-    max-width: 920px;
-    padding: 0;
-    margin: auto;
+    max-width: 560px;
+    max-height: 90vh;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
     transform: scale(0.95) translateY(10px);
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-#viewMonitoringModal.show .eq-modal-card {
+#viewMonitoringModal.show .mon-modal-card {
     transform: scale(1) translateY(0);
 }
 
-#viewMonitoringModal .modal-outer-header {
-    margin-bottom: 12px;
-    text-align: center;
-    width: 100%;
+#viewMonitoringModal .mon-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border-color);
 }
 
-#viewMonitoringModal .modal-subtitle-top {
-    font-size: var(--fs-label);
-    font-weight: 600;
-    color: #e2e8f0;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    margin: 0;
-    line-height: 1.4;
-}
-
-#viewMonitoringModal .modal-inner-card {
-    background-color: var(--card-bg, #ffffff);
-    border-radius: 24px;
-    padding: 36px 40px;
-    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
-    border: 1px solid var(--border-color, #e2e8f0);
-    position: relative;
-    width: 100%;
-}
-
-#viewMonitoringModal .modal-title-center {
-    font-size: var(--fs-modal-title);
-    font-weight: 700;
-    color: var(--section-title-color, var(--text-main, #334155));
-    text-align: center;
-    margin: 0 0 20px 0;
-    line-height: 1.3;
-}
-
-#viewMonitoringModal .modal-inner-card .modal-close {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: var(--bg-color, #f8fafc);
-    border: none;
-    font-size: 22px;
-    color: var(--text-muted, #64748b);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
+#viewMonitoringModal .mon-modal-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background-color: var(--primary-light);
+    color: var(--primary-color);
     display: flex;
     align-items: center;
     justify-content: center;
-    line-height: 1;
-    padding: 0 0 3px 0;
-}
-
-#viewMonitoringModal .modal-inner-card .modal-close:hover {
-    background-color: #fee2e2;
-    color: #ef4444;
-    transform: rotate(90deg);
-}
-
-/* Borrower profile block */
-#viewMonitoringModal .modal-requester-profile {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px;
-    background-color: var(--bg-color, #f8fafc);
-    border-radius: 12px;
-    border: 1px solid var(--border-color, #e2e8f0);
-    margin-bottom: 20px;
-}
-
-#viewMonitoringModal .modal-requester-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-#viewMonitoringModal .modal-requester-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    text-align: left;
-}
-
-#viewMonitoringModal .modal-requester-name {
-    font-size: var(--fs-card-title);
-    font-weight: 600;
-    color: var(--text-main, #334155);
-    line-height: 1.4;
-}
-
-#viewMonitoringModal .modal-requester-details {
-    font-size: var(--fs-small);
-    color: var(--text-muted, #64748b);
-}
-
-/* Main content: image / status on the left, fields on the right */
-#viewMonitoringModal .detail-main-content {
-    display: flex;
-    gap: 32px;
-    margin-bottom: 20px;
-}
-
-#viewMonitoringModal .detail-left-side {
-    width: 240px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    font-size: 16px;
     flex-shrink: 0;
 }
 
-#viewMonitoringModal .detail-right-side {
+#viewMonitoringModal .mon-modal-heading {
     flex: 1;
+    min-width: 0;
 }
 
-#viewMonitoringModal .detail-img-container {
-    width: 240px;
-    height: 240px;
-    border-radius: 14px;
-    overflow: hidden;
-    border: 1px solid var(--border-color, #e2e8f0);
-    background-color: var(--bg-color, #f8fafc);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+#viewMonitoringModal .mon-modal-title {
+    margin: 0;
+    font-size: var(--fs-modal-title);
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.3;
+}
+
+#viewMonitoringModal .mon-modal-subtitle {
+    margin: 2px 0 0;
+    font-size: var(--fs-label);
+    color: var(--text-muted);
+}
+
+#viewMonitoringModal .modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-muted);
+    font-size: 18px;
+    line-height: 1;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
 }
 
-#viewMonitoringModal .detail-img-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
+#viewMonitoringModal .modal-close:hover {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
 }
 
-#viewMonitoringModal .detail-form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px 24px;
-    margin-bottom: 0;
-}
-
-#viewMonitoringModal .detail-form-group {
+#viewMonitoringModal .mon-modal-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 18px 24px 22px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    text-align: left;
+    gap: 18px;
 }
 
-#viewMonitoringModal .detail-left-side .detail-form-group {
-    margin-top: 0;
-}
-
-#viewMonitoringModal .detail-form-label {
-    font-size: var(--fs-badge);
-    font-weight: 600;
-    color: var(--text-muted, #64748b);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-#viewMonitoringModal .detail-form-control {
-    padding: 10px 14px;
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 8px;
-    background-color: var(--bg-color, #f8fafc);
-    color: var(--text-main, #334155);
-    font-size: var(--fs-body);
-    font-family: inherit;
-    outline: none;
-    width: 100%;
-}
-
-#viewMonitoringModal .detail-form-control[readonly] {
-    cursor: default;
-}
-
-#viewMonitoringModal .status-badge-wrapper {
+#viewMonitoringModal .mon-section {
     display: flex;
-    justify-content: flex-start;
+    flex-direction: column;
+    gap: 10px;
 }
 
-/* Status badge (same look as the Admin modal) */
-#viewMonitoringModal .status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: var(--fs-badge);
+#viewMonitoringModal .mon-section[hidden] {
+    display: none;
+}
+
+#viewMonitoringModal .mon-section-title {
+    margin: 0;
+    font-size: var(--fs-small);
     font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 12px;
-    text-transform: capitalize;
-    letter-spacing: 0.3px;
-    border: 1px solid transparent;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* Borrower */
+#viewMonitoringModal .mon-borrower {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background-color: var(--bg-color);
+    min-width: 0;
+}
+
+#viewMonitoringModal .mon-borrower[hidden] {
+    display: none;
+}
+
+#viewMonitoringModal .mon-borrower-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    background-color: #385585;
+}
+
+#viewMonitoringModal .mon-borrower-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+#viewMonitoringModal .mon-borrower-name {
+    font-size: var(--fs-body);
+    font-weight: 700;
+    color: var(--text-main);
+    overflow-wrap: anywhere;
+}
+
+#viewMonitoringModal .mon-borrower-sub {
+    font-size: var(--fs-label);
+    color: var(--text-muted);
+}
+
+#viewMonitoringModal .mon-empty {
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px dashed var(--border-color);
+    border-radius: 14px;
+    font-size: var(--fs-label);
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+#viewMonitoringModal .mon-empty[hidden] {
+    display: none;
+}
+
+/* Equipment: the whole photo on a blurred fill (same as the equipment cards) */
+#viewMonitoringModal .mon-equipment {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#viewMonitoringModal .mon-equipment-media {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: 240px;
+    border-radius: 14px;
+    overflow: hidden;
+    background-color: #f1f5f9;
+    border: 1px solid var(--border-color);
+    isolation: isolate;
+}
+
+#viewMonitoringModal .mon-media-backdrop {
+    position: absolute;
+    top: -32px;
+    left: -32px;
+    width: calc(100% + 64px);
+    height: calc(100% + 64px);
+    max-width: none;
+    object-fit: cover;
+    filter: blur(16px);
+}
+
+#viewMonitoringModal .mon-media-img {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+#viewMonitoringModal .mon-media-placeholder {
+    display: none;
+    position: absolute;
+    inset: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    color: #94a3b8;
+    font-size: var(--fs-small);
+    font-weight: 500;
+}
+
+#viewMonitoringModal .mon-media-placeholder i {
+    font-size: 28px;
+}
+
+#viewMonitoringModal .mon-equipment-media.is-missing img {
+    display: none;
+}
+
+#viewMonitoringModal .mon-equipment-media.is-missing .mon-media-placeholder {
+    display: flex;
+}
+
+#viewMonitoringModal .mon-equipment-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+#viewMonitoringModal .mon-equipment-name {
+    font-size: var(--fs-body);
+    font-weight: 700;
+    color: var(--text-main);
+    overflow-wrap: anywhere;
+}
+
+#viewMonitoringModal .mon-equipment-sub {
+    font-size: var(--fs-label);
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+
+#viewMonitoringModal .mono {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+/* Loan: label / value rows */
+#viewMonitoringModal .mon-details-list {
+    margin: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+#viewMonitoringModal .mon-details-list > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    padding: 11px 16px;
+}
+
+#viewMonitoringModal .mon-details-list > div + div {
+    border-top: 1px solid var(--border-color);
+}
+
+#viewMonitoringModal .mon-details-list dt {
+    font-size: var(--fs-label);
+    color: var(--text-muted);
     white-space: nowrap;
 }
 
-#viewMonitoringModal .status-badge::before {
-    content: "";
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: currentColor;
+#viewMonitoringModal .mon-details-list dd {
+    margin: 0;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    color: var(--text-main);
+    text-align: right;
 }
 
-#viewMonitoringModal .status-badge.available {
-    background-color: rgba(16, 185, 129, 0.06);
-    border-color: rgba(16, 185, 129, 0.15);
-    color: #10b981;
+#viewMonitoringModal .mon-due-note {
+    display: block;
+    margin-top: 2px;
+    font-size: var(--fs-small);
+    font-weight: 600;
 }
 
-#viewMonitoringModal .status-badge.borrowed {
-    background-color: rgba(56, 85, 133, 0.06);
-    border-color: rgba(56, 85, 133, 0.15);
-    color: #385585;
+#viewMonitoringModal .mon-due-note[hidden] {
+    display: none;
 }
 
-#viewMonitoringModal .status-badge.reserved {
-    background-color: rgba(245, 158, 11, 0.06);
-    border-color: rgba(245, 158, 11, 0.15);
-    color: #d97706;
+#viewMonitoringModal .mon-due-note.is-overdue { color: #dc2626; }
+#viewMonitoringModal .mon-due-note.is-soon { color: #b45309; }
+.dark-theme #viewMonitoringModal .mon-due-note.is-overdue { color: #f87171; }
+.dark-theme #viewMonitoringModal .mon-due-note.is-soon { color: #fbbf24; }
+
+/* Footer */
+#viewMonitoringModal .mon-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 24px;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--card-bg);
 }
 
-#viewMonitoringModal .status-badge.overdue {
-    background-color: rgba(239, 68, 68, 0.06);
-    border-color: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+#viewMonitoringModal .btn-modal-close {
+    height: 40px;
+    padding: 0 22px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background-color: transparent;
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
 
-#viewMonitoringModal .status-badge.maintenance {
-    background-color: rgba(100, 116, 139, 0.06);
-    border-color: rgba(100, 116, 139, 0.15);
+#viewMonitoringModal .btn-modal-close:hover {
+    background-color: var(--bg-color);
+}
+
+#viewMonitoringModal .modal-close:focus-visible,
+#viewMonitoringModal .btn-modal-close:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(56, 85, 133, 0.35);
+}
+
+/* Status badge: the page's standard pill with the Monitoring table's colours */
+#viewMonitoringModal .status-badge {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+#viewMonitoringModal .status-badge.available { background-color: #d1fae5; color: #047857; }
+#viewMonitoringModal .status-badge.borrowed { background-color: #dbeafe; color: #1d4ed8; }
+#viewMonitoringModal .status-badge.overdue { background-color: #fee2e2; color: #b91c1c; }
+#viewMonitoringModal .status-badge.reserved { background-color: #fef3c7; color: #b45309; }
+#viewMonitoringModal .status-badge.maintenance { background-color: #f1f5f9; color: #475569; }
+.dark-theme #viewMonitoringModal .status-badge.available { background-color: rgba(16, 185, 129, 0.15); color: #34d399; }
+.dark-theme #viewMonitoringModal .status-badge.borrowed { background-color: rgba(96, 165, 250, 0.15); color: #93c5fd; }
+.dark-theme #viewMonitoringModal .status-badge.overdue { background-color: rgba(239, 68, 68, 0.15); color: #f87171; }
+.dark-theme #viewMonitoringModal .status-badge.reserved { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.dark-theme #viewMonitoringModal .status-badge.maintenance { background-color: rgba(148, 163, 184, 0.15); color: #cbd5e1; }
+
+.dark-theme #viewMonitoringModal .mon-equipment-media {
+    background-color: #0f172a;
+}
+
+.dark-theme #viewMonitoringModal .mon-media-placeholder {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     color: #64748b;
 }
 
-/* Footer */
-#viewMonitoringModal .modal-actions-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 20px;
-    border-top: 1px solid var(--border-color, #e2e8f0);
-    padding-top: 20px;
-}
-
-#viewMonitoringModal .modal-actions-footer button {
-    padding: 10px 24px;
-    border-radius: 8px;
-    font-size: var(--fs-body);
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-#viewMonitoringModal .modal-actions-footer .btn-modal-close {
-    width: 100%;
-    background-color: var(--bg-color, #f8fafc);
-    border: 1px solid var(--border-color, #e2e8f0);
-    color: var(--text-main, #334155);
-}
-
-#viewMonitoringModal .modal-actions-footer .btn-modal-close:hover {
-    background-color: var(--primary-light, #e2e8f0);
-}
-
-/* Dark theme */
-.dark-theme #viewMonitoringModal .detail-form-control,
-.dark-theme #viewMonitoringModal .detail-img-container,
-.dark-theme #viewMonitoringModal .modal-requester-profile,
-.dark-theme #viewMonitoringModal .modal-actions-footer .btn-modal-close {
-    background-color: var(--card-bg, #1e293b);
-}
-
-.dark-theme #viewMonitoringModal .status-badge.available {
-    background-color: rgba(52, 211, 153, 0.1);
-    border-color: rgba(52, 211, 153, 0.2);
-    color: #34d399;
-}
-
-.dark-theme #viewMonitoringModal .status-badge.borrowed {
-    background-color: rgba(96, 165, 250, 0.1);
-    border-color: rgba(96, 165, 250, 0.2);
-    color: #60a5fa;
-}
-
-.dark-theme #viewMonitoringModal .status-badge.reserved {
-    background-color: rgba(245, 158, 11, 0.1);
-    border-color: rgba(251, 191, 36, 0.2);
-    color: #fbbf24;
-}
-
-.dark-theme #viewMonitoringModal .status-badge.overdue {
-    background-color: rgba(248, 113, 113, 0.1);
-    border-color: rgba(248, 113, 113, 0.2);
-    color: #f87171;
-}
-
-.dark-theme #viewMonitoringModal .status-badge.maintenance {
-    background-color: rgba(148, 163, 184, 0.1);
-    border-color: rgba(148, 163, 184, 0.2);
-    color: #cbd5e1;
-}
-
-/* Responsive (same breakpoints as the Admin modal) */
-@media (max-width: 992px) {
-    #viewMonitoringModal .eq-modal-card {
-        max-width: 760px;
-    }
-}
-
-@media (max-width: 768px) {
-    #viewMonitoringModal .modal-inner-card {
-        padding: 28px 20px;
-    }
-    #viewMonitoringModal .detail-main-content {
-        flex-direction: column;
-        align-items: center;
-    }
-    #viewMonitoringModal .detail-left-side {
-        width: 100%;
-        align-items: center;
-    }
-    #viewMonitoringModal .detail-right-side {
-        width: 100%;
-    }
-    #viewMonitoringModal .detail-img-container {
-        width: 100%;
-        max-width: 240px;
-    }
-    #viewMonitoringModal .detail-form-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
 @media (max-width: 480px) {
-    #viewMonitoringModal {
-        padding: 24px 12px;
+    #viewMonitoringModal .mon-modal-card {
+        max-height: 94vh;
+        border-radius: 18px;
     }
-    #viewMonitoringModal .modal-inner-card {
-        padding: 24px 16px;
+    #viewMonitoringModal .mon-modal-header {
+        flex-wrap: wrap;
+        padding: 16px 18px 14px;
+    }
+    #viewMonitoringModal .mon-modal-header .status-badge {
+        order: 3;
+        margin-left: 54px;
+    }
+    #viewMonitoringModal .mon-modal-body {
+        padding: 16px 18px 20px;
+    }
+    #viewMonitoringModal .mon-modal-footer {
+        padding: 12px 18px;
+    }
+    #viewMonitoringModal .mon-modal-footer .btn-modal-close {
+        flex: 1;
     }
 }
 
@@ -1253,4 +1203,108 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   Monitoring table columns (same patterns as Borrow Requests and Return
+   Confirmation): Equipment with category · serial underneath, User with the
+   role underneath, Borrowed, Due with an overdue / due-soon note, Status and
+   Action. Long text ends in "…" (full text on hover and in the View window).
+   -------------------------------------------------------------------------- */
+.monitoring-table th,
+.monitoring-table td {
+    padding-left: 14px;
+    padding-right: 14px;
+}
+
+.monitoring-table th:first-child,
+.monitoring-table td:first-child {
+    padding-left: 20px;
+}
+
+/* Every column gets a share that adds up to 100%, so extra width on wide
+   screens is spread across all columns instead of going to Equipment.
+   Equipment and User shorten long text with "…" (min widths keep them
+   readable); dates, status and the View button never wrap. */
+.monitoring-table th.col-equipment { width: 24%; }
+.monitoring-table th.col-user { width: 21%; }
+.monitoring-table th.col-date { width: 14%; }
+.monitoring-table th.col-due { width: 15%; }
+.monitoring-table th.col-status { width: 13%; }
+.monitoring-table th.col-action { width: 13%; }
+
+.monitoring-table th.col-action,
+.monitoring-table td.col-action {
+    text-align: center;
+}
+
+.monitoring-table td.col-action .monitoring-actions {
+    justify-content: center;
+}
+
+.monitoring-table td.col-user {
+    max-width: 0;
+    min-width: 130px;
+}
+
+.monitoring-table td.col-date,
+.monitoring-table td.col-due,
+.monitoring-table td.col-status,
+.monitoring-table th {
+    white-space: nowrap;
+}
+
+.monitoring-table .user-name-text {
+    display: block;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.monitoring-table .user-role-text {
+    display: block;
+    margin-top: 2px;
+    font-size: var(--fs-badge);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-muted, #64748b);
+}
+
+.monitoring-table .cell-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: var(--fs-small);
+    font-weight: 400;
+    color: var(--text-muted, #64748b);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.monitoring-table .cell-muted {
+    font-weight: 400;
+    color: var(--text-muted, #64748b);
+}
+
+.monitoring-table .due-date-text {
+    display: block;
+}
+
+.monitoring-table .due-note {
+    display: block;
+    margin-top: 2px;
+    font-size: var(--fs-small);
+    font-weight: 600;
+}
+
+.monitoring-table .due-note.is-overdue { color: #dc2626; }
+.monitoring-table .due-note.is-soon { color: #b45309; }
+.dark-theme .monitoring-table .due-note.is-overdue { color: #f87171; }
+.dark-theme .monitoring-table .due-note.is-soon { color: #fbbf24; }
+
+/* Overdue loans get a thin red line on the left edge of the row */
+.monitoring-table tbody tr.is-overdue-row td:first-child {
+    box-shadow: inset 3px 0 0 #ef4444;
 }

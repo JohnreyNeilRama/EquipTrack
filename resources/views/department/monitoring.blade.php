@@ -3,7 +3,7 @@
 @section('title', 'EquipTrack')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('departments/css/monitoring.css') }}">
+<link rel="stylesheet" href="{{ asset('departments/css/monitoring.css') }}?v={{ filemtime(public_path('departments/css/monitoring.css')) }}">
 @endpush
 
 @section('content')
@@ -108,13 +108,12 @@
             <table class="monitoring-table">
                 <thead>
                     <tr>
-                        <th style="width: 22%;">Equipment</th>
-                        <th style="width: 18%;">Borrower</th>
-                        <th style="width: 12%;">Role</th>
-                        <th style="width: 14%;">Borrow Date</th>
-                        <th style="width: 14%;">Return Date</th>
-                        <th style="width: 12%;">Status</th>
-                        <th style="width: 8%;">Actions</th>
+                        <th class="col-equipment">Equipment</th>
+                        <th class="col-user">User</th>
+                        <th class="col-date">Borrowed</th>
+                        <th class="col-due">Due</th>
+                        <th class="col-status">Status</th>
+                        <th class="col-action">Action</th>
                     </tr>
                 </thead>
                 <tbody id="monitoringTableBody">
@@ -137,73 +136,71 @@
             <h4>No records found</h4>
             <p>No monitoring records match your search or filter parameters.</p>
         </div>
-<!-- View Details Modal -->
-    <div class="modal-overlay" id="viewMonitoringModal">
-        <div class="eq-modal-card">
-            <div class="modal-outer-header">
-                <p class="modal-subtitle-top">Equipment monitoring record details</p>
+<!-- View Details Modal: same layout as the Department Equipment details window -->
+    <div class="modal-overlay" id="viewMonitoringModal" role="dialog" aria-modal="true" aria-labelledby="viewModalTitle">
+        <div class="mon-modal-card">
+            <header class="mon-modal-header">
+                <div class="mon-modal-icon" aria-hidden="true"><i class="fa-solid fa-circle-info"></i></div>
+                <div class="mon-modal-heading">
+                    <h3 class="mon-modal-title" id="viewModalTitle">Borrowing Details</h3>
+                    <p class="mon-modal-subtitle">Equipment monitoring record</p>
+                </div>
+                <span class="status-badge" id="viewStatus">-</span>
+                <button type="button" class="modal-close" id="closeViewModalBtn" aria-label="Close">&times;</button>
+            </header>
+
+            <div class="mon-modal-body">
+                <section class="mon-section" aria-labelledby="viewBorrowerHeading">
+                    <h4 class="mon-section-title" id="viewBorrowerHeading">Borrower</h4>
+                    <div class="mon-borrower" id="viewBorrowerBlock">
+                        <img src="" alt="" class="mon-borrower-avatar" id="viewBorrowerAvatar">
+                        <div class="mon-borrower-meta">
+                            <span class="mon-borrower-name" id="viewBorrower">-</span>
+                            <span class="mon-borrower-sub"><span id="viewRole">-</span> · ID <span id="viewBorrowerId">-</span></span>
+                        </div>
+                    </div>
+                    <p class="mon-empty" id="viewNotBorrowed" hidden>
+                        <i class="fa-regular fa-circle-check" aria-hidden="true"></i> Not currently borrowed
+                    </p>
+                </section>
+
+                <section class="mon-section" aria-labelledby="viewEquipmentHeading">
+                    <h4 class="mon-section-title" id="viewEquipmentHeading">Equipment</h4>
+                    <div class="mon-equipment">
+                        <div class="mon-equipment-media" id="viewEquipmentMedia">
+                            <img src="" alt="" class="mon-media-backdrop" id="viewEquipmentImgBackdrop" aria-hidden="true">
+                            <img src="" alt="Equipment photo" class="mon-media-img" id="viewEquipmentImg">
+                            <div class="mon-media-placeholder">
+                                <i class="fa-regular fa-image" aria-hidden="true"></i>
+                                <span>No image available</span>
+                            </div>
+                        </div>
+                        <div class="mon-equipment-meta">
+                            <span class="mon-equipment-name" id="viewEquipmentName">-</span>
+                            <span class="mon-equipment-sub"><span id="viewCategory">-</span><span id="viewSerialWrap"> · <span class="mono" id="viewSerial">-</span></span></span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="mon-section" aria-labelledby="viewLoanHeading" id="viewLoanSection">
+                    <h4 class="mon-section-title" id="viewLoanHeading">Loan</h4>
+                    <dl class="mon-details-list">
+                        <div>
+                            <dt>Borrowed</dt>
+                            <dd id="viewBorrowDate">-</dd>
+                        </div>
+                        <div>
+                            <dt>Due</dt>
+                            <dd><span id="viewReturnDate">-</span><span class="mon-due-note" id="viewDueNote" hidden></span></dd>
+                        </div>
+                    </dl>
+                </section>
             </div>
-            <div class="modal-inner-card">
-                <button class="modal-close" id="closeViewModalBtn">&times;</button>
-                <h3 class="modal-title-center">Borrowing Details</h3>
-            
-                <!-- Borrower info block -->
-                <div class="modal-requester-profile">
-                    <img src="" alt="Avatar" class="modal-requester-avatar" id="viewBorrowerAvatar">
-                    <div class="modal-requester-meta">
-                        <span class="modal-requester-name" id="viewBorrower">-</span>
-                        <span class="modal-requester-details"><span id="viewRole">-</span> | ID: <span id="viewBorrowerId">-</span></span>
-                    </div>
-                </div>
 
-                <!-- Main Fields Content -->
-                <div class="detail-main-content">
-                    <div class="detail-left-side">
-                        <div class="detail-img-container">
-                            <img src="" alt="Equipment Image" id="viewEquipmentImg">
-                        </div>
-                        <div class="detail-form-group">
-                            <label class="detail-form-label">Status</label>
-                            <div class="status-badge-wrapper">
-                                <span class="status-badge" id="viewStatus">-</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="detail-right-side">
-                        <div class="detail-form-grid">
-                            <div class="detail-form-group">
-                                <label class="detail-form-label">Equipment Name</label>
-                                <input type="text" id="viewEquipmentName" class="detail-form-control" readonly>
-                            </div>
-                            <div class="detail-form-group">
-                                <label class="detail-form-label">Category</label>
-                                <input type="text" id="viewCategory" class="detail-form-control" readonly>
-                            </div>
-                            <div class="detail-form-group">
-                                <label class="detail-form-label">Borrow Date</label>
-                                <input type="text" id="viewBorrowDate" class="detail-form-control" readonly>
-                            </div>
-                            <div class="detail-form-group">
-                                <label class="detail-form-label">Due Date</label>
-                                <input type="text" id="viewReturnDate" class="detail-form-control" readonly>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Modal Actions Footer -->
-                <div class="modal-actions-footer">
-                    <button type="button" class="btn-modal-close" id="closeViewModalFooterBtn">Close</button>
-                </div>
-            </div>
+            <footer class="mon-modal-footer">
+                <button type="button" class="btn-modal-close" id="closeViewModalFooterBtn">Close</button>
+            </footer>
         </div>
-    </div>
-
-    <!-- Toast Notification -->
-    <div class="toast-notification" id="toastNotif">
-        <i class="fa-solid fa-circle-check" style="color: #10b981;"></i>
-        <span id="toastMessage">Notification sent successfully.</span>
     </div>
 
     <!-- Interactivity Script -->
@@ -258,8 +255,6 @@
             const emptyStateContainer = document.getElementById('emptyStateContainer');
             const paginationInfo = document.getElementById('paginationInfo');
             const paginationControls = document.getElementById('paginationControls');
-            const toastNotif = document.getElementById('toastNotif');
-            const toastMessage = document.getElementById('toastMessage');
 
             // Summary metrics
             const sumTotalMonitored = document.getElementById('sumTotalMonitored');
@@ -292,14 +287,6 @@
                 if (sumReserved) sumReserved.textContent = reservedCount;
             }
 
-            function showToast(msg) {
-                toastMessage.textContent = msg;
-                toastNotif.classList.add('show');
-                setTimeout(() => {
-                    toastNotif.classList.remove('show');
-                }, 3000);
-            }
-
             function renderTable() {
                 tableBody.innerHTML = '';
 
@@ -323,6 +310,9 @@
                     return matchesSearch && matchesRole && matchesCategory && matchesStatus;
                 });
 
+                // Overdue loans first (most overdue at the top); the rest keep their order
+                filtered.sort((a, b) => (Number(b.daysOverdue) || 0) - (Number(a.daysOverdue) || 0));
+
                 const totalEntries = filtered.length;
                 const totalPages = Math.ceil(totalEntries / pageSize);
 
@@ -334,17 +324,17 @@
 
                 pageItems.forEach(item => {
                     const tr = document.createElement('tr');
+                    if ((Number(item.daysOverdue) || 0) > 0 || String(item.status).toLowerCase() === 'overdue') {
+                        tr.classList.add('is-overdue-row');
+                    }
 
-                    // View is on every row; overdue rows also get the notice bell.
+                    // View is on every row. (Borrowers get an automatic overdue
+                    // notification in their own bell, so there is no reminder button.)
                     const actionContent = `
                         <div class="monitoring-actions">
                             <button type="button" class="btn-action-view" onclick="openViewModal('${item.id}')">
                                 <i class="fa-solid fa-eye" aria-hidden="true"></i> View
                             </button>
-                            ${item.status === 'OVERDUE' ? `
-                            <button type="button" class="btn-action-alert" title="Send Overdue Notice" aria-label="Send overdue notice" onclick="sendOverdueNotice('${item.borrower}')">
-                                <i class="fa-solid fa-bell" aria-hidden="true"></i>
-                            </button>` : ''}
                         </div>
                     `;
 
@@ -354,13 +344,12 @@
                     });
 
                     tr.innerHTML = `
-                        <td class="col-equipment"><span class="equipment-name-text" title="${escapeHTML(item.equipment)}">${escapeHTML(item.equipment)}</span></td>
-                        <td class="col-borrower">${escapeHTML(item.borrower)}</td>
-                        <td class="col-role">${escapeHTML(item.role)}</td>
+                        <td class="col-equipment">${equipmentCell(item)}</td>
+                        <td class="col-user">${userCell(item)}</td>
                         <td class="col-date">${escapeHTML(item.borrowDate)}</td>
-                        <td class="col-date">${escapeHTML(item.returnDate)}</td>
-                        <td><span class="status-badge ${statusClass(item.status)}">${escapeHTML(item.status)}</span></td>
-                        <td>${actionContent}</td>
+                        <td class="col-due">${dueCell(item)}</td>
+                        <td class="col-status"><span class="status-badge ${statusClass(item.status)}">${escapeHTML(item.status)}</span></td>
+                        <td class="col-action">${actionContent}</td>
                     `;
 
                     tableBody.appendChild(tr);
@@ -410,6 +399,40 @@
                 }));
             }
 
+            // Equipment: name (one line, "…" when long) with category and
+            // serial number underneath.
+            function equipmentCell(item) {
+                const sub = [item.category, item.serial].filter(Boolean).join(' · ');
+                return `<span class="equipment-name-text" title="${escapeHTML(item.equipment)}">${escapeHTML(item.equipment)}</span>`
+                    + (sub ? `<span class="cell-sub" title="${escapeHTML(sub)}">${escapeHTML(sub)}</span>` : '');
+            }
+
+            // User: borrower's name with the role underneath, or "Not borrowed"
+            // for equipment that has no active loan.
+            function userCell(item) {
+                if (!item.borrower || item.borrower === '—') {
+                    return '<span class="cell-muted">Not borrowed</span>';
+                }
+                return `<span class="user-name-text" title="${escapeHTML(item.borrower)}">${escapeHTML(item.borrower)}</span>`
+                    + `<span class="user-role-text">${escapeHTML(item.role)}</span>`;
+            }
+
+            // Due: the due date, plus how late the loan is (or "Due today" /
+            // "Due tomorrow" when it is close).
+            function dueCell(item) {
+                if (!item.returnDate || item.returnDate === '—') return '<span class="cell-muted">—</span>';
+                let note = '';
+                const late = Number(item.daysOverdue) || 0;
+                if (late > 0) {
+                    note = `<span class="due-note is-overdue">${late} ${late === 1 ? 'day' : 'days'} overdue</span>`;
+                } else if (item.daysUntilDue === 0) {
+                    note = '<span class="due-note is-soon">Due today</span>';
+                } else if (item.daysUntilDue === 1) {
+                    note = '<span class="due-note is-soon">Due tomorrow</span>';
+                }
+                return `<span class="due-date-text">${escapeHTML(item.returnDate)}</span>${note}`;
+            }
+
             function statusClass(status) {
                 switch (status.toUpperCase()) {
                     case 'BORROWED': return 'borrowed';
@@ -437,38 +460,97 @@
                 );
             }
 
+            // Borrower avatar: their own profile picture; otherwise (or if it can't
+            // be loaded) their initials on the EquipTrack blue, drawn locally so it
+            // never depends on an outside service.
+            function initialsAvatar(name) {
+                const initials = String(name || '')
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map(word => Array.from(word)[0])
+                    .join('')
+                    .toUpperCase()
+                    .replace(/[&<>"']/g, '') || 'U';
+                const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">`
+                    + `<rect width="96" height="96" fill="#385585"/>`
+                    + `<text x="48" y="48" dy="0.35em" text-anchor="middle" fill="#ffffff" `
+                    + `font-family="Inter, Segoe UI, Arial, sans-serif" font-size="36" font-weight="600">${initials}</text></svg>`;
+                return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+            }
+
+            function showBorrowerAvatar(url, name) {
+                const avatar = document.getElementById('viewBorrowerAvatar');
+                const fallback = initialsAvatar(name);
+                avatar.alt = `${name || 'Borrower'}'s profile picture`;
+                avatar.onerror = function () {
+                    this.onerror = null;
+                    this.src = fallback;
+                };
+                avatar.src = url || fallback;
+            }
+
+            // Equipment photo: the whole item on a blurred fill, or a placeholder
+            function showEquipmentPhoto(url, name) {
+                const media = document.getElementById('viewEquipmentMedia');
+                const img = document.getElementById('viewEquipmentImg');
+                const backdrop = document.getElementById('viewEquipmentImgBackdrop');
+                media.classList.toggle('is-missing', !url);
+                img.alt = name || 'Equipment photo';
+                img.onerror = function () {
+                    this.onerror = null;
+                    media.classList.add('is-missing');
+                };
+                img.src = url || '';
+                backdrop.src = url || '';
+            }
+
             window.openViewModal = function(id) {
                 const item = monitoringData.find(m => m.id === id);
-                if (item) {
-                    document.getElementById('viewBorrowerAvatar').src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(item.borrower || 'N/A') + '&background=385585&color=fff&bold=true';
-                    document.getElementById('viewBorrower').textContent = item.borrower || '—';
+                if (!item) return;
+
+                const borrowed = item.borrower && item.borrower !== '—';
+
+                // Borrower (or "Not currently borrowed")
+                document.getElementById('viewBorrowerBlock').hidden = !borrowed;
+                document.getElementById('viewNotBorrowed').hidden = borrowed;
+                if (borrowed) {
+                    showBorrowerAvatar(item.avatar, item.borrower);
+                    document.getElementById('viewBorrower').textContent = item.borrower;
                     document.getElementById('viewRole').textContent = item.role || '—';
                     document.getElementById('viewBorrowerId').textContent = item.id_number || 'N/A';
-
-                    document.getElementById('viewEquipmentName').value = item.equipment || '—';
-                    document.getElementById('viewCategory').value = item.category || '—';
-                    document.getElementById('viewBorrowDate').value = item.borrowDate || '—';
-                    document.getElementById('viewReturnDate').value = item.returnDate || '—';
-
-                    // Equipment picture from the equipment record; falls back to the logo if missing or broken
-                    const fallbackImg = '{{ asset('images/EquipTrack_logo.png') }}';
-                    const eqImg = document.getElementById('viewEquipmentImg');
-                    eqImg.onerror = function () {
-                        this.onerror = null;
-                        this.src = fallbackImg;
-                    };
-                    eqImg.src = item.img || fallbackImg;
-
-                    const statusBadge = document.getElementById('viewStatus');
-                    statusBadge.textContent = item.status;
-                    statusBadge.className = 'status-badge ' + statusClass(item.status);
-
-                    viewMonitoringModal.classList.add('show');
                 }
-            };
 
-            window.sendOverdueNotice = function(borrowerName) {
-                showToast(`Overdue return notification sent to ${borrowerName}.`);
+                // Equipment
+                showEquipmentPhoto(item.img, item.equipment);
+                document.getElementById('viewEquipmentName').textContent = item.equipment || '—';
+                document.getElementById('viewCategory').textContent = item.category || '—';
+                document.getElementById('viewSerial').textContent = item.serial || '';
+                document.getElementById('viewSerialWrap').hidden = !item.serial;
+
+                // Loan dates, with the same overdue / due-soon note as the table
+                document.getElementById('viewLoanSection').hidden = !borrowed;
+                document.getElementById('viewBorrowDate').textContent = item.borrowDate || '—';
+                document.getElementById('viewReturnDate').textContent = item.returnDate || '—';
+                const note = document.getElementById('viewDueNote');
+                const late = Number(item.daysOverdue) || 0;
+                note.hidden = true;
+                note.className = 'mon-due-note';
+                if (late > 0) {
+                    note.textContent = `${late} ${late === 1 ? 'day' : 'days'} overdue`;
+                    note.classList.add('is-overdue');
+                    note.hidden = false;
+                } else if (item.daysUntilDue === 0 || item.daysUntilDue === 1) {
+                    note.textContent = item.daysUntilDue === 0 ? 'Due today' : 'Due tomorrow';
+                    note.classList.add('is-soon');
+                    note.hidden = false;
+                }
+
+                const statusBadge = document.getElementById('viewStatus');
+                statusBadge.textContent = item.status;
+                statusBadge.className = 'status-badge ' + statusClass(item.status);
+
+                viewMonitoringModal.classList.add('show');
             };
 
             if (closeViewModalBtn) {
