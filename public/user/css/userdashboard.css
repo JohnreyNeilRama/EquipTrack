@@ -501,6 +501,7 @@
     display: flex;
     align-items: flex-start;
     gap: 12px;
+    min-width: 0;
     padding: 12px 14px;
     background: color-mix(in srgb, var(--tone) 6%, var(--card-bg));
     border: 1px solid color-mix(in srgb, var(--tone) 22%, var(--border-color));
@@ -515,25 +516,50 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    margin-top: 1px;
+    border-radius: 9px;
     font-size: var(--fs-body);
     color: var(--tone);
     background: color-mix(in srgb, var(--tone) 14%, transparent);
 }
 
+/* Label (Overdue / Due today ...), then the equipment name on one line
+   ("…" when long, full name on hover), then the message. */
 .reminder-content {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
     min-width: 0;
+}
+
+.reminder-label {
+    font-size: var(--fs-badge);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    /* A darker shade of the tone so the small text stays readable */
+    color: color-mix(in srgb, var(--tone) 72%, #000000);
+}
+
+.dark-theme .reminder-label {
+    color: var(--tone);
+}
+
+.reminder-label:empty {
+    display: none;
 }
 
 .reminder-title {
     font-size: var(--fs-label);
     font-weight: 700;
+    line-height: 1.4;
     color: var(--text-main);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .reminder-desc {

@@ -237,7 +237,8 @@
                                 <i class="fa-solid {{ $reminder['type'] === 'danger' ? 'fa-triangle-exclamation' : 'fa-clock' }}"></i>
                             </div>
                             <div class="reminder-content">
-                                <span class="reminder-title">{{ $reminder['title'] }}</span>
+                                <span class="reminder-label">{{ $reminder['label'] }}</span>
+                                <span class="reminder-title" title="{{ $reminder['equipment'] }}">{{ $reminder['equipment'] }}</span>
                                 <span class="reminder-desc">{{ $reminder['message'] }}</span>
                             </div>
                         </li>
@@ -395,7 +396,9 @@
                     return '<li class="reminder-item ' + type + '">'
                         + '<div class="reminder-icon"><i class="fa-solid ' + icon + '"></i></div>'
                         + '<div class="reminder-content">'
-                        + '<span class="reminder-title">' + escapeHTML(row.title) + '</span>'
+                        + '<span class="reminder-label">' + escapeHTML(row.label || '') + '</span>'
+                        + '<span class="reminder-title" title="' + escapeHTML(row.equipment || row.title) + '">'
+                        + escapeHTML(row.equipment || row.title) + '</span>'
                         + '<span class="reminder-desc">' + escapeHTML(row.message) + '</span>'
                         + '</div></li>';
                 }).join('')

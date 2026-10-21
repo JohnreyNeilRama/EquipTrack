@@ -186,6 +186,8 @@ class UserDashboardController extends Controller
                 $rows[] = [
                     'sort' => [0, $due ? $due->getTimestamp() : 0],
                     'type' => 'danger',
+                    'label' => 'Overdue',
+                    'equipment' => $equipment,
                     'title' => 'Overdue: ' . $equipment,
                     'message' => $due
                         ? 'Was due on ' . $due->format('M d, Y')
@@ -216,6 +218,8 @@ class UserDashboardController extends Controller
             $rows[] = [
                 'sort' => [1, $due->getTimestamp()],
                 'type' => 'warning',
+                'label' => $when,
+                'equipment' => $equipment,
                 'title' => $when . ': ' . $equipment,
                 'message' => 'Return it by ' . $due->format('M d, Y') . '.',
             ];
@@ -224,7 +228,13 @@ class UserDashboardController extends Controller
         usort($rows, fn (array $a, array $b) => $a['sort'] <=> $b['sort']);
 
         return array_map(
-            fn (array $row) => ['type' => $row['type'], 'title' => $row['title'], 'message' => $row['message']],
+            fn (array $row) => [
+                'type' => $row['type'],
+                'label' => $row['label'],
+                'equipment' => $row['equipment'],
+                'title' => $row['title'],
+                'message' => $row['message'],
+            ],
             array_slice($rows, 0, self::REMINDERS_LIMIT)
         );
     }

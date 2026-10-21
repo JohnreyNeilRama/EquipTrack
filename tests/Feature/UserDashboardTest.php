@@ -287,6 +287,8 @@ class UserDashboardTest extends TestCase
         $this->assertCount(2, $reminders);
 
         $this->assertSame('danger', $reminders[0]['type']);
+        $this->assertSame('Overdue', $reminders[0]['label']);
+        $this->assertSame('Late Item', $reminders[0]['equipment']);
         $this->assertStringContainsString('Late Item', $reminders[0]['title']);
         $this->assertStringContainsString('4 days late', $reminders[0]['message']);
 
