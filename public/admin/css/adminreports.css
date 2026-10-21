@@ -1310,3 +1310,23 @@ body {
 .admin-table-card #previewTableBody td:first-child {
     padding-left: 16px !important;
 }
+
+/* "Incomplete" returns (Return Report and Transaction History): amber, like
+   the other partly-successful return outcomes */
+.status-pill.incomplete {
+    background-color: rgba(245, 158, 11, 0.12);
+    color: #b45309;
+}
+
+.status-pill.incomplete::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background-color: currentColor;
+    border-radius: 50%;
+}
+
+.dark-theme .status-pill.incomplete {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+}

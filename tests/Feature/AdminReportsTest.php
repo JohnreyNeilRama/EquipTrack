@@ -514,6 +514,54 @@ class AdminReportsTest extends TestCase
             ->assertSee('Utilization = loan days');
     }
 
+    public function test_transaction_history_lists_every_loan_with_its_outcome(): void
+    {
+        $laptop = $this->makeEquipment(['available_qty' => 10, 'total_qty' => 10]);
+        $day = fn (int $offset) => now()->addDays($offset)->toDateString();
+        $dates = fn (int $borrow, int $due) => [
+            'borrow_date' => $day($borrow), 'date_needed' => $day($borrow), 'due_date' => $day($due), 'return_date' => $day($due),
+        ];
+
+        $borrowed = $this->loan($this->makeRequest($laptop, $this->approved($dates(-1, 2))));
+        $overdue = $this->loan($this->makeRequest($laptop, $this->approved($dates(-6, -2))));
+        $onTime = $this->loan($this->makeRequest($laptop, $this->approved($dates(-10, -7))), ['status' => 'Returned', 'return_date' => $day(-8)]);
+        $late = $this->loan($this->makeRequest($laptop, $this->approved($dates(-12, -10))), ['status' => 'Returned', 'return_date' => $day(-9)]);
+        $damaged = $this->loan($this->makeRequest($laptop, $this->approved($dates(-15, -13))), [
+            'status' => 'Returned', 'return_date' => $day(-13), 'condition_on_return' => 'Damaged — cracked screen',
+        ]);
+
+        // Not transactions: still pending, and rejected.
+        $this->makeRequest($laptop, $dates(-1, 1));
+        $this->makeRequest($laptop, ['overall_status' => 'Rejected', 'admin_status' => 'Rejected'] + $dates(-1, 1));
+
+        $payload = $this->report(['type' => 'transactions']);
+        $rows = $payload['report']['rows'];
+
+        $this->assertSame('Transaction History', $payload['report']['title']);
+        $this->assertSame(5, $payload['report']['total']);
+
+        // Newest borrow date first, each with its transaction ID and outcome.
+        $this->assertSame([
+            'TXN-' . str_pad((string) $borrowed->transaction_id, 4, '0', STR_PAD_LEFT) => 'Borrowed',
+            'TXN-' . str_pad((string) $overdue->transaction_id, 4, '0', STR_PAD_LEFT) => 'Overdue',
+            'TXN-' . str_pad((string) $onTime->transaction_id, 4, '0', STR_PAD_LEFT) => 'Returned',
+            'TXN-' . str_pad((string) $late->transaction_id, 4, '0', STR_PAD_LEFT) => 'Returned Late',
+            'TXN-' . str_pad((string) $damaged->transaction_id, 4, '0', STR_PAD_LEFT) => 'Damaged',
+        ], collect($rows)->pluck('status', 'transaction')->all());
+
+        $this->assertSame('Juan Dela Cruz', $rows[0]['borrower']);
+        $this->assertSame('—', $rows[0]['return_date']);
+        $this->assertSame(now()->addDays(-8)->format('M d, Y'), $rows[2]['return_date']);
+
+        // Status filter and the print export
+        $this->assertSame(['Overdue'], $this->statuses($this->report(['type' => 'transactions', 'status' => 'Overdue'])));
+        $this->actingAs($this->admin, 'admin')
+            ->get(route('admin.reports.export', ['type' => 'transactions', 'format' => 'print']))
+            ->assertOk()
+            ->assertSee('Transaction History')
+            ->assertSee('TXN-');
+    }
+
     public function test_charts_count_approved_borrowings_by_month_category_and_equipment(): void
     {
         $laptop = $this->makeEquipment(['name' => 'Dell Latitude']);
@@ -569,6 +617,41 @@ class AdminReportsTest extends TestCase
         $this->assertSame('Laptop', $recent['detail']);
         $this->assertSame('overdue', $recent['filters']['type']);
         $this->assertSame($this->laptops->category_id, $recent['filters']['category']);
+    }
+
+    public function test_report_times_are_recorded_and_shown_in_philippine_time(): void
+    {
+        // 17:30 UTC on Oct 31 is already 01:30 on Nov 01 in the Philippines (UTC+8).
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-10-31 17:30:00', 'UTC'));
+
+        // A report generated the evening before, Philippine time (Oct 31): last month.
+        $earlier = new AuditTrail([
+            'admin_id' => $this->admin->admin_id,
+            'action' => 'Generated report: Borrowing Report',
+            'ip_address' => '127.0.0.1',
+            'affected_entity' => 'report:borrowing',
+            'details' => json_encode(['t' => 'borrowing']),
+        ]);
+        $earlier->created_at = '2026-10-31 23:00:00';
+        $earlier->save();
+
+        $response = $this->actingAs($this->admin, 'admin')
+            ->postJson(route('admin.reports.generate'), ['type' => 'borrowing']);
+        $response->assertOk();
+
+        // Stored once as Philippine wall-clock time, shown exactly as stored.
+        $this->assertDatabaseHas('audit_trail', [
+            'affected_entity' => 'report:borrowing',
+            'created_at' => '2026-11-01 01:30:00',
+        ]);
+        $this->assertSame('Nov 01, 2026 01:30 AM', $response->json('recent.0.date'));
+        $this->assertSame('Oct 31, 2026 11:00 PM', $response->json('recent.1.date'));
+        $this->assertSame('Nov 01, 2026 01:30 AM', $response->json('generatedAt'));
+
+        // "Reports generated this month" follows the Philippine month (November).
+        $this->assertSame(1, $response->json('summary.reportsThisMonth'));
+
+        $this->travelBack();
     }
 
     public function test_csv_export_matches_the_preview_and_neutralises_spreadsheet_formulas(): void

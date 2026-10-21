@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,6 +45,24 @@ class UserProfileController extends Controller
             'email.unique' => 'That email address is already in use by another account.',
         ]);
 
+        $isStudent = $account->role === 'Student';
+        $profile = $isStudent ? $account->student : $account->facultyMember;
+        $labels = ['first_name' => 'First name', 'last_name' => 'Last name', 'email' => 'Email']
+            + ($isStudent ? ['year_level' => 'Year level'] : [])
+            + ['address' => 'Address'];
+        $changed = AuditLogger::changedFields(
+            ['email' => $account->email] + ($profile?->only(['first_name', 'last_name', 'year_level', 'address']) ?? []),
+            // The values as they are saved below.
+            [
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'] ?? '',
+                'email' => $data['email'],
+                'year_level' => $data['year_level'] ?? 'N/A',
+                'address' => $data['address'] ?? '',
+            ],
+            $labels,
+        );
+
         // FIX vs legacy: a failed email UPDATE was silently ignored while the
         // session still showed the new value. Everything is now one transaction
         // and validation guarantees a clean write.
@@ -68,6 +87,10 @@ class UserProfileController extends Controller
 
         $account->unsetRelation('student')->unsetRelation('facultyMember');
 
+        if ($changed) {
+            AuditLogger::log('Updated profile', 'user_account:' . $account->user_id, 'Changed: ' . implode(', ', $changed), AuditLogger::actorFor('user', $account), $request);
+        }
+
         return response()->json(['success' => true, 'message' => 'Personal information updated successfully!']);
     }
 
@@ -87,6 +110,8 @@ class UserProfileController extends Controller
         $path = '/storage/' . $filename;
 
         auth('user')->user()->update(['profile_image' => $path]);
+
+        AuditLogger::log('Updated profile picture', 'user_account:' . auth('user')->user()->user_id, null, AuditLogger::actorFor('user', auth('user')->user()), $request);
 
         return response()->json(['success' => true, 'image_url' => $path]);
     }

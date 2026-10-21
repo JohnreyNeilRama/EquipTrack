@@ -102,9 +102,22 @@
                             <option value="custom">Custom Date Range</option>
                         </select>
                     </div>
-                    <button type="button" id="btnExportLogs" class="btn-export-logs">
-                        <i class="fa-solid fa-download"></i> Export Logs
-                    </button>
+                    <div class="export-menu" id="exportMenu">
+                        <button type="button" id="btnExportLogs" class="btn-export-logs" aria-haspopup="true" aria-expanded="false" aria-controls="exportMenuList">
+                            <i class="fa-solid fa-download"></i> Export Logs <i class="fa-solid fa-chevron-down export-caret"></i>
+                        </button>
+                        <div class="export-menu-list" id="exportMenuList" role="menu" hidden>
+                            <button type="button" role="menuitem" data-format="pdf" title="Opens a print-ready report. Choose “Save as PDF” in the print dialog.">
+                                <i class="fa-solid fa-file-pdf"></i> Export PDF
+                            </button>
+                            <button type="button" role="menuitem" data-format="csv" title="Downloads a CSV file that opens in Excel.">
+                                <i class="fa-solid fa-file-csv"></i> Export CSV
+                            </button>
+                            <button type="button" role="menuitem" data-format="print">
+                                <i class="fa-solid fa-print"></i> Print Report
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Custom Date Range Picker Container -->
@@ -279,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (a.includes('logout')) return 'badge-gray';
         if (a.includes('deleted') || a.includes('deactivated') || a.includes('rejected')) return 'badge-red';
         if (a.includes('added') || a.includes('registered') || a.includes('submitted') || a.includes('activated')) return 'badge-green';
-        if (a.includes('updated')) return 'badge-orange';
+        if (a.includes('updated') || a.includes('changed')) return 'badge-orange';
         if (a.includes('approved')) return 'badge-purple';
         if (a.includes('returned')) return 'badge-teal';
         if (a.includes('exported') || a.includes('generated')) return 'badge-yellow';
@@ -518,16 +531,54 @@ document.addEventListener('DOMContentLoaded', () => {
         reload();
     });
 
-    $('btnExportLogs').addEventListener('click', () => {
+    const exportButton = $('btnExportLogs');
+    const exportList = $('exportMenuList');
+
+    function toggleExportMenu(open) {
+        exportList.hidden = !open;
+        exportButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    exportButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleExportMenu(exportList.hidden);
+    });
+    document.addEventListener('click', (event) => {
+        if (!$('exportMenu').contains(event.target)) toggleExportMenu(false);
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !exportList.hidden) {
+            toggleExportMenu(false);
+            exportButton.focus();
+        }
+    });
+
+    // The server exports everything the current filters match and records the export.
+    exportList.querySelectorAll('[data-format]').forEach(item => item.addEventListener('click', () => {
+        toggleExportMenu(false);
         if (lastTotal === 0) {
             showToast('Export Failed', 'There are no audit logs available to export.', 'error');
             return;
         }
-        // The server exports everything the current filters match and records the export.
-        window.location.href = EXPORT_URL + '?' + queryString(false);
-        showToast('Export Started', 'Your CSV download of the filtered audit logs is starting.', 'success');
+
+        const format = item.dataset.format;
+        const params = queryString(false);
+        const url = EXPORT_URL + '?' + (params ? params + '&' : '') + 'format=' + format;
+
+        if (format === 'csv') {
+            window.location.href = url;
+            showToast('Export Started', 'Your CSV download of the filtered audit logs is starting.', 'success');
+        } else {
+            if (!window.open(url, '_blank')) {
+                showToast('Pop-up Blocked', 'Allow pop-ups for this site to open the report.', 'error');
+                return;
+            }
+            showToast(format === 'pdf' ? 'Opening PDF View' : 'Opening Print View',
+                format === 'pdf' ? 'Choose “Save as PDF” as the destination in the print dialog.' : 'The print dialog opens in the new tab.',
+                'success');
+        }
         setTimeout(load, 1500);
-    });
+    }));
 
     load();
 });

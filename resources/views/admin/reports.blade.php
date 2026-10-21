@@ -13,7 +13,7 @@
         <header class="rp-header">
             <div class="rp-header-text">
                 <h1 class="reports-page-title">Reports</h1>
-                <p class="reports-page-subtitle">Generate, analyze, and export borrowing, return, inventory, user activity, and equipment utilization reports.</p>
+                <p class="reports-page-subtitle">Generate, analyze, and export borrowing, return, inventory, user activity, equipment utilization, and transaction history reports.</p>
             </div>
         </header>
 
@@ -538,7 +538,7 @@
     function columnClass(column) {
         const classes = [];
         if (column.kind === 'num') classes.push('col-num');
-        if (column.kind === 'status' || column.key === 'id_number' || column.key === 'last_borrowed' || /_date$/.test(column.key)) {
+        if (column.kind === 'status' || column.key === 'id_number' || column.key === 'transaction' || column.key === 'last_borrowed' || /_date$/.test(column.key)) {
             classes.push('col-nowrap');
         }
         if (column.key === 'borrower') classes.push('col-borrower-truncate');

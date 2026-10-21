@@ -235,6 +235,60 @@ body {
     transform: translateY(-1px);
 }
 
+/* Export Logs menu: PDF / CSV / Print */
+.export-menu {
+    position: relative;
+}
+
+.export-caret {
+    font-size: 10px;
+}
+
+.export-menu-list {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 20;
+    min-width: 180px;
+    padding: 6px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+.export-menu-list[hidden] {
+    display: none;
+}
+
+.export-menu-list button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 12px;
+    background: none;
+    border: none;
+    border-radius: 7px;
+    font-size: var(--fs-label);
+    font-weight: 500;
+    color: var(--text-main);
+    text-align: left;
+    cursor: pointer;
+}
+
+.export-menu-list button i {
+    width: 16px;
+    color: var(--primary-color);
+}
+
+.export-menu-list button:hover,
+.export-menu-list button:focus-visible {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    outline: none;
+}
+
 /* Custom Date Picker Container */
 .custom-date-container {
     display: flex;

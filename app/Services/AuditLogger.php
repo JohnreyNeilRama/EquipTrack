@@ -63,6 +63,27 @@ class AuditLogger
         }
     }
 
+    /**
+     * Labels of the fields whose value differs between $before and $after,
+     * in the order of $labels. Values are compared as trimmed text, so null
+     * and '' count as the same (no change).
+     *
+     * @param  array<string, string>  $labels  field => label
+     * @return array<int, string>
+     */
+    public static function changedFields(array $before, array $after, array $labels): array
+    {
+        $changed = [];
+
+        foreach ($labels as $field => $label) {
+            if (trim((string) ($before[$field] ?? '')) !== trim((string) ($after[$field] ?? ''))) {
+                $changed[] = $label;
+            }
+        }
+
+        return $changed;
+    }
+
     /** The audit_trail actor column for an authenticated account of the given guard. */
     public static function actorFor(string $guard, $account): array
     {

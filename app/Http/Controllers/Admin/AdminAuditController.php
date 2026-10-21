@@ -34,6 +34,8 @@ class AdminAuditController extends Controller
 
     private const RANGES = ['all', 'today', 'week', 'month', 'custom'];
 
+    private const FORMATS = ['csv' => 'CSV', 'pdf' => 'PDF', 'print' => 'Print'];
+
     public function index(): View
     {
         return view('admin.audit', [
@@ -70,22 +72,41 @@ class AdminAuditController extends Controller
         ]);
     }
 
-    /** CSV of everything the current filters match (not just the visible page). */
-    public function export(Request $request): StreamedResponse
+    /**
+     * Everything the current filters match (not just the visible page), as a
+     * CSV download or as the print-ready Audit Trail Report (PDF / Print).
+     */
+    public function export(Request $request): StreamedResponse|View
     {
+        $format = strtolower((string) $request->query('format', 'csv'));
+        abort_unless(isset(self::FORMATS[$format]), 404);
+
         $filters = $this->filters($request);
+        $admin = auth('admin')->user();
+        // Read before the export is logged, so the report shows the moment it was made.
+        $generatedAt = $this->dbNow();
 
         $rows = $this->query($filters)->limit(self::EXPORT_LIMIT)->get()
             ->map(fn (AuditTrail $log) => $this->present($log));
 
         // Logged after the rows are read, so the export does not list itself.
         AuditLogger::log(
-            'Exported audit log (CSV)',
+            'Exported audit log (' . self::FORMATS[$format] . ')',
             'audit',
             $rows->count() . ' record(s) exported. Filters: ' . $this->describeFilters($filters),
-            ['admin_id' => auth('admin')->user()->admin_id],
+            ['admin_id' => $admin->admin_id],
             $request,
         );
+
+        if ($format !== 'csv') {
+            return view('admin.reports-print', [
+                'report' => $this->printableReport($rows),
+                'filtersText' => $this->describeFilters($filters, true),
+                'generatedAt' => $generatedAt->format('M d, Y h:i A'),
+                'generatedBy' => $admin->name ?: 'Administrator',
+                'format' => $format,
+            ]);
+        }
 
         $filename = 'equiptrack-audit-trail-' . now()->format('Y-m-d') . '.csv';
 
@@ -114,6 +135,34 @@ class AdminAuditController extends Controller
 
             fclose($out);
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
+     * The exported rows in the shape the shared print template reads. Action
+     * is the template's status column, so the report opens with a count per
+     * action.
+     */
+    private function printableReport($rows): array
+    {
+        return [
+            'title' => 'Audit Trail Report',
+            'columns' => [
+                ['key' => 'date', 'label' => 'Date & Time', 'kind' => 'text'],
+                ['key' => 'user', 'label' => 'User', 'kind' => 'text'],
+                ['key' => 'role', 'label' => 'Role', 'kind' => 'text'],
+                ['key' => 'module', 'label' => 'Module', 'kind' => 'text'],
+                ['key' => 'action', 'label' => 'Action', 'kind' => 'status'],
+                ['key' => 'entity', 'label' => 'Affected Record', 'kind' => 'text'],
+                ['key' => 'description', 'label' => 'Description', 'kind' => 'text'],
+                ['key' => 'note', 'label' => 'Note', 'kind' => 'text'],
+                ['key' => 'ip', 'label' => 'IP Address', 'kind' => 'text'],
+            ],
+            'rows' => $rows->all(),
+            'total' => $rows->count(),
+            'note' => $rows->count() >= self::EXPORT_LIMIT
+                ? 'Only the first ' . number_format(self::EXPORT_LIMIT) . ' matching records are included. Narrow the filters to see the rest.'
+                : null,
+        ];
     }
 
     // ------------------------------------------------------------------
@@ -257,28 +306,39 @@ class AdminAuditController extends Controller
         };
     }
 
-    private function describeFilters(array $filters): string
+    /** The applied filters in words: short for the audit log, readable for the printed report. */
+    private function describeFilters(array $filters, bool $forReport = false): string
     {
         $parts = [];
 
         if (!empty($filters['q'])) {
-            $parts[] = 'search "' . $filters['q'] . '"';
+            $parts[] = ($forReport ? 'Search: ' : 'search ') . '"' . $filters['q'] . '"';
         }
         if (!empty($filters['action'])) {
-            $parts[] = 'action ' . $filters['action'];
+            $parts[] = ($forReport ? 'Action: ' : 'action ') . $filters['action'];
         }
         if (!empty($filters['module'])) {
-            $parts[] = 'module ' . $filters['module'];
+            $parts[] = ($forReport ? 'Module: ' : 'module ') . $filters['module'];
         }
 
         $range = $filters['range'] ?? 'all';
         if ($range === 'custom') {
-            $parts[] = 'dates ' . ($filters['from'] ?? 'earliest') . ' to ' . ($filters['to'] ?? 'latest');
+            $from = $filters['from'] ?? null;
+            $to = $filters['to'] ?? null;
+            $parts[] = $forReport
+                ? 'Dates: ' . ($from ? Carbon::parse($from)->format('M d, Y') : 'Earliest') . ' to ' . ($to ? Carbon::parse($to)->format('M d, Y') : 'Latest')
+                : 'dates ' . ($from ?? 'earliest') . ' to ' . ($to ?? 'latest');
         } elseif ($range !== 'all') {
-            $parts[] = 'range ' . $range;
+            $parts[] = $forReport
+                ? 'Dates: ' . ['today' => 'Today', 'week' => 'This Week', 'month' => 'This Month'][$range]
+                : 'range ' . $range;
         }
 
-        return $parts ? implode(', ', $parts) : 'none';
+        if (!$parts) {
+            return $forReport ? 'None (all records)' : 'none';
+        }
+
+        return implode($forReport ? ' · ' : ', ', $parts);
     }
 
     // ------------------------------------------------------------------

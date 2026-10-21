@@ -63,6 +63,14 @@ class AuditCatalog
             'Deleted department account' => 'Department account',
         ]],
 
+        // Own account (admin, department and user profile pages)
+        ['label' => 'Updated Profile', 'module' => 'Profile', 'prefixes' => [
+            // Longer prefix first, so a picture change keeps its own description.
+            'Updated profile picture' => 'Profile picture',
+            'Updated profile' => 'Profile',
+        ]],
+        ['label' => 'Changed Password', 'module' => 'Profile', 'prefixes' => ['Changed password' => 'Password']],
+
         // Reports
         ['label' => 'Generated Report', 'module' => 'Reports', 'prefixes' => ['Generated report' => 'Report']],
         ['label' => 'Exported Report', 'module' => 'Reports', 'prefixes' => ['Exported report' => 'Report']],
@@ -160,6 +168,7 @@ class AuditCatalog
             'equipment' => 'Equipment #' . $id,
             'category' => 'Category #' . $id,
             'user_account' => 'User account #' . $id,
+            'admin' => 'Admin account #' . $id,
             'department_account' => 'Department account #' . $id,
             'report' => 'Report: ' . ucfirst($id),
             'audit' => 'Audit trail',

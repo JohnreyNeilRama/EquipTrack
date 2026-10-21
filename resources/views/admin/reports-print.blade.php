@@ -139,7 +139,7 @@
         .status.low { color: #d97706; }
         .status.not-used { color: #64748b; }
         .status.borrowed, .status.approved { color: #2563eb; }
-        .status.pending, .status.returned-late, .status.damaged, .status.on-hold { color: #d97706; }
+        .status.pending, .status.returned-late, .status.damaged, .status.incomplete, .status.on-hold { color: #d97706; }
         .status.overdue, .status.rejected, .status.lost, .status.unavailable { color: #dc2626; }
         .status.under-maintenance { color: #4f46e5; }
 

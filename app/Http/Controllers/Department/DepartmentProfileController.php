@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Department;
 use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\DepartmentAccount;
+use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -67,7 +68,21 @@ class DepartmentProfileController extends Controller
             $update['password'] = Hash::make($data['new_password']);
         }
 
+        $changed = AuditLogger::changedFields(
+            $account->only(['full_name', 'email', 'employee_id']),
+            $update,
+            ['full_name' => 'Full name', 'email' => 'Email', 'employee_id' => 'Employee ID'],
+        );
+
         $account->update($update);
+
+        $entity = 'department_account:' . $account->dept_acc_id;
+        if ($changed) {
+            AuditLogger::log('Updated profile', $entity, 'Changed: ' . implode(', ', $changed), AuditLogger::actorFor('dept', $account), $request);
+        }
+        if (isset($update['password'])) {
+            AuditLogger::log('Changed password', $entity, null, AuditLogger::actorFor('dept', $account), $request);
+        }
 
         return response()->json(['success' => true, 'message' => 'Profile information updated successfully!']);
     }
@@ -88,6 +103,8 @@ class DepartmentProfileController extends Controller
         if ($account->department_id) {
             Department::where('department_id', $account->department_id)->update(['profile_image' => $path]);
         }
+
+        AuditLogger::log('Updated profile picture', 'department_account:' . $account->dept_acc_id, null, AuditLogger::actorFor('dept', $account), $request);
 
         return response()->json([
             'success' => true,

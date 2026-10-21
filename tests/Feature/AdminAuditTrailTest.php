@@ -455,4 +455,104 @@ class AdminAuditTrailTest extends TestCase
         $logged = collect($this->feed()['records'])->firstWhere('action', 'Exported Audit Log');
         $this->assertSame('Audit Trail', $logged['module']);
     }
+
+    public function test_pdf_and_print_exports_render_the_filtered_audit_trail_report(): void
+    {
+        $this->insertRow(['action' => 'Deleted equipment #5', 'affected_entity' => 'equipment:5']);
+        $this->insertRow();
+
+        foreach (['pdf' => 'PDF', 'print' => 'Print'] as $format => $label) {
+            $this->actingAs($this->admin, 'admin')
+                ->get(route('admin.audit.export', ['action' => 'Deleted Equipment', 'format' => $format]))
+                ->assertOk()
+                ->assertSee('Audit Trail Report')
+                ->assertSee('Action: Deleted Equipment')
+                ->assertSee('Equipment #5')
+                ->assertSee('System Admin')
+                ->assertDontSee('Authentication');
+
+            $this->assertSame(1, AuditTrail::where('action', 'Exported audit log (' . $label . ')')->count());
+        }
+
+        $this->actingAs($this->admin, 'admin')
+            ->get(route('admin.audit.export', ['format' => 'docx']))
+            ->assertNotFound();
+    }
+
+    public function test_profile_and_password_changes_are_recorded_for_every_account_type(): void
+    {
+        // Admin: one row per kind of change, and nothing when nothing changed.
+        $this->actingAs($this->admin, 'admin')->post(route('admin.profile.update'), [
+            'admin_full_name' => 'Head Admin',
+            'admin_email' => 'admin@example.com',
+            'admin_employee_id' => '',
+            'current_password' => 'password',
+            'new_password' => 'secret123',
+            'confirm_password' => 'secret123',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('audit_trail', [
+            'admin_id' => $this->admin->admin_id,
+            'action' => 'Updated profile',
+            'affected_entity' => 'admin:' . $this->admin->admin_id,
+            'details' => 'Changed: Full name',
+        ]);
+        $this->assertSame(1, AuditTrail::where('action', 'Changed password')->where('admin_id', $this->admin->admin_id)->count());
+
+        $this->actingAs($this->admin->fresh(), 'admin')->post(route('admin.profile.update'), [
+            'admin_full_name' => 'Head Admin',
+            'admin_email' => 'admin@example.com',
+            'admin_employee_id' => '',
+        ])->assertRedirect();
+        $this->assertSame(1, AuditTrail::where('action', 'Updated profile')->count());
+
+        // Department account.
+        $department = Department::create(['department_name' => 'College of Computer Studies', 'department_code' => 'CCS']);
+        $lab = \App\Models\DepartmentAccount::create([
+            'full_name' => 'Ana Santos',
+            'email' => 'lab@example.com',
+            'password' => Hash::make('password'),
+            'role' => 'Lab Personnel',
+            'department_id' => $department->department_id,
+            'status' => 'Active',
+        ]);
+
+        $this->actingAs($lab, 'dept')->postJson(route('department.profile.update'), [
+            'full_name' => 'Ana Santos',
+            'email' => 'ana@example.com',
+            'current_password' => 'password',
+            'new_password' => 'secret123',
+            'confirm_password' => 'secret123',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('audit_trail', [
+            'dept_acc_id' => $lab->dept_acc_id,
+            'action' => 'Updated profile',
+            'details' => 'Changed: Email',
+        ]);
+        $this->assertDatabaseHas('audit_trail', ['dept_acc_id' => $lab->dept_acc_id, 'action' => 'Changed password']);
+
+        // Student.
+        $user = $this->makeUser();
+        $this->actingAs($user, 'user')->postJson(route('user.profile.update'), [
+            'first_name' => 'Juan',
+            'last_name' => 'Dela Cruz',
+            'email' => 'juan@example.com',
+            'year_level' => '3rd Year',
+            'address' => 'Mandaue City',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('audit_trail', [
+            'user_id' => $user->user_id,
+            'action' => 'Updated profile',
+            'affected_entity' => 'user_account:' . $user->user_id,
+            'details' => 'Changed: Address',
+        ]);
+
+        // The page classifies the new rows under the Profile module.
+        $records = collect($this->feed(['module' => 'Profile'])['records']);
+        $this->assertCount(5, $records);
+        $this->assertSame(['Changed Password', 'Updated Profile'], $records->pluck('action')->unique()->sort()->values()->all());
+        $this->assertSame('Admin account #' . $this->admin->admin_id, $records->firstWhere('user', 'Head Admin')['entity']);
+    }
 }

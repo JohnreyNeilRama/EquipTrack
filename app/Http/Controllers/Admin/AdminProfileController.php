@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
+use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -73,7 +74,21 @@ class AdminProfileController extends Controller
             $update['password'] = Hash::make($data['new_password']);
         }
 
+        $changed = AuditLogger::changedFields(
+            $admin->only(['name', 'email', 'employee_id']),
+            $update,
+            ['name' => 'Full name', 'email' => 'Email', 'employee_id' => 'Employee ID'],
+        );
+
         $admin->update($update);
+
+        $entity = 'admin:' . $admin->admin_id;
+        if ($changed) {
+            AuditLogger::log('Updated profile', $entity, 'Changed: ' . implode(', ', $changed), AuditLogger::actorFor('admin', $admin), $request);
+        }
+        if (isset($update['password'])) {
+            AuditLogger::log('Changed password', $entity, null, AuditLogger::actorFor('admin', $admin), $request);
+        }
 
         return redirect()->route('admin.profile')->with('success_msg', 'Profile changes saved successfully!');
     }
@@ -91,6 +106,8 @@ class AdminProfileController extends Controller
         $path = '/storage/' . $filename;
 
         Admin::where('admin_id', auth('admin')->user()->admin_id)->update(['profile_image' => $path]);
+
+        AuditLogger::log('Updated profile picture', 'admin:' . auth('admin')->user()->admin_id, null, AuditLogger::actorFor('admin', auth('admin')->user()), $request);
 
         return response()->json([
             'success' => true,

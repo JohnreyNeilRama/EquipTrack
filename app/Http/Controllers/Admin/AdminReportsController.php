@@ -45,6 +45,7 @@ class AdminReportsController extends Controller
         'overdue' => ['label' => 'Overdue Report', 'basis' => 'Due date'],
         'activity' => ['label' => 'User Activity Report', 'basis' => 'Borrow date'],
         'utilization' => ['label' => 'Equipment Utilization Report', 'basis' => 'Loan period'],
+        'transactions' => ['label' => 'Transaction History', 'basis' => 'Borrow date'],
     ];
 
     /** Status filter values available for each report type (empty = no status filter). */
@@ -55,11 +56,21 @@ class AdminReportsController extends Controller
         'overdue' => [],
         'activity' => [],
         'utilization' => ['High', 'Moderate', 'Low', 'Not Used'],
+        'transactions' => ['Borrowed', 'Overdue', 'Returned', 'Returned Late', 'Damaged', 'Incomplete', 'Lost'],
     ];
 
     private const FORMATS = ['csv' => 'CSV', 'pdf' => 'PDF', 'print' => 'Print'];
 
     private const RECENT_LIMIT = 25;
+
+    /**
+     * Report times are recorded and shown in Philippine time. The app clock
+     * runs in UTC, so "now" is always taken in this zone explicitly; the
+     * stored value is the Philippine wall-clock time (the same clock the
+     * database's own default uses for the other audit entries) and is shown
+     * as stored, never converted again.
+     */
+    private const REPORT_TIMEZONE = 'Asia/Manila';
 
     public function index(): View
     {
@@ -118,7 +129,7 @@ class AdminReportsController extends Controller
             ]);
         }
 
-        $filename = 'equiptrack-' . $filters['type'] . '-report-' . now()->format('Y-m-d') . '.csv';
+        $filename = 'equiptrack-' . $filters['type'] . '-report-' . now(self::REPORT_TIMEZONE)->format('Y-m-d') . '.csv';
 
         return response()->streamDownload(function () use ($report, $payload, $filtersText, $admin) {
             $out = fopen('php://output', 'w');
@@ -244,7 +255,7 @@ class AdminReportsController extends Controller
             'summary' => $this->summary($filters, $all),
             'charts' => $this->charts($filters, $all, $today),
             'recent' => $this->recentActivity(),
-            'generatedAt' => now()->format('M d, Y h:i A'),
+            'generatedAt' => now(self::REPORT_TIMEZONE)->format('M d, Y h:i A'),
         ];
     }
 
@@ -315,6 +326,7 @@ class AdminReportsController extends Controller
 
         return [
             'request_id' => (int) $request->request_id,
+            'transaction_id' => $transaction ? (int) $transaction->transaction_id : null,
             'user_id' => (int) $request->user_id,
             'user' => ($user ? $user->fullName() : '') ?: ($user ? $user->email : 'Unknown User'),
             'id_number' => $idNumber ?: '—',
@@ -551,6 +563,7 @@ class AdminReportsController extends Controller
             'overdue' => $this->overdueReport($filters, $all),
             'activity' => $this->activityReport($filters, $all),
             'utilization' => $this->utilizationReport($filters, $all),
+            'transactions' => $this->transactionHistory($filters, $all),
             default => $this->borrowingReport($filters, $all),
         };
     }
@@ -730,6 +743,51 @@ class AdminReportsController extends Controller
         ], $rows);
     }
 
+    /**
+     * Every loan transaction (equipment actually handed out), newest first,
+     * with its dates and where it stands now: still out (Borrowed / Overdue)
+     * or how it came back (Returned, Returned Late, Damaged, Incomplete, Lost).
+     * Pending and rejected requests are not transactions, so they are only in
+     * the Borrowing Report. Filtered by borrow date and category.
+     */
+    private function transactionHistory(array $filters, Collection $all): array
+    {
+        $rows = $this->scope($all, $filters)
+            ->filter(fn (array $row) => $row['loan'] !== null && $row['transaction_id'] !== null)
+            ->map(function (array $row) {
+                $row['txn_status'] = $row['loan'] === 'Returned'
+                    ? ($row['return_status'] ?? 'Returned')
+                    : ($row['overdue'] ? 'Overdue' : 'Borrowed');
+
+                return $row;
+            })
+            ->filter(fn (array $row) => $filters['status'] === '' || $row['txn_status'] === $filters['status'])
+            ->sort(fn (array $a, array $b) => [$this->stamp($b['borrow']), $b['transaction_id']] <=> [$this->stamp($a['borrow']), $a['transaction_id']])
+            ->map(fn (array $row) => [
+                'transaction' => 'TXN-' . str_pad((string) $row['transaction_id'], 4, '0', STR_PAD_LEFT),
+                'borrower' => $row['user'],
+                'id_number' => $row['id_number'],
+                'equipment' => $row['equipment'],
+                'qty' => $row['qty'],
+                'borrow_date' => $this->fmt($row['borrow']),
+                'due_date' => $this->fmt($row['due']),
+                'return_date' => $this->fmt($row['returned_on']),
+                'status' => $row['txn_status'],
+            ]);
+
+        return $this->finish('transactions', [
+            $this->col('transaction', 'Transaction ID'),
+            $this->col('borrower', 'Borrower'),
+            $this->col('id_number', 'Student/Faculty ID'),
+            $this->col('equipment', 'Equipment'),
+            $this->col('qty', 'Qty', 'num'),
+            $this->col('borrow_date', 'Borrow Date'),
+            $this->col('due_date', 'Due Date'),
+            $this->col('return_date', 'Return Date'),
+            $this->col('status', 'Status', 'status'),
+        ], $rows);
+    }
+
     /** Usage level thresholds (utilization %) for the Equipment Utilization Report. */
     private const UTILIZATION_HIGH = 50;
 
@@ -886,8 +944,8 @@ class AdminReportsController extends Controller
             'affected_entity' => 'report:' . $filters['type'],
             'details' => json_encode($meta),
         ]);
-        // Stamped from the app clock so it matches how the page reads it back.
-        $log->created_at = now();
+        // Philippine wall-clock time (see REPORT_TIMEZONE).
+        $log->created_at = now(self::REPORT_TIMEZONE);
         $log->save();
     }
 
@@ -895,7 +953,7 @@ class AdminReportsController extends Controller
     {
         return AuditTrail::where('affected_entity', 'like', 'report:%')
             ->where('action', 'like', 'Generated report:%')
-            ->where('created_at', '>=', now()->startOfMonth())
+            ->where('created_at', '>=', now(self::REPORT_TIMEZONE)->startOfMonth()->format('Y-m-d H:i:s'))
             ->count();
     }
 
