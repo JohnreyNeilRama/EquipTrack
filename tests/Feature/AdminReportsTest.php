@@ -450,6 +450,70 @@ class AdminReportsTest extends TestCase
         $this->assertSame($payload['summary']['requests'], array_sum(array_column($rows, 'requests')));
     }
 
+    public function test_utilization_report_measures_how_much_each_item_was_used_in_the_period(): void
+    {
+        $laptop = $this->makeEquipment(['name' => 'Dell Latitude', 'available_qty' => 2, 'total_qty' => 2]);
+        $camera = $this->makeEquipment(['name' => 'Canon EOS', 'category_id' => $this->cameras->category_id, 'available_qty' => 1, 'total_qty' => 1]);
+        $projector = $this->makeEquipment(['name' => 'Epson Projector', 'available_qty' => 1, 'total_qty' => 1]);
+
+        // Laptop: one loan returned on the last day of the period, one still out.
+        $returned = $this->makeRequest($laptop, $this->approved([
+            'borrow_date' => '2026-01-01', 'date_needed' => '2026-01-01', 'due_date' => '2026-01-12', 'return_date' => '2026-01-12',
+        ]));
+        $this->loan($returned, ['status' => 'Returned', 'return_date' => '2026-01-10']);
+        $this->loan($this->makeRequest($laptop, $this->approved([
+            'borrow_date' => '2026-01-05', 'date_needed' => '2026-01-05', 'due_date' => '2026-01-07', 'return_date' => '2026-01-07',
+        ])));
+
+        // Camera: two days on loan.
+        $cameraLoan = $this->makeRequest($camera, $this->approved([
+            'borrow_date' => '2026-01-09', 'date_needed' => '2026-01-09', 'due_date' => '2026-01-10', 'return_date' => '2026-01-10',
+        ]));
+        $this->loan($cameraLoan, ['status' => 'Returned', 'return_date' => '2026-01-10']);
+
+        // Projector: only pending / rejected requests, so never used.
+        $this->makeRequest($projector, ['borrow_date' => '2026-01-03']);
+        $this->makeRequest($projector, ['borrow_date' => '2026-01-03', 'overall_status' => 'Rejected', 'admin_status' => 'Rejected']);
+
+        $payload = $this->report(['type' => 'utilization', 'from' => '2026-01-01', 'to' => '2026-01-10']);
+        $rows = collect($payload['report']['rows'])->keyBy('equipment');
+
+        $this->assertSame('Equipment Utilization Report', $payload['report']['title']);
+        $this->assertSame(3, $payload['report']['total']);
+        $this->assertSame(['Dell Latitude', 'Canon EOS', 'Epson Projector'], collect($payload['report']['rows'])->pluck('equipment')->all());
+
+        // 10-day period, 2 units: 10 + 6 loan days = 16 of 20 → 80%.
+        $this->assertSame(2, $rows['Dell Latitude']['times']);
+        $this->assertSame(2, $rows['Dell Latitude']['units']);
+        $this->assertSame(16, $rows['Dell Latitude']['loan_days']);
+        $this->assertSame('80%', $rows['Dell Latitude']['utilization']);
+        $this->assertSame('Jan 05, 2026', $rows['Dell Latitude']['last_borrowed']);
+        $this->assertSame('High', $rows['Dell Latitude']['status']);
+
+        // 2 of 10 days → 20%.
+        $this->assertSame(2, $rows['Canon EOS']['loan_days']);
+        $this->assertSame('20%', $rows['Canon EOS']['utilization']);
+        $this->assertSame('Moderate', $rows['Canon EOS']['status']);
+
+        $this->assertSame(0, $rows['Epson Projector']['times']);
+        $this->assertSame('0%', $rows['Epson Projector']['utilization']);
+        $this->assertSame('—', $rows['Epson Projector']['last_borrowed']);
+        $this->assertSame('Not Used', $rows['Epson Projector']['status']);
+
+        $this->assertStringContainsString('Jan 01, 2026 – Jan 10, 2026 (10 days)', $payload['report']['note']);
+
+        // Usage level and category filters
+        $this->assertSame(['Dell Latitude'], collect($this->report(['type' => 'utilization', 'from' => '2026-01-01', 'to' => '2026-01-10', 'status' => 'High'])['report']['rows'])->pluck('equipment')->all());
+        $this->assertSame(['Canon EOS'], collect($this->report(['type' => 'utilization', 'from' => '2026-01-01', 'to' => '2026-01-10', 'category' => $this->cameras->category_id])['report']['rows'])->pluck('equipment')->all());
+
+        // The print export carries the period note
+        $this->actingAs($this->admin, 'admin')
+            ->get(route('admin.reports.export', ['type' => 'utilization', 'from' => '2026-01-01', 'to' => '2026-01-10', 'format' => 'print']))
+            ->assertOk()
+            ->assertSee('Equipment Utilization Report')
+            ->assertSee('Utilization = loan days');
+    }
+
     public function test_charts_count_approved_borrowings_by_month_category_and_equipment(): void
     {
         $laptop = $this->makeEquipment(['name' => 'Dell Latitude']);

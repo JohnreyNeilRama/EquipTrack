@@ -4,150 +4,204 @@
 
 @push('css')
 <link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
-<link rel="stylesheet" href="{{ asset('admin/css/adminreports.css') }}">
+<link rel="stylesheet" href="{{ asset('admin/css/adminreports.css') }}?v={{ filemtime(public_path('admin/css/adminreports.css')) }}">
 @endpush
 
 @section('content')
-<!-- Reports Header Section -->
-        <div class="reports-header-section">
-            <h1 class="reports-page-title">Reports</h1>
-            <p class="reports-page-subtitle">Generate, analyze, and export borrowing, return, inventory, and user activity reports.</p>
-        </div>
+<div class="reports-page">
+        {{-- Page header --}}
+        <header class="rp-header">
+            <div class="rp-header-text">
+                <h1 class="reports-page-title">Reports</h1>
+                <p class="reports-page-subtitle">Generate, analyze, and export borrowing, return, inventory, user activity, and equipment utilization reports.</p>
+            </div>
+        </header>
 
-        <!-- Section Title for Summary Cards -->
-        <div class="reports-section-title">Summary Cards</div>
-        <p class="reports-scope-note" id="summaryScopeNote">Request, loan and chart figures follow the selected borrow-date range and category. Equipment availability shows current stock.</p>
-
-        <!-- Summary Statistic Cards (all values come from the database) -->
-        <div class="reports-stats-row">
-            <div class="report-stat-card">
-                <div class="report-stat-header">
-                    <div class="report-stat-value" id="statBorrowings">0</div>
-                    <div class="report-stat-icon-box blue">
-                        <i class="fa-solid fa-chart-simple"></i>
+        {{-- 1. Generate a report: the filters drive the preview, the overview cards and the charts --}}
+        <section class="white-card rp-card rp-builder" aria-labelledby="rpBuilderTitle">
+            <div class="rp-card-head">
+                <div class="rp-card-heading">
+                    <span class="rp-card-icon" aria-hidden="true"><i class="fa-solid fa-sliders"></i></span>
+                    <div>
+                        <h2 class="rp-card-title" id="rpBuilderTitle">Generate Report Filters</h2>
+                        <p class="rp-card-subtitle">Choose a report type and filters, then generate.</p>
                     </div>
-                </div>
-                <div class="report-stat-info">
-                    <div class="report-stat-label">Total Borrowings</div>
-                    <div class="report-stat-caption">Approved borrow requests</div>
                 </div>
             </div>
 
-            <div class="report-stat-card">
-                <div class="report-stat-header">
-                    <div class="report-stat-value" id="statReturns">0</div>
-                    <div class="report-stat-icon-box green">
-                        <i class="fa-solid fa-circle-check"></i>
+            <form id="reportFilterForm" class="rp-filter-form">
+                <div class="rp-filters">
+                    <div class="filter-group rp-filter-type">
+                        <label for="filterReportType">Report Type</label>
+                        <select id="filterReportType" class="form-control select-control">
+                            @foreach ($reportTypes as $typeKey => $typeLabel)
+                                <option value="{{ $typeKey }}">{{ $typeLabel }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterFrom">Date From</label>
+                        <input type="date" id="filterFrom" class="form-control">
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterTo">Date To</label>
+                        <input type="date" id="filterTo" class="form-control">
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterStatus">Status</label>
+                        <select id="filterStatus" class="form-control select-control">
+                            <option value="">All</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterCategory">Category</label>
+                        <select id="filterCategory" class="form-control select-control">
+                            <option value="">All Categories</option>
+                            @foreach ($dbCategories as $cat)
+                                <option value="{{ $cat->category_id }}">{{ $cat->category_name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
-                <div class="report-stat-info">
-                    <div class="report-stat-label">Total Returns</div>
-                    <div class="report-stat-caption">Successfully returned equipment</div>
+
+                <div class="rp-filter-footer">
+                    <p class="filters-note" id="filterBasisNote"></p>
+                    <div class="filters-actions">
+                        <button type="button" id="btnResetFilters" class="btn btn-secondary">
+                            <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i> Reset Filters
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="btnGenerate">
+                            <i class="fa-solid fa-gears" aria-hidden="true"></i> Generate Report
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        {{-- 2. Report preview with its export actions --}}
+        <section class="white-card rp-card" aria-labelledby="rpPreviewTitle">
+            <div class="rp-card-head">
+                <div class="rp-card-heading">
+                    <span class="rp-card-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass-chart"></i></span>
+                    <div>
+                        <h2 class="rp-card-title" id="rpPreviewTitle">Report Preview</h2>
+                        <p class="rp-card-subtitle">The rows the export and print will contain.</p>
+                    </div>
+                </div>
+                <div class="preview-actions rp-export-group" role="group" aria-label="Export report">
+                    <button type="button" class="btn-export" onclick="triggerExport('pdf')" title="Opens a print-ready page. Choose “Save as PDF” in the print dialog.">
+                        <i class="fa-solid fa-file-pdf" style="color: #ef4444;" aria-hidden="true"></i> Export PDF
+                    </button>
+                    <button type="button" class="btn-export" onclick="triggerExport('csv')" title="Downloads a CSV file that opens in Excel.">
+                        <i class="fa-solid fa-file-excel" style="color: #10b981;" aria-hidden="true"></i> Export CSV
+                    </button>
+                    <button type="button" class="btn-export" onclick="triggerExport('print')">
+                        <i class="fa-solid fa-print" style="color: var(--primary-color);" aria-hidden="true"></i> Print Report
+                    </button>
                 </div>
             </div>
 
-            <div class="report-stat-card">
-                <div class="report-stat-header">
-                    <div class="report-stat-value" id="statActive">0</div>
-                    <div class="report-stat-icon-box indigo">
-                        <i class="fa-solid fa-box"></i>
+            <div class="report-meta" id="reportMeta"></div>
+
+            <div class="table-container admin-table-card">
+                <table class="admin-report-table">
+                    <thead>
+                        <tr id="previewTableHead"></tr>
+                    </thead>
+                    <tbody id="previewTableBody">
+                        <!-- Rendered dynamically -->
+                    </tbody>
+                </table>
+
+                <!-- Pagination footer (same layout as the other Admin tables) -->
+                <div class="pagination-container" id="paginationContainer">
+                    <span class="pagination-info" id="paginationInfo"></span>
+                    <div class="pagination-buttons" id="paginationButtons">
+                        <!-- Rendered dynamically -->
                     </div>
                 </div>
-                <div class="report-stat-info">
-                    <div class="report-stat-label">Active Borrowings</div>
-                    <div class="report-stat-caption" id="capActive">Equipment currently borrowed</div>
+            </div>
+        </section>
+
+        {{-- 3. Overview: key figures and charts for the same filters --}}
+        <section class="rp-section" aria-labelledby="rpOverviewTitle">
+            <div class="rp-section-head">
+                <h2 class="rp-section-title" id="rpOverviewTitle">Overview</h2>
+                <p class="reports-scope-note" id="summaryScopeNote">Request, loan and chart figures follow the selected borrow-date range and category. Equipment availability shows current stock.</p>
+            </div>
+
+            <div class="rp-kpi-grid">
+                <div class="rp-kpi">
+                    <span class="rp-kpi-icon blue" aria-hidden="true"><i class="fa-solid fa-chart-simple"></i></span>
+                    <div class="rp-kpi-body">
+                        <span class="rp-kpi-label">Total Borrowings</span>
+                        <span class="rp-kpi-value" id="statBorrowings">0</span>
+                        <span class="rp-kpi-caption">Approved borrow requests</span>
+                    </div>
+                </div>
+                <div class="rp-kpi">
+                    <span class="rp-kpi-icon indigo" aria-hidden="true"><i class="fa-solid fa-box"></i></span>
+                    <div class="rp-kpi-body">
+                        <span class="rp-kpi-label">Active Borrowings</span>
+                        <span class="rp-kpi-value" id="statActive">0</span>
+                        <span class="rp-kpi-caption" id="capActive">Equipment currently borrowed</span>
+                    </div>
+                </div>
+                <div class="rp-kpi">
+                    <span class="rp-kpi-icon orange" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                    <div class="rp-kpi-body">
+                        <span class="rp-kpi-label">Overdue Cases</span>
+                        <span class="rp-kpi-value" id="statOverdue">0</span>
+                        <span class="rp-kpi-caption" id="capOverdue">Items past their due date</span>
+                    </div>
+                </div>
+                <div class="rp-kpi">
+                    <span class="rp-kpi-icon green" aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+                    <div class="rp-kpi-body">
+                        <span class="rp-kpi-label">Total Returns</span>
+                        <span class="rp-kpi-value" id="statReturns">0</span>
+                        <span class="rp-kpi-caption">Successfully returned equipment</span>
+                    </div>
+                </div>
+                <div class="rp-kpi">
+                    <span class="rp-kpi-icon blue" aria-hidden="true"><i class="fa-solid fa-clipboard-list"></i></span>
+                    <div class="rp-kpi-body">
+                        <span class="rp-kpi-label">Total Requests</span>
+                        <span class="rp-kpi-value" id="statRequests">0</span>
+                        <span class="rp-kpi-caption">All borrow requests received</span>
+                    </div>
+                </div>
+                <div class="rp-kpi">
+                    <span class="rp-kpi-icon orange" aria-hidden="true"><i class="fa-solid fa-hourglass-half"></i></span>
+                    <div class="rp-kpi-body">
+                        <span class="rp-kpi-label">Pending Requests</span>
+                        <span class="rp-kpi-value" id="statPending">0</span>
+                        <span class="rp-kpi-caption">Awaiting review</span>
+                    </div>
+                </div>
+                <div class="rp-kpi">
+                    <span class="rp-kpi-icon red" aria-hidden="true"><i class="fa-solid fa-circle-xmark"></i></span>
+                    <div class="rp-kpi-body">
+                        <span class="rp-kpi-label">Rejected Requests</span>
+                        <span class="rp-kpi-value" id="statRejected">0</span>
+                        <span class="rp-kpi-caption">Requests that were declined</span>
+                    </div>
+                </div>
+                <div class="rp-kpi">
+                    <span class="rp-kpi-icon teal" aria-hidden="true"><i class="fa-solid fa-boxes-stacked"></i></span>
+                    <div class="rp-kpi-body">
+                        <span class="rp-kpi-label">Available Equipment</span>
+                        <span class="rp-kpi-value" id="statAvailable">0</span>
+                        <span class="rp-kpi-caption" id="capAvailable">Units available now</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="report-stat-card">
-                <div class="report-stat-header">
-                    <div class="report-stat-value" id="statOverdue">0</div>
-                    <div class="report-stat-icon-box orange">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                    </div>
-                </div>
-                <div class="report-stat-info">
-                    <div class="report-stat-label">Overdue Cases</div>
-                    <div class="report-stat-caption" id="capOverdue">Items past their due date</div>
-                </div>
-            </div>
-
-            <div class="report-stat-card">
-                <div class="report-stat-header">
-                    <div class="report-stat-value" id="statReports">0</div>
-                    <div class="report-stat-icon-box teal">
-                        <i class="fa-solid fa-file-invoice"></i>
-                    </div>
-                </div>
-                <div class="report-stat-info">
-                    <div class="report-stat-label">Reports Generated</div>
-                    <div class="report-stat-caption">Reports generated this month</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="reports-stats-row four">
-            <div class="report-stat-card">
-                <div class="report-stat-header">
-                    <div class="report-stat-value" id="statRequests">0</div>
-                    <div class="report-stat-icon-box blue">
-                        <i class="fa-solid fa-clipboard-list"></i>
-                    </div>
-                </div>
-                <div class="report-stat-info">
-                    <div class="report-stat-label">Total Requests</div>
-                    <div class="report-stat-caption">All borrow requests received</div>
-                </div>
-            </div>
-
-            <div class="report-stat-card">
-                <div class="report-stat-header">
-                    <div class="report-stat-value" id="statPending">0</div>
-                    <div class="report-stat-icon-box orange">
-                        <i class="fa-solid fa-hourglass-half"></i>
-                    </div>
-                </div>
-                <div class="report-stat-info">
-                    <div class="report-stat-label">Pending Requests</div>
-                    <div class="report-stat-caption">Awaiting review</div>
-                </div>
-            </div>
-
-            <div class="report-stat-card">
-                <div class="report-stat-header">
-                    <div class="report-stat-value" id="statRejected">0</div>
-                    <div class="report-stat-icon-box red">
-                        <i class="fa-solid fa-circle-xmark"></i>
-                    </div>
-                </div>
-                <div class="report-stat-info">
-                    <div class="report-stat-label">Rejected Requests</div>
-                    <div class="report-stat-caption">Requests that were declined</div>
-                </div>
-            </div>
-
-            <div class="report-stat-card">
-                <div class="report-stat-header">
-                    <div class="report-stat-value" id="statAvailable">0</div>
-                    <div class="report-stat-icon-box teal">
-                        <i class="fa-solid fa-boxes-stacked"></i>
-                    </div>
-                </div>
-                <div class="report-stat-info">
-                    <div class="report-stat-label">Available Equipment</div>
-                    <div class="report-stat-caption" id="capAvailable">Units available now</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Reports Layout Grid (All full-width horizontal cards) -->
-        <div class="reports-layout-grid">
-            <!-- Charts Analytics Card -->
-            <div class="reports-analytics-card">
-                <div class="analytics-section">
-                    <div class="analytics-section-title">
-                        <span>Monthly Borrowings <small class="analytics-range" id="monthlyRange"></small></span>
-                        <i class="fa-solid fa-chart-bar" style="color: var(--primary-color);"></i>
+            <div class="rp-charts">
+                <div class="white-card rp-chart-card rp-chart-wide">
+                    <div class="rp-chart-head">
+                        <h3 class="rp-chart-title">Monthly Borrowings <small class="analytics-range" id="monthlyRange"></small></h3>
+                        <i class="fa-solid fa-chart-bar" aria-hidden="true"></i>
                     </div>
                     <div class="chart-container">
                         <canvas id="monthlyChart"></canvas>
@@ -155,10 +209,10 @@
                     </div>
                 </div>
 
-                <div class="analytics-section">
-                    <div class="analytics-section-title">
-                        <span>Borrowing by Category</span>
-                        <i class="fa-solid fa-chart-pie" style="color: var(--primary-color);"></i>
+                <div class="white-card rp-chart-card">
+                    <div class="rp-chart-head">
+                        <h3 class="rp-chart-title">Borrowing by Category</h3>
+                        <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
                     </div>
                     <div class="chart-container">
                         <canvas id="categoryChart"></canvas>
@@ -166,136 +220,52 @@
                     </div>
                 </div>
 
-                <div class="analytics-section most-borrowed">
-                    <div class="analytics-section-title-centered">Most Borrowed Equipment</div>
-                    <div style="font-size: 18px; font-weight: 700; color: var(--primary-color); margin-top: 6px;" id="mostBorrowedName">—</div>
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" id="mostBorrowedCaption">0 borrowings</div>
-                </div>
-            </div>
-
-            <!-- Generate Report Panel -->
-            <div class="white-card">
-                <div class="white-card-header">
-                    <div class="white-card-title">
-                        <i class="fa-solid fa-sliders" style="color: var(--primary-color);"></i> Generate Report Filters
+                <div class="white-card rp-chart-card rp-top-item">
+                    <div class="rp-chart-head">
+                        <h3 class="rp-chart-title">Most Borrowed Equipment</h3>
+                        <i class="fa-solid fa-trophy" aria-hidden="true"></i>
                     </div>
-                </div>
-                <form id="reportFilterForm">
-                    <div class="filters-grid">
-                        <div class="filter-group">
-                            <label for="filterFrom">Date From</label>
-                            <input type="date" id="filterFrom" class="form-control">
-                        </div>
-                        <div class="filter-group">
-                            <label for="filterTo">Date To</label>
-                            <input type="date" id="filterTo" class="form-control">
-                        </div>
-                        <div class="filter-group">
-                            <label for="filterReportType">Report Type</label>
-                            <select id="filterReportType" class="form-control select-control">
-                                @foreach ($reportTypes as $typeKey => $typeLabel)
-                                    <option value="{{ $typeKey }}">{{ $typeLabel }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label for="filterStatus">Status</label>
-                            <select id="filterStatus" class="form-control select-control">
-                                <option value="">All</option>
-                            </select>
-                        </div>
-                        <div class="filter-group">
-                            <label for="filterCategory">Category</label>
-                            <select id="filterCategory" class="form-control select-control">
-                                <option value="">All Categories</option>
-                                @foreach ($dbCategories as $cat)
-                                    <option value="{{ $cat->category_id }}">{{ $cat->category_name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <p class="filters-note" id="filterBasisNote"></p>
-                    <div class="filters-actions">
-                        <button type="submit" class="btn btn-primary" id="btnGenerate">
-                            <i class="fa-solid fa-gears"></i> Generate Report
-                        </button>
-                        <button type="button" id="btnResetFilters" class="btn btn-secondary">
-                            <i class="fa-solid fa-arrow-rotate-left"></i> Reset Filters
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Report Preview Card -->
-            <div class="white-card">
-                <div class="white-card-header">
-                    <div class="white-card-title">
-                        <i class="fa-solid fa-magnifying-glass-chart" style="color: var(--primary-color);"></i> Report Preview
-                    </div>
-                    <div class="preview-actions">
-                        <button type="button" class="btn-export" onclick="triggerExport('pdf')" title="Opens a print-ready page. Choose “Save as PDF” in the print dialog.">
-                            <i class="fa-solid fa-file-pdf" style="color: #ef4444;"></i> Export PDF
-                        </button>
-                        <button type="button" class="btn-export" onclick="triggerExport('csv')" title="Downloads a CSV file that opens in Excel.">
-                            <i class="fa-solid fa-file-excel" style="color: #10b981;"></i> Export CSV
-                        </button>
-                        <button type="button" class="btn-export" onclick="triggerExport('print')">
-                            <i class="fa-solid fa-print" style="color: var(--primary-color);"></i> Print Report
-                        </button>
-                    </div>
-                </div>
-
-                <div class="report-meta" id="reportMeta"></div>
-
-                <div class="table-container admin-table-card">
-                    <table class="admin-report-table">
-                        <thead>
-                            <tr id="previewTableHead"></tr>
-                        </thead>
-                        <tbody id="previewTableBody">
-                            <!-- Rendered dynamically -->
-                        </tbody>
-                    </table>
-
-                    <!-- Pagination footer (same layout as the other Admin tables) -->
-                    <div class="pagination-container" id="paginationContainer">
-                        <span class="pagination-info" id="paginationInfo"></span>
-                        <div class="pagination-buttons" id="paginationButtons">
-                            <!-- Rendered dynamically -->
-                        </div>
+                    <div class="rp-top-item-body">
+                        <span class="rp-top-item-name" id="mostBorrowedName">—</span>
+                        <span class="rp-top-item-caption" id="mostBorrowedCaption">0 borrowings</span>
                     </div>
                 </div>
             </div>
+        </section>
 
-            <!-- Recent Generated Reports Section -->
-            <div class="white-card">
-                <div class="white-card-header">
-                    <div class="white-card-title">
-                        <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary-color);"></i> Recent Generated Reports
+        {{-- 4. Recent generated reports --}}
+        <section class="white-card rp-card" aria-labelledby="rpRecentTitle">
+            <div class="rp-card-head">
+                <div class="rp-card-heading">
+                    <span class="rp-card-icon" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                    <div>
+                        <h2 class="rp-card-title" id="rpRecentTitle">Recent Generated Reports</h2>
+                        <p class="rp-card-subtitle"><strong id="statReports">0</strong> reports generated this month. Re-run any of them with one click.</p>
                     </div>
-                    <button type="button" class="btn-view-all" id="btnViewAll" hidden>
-                        View All Reports <i class="fa-solid fa-arrow-right"></i>
-                    </button>
                 </div>
-
-                <div class="table-container admin-table-card">
-                    <table class="admin-report-table">
-                        <thead>
-                            <tr>
-                                <th>Report Name</th>
-                                <th>Generated By</th>
-                                <th>Date Generated</th>
-                                <th>File Format</th>
-                                <th style="text-align: center;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recentTableBody">
-                            <!-- Rendered dynamically -->
-                        </tbody>
-                    </table>
-                </div>
+                <button type="button" class="btn-view-all" id="btnViewAll" hidden>
+                    View All Reports <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </button>
             </div>
-        </div>
+
+            <div class="table-container admin-table-card">
+                <table class="admin-report-table">
+                    <thead>
+                        <tr>
+                            <th>Report Name</th>
+                            <th>Generated By</th>
+                            <th>Date Generated</th>
+                            <th>File Format</th>
+                            <th style="text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentTableBody">
+                        <!-- Rendered dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
 <!-- Toast Success Notification Container -->
     <div class="toast-notification" id="toastNotification">
         <div class="toast-content">
@@ -559,16 +529,36 @@
             '<strong>' + escapeHTML(report.title) + '</strong>' +
             '<span>' + report.total + (report.total === 1 ? ' record' : ' records') + '</span>' +
             '<span>' + escapeHTML(describeFilters(payload.filters, report.basis)) + '</span>' +
-            '<span>As of ' + escapeHTML(payload.generatedAt) + '</span>';
+            '<span>As of ' + escapeHTML(payload.generatedAt) + '</span>' +
+            (report.note ? '<span class="report-note">' + escapeHTML(report.note) + '</span>' : '');
+    }
+
+    // Column classes shared by the header and the cells: numbers stay compact
+    // and centred; dates, ID numbers and statuses stay on one line.
+    function columnClass(column) {
+        const classes = [];
+        if (column.kind === 'num') classes.push('col-num');
+        if (column.kind === 'status' || column.key === 'id_number' || column.key === 'last_borrowed' || /_date$/.test(column.key)) {
+            classes.push('col-nowrap');
+        }
+        if (column.key === 'borrower') classes.push('col-borrower-truncate');
+        if (column.key === 'equipment') classes.push('col-equipment-truncate');
+        return classes.join(' ');
     }
 
     function renderCell(column, value, index) {
         const text = (value === null || value === undefined || value === '') ? '—' : value;
         if (column.kind === 'status') {
-            return '<td><span class="status-pill ' + slug(text) + '">' + escapeHTML(text) + '</span></td>';
+            return '<td class="col-nowrap"><span class="status-pill ' + slug(text) + '">' + escapeHTML(text) + '</span></td>';
         }
         if (column.kind === 'num') {
             return '<td class="col-num">' + escapeHTML(text) + '</td>';
+        }
+        // Borrower names stay on one line, ending in "…" (full name on hover).
+        // The printed report and CSV export always show the full name.
+        if (column.key === 'borrower') {
+            const name = index === 0 ? '<strong>' + escapeHTML(text) + '</strong>' : escapeHTML(text);
+            return '<td class="col-borrower-truncate"><span class="report-borrower-name" title="' + escapeHTML(text) + '">' + name + '</span></td>';
         }
         // Equipment names stay on one line, ending in "…" (full name on hover).
         // The printed report and CSV export always show the full name.
@@ -576,7 +566,8 @@
             const name = index === 0 ? '<strong>' + escapeHTML(text) + '</strong>' : escapeHTML(text);
             return '<td class="col-equipment-truncate"><span class="report-equipment-name" title="' + escapeHTML(text) + '">' + name + '</span></td>';
         }
-        return '<td>' + (index === 0 ? '<strong>' + escapeHTML(text) + '</strong>' : escapeHTML(text)) + '</td>';
+        const cls = columnClass(column);
+        return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + (index === 0 ? '<strong>' + escapeHTML(text) + '</strong>' : escapeHTML(text)) + '</td>';
     }
 
     function renderTable() {
@@ -587,7 +578,10 @@
         const buttons = byId('paginationButtons');
 
         head.innerHTML = report.columns
-            .map((c) => '<th' + (c.kind === 'num' ? ' class="col-num"' : '') + '>' + escapeHTML(c.label) + '</th>')
+            .map((c) => {
+                const cls = columnClass(c);
+                return '<th' + (cls ? ' class="' + cls + '"' : '') + '>' + escapeHTML(c.label) + '</th>';
+            })
             .join('');
 
         if (report.rows.length === 0) {

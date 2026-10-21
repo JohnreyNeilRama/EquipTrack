@@ -834,3 +834,479 @@ body {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* Equipment Utilization Report: usage levels and the period / formula note */
+.report-meta .report-note {
+    flex-basis: 100%;
+    line-height: 1.5;
+}
+
+.status-pill.high {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #047857;
+}
+
+.status-pill.moderate {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #1d4ed8;
+}
+
+.status-pill.low {
+    background-color: rgba(245, 158, 11, 0.12);
+    color: #b45309;
+}
+
+.status-pill.not-used {
+    background-color: rgba(100, 116, 139, 0.12);
+    color: #475569;
+}
+
+.status-pill.high::before,
+.status-pill.moderate::before,
+.status-pill.low::before,
+.status-pill.not-used::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background-color: currentColor;
+    border-radius: 50%;
+}
+
+.dark-theme .status-pill.high { background-color: rgba(16, 185, 129, 0.15); color: #34d399; }
+.dark-theme .status-pill.moderate { background-color: rgba(96, 165, 250, 0.15); color: #93c5fd; }
+.dark-theme .status-pill.low { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.dark-theme .status-pill.not-used { background-color: rgba(148, 163, 184, 0.15); color: #cbd5e1; }
+
+/* ==========================================================================
+   Reports page layout (cleaner, top-to-bottom flow)
+   1. Generate Report Filters  2. Report Preview  3. Overview (key figures +
+   charts)  4. Recent Generated Reports. Everything is scoped to .reports-page,
+   uses the theme variables (light and dark) and keeps every ID the page
+   script fills in.
+   ========================================================================== */
+.reports-page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+    min-width: 0;
+}
+
+.reports-page .rp-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.reports-page .reports-page-title {
+    margin-bottom: 4px;
+}
+
+/* Cards */
+.reports-page .rp-card {
+    padding: 20px 22px 22px;
+    min-width: 0;
+}
+
+.reports-page .rp-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.reports-page .rp-card-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.reports-page .rp-card-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 15px;
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.reports-page .rp-card-title {
+    margin: 0;
+    font-size: var(--fs-card-title);
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.3;
+}
+
+.reports-page .rp-card-subtitle {
+    margin: 2px 0 0;
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.reports-page .rp-card-subtitle strong {
+    color: var(--text-main);
+    font-variant-numeric: tabular-nums;
+}
+
+/* 1. Filters: Report Type first and wider, then the four filters */
+.reports-page .rp-filters {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.6fr) repeat(4, minmax(140px, 1fr));
+    gap: 14px;
+    align-items: end;
+}
+
+.reports-page .filter-group label {
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.reports-page .form-control {
+    height: 42px;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-radius: 10px;
+    background-color: var(--bg-color);
+}
+
+.reports-page .rp-filter-type .form-control {
+    font-weight: 600;
+}
+
+.reports-page .rp-filter-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 20px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+
+.reports-page .filters-note {
+    margin: 0;
+    flex: 1 1 260px;
+    line-height: 1.45;
+}
+
+.reports-page .filters-actions {
+    margin-top: 0;
+    gap: 10px;
+}
+
+.reports-page .btn {
+    height: 42px;
+    padding: 0 18px;
+    border-radius: 10px;
+}
+
+/* 2. Preview: export buttons as one group */
+.reports-page .rp-export-group {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.reports-page .btn-export {
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 9px;
+}
+
+.reports-page .report-meta {
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    border-radius: 10px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+}
+
+.reports-page .white-card .admin-table-card {
+    margin-top: 0;
+}
+
+/* 3. Overview */
+.reports-page .rp-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+}
+
+.reports-page .rp-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px 20px;
+    flex-wrap: wrap;
+}
+
+.reports-page .rp-section-title {
+    margin: 0;
+    font-size: var(--fs-card-title);
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.reports-page .reports-scope-note {
+    margin: 0;
+    max-width: 640px;
+}
+
+/* Key figures: 4 across, compact */
+.reports-page .rp-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.reports-page .rp-kpi {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    min-width: 0;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius-reports);
+    box-shadow: var(--card-shadow-reports);
+}
+
+.reports-page .rp-kpi-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 15px;
+}
+
+.reports-page .rp-kpi-icon.blue { background-color: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.reports-page .rp-kpi-icon.green { background-color: rgba(16, 185, 129, 0.1); color: #10b981; }
+.reports-page .rp-kpi-icon.indigo { background-color: rgba(99, 102, 241, 0.1); color: #6366f1; }
+.reports-page .rp-kpi-icon.orange { background-color: rgba(245, 158, 11, 0.12); color: #d97706; }
+.reports-page .rp-kpi-icon.red { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.reports-page .rp-kpi-icon.teal { background-color: rgba(20, 184, 166, 0.1); color: #14b8a6; }
+
+.reports-page .rp-kpi-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.reports-page .rp-kpi-label {
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.reports-page .rp-kpi-value {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--text-main);
+    font-variant-numeric: tabular-nums;
+}
+
+.reports-page .rp-kpi-caption {
+    font-size: var(--fs-badge);
+    color: var(--text-muted);
+    line-height: 1.35;
+}
+
+/* Charts: monthly trend wider, then category and the top item */
+.reports-page .rp-charts {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 14px;
+}
+
+.reports-page .rp-chart-card {
+    padding: 18px 20px 20px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.reports-page .rp-chart-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.reports-page .rp-chart-head i {
+    color: var(--primary-color);
+}
+
+.reports-page .rp-chart-title {
+    margin: 0;
+    font-size: var(--fs-body);
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.reports-page .chart-container {
+    height: 210px;
+}
+
+.reports-page .rp-top-item-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 150px;
+    padding: 16px;
+    text-align: center;
+    border-radius: 12px;
+    background-color: var(--bg-color);
+    border: 1px dashed var(--border-color);
+}
+
+.reports-page .rp-top-item-name {
+    max-width: 100%;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--primary-color);
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+}
+
+.reports-page .rp-top-item-caption {
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 1280px) {
+    .reports-page .rp-filters {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .reports-page .rp-filter-type {
+        grid-column: span 4;
+    }
+    .reports-page .rp-charts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .reports-page .rp-chart-wide {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 992px) {
+    .reports-page .rp-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .reports-page .rp-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .reports-page .rp-filter-type {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 640px) {
+    .reports-page .rp-filters,
+    .reports-page .rp-charts,
+    .reports-page .rp-kpi-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .reports-page .rp-filter-type,
+    .reports-page .rp-chart-wide {
+        grid-column: auto;
+    }
+    .reports-page .filters-actions {
+        width: 100%;
+    }
+    .reports-page .filters-actions .btn {
+        flex: 1;
+    }
+    .reports-page .rp-card {
+        padding: 16px;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Report Preview columns: Borrower and Equipment share the free width and
+   end in "…" when long (full text on hover; exports keep the full text);
+   numbers take only the room they need, centred; dates, ID numbers and
+   statuses never wrap, so every row keeps one tidy line.
+   -------------------------------------------------------------------------- */
+.admin-report-table th.col-borrower-truncate,
+.admin-report-table td.col-borrower-truncate {
+    width: 22%;
+    max-width: 0;
+    min-width: 110px;
+}
+
+.admin-report-table th.col-equipment-truncate,
+.admin-report-table td.col-equipment-truncate {
+    width: 20%;
+    min-width: 110px;
+}
+
+.admin-report-table .report-borrower-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Cell values stay on one line; headers may wrap (e.g. "Student/Faculty ID")
+   so a long label never makes its column wider than its values. */
+.admin-report-table td.col-nowrap {
+    white-space: nowrap;
+}
+
+.admin-table-card .admin-report-table thead th {
+    white-space: normal;
+    line-height: 1.3;
+    vertical-align: middle;
+}
+
+.admin-report-table th.col-num,
+.admin-report-table td.col-num {
+    width: 1%;
+    text-align: center;
+}
+
+.admin-report-table td.col-num {
+    white-space: nowrap;
+}
+
+.admin-report-table td {
+    vertical-align: middle;
+}
+
+/* Report Preview: slightly tighter side padding so wide reports (9 columns)
+   fit the card on laptop screens without a sideways scrollbar. */
+.admin-table-card #previewTableHead th,
+.admin-table-card #previewTableBody td {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+}
+
+.admin-table-card #previewTableHead th:first-child,
+.admin-table-card #previewTableBody td:first-child {
+    padding-left: 16px !important;
+}

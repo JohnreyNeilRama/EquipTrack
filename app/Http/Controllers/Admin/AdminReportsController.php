@@ -44,6 +44,7 @@ class AdminReportsController extends Controller
         'inventory' => ['label' => 'Equipment Inventory Report', 'basis' => null],
         'overdue' => ['label' => 'Overdue Report', 'basis' => 'Due date'],
         'activity' => ['label' => 'User Activity Report', 'basis' => 'Borrow date'],
+        'utilization' => ['label' => 'Equipment Utilization Report', 'basis' => 'Loan period'],
     ];
 
     /** Status filter values available for each report type (empty = no status filter). */
@@ -53,6 +54,7 @@ class AdminReportsController extends Controller
         'inventory' => ['Available', 'Unavailable', 'On Hold', 'Under Maintenance'],
         'overdue' => [],
         'activity' => [],
+        'utilization' => ['High', 'Moderate', 'Low', 'Not Used'],
     ];
 
     private const FORMATS = ['csv' => 'CSV', 'pdf' => 'PDF', 'print' => 'Print'];
@@ -548,6 +550,7 @@ class AdminReportsController extends Controller
             'inventory' => $this->inventoryReport($filters, $all),
             'overdue' => $this->overdueReport($filters, $all),
             'activity' => $this->activityReport($filters, $all),
+            'utilization' => $this->utilizationReport($filters, $all),
             default => $this->borrowingReport($filters, $all),
         };
     }
@@ -725,6 +728,129 @@ class AdminReportsController extends Controller
             $this->col('borrowed', 'Currently Borrowed', 'num'),
             $this->col('overdue', 'Overdue', 'num'),
         ], $rows);
+    }
+
+    /** Usage level thresholds (utilization %) for the Equipment Utilization Report. */
+    private const UTILIZATION_HIGH = 50;
+
+    private const UTILIZATION_MODERATE = 20;
+
+    /**
+     * How much each equipment item was used during a period.
+     *
+     * Period: the selected date range, or (without one) from the first loan to
+     * today. Every loan (approved request with a transaction) that overlaps the
+     * period is counted; its days run from the borrow date to the return date,
+     * or to today while it is still out, clipped to the period.
+     *
+     *   Loan Days     = days on loan × units lent, summed over the loans
+     *   Utilization % = Loan Days ÷ (total units × days in the period)
+     *   Usage         = High (≥ 50%), Moderate (≥ 20%), Low (> 0%), Not Used
+     *
+     * Every equipment item in the category filter is listed, including items
+     * that were never borrowed. Read-only: nothing is stored.
+     */
+    private function utilizationReport(array $filters, Collection $all): array
+    {
+        $today = now()->startOfDay();
+
+        $loans = $all->filter(fn (array $row) => $row['loan'] !== null
+            && $row['borrow'] !== null
+            && $this->categoryMatches($row, $filters));
+
+        $periodEnd = $filters['to'] ? Carbon::parse($filters['to'])->startOfDay() : $today->copy();
+        $periodStart = $filters['from']
+            ? Carbon::parse($filters['from'])->startOfDay()
+            : ($loans->isNotEmpty()
+                ? $loans->map(fn (array $row) => $row['borrow']->copy()->startOfDay())->sort()->first()
+                : $today->copy());
+        if ($periodStart->gt($periodEnd)) {
+            $periodStart = $periodEnd->copy();
+        }
+        $periodDays = (int) $periodStart->diffInDays($periodEnd) + 1;
+
+        $usage = [];
+        foreach ($loans as $row) {
+            $start = $row['borrow']->copy()->startOfDay();
+            $end = $row['loan'] === 'Returned' && $row['returned_on']
+                ? $row['returned_on']->copy()->startOfDay()
+                : $today->copy();
+
+            $from = $start->gt($periodStart) ? $start : $periodStart;
+            $to = $end->lt($periodEnd) ? $end : $periodEnd;
+            $days = $to->gte($from) ? (int) $from->diffInDays($to) + 1 : 0;
+
+            // Counts when the loan overlaps the period (or starts inside it).
+            if ($days === 0 && !$this->inRange($start, $periodStart->toDateString(), $periodEnd->toDateString())) {
+                continue;
+            }
+
+            $id = $row['equipment_id'];
+            $usage[$id] ??= ['times' => 0, 'units' => 0, 'unit_days' => 0, 'last' => null];
+            $usage[$id]['times']++;
+            $usage[$id]['units'] += $row['qty'];
+            $usage[$id]['unit_days'] += $days * $row['qty'];
+            if ($usage[$id]['last'] === null || $start->gt($usage[$id]['last'])) {
+                $usage[$id]['last'] = $start;
+            }
+        }
+
+        $rows = Equipment::with('category')
+            ->when($filters['category'], fn ($query, $categoryId) => $query->where('category_id', $categoryId))
+            ->orderBy('name')
+            ->orderBy('equipment_id')
+            ->get()
+            ->map(function (Equipment $item) use ($usage, $periodDays) {
+                $used = $usage[$item->equipment_id] ?? ['times' => 0, 'units' => 0, 'unit_days' => 0, 'last' => null];
+                $capacity = max(0, (int) $item->total_qty) * $periodDays;
+                $percent = $capacity > 0 ? min(100, round($used['unit_days'] / $capacity * 100, 1)) : 0.0;
+
+                $level = match (true) {
+                    $percent >= self::UTILIZATION_HIGH => 'High',
+                    $percent >= self::UTILIZATION_MODERATE => 'Moderate',
+                    $percent > 0 || $used['times'] > 0 => 'Low',
+                    default => 'Not Used',
+                };
+
+                return [
+                    'equipment' => $item->name,
+                    'category' => $item->category ? $item->category->category_name : 'General',
+                    'total' => (int) $item->total_qty,
+                    'times' => $used['times'],
+                    'units' => $used['units'],
+                    'loan_days' => $used['unit_days'],
+                    'utilization' => rtrim(rtrim(number_format($percent, 1, '.', ''), '0'), '.') . '%',
+                    'percent' => $percent,
+                    'last_borrowed' => $this->fmt($used['last']),
+                    'status' => $level,
+                ];
+            })
+            ->filter(fn (array $row) => $filters['status'] === '' || $row['status'] === $filters['status'])
+            ->sort(fn (array $a, array $b) => [$b['percent'], $b['times'], $a['equipment']] <=> [$a['percent'], $a['times'], $b['equipment']])
+            ->map(function (array $row) {
+                unset($row['percent']);
+
+                return $row;
+            });
+
+        $report = $this->finish('utilization', [
+            $this->col('equipment', 'Equipment'),
+            $this->col('category', 'Category'),
+            $this->col('total', 'Total Units', 'num'),
+            $this->col('times', 'Times Borrowed', 'num'),
+            $this->col('units', 'Units Borrowed', 'num'),
+            $this->col('loan_days', 'Loan Days', 'num'),
+            $this->col('utilization', 'Utilization', 'num'),
+            $this->col('last_borrowed', 'Last Borrowed'),
+            $this->col('status', 'Usage', 'status'),
+        ], $rows);
+
+        $report['note'] = 'Period: ' . $periodStart->format('M d, Y') . ' – ' . $periodEnd->format('M d, Y')
+            . ' (' . $periodDays . ' ' . ($periodDays === 1 ? 'day' : 'days') . ').'
+            . ' Utilization = loan days ÷ (total units × days in the period).'
+            . ' Usage: High ≥ ' . self::UTILIZATION_HIGH . '%, Moderate ≥ ' . self::UTILIZATION_MODERATE . '%, Low below that, Not Used = no loans.';
+
+        return $report;
     }
 
     private function stamp(?CarbonInterface $date): int
