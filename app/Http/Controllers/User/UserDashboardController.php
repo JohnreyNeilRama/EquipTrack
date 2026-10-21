@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\BorrowRequest;
+use App\Models\BorrowTransaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -33,8 +34,8 @@ class UserDashboardController extends Controller
 
     private const REMINDERS_LIMIT = 5;
 
-    /** Loans due within this many days (inclusive of today) raise a reminder. */
-    private const DUE_SOON_DAYS = 3;
+    /** Loans due within this many days (inclusive of today) raise a reminder; shared with the bell. */
+    private const DUE_SOON_DAYS = BorrowTransaction::DUE_SOON_DAYS;
 
     public function index(): View
     {

@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const ICONS = {
         approved: 'fa-circle-check',
         rejected: 'fa-circle-xmark',
-        overdue: 'fa-triangle-exclamation'
+        overdue: 'fa-triangle-exclamation',
+        due: 'fa-clock'
     };
 
     let notifications = [];

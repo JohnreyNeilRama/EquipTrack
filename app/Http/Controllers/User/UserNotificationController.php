@@ -20,7 +20,8 @@ use Illuminate\Support\Str;
  * Notifications are derived live from the signed-in user's own borrowing
  * records, so they always match the real request status and return dates and
  * can never be duplicated: each one has a deterministic key
- * (request-{id}-approved, request-{id}-rejected, overdue-{transaction_id},
+ * (request-{id}-approved, request-{id}-rejected, due-{transaction_id}-{day},
+ * overdue-{transaction_id}-{day},
  * return-{transaction_id}-confirmed, return-{transaction_id}-rejected-{time}).
  * Only the read state is stored (user_notification_reads).
  *
@@ -184,7 +185,13 @@ class UserNotificationController extends Controller
         return $notifications;
     }
 
-    /** One notice per loan that is past its due date and not yet returned. */
+    /**
+     * Overdue Reminder for every loan still with the user: a "due soon" notice
+     * from DUE_SOON_DAYS before the due date, then an overdue notice once the
+     * due date has passed. Reminders repeat: the key carries the day, so each
+     * day brings one new unread notice per loan until the item is returned.
+     * Loans whose return the department is verifying are skipped.
+     */
     private function overdueNotifications(int $userId): array
     {
         $today = now()->startOfDay();
@@ -199,15 +206,19 @@ class UserNotificationController extends Controller
         $notifications = [];
 
         foreach ($loans as $loan) {
+            // The user already handed it back; the department is verifying it.
+            if ($loan->isReturnPending()) {
+                continue;
+            }
+
             $due = $loan->due_date ? Carbon::parse($loan->due_date)->startOfDay() : null;
             $pastDue = $due && $due->lt($today);
 
             if (!$pastDue && $loan->status !== 'Overdue') {
-                continue;
-            }
+                if ($notice = $this->dueSoonNotification($loan, $due, $today)) {
+                    $notifications[] = $notice;
+                }
 
-            // The user already handed it back; the department is verifying it.
-            if ($loan->isReturnPending()) {
                 continue;
             }
 
@@ -220,23 +231,53 @@ class UserNotificationController extends Controller
                     . '. Please return it as soon as possible.'
                 : $equipment . ' is overdue. Please return it as soon as possible.';
 
-            // Overdue since the day after the due date, never in the future.
-            $at = $due ? $due->copy()->addDay() : now();
-            if ($at->gt(now())) {
-                $at = now();
-            }
-
             $notifications[] = [
-                'key' => 'overdue-' . $loan->transaction_id,
+                'key' => 'overdue-' . $loan->transaction_id . '-' . $today->toDateString(),
                 'type' => 'overdue',
                 'title' => 'Overdue Equipment',
                 'message' => $message,
                 'url' => route('user.returns'),
-                'at' => $at,
+                // Today's reminder.
+                'at' => $today->copy(),
             ];
         }
 
         return $notifications;
+    }
+
+    /** "Due today / tomorrow / in N days" while the due date is DUE_SOON_DAYS away or less. */
+    private function dueSoonNotification(BorrowTransaction $loan, ?Carbon $due, Carbon $today): ?array
+    {
+        if (!$due) {
+            return null;
+        }
+
+        $daysLeft = (int) $today->diffInDays($due, false);
+
+        if ($daysLeft < 0 || $daysLeft > BorrowTransaction::DUE_SOON_DAYS) {
+            return null;
+        }
+
+        $when = match ($daysLeft) {
+            0 => 'today',
+            1 => 'tomorrow',
+            default => 'in ' . $daysLeft . ' days',
+        };
+
+        $equipment = $loan->request?->equipment?->name ?? 'The borrowed equipment';
+
+        return [
+            'key' => 'due-' . $loan->transaction_id . '-' . $today->toDateString(),
+            'type' => 'due',
+            'title' => 'Due ' . match ($daysLeft) {
+                0 => 'Today',
+                1 => 'Tomorrow',
+                default => 'in ' . $daysLeft . ' Days',
+            },
+            'message' => $equipment . ' is due ' . $when . ' (' . $due->format('M d, Y') . '). Please return it on time.',
+            'url' => route('user.returns'),
+            'at' => $today->copy(),
+        ];
     }
 
     /** One notice per return the department confirmed or rejected. */

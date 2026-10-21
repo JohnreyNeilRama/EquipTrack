@@ -15,6 +15,12 @@ class BorrowTransaction extends Model
     /** The department found the return was not made / the information was wrong. */
     public const RETURN_REJECTED = 'Rejected';
 
+    /**
+     * A loan is "due soon" from this many days before its due date until the
+     * due date itself (dashboard reminders and the notification bell).
+     */
+    public const DUE_SOON_DAYS = 3;
+
     /** Conditions the department can record when inspecting a returned unit. */
     public const INSPECTED_CONDITIONS = ['Good', 'Damaged', 'Incomplete'];
 

@@ -154,6 +154,11 @@
     color: #f59e0b;
 }
 
+.notif-icon.due {
+    background: rgba(59, 130, 246, 0.14);
+    color: #3b82f6;
+}
+
 .notif-body {
     display: flex;
     flex-direction: column;
