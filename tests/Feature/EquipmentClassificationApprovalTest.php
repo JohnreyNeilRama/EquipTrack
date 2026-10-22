@@ -242,12 +242,12 @@ class EquipmentClassificationApprovalTest extends TestCase
         $this->assertSame('Expensive', $fresh->classification);
     }
 
-    public function test_existing_and_department_registered_equipment_default_to_not_expensive(): void
+    public function test_existing_equipment_defaults_to_not_expensive_and_departments_must_classify_new_items(): void
     {
         $legacy = $this->makeEquipment(null);
         $this->assertSame('Not Expensive', $legacy->fresh()->classification);
 
-        $this->actingAs($this->deptAccount, 'dept')->postJson(route('department.equipment.save'), [
+        $payload = [
             'name' => 'Arduino Kit',
             'brand' => 'Arduino',
             'serial_number' => 'SN-DEPT-1',
@@ -256,9 +256,17 @@ class EquipmentClassificationApprovalTest extends TestCase
             'total_qty' => 5,
             'status' => 'Available',
             'category_id' => $this->category->category_id,
-        ])->assertOk();
+        ];
 
-        $this->assertDatabaseHas('equipment', ['serial_number' => 'SN-DEPT-1', 'classification' => 'Not Expensive']);
+        // Like the admin, a department must choose a classification for new equipment.
+        $this->actingAs($this->deptAccount, 'dept')->postJson(route('department.equipment.save'), $payload)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('classification');
+
+        $this->actingAs($this->deptAccount, 'dept')->postJson(route('department.equipment.save'), $payload + ['classification' => 'Expensive'])
+            ->assertOk();
+
+        $this->assertDatabaseHas('equipment', ['serial_number' => 'SN-DEPT-1', 'classification' => 'Expensive']);
     }
 
     public function test_a_department_edit_never_changes_the_classification(): void

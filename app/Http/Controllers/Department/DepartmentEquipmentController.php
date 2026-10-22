@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditTrail;
+use App\Models\BorrowRequest;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
 use Illuminate\Http\JsonResponse;
@@ -89,11 +90,19 @@ class DepartmentEquipmentController extends Controller
             ], 400);
         }
 
+        $isNew = (int) $request->input('equipment_id', 0) <= 0;
+
         $data = $request->validate([
             'equipment_id' => ['nullable', 'integer', 'min:1'],
             'name' => ['required', 'string', 'max:100'],
             'brand' => ['required', 'string', 'max:50'],
+            'model' => ['nullable', 'string', 'max:50'],
             'serial_number' => ['required', 'string', 'max:50'],
+            // Chosen when the department registers equipment, so an Expensive
+            // item goes to Admin Review too. On edits it is ignored: only the
+            // admin changes the classification of existing equipment, so a
+            // department can never downgrade an item to skip Admin Review.
+            'classification' => [Rule::requiredIf($isNew), 'nullable', 'string', Rule::in(Equipment::CLASSIFICATIONS)],
             'image' => ['nullable', 'string'],
             'available_qty' => ['required', 'integer', 'min:0'],
             'total_qty' => ['required', 'integer', 'min:0'],
@@ -140,13 +149,15 @@ class DepartmentEquipmentController extends Controller
             $equipment->update([
                 'name' => $data['name'],
                 'brand' => $data['brand'],
+                // Left out by older clients: keep the saved value.
+                'model' => array_key_exists('model', $data) ? $data['model'] : $equipment->model,
                 'serial_number' => $data['serial_number'],
                 'image' => $image,
                 'available_qty' => $data['available_qty'],
                 'total_qty' => $data['total_qty'],
                 'status' => $data['status'],
                 'category_id' => $data['category_id'],
-                'accessories_included' => $data['accessories_included'] ?? $equipment->accessories_included,
+                'accessories_included' => array_key_exists('accessories_included', $data) ? $data['accessories_included'] : $equipment->accessories_included,
             ]);
 
             $this->audit($request, 'Updated equipment #' . $equipment->equipment_id . ' (' . $data['name'] . ')', 'equipment:' . $equipment->equipment_id);
@@ -157,6 +168,8 @@ class DepartmentEquipmentController extends Controller
         $equipment = Equipment::create([
             'name' => $data['name'],
             'brand' => $data['brand'],
+            'model' => $data['model'] ?? null,
+            'classification' => $data['classification'],
             'serial_number' => $data['serial_number'],
             'image' => $image,
             'available_qty' => $data['available_qty'],
@@ -170,6 +183,49 @@ class DepartmentEquipmentController extends Controller
         $this->audit($request, 'Registered equipment #' . $equipment->equipment_id . ' (' . $data['name'] . ')', 'equipment:' . $equipment->equipment_id);
 
         return response()->json(['success' => true, 'message' => 'Equipment registered successfully!']);
+    }
+
+    /**
+     * Removes one of the signed-in department's equipment records. Same guard
+     * as the admin delete: equipment with pending or approved requests stays.
+     * Equipment owned by another department is "not found".
+     */
+    public function destroy(Request $request): JsonResponse
+    {
+        $data = $request->validate(['equipment_id' => ['required', 'integer', 'min:1']]);
+
+        $departmentId = $this->departmentId();
+        $equipment = $departmentId
+            ? Equipment::where('department_id', $departmentId)->where('equipment_id', $data['equipment_id'])->first()
+            : null;
+
+        if (!$equipment) {
+            return response()->json(['success' => false, 'message' => 'Equipment not found for your department.'], 404);
+        }
+
+        $active = BorrowRequest::where('equipment_id', $equipment->equipment_id)
+            ->whereIn('overall_status', ['Pending', 'Approved'])
+            ->exists();
+
+        if ($active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot delete this equipment because it has active or pending borrow requests.',
+            ], 400);
+        }
+
+        $imagePath = str_starts_with((string) $equipment->image, '/storage/') ? substr($equipment->image, strlen('/storage/')) : null;
+        $name = $equipment->name;
+
+        $equipment->delete();
+
+        if ($imagePath && Storage::disk('public')->exists($imagePath)) {
+            Storage::disk('public')->delete($imagePath);
+        }
+
+        $this->audit($request, 'Deleted equipment #' . $data['equipment_id'] . ' (' . $name . ')', 'equipment:' . $data['equipment_id']);
+
+        return response()->json(['success' => true, 'message' => 'Equipment removed from inventory successfully!']);
     }
 
     /** Department the signed-in department account belongs to. */

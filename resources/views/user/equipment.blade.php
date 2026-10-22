@@ -28,6 +28,16 @@
 
 @section('content')
     <div class="equipment-container">
+        @if ($penaltyBlock)
+            <div class="penalty-block-banner" role="alert">
+                <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
+                <div>
+                    <strong>Borrowing is on hold</strong>
+                    <span>{{ $penaltyBlock }}</span>
+                </div>
+            </div>
+        @endif
+
         {{-- Categories Section --}}
         <div class="categories-section">
             <h2 class="section-title">Categories</h2>

@@ -563,10 +563,11 @@
         margin: 0;
         padding: 0;
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
     }
     .condition-options legend {
+        grid-column: 1 / -1;
         margin-bottom: 8px;
     }
     .condition-option {
@@ -626,6 +627,37 @@
     .condition-option.is-selected[data-tone="good"] { border-color: #10b981; background-color: rgba(16, 185, 129, 0.06); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12); }
     .condition-option.is-selected[data-tone="damaged"] { border-color: #ef4444; background-color: rgba(239, 68, 68, 0.05); box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12); }
     .condition-option.is-selected[data-tone="incomplete"] { border-color: #f59e0b; background-color: rgba(245, 158, 11, 0.06); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.14); }
+    .condition-option[data-tone="lost"] .condition-option-icon { background-color: #ede9fe; color: #6d28d9; }
+    .dark-theme .condition-option[data-tone="lost"] .condition-option-icon { background-color: rgba(139, 92, 246, 0.18); color: #c4b5fd; }
+    .condition-option.is-selected[data-tone="lost"] { border-color: #8b5cf6; background-color: rgba(139, 92, 246, 0.06); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.14); }
+
+    /* Penalty step */
+    .penalty-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: var(--fs-label);
+        font-weight: 600;
+        color: var(--text-main);
+        cursor: pointer;
+    }
+    .penalty-toggle input { width: 16px; height: 16px; accent-color: #385585; }
+    .penalty-fields {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+    }
+    .penalty-fields[hidden] { display: none; }
+    .penalty-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+    .penalty-list { margin: 0; padding-left: 18px; }
+    .penalty-list li + li { margin-top: 4px; }
 
     .review-footer {
         flex-shrink: 0;
@@ -648,7 +680,8 @@
 
     @media (max-width: 640px) {
         .condition-options,
-        .review-info-grid {
+        .review-info-grid,
+        .penalty-row {
             grid-template-columns: 1fr;
         }
         .review-footer {
@@ -879,6 +912,14 @@
                                     <span class="condition-option-desc">Missing parts or accessories</span>
                                 </span>
                             </label>
+                            <label class="condition-option" data-tone="lost">
+                                <input type="radio" name="inspectCondition" value="Lost">
+                                <span class="condition-option-icon"><i class="fa-solid fa-circle-question"></i></span>
+                                <span class="condition-option-text">
+                                    <span class="condition-option-name">Lost</span>
+                                    <span class="condition-option-desc">Not handed back; removed from the total quantity</span>
+                                </span>
+                            </label>
                         </fieldset>
 
                         <div class="review-field">
@@ -889,6 +930,39 @@
                                 <span class="char-counter" id="remarksCounter">0 / 1000</span>
                             </div>
                             <textarea id="inspectRemarks" class="detail-form-control textarea-control" rows="3" maxlength="1000" placeholder="Describe any damage, missing components, or other issues found..."></textarea>
+                        </div>
+                    </section>
+
+                    {{-- 4. Pending: optional penalty recorded with the return --}}
+                    <section class="review-section" id="penaltyForm">
+                        <h4 class="review-section-title"><span class="review-step">4</span> Penalty</h4>
+                        <p class="review-hint" id="penaltyHint">No penalty is suggested for this return.</p>
+
+                        <label class="penalty-toggle">
+                            <input type="checkbox" id="penaltyEnabled">
+                            <span>Record a penalty for this return</span>
+                        </label>
+
+                        <div class="penalty-fields" id="penaltyFields" hidden>
+                            <div class="penalty-row">
+                                <div class="review-field">
+                                    <label class="review-field-label" for="penaltyType">Type <span class="req">*</span></label>
+                                    <select id="penaltyType" class="detail-form-control">
+                                        @foreach (\App\Models\Penalty::TYPES as $type)
+                                            <option value="{{ $type }}">{{ $type }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="review-field">
+                                    <label class="review-field-label" for="penaltyAmount">Amount (₱) <span class="optional">optional</span></label>
+                                    <input type="number" id="penaltyAmount" class="detail-form-control" min="0" max="999999.99" step="0.01" inputmode="decimal" placeholder="Leave empty for a non-monetary penalty">
+                                </div>
+                            </div>
+                            <div class="review-field">
+                                <label class="review-field-label" for="penaltyDescription">Description <span class="req">*</span></label>
+                                <textarea id="penaltyDescription" class="detail-form-control textarea-control" rows="2" maxlength="1000" placeholder="e.g. Pay for the replacement charger at the Accounting Office, or replace the item."></textarea>
+                            </div>
+                            <p class="review-hint">EquipTrack only records the penalty. Payment is handled outside the system; mark it settled on the Penalties page afterwards.</p>
                         </div>
                     </section>
 
@@ -911,6 +985,10 @@
                             <div class="review-info-item review-info-wide review-info-danger" id="resultReasonGroup">
                                 <dt>Reason for Rejection</dt>
                                 <dd id="resultReason">—</dd>
+                            </div>
+                            <div class="review-info-item review-info-wide" id="resultPenaltiesGroup">
+                                <dt>Penalties</dt>
+                                <dd id="resultPenalties">None</dd>
                             </div>
                         </dl>
                     </section>
@@ -1148,7 +1226,62 @@
             });
             document.getElementById('remarksRequired').style.display = condition !== 'Good' ? 'inline' : 'none';
             if (condition === 'Good') inspectRemarks.classList.remove('is-invalid');
+            syncPenaltySuggestion();
         }
+
+        // ------------------------------------------------------------------
+        // Penalty step: suggested from the inspected condition and lateness
+        // ------------------------------------------------------------------
+        const penaltyEnabled = document.getElementById('penaltyEnabled');
+        const penaltyFields = document.getElementById('penaltyFields');
+        const penaltyType = document.getElementById('penaltyType');
+        const penaltyAmount = document.getElementById('penaltyAmount');
+        const penaltyDescription = document.getElementById('penaltyDescription');
+        let reviewing = null;
+
+        function suggestedPenaltyType() {
+            const condition = selectedCondition();
+            if (['Damaged', 'Incomplete', 'Lost'].includes(condition)) return condition;
+            return reviewing && reviewing.daysLate > 0 ? 'Late Return' : null;
+        }
+
+        // Pre-fills the late fee (days late × the configured rate) for Late Return.
+        function fillSuggestedAmount() {
+            const fee = reviewing && reviewing.suggestedLateFee;
+            if (penaltyType.value === 'Late Return' && fee && penaltyAmount.value === '') {
+                penaltyAmount.value = Number(fee).toFixed(2);
+            }
+        }
+
+        function syncPenaltyFields() {
+            penaltyFields.hidden = !penaltyEnabled.checked;
+        }
+
+        // Re-run whenever the inspected condition changes.
+        function syncPenaltySuggestion() {
+            if (!reviewing || !reviewing.canReview) return;
+
+            const reasons = [];
+            if (reviewing.daysLate > 0) {
+                reasons.push(`Returned ${reviewing.daysLate} day${reviewing.daysLate === 1 ? '' : 's'} late (due ${reviewing.dueDate}).`);
+            }
+            const condition = selectedCondition();
+            if (condition !== 'Good') reasons.push(`Inspected as ${condition}.`);
+
+            const type = suggestedPenaltyType();
+            document.getElementById('penaltyHint').textContent = reasons.length
+                ? reasons.join(' ') + ' A penalty is suggested; you can change or skip it.'
+                : 'No penalty is suggested for this return.';
+
+            penaltyEnabled.checked = type !== null;
+            if (type) penaltyType.value = type;
+            fillSuggestedAmount();
+            syncPenaltyFields();
+        }
+
+        penaltyEnabled.addEventListener('change', syncPenaltyFields);
+        penaltyType.addEventListener('change', fillSuggestedAmount);
+        penaltyDescription.addEventListener('input', () => penaltyDescription.classList.remove('is-invalid'));
 
         function syncRemarksCounter() {
             remarksCounter.textContent = `${inspectRemarks.value.length} / 1000`;
@@ -1252,11 +1385,16 @@
 
             const footer = document.getElementById('reviewActionsFooter');
             document.getElementById('inspectionForm').style.display = r.canReview ? 'flex' : 'none';
+            document.getElementById('penaltyForm').style.display = r.canReview ? 'flex' : 'none';
             document.getElementById('inspectionResult').style.display = r.canReview ? 'none' : 'flex';
+            reviewing = r;
 
             if (r.canReview) {
+                penaltyAmount.value = '';
+                penaltyDescription.value = '';
+                penaltyDescription.classList.remove('is-invalid');
                 // Start from what the user reported when it is one of the inspection options.
-                setCondition(['Good', 'Damaged'].includes(r.reportedCondition) ? r.reportedCondition : 'Good');
+                setCondition(['Good', 'Damaged', 'Lost'].includes(r.reportedCondition) ? r.reportedCondition : 'Good');
                 inspectRemarks.value = '';
                 inspectRemarks.classList.remove('is-invalid');
                 syncRemarksCounter();
@@ -1280,6 +1418,13 @@
                 document.getElementById('resultRemarks').textContent = r.inspectionRemarks || 'None';
                 document.getElementById('resultReason').textContent = r.rejectReason || 'No reason provided.';
                 document.getElementById('resultReviewer').textContent = r.reviewedBy !== '—' ? `${r.reviewedBy} · ${r.reviewedAt}` : '—';
+
+                const penalties = r.penalties || [];
+                document.getElementById('resultPenaltiesGroup').style.display = confirmed ? 'block' : 'none';
+                document.getElementById('resultPenalties').innerHTML = penalties.length
+                    ? '<ul class="penalty-list">' + penalties.map(p =>
+                        `<li>${escapeHTML(p.type)}: ${escapeHTML(p.amount)} · ${escapeHTML(p.status)}</li>`).join('') + '</ul>'
+                    : 'None';
 
                 footer.innerHTML = `<button type="button" class="btn-modal-close" style="width: 100%;" id="reviewCancelBtn">Close</button>`;
             }
@@ -1328,18 +1473,36 @@
             if (condition !== 'Good' && !remarks) {
                 inspectRemarks.classList.add('is-invalid');
                 inspectRemarks.focus();
-                showNotification('Remarks Required', 'Please describe the damage or the missing parts before confirming.', 'error');
+                showNotification('Remarks Required', 'Please describe the damage, the missing parts or the loss before confirming.', 'error');
                 return;
             }
 
-            if (!confirm(`Confirm that this equipment was physically returned in ${condition} condition?`)) return;
+            const payload = { transaction_id: id, condition, remarks };
+
+            if (penaltyEnabled.checked) {
+                const description = penaltyDescription.value.trim();
+                if (!description) {
+                    penaltyDescription.classList.add('is-invalid');
+                    penaltyDescription.focus();
+                    showNotification('Description Required', 'Please describe the penalty, or untick "Record a penalty".', 'error');
+                    return;
+                }
+                payload.penalty_type = penaltyType.value;
+                payload.penalty_amount = penaltyAmount.value.trim();
+                payload.penalty_description = description;
+            }
+
+            const question = condition === 'Lost'
+                ? 'Confirm that this equipment was lost? The unit will be removed from the equipment\'s total quantity.'
+                : `Confirm that this equipment was physically returned in ${condition} condition?`;
+            if (!confirm(question + (payload.penalty_type ? `\n\nA ${payload.penalty_type} penalty will also be recorded.` : ''))) return;
 
             const button = document.getElementById('confirmReturnBtn');
             const buttons = document.querySelectorAll('#reviewActionsFooter button');
             buttons.forEach(b => { b.disabled = true; });
             button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
 
-            post(URL_CONFIRM, { transaction_id: id, condition, remarks })
+            post(URL_CONFIRM, payload)
                 .then(data => {
                     closeReviewModal();
                     showNotification('Return Confirmed', data.message, 'success');

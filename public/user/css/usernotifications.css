@@ -159,6 +159,11 @@
     color: #3b82f6;
 }
 
+.notif-icon.penalty {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
 .notif-body {
     display: flex;
     flex-direction: column;

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
+use App\Models\Penalty;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -59,7 +60,7 @@ class UserDashboardController extends Controller
             'stats' => $this->stats($userId, $loans, $today),
             'activeBorrows' => $this->activeBorrowRows($loans, $today),
             'recentRequests' => $this->recentRequests($userId),
-            'reminders' => $this->reminders($loans, $today),
+            'reminders' => $this->reminders($userId, $loans, $today),
             'generatedAt' => now()->toIso8601String(),
         ];
     }
@@ -170,12 +171,33 @@ class UserDashboardController extends Controller
     }
 
     /**
-     * Overdue loans (danger) first, then loans due within DUE_SOON_DAYS
-     * (warning), earliest due date first within each group.
+     * Pending penalties and overdue loans (danger) first, then loans due within
+     * DUE_SOON_DAYS (warning), earliest first within each group.
      */
-    private function reminders(Collection $loans, Carbon $today): array
+    private function reminders(int $userId, Collection $loans, Carbon $today): array
     {
         $rows = [];
+
+        // Pending penalties come first: they block new borrow requests.
+        $penalties = Penalty::with('transaction.request.equipment')
+            ->where('user_id', $userId)
+            ->where('status', Penalty::STATUS_PENDING)
+            ->orderBy('recorded_at')
+            ->get();
+
+        foreach ($penalties as $penalty) {
+            $equipment = $penalty->transaction?->request?->equipment?->name ?? 'Unknown equipment';
+
+            $rows[] = [
+                'sort' => [-1, $penalty->recorded_at?->getTimestamp() ?? 0],
+                'type' => 'danger',
+                'label' => 'Penalty: ' . $penalty->type,
+                'equipment' => $equipment,
+                'title' => 'Penalty: ' . $equipment,
+                'message' => ($penalty->amountLabel() ? $penalty->amountLabel() . '. ' : '')
+                    . $penalty->description . ' Settle it with the department or the admin office.',
+            ];
+        }
 
         foreach ($loans as $loan) {
             $equipment = $loan['request']->equipment?->name ?? 'Unknown equipment';

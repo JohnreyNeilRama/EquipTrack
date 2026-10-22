@@ -22,7 +22,7 @@ class BorrowTransaction extends Model
     public const DUE_SOON_DAYS = 3;
 
     /** Conditions the department can record when inspecting a returned unit. */
-    public const INSPECTED_CONDITIONS = ['Good', 'Damaged', 'Incomplete'];
+    public const INSPECTED_CONDITIONS = ['Good', 'Damaged', 'Incomplete', 'Lost'];
 
     protected $table = 'borrow_transaction';
     protected $primaryKey = 'transaction_id';
@@ -69,6 +69,51 @@ class BorrowTransaction extends Model
     public function isReturnPending(): bool
     {
         return $this->return_status === self::RETURN_PENDING;
+    }
+
+    public function penalties()
+    {
+        return $this->hasMany(Penalty::class, 'transaction_id', 'transaction_id');
+    }
+
+    /**
+     * Whole days the item came back after its due date: counted to the return
+     * date, else the day the user submitted the return, else today (still out).
+     */
+    public function daysLate(): int
+    {
+        if (!$this->due_date) {
+            return 0;
+        }
+
+        $end = $this->return_date ?? $this->return_submitted_at ?? now();
+
+        return max(0, (int) $this->due_date->copy()->startOfDay()->diffInDays($end->copy()->startOfDay(), false));
+    }
+
+    /**
+     * Takes lost units out of the equipment's total quantity: they no longer
+     * exist. Their stock was never restored, so the available quantity is only
+     * kept within the new total. Call this inside a DB transaction.
+     */
+    public function removeLostUnits(BorrowRequest $borrow): void
+    {
+        $equipment = Equipment::where('equipment_id', $borrow->equipment_id)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$equipment) {
+            return;
+        }
+
+        $equipment->total_qty = max(0, (int) $equipment->total_qty - max(1, (int) $borrow->quantity));
+        $equipment->available_qty = min((int) $equipment->available_qty, (int) $equipment->total_qty);
+
+        if ((int) $equipment->available_qty === 0 && $equipment->status === 'Available') {
+            $equipment->status = 'Unavailable';
+        }
+
+        $equipment->save();
     }
 
     /**

@@ -352,7 +352,8 @@ class ReturnConfirmationTest extends TestCase
         $id = $this->borrow();
         $this->submitReturn($id);
 
-        $this->confirm($id, 'Lost')->assertStatus(422)->assertJsonValidationErrors('condition');
+        // "Lost" is a valid inspection result now (see PenaltyRecordingTest).
+        $this->confirm($id, 'Broken')->assertStatus(422)->assertJsonValidationErrors('condition');
         $this->confirm($id, 'Perfect')->assertStatus(422);
         $this->assertSame('Pending Confirmation', $this->transaction($id)->return_status);
     }

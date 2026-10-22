@@ -142,6 +142,8 @@
         .status.pending, .status.returned-late, .status.damaged, .status.incomplete, .status.on-hold { color: #d97706; }
         .status.overdue, .status.rejected, .status.lost, .status.unavailable { color: #dc2626; }
         .status.under-maintenance { color: #4f46e5; }
+        .status.settled { color: #059669; }
+        .status.waived { color: #64748b; }
 
         .empty {
             text-align: center;

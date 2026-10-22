@@ -1297,3 +1297,38 @@ html:has(.equipment-container) {
         max-width: 96px;
     }
 }
+
+/* Shown while a Pending penalty blocks new borrow requests */
+.penalty-block-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-left: 4px solid #ef4444;
+    border-radius: 12px;
+    background-color: rgba(239, 68, 68, 0.06);
+    color: var(--text-main);
+}
+
+.penalty-block-banner > i {
+    margin-top: 2px;
+    color: #ef4444;
+    font-size: 18px;
+}
+
+.penalty-block-banner div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: var(--fs-body);
+}
+
+.penalty-block-banner strong {
+    color: #b91c1c;
+}
+
+.dark-theme .penalty-block-banner strong {
+    color: #f87171;
+}

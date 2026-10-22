@@ -237,6 +237,7 @@ class DepartmentEquipmentTest extends TestCase
             'name' => 'Dept Registered Laptop',
             'brand' => 'Lenovo',
             'serial_number' => 'DEPT-0001',
+            'classification' => 'Not Expensive',
             'image' => '/storage/images/dept.jpg',
             'available_qty' => 2,
             'total_qty' => 2,
@@ -315,6 +316,7 @@ class DepartmentEquipmentTest extends TestCase
             'name' => 'Validated Laptop',
             'brand' => 'Dell',
             'serial_number' => 'SN-NEW',
+            'classification' => 'Not Expensive',
             'image' => '/storage/images/x.jpg',
             'status' => 'Available',
             'category_id' => $this->category->category_id,
@@ -388,6 +390,141 @@ class DepartmentEquipmentTest extends TestCase
         $this->assertSame(1, $row['available']);
         $this->assertSame('Available', $row['status']);
         $this->assertSame(1, (int) $equipment->fresh()->total_qty);
+    }
+
+    private function deptSave(array $overrides = [])
+    {
+        return $this->actingAs($this->deptAccount, 'dept')
+            ->postJson(route('department.equipment.save'), array_merge($this->deptPayload(), $overrides));
+    }
+
+    private function deptPayload(): array
+    {
+        return [
+            'name' => 'Sony Camera',
+            'brand' => 'Sony',
+            'model' => 'A7 III',
+            'serial_number' => 'CAM-0001',
+            'classification' => 'Expensive',
+            'image' => '/storage/images/cam.jpg',
+            'available_qty' => 1,
+            'total_qty' => 1,
+            'status' => 'Available',
+            'accessories_included' => 'Battery, Strap',
+            'category_id' => $this->category->category_id,
+        ];
+    }
+
+    public function test_department_must_classify_new_equipment_and_can_save_its_model(): void
+    {
+        $this->deptSave(['classification' => null])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('classification');
+        $this->deptSave(['classification' => 'Priceless'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('classification');
+
+        $this->deptSave()->assertOk()->assertJson(['success' => true]);
+
+        $this->assertDatabaseHas('equipment', [
+            'serial_number' => 'CAM-0001',
+            'model' => 'A7 III',
+            'classification' => 'Expensive',
+            'accessories_included' => 'Battery, Strap',
+            'department_id' => $this->department->department_id,
+        ]);
+
+        $row = collect($this->deptEquipment($this->deptAccount))->firstWhere('serial_number', 'CAM-0001');
+        $this->assertSame('A7 III', $row['model']);
+        $this->assertSame('Expensive', $row['classification']);
+    }
+
+    public function test_expensive_equipment_registered_by_the_department_goes_to_admin_review(): void
+    {
+        $this->deptSave()->assertOk();
+        $equipment = Equipment::where('serial_number', 'CAM-0001')->firstOrFail();
+
+        $this->actingAs($this->user, 'user')->postJson(route('user.borrow.store'), [
+            'equipment_id' => $equipment->equipment_id,
+            'borrow_date' => now()->toDateString(),
+            'return_date' => now()->addDays(2)->toDateString(),
+            'purpose' => 'Thesis video',
+            'instructor_name' => 'Prof. Reyes',
+        ])->assertOk()->assertJson(['success' => true]);
+
+        $request = BorrowRequest::where('equipment_id', $equipment->equipment_id)->firstOrFail();
+        $this->assertTrue($request->requiresDualApproval());
+
+        $adminIds = collect($this->actingAs($this->admin, 'admin')->getJson(route('admin.requests.data'))->json('requests'))
+            ->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $this->assertContains((int) $request->request_id, $adminIds);
+    }
+
+    public function test_department_edits_keep_the_classification_and_omitted_fields(): void
+    {
+        $equipment = $this->makeEquipment($this->department, ['classification' => 'Expensive']);
+
+        // A department cannot downgrade Expensive equipment to skip Admin Review.
+        $this->deptSave([
+            'equipment_id' => $equipment->equipment_id,
+            'serial_number' => $equipment->serial_number,
+            'classification' => 'Not Expensive',
+            'model' => 'A7 IV',
+        ])->assertOk();
+
+        $this->assertSame('Expensive', $equipment->fresh()->classification);
+        $this->assertSame('A7 IV', $equipment->fresh()->model);
+
+        // An older client that does not send the model keeps the saved one.
+        $payload = [
+            'equipment_id' => $equipment->equipment_id,
+            'serial_number' => $equipment->serial_number,
+        ];
+        $this->actingAs($this->deptAccount, 'dept')->postJson(
+            route('department.equipment.save'),
+            array_diff_key(array_merge($this->deptPayload(), $payload), ['model' => true, 'classification' => true])
+        )->assertOk();
+
+        $this->assertSame('A7 IV', $equipment->fresh()->model);
+        $this->assertSame('Expensive', $equipment->fresh()->classification);
+    }
+
+    public function test_department_can_delete_only_its_own_equipment_without_open_requests(): void
+    {
+        $mine = $this->makeEquipment($this->department, ['name' => 'Spare Mouse']);
+        $theirs = $this->makeEquipment($this->otherDepartment, ['name' => 'EDU Projector']);
+        $busy = $this->makeEquipment($this->department, ['name' => 'Busy Laptop']);
+
+        BorrowRequest::create([
+            'user_id' => $this->user->user_id,
+            'equipment_id' => $busy->equipment_id,
+            'quantity' => 1,
+            'purpose' => 'Class',
+            'date_needed' => now()->toDateString(),
+            'return_date' => now()->addDay()->toDateString(),
+            'overall_status' => 'Pending',
+            'admin_status' => 'Pending',
+            'dept_status' => 'Pending',
+        ]);
+
+        $delete = fn (Equipment $equipment) => $this->actingAs($this->deptAccount, 'dept')
+            ->postJson(route('department.equipment.delete'), ['equipment_id' => $equipment->equipment_id]);
+
+        $delete($theirs)->assertNotFound()->assertJson(['success' => false]);
+        $this->assertNotNull($theirs->fresh());
+
+        $delete($busy)->assertStatus(400)->assertJson(['success' => false]);
+        $this->assertNotNull($busy->fresh());
+
+        $delete($mine)->assertOk()->assertJson(['success' => true]);
+        $this->assertNull($mine->fresh());
+
+        $this->assertDatabaseHas('audit_trail', [
+            'dept_acc_id' => $this->deptAccount->dept_acc_id,
+            'affected_entity' => 'equipment:' . $mine->equipment_id,
+            'action' => 'Deleted equipment #' . $mine->equipment_id . ' (Spare Mouse)',
+        ]);
+
     }
 }
 

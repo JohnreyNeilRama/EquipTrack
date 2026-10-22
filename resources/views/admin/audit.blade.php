@@ -289,7 +289,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function badgeClass(action) {
         const a = action.toLowerCase();
         if (a.includes('login')) return 'badge-blue';
-        if (a.includes('logout')) return 'badge-gray';
+        if (a.includes('logout') || a.includes('waived')) return 'badge-gray';
+        if (a.includes('recorded penalty')) return 'badge-red';
+        if (a.includes('settled')) return 'badge-green';
         if (a.includes('deleted') || a.includes('deactivated') || a.includes('rejected')) return 'badge-red';
         if (a.includes('added') || a.includes('registered') || a.includes('submitted') || a.includes('activated')) return 'badge-green';
         if (a.includes('updated') || a.includes('changed')) return 'badge-orange';

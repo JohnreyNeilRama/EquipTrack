@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BorrowTransaction;
 use App\Models\Department;
 use App\Models\DepartmentAccount;
+use App\Models\Penalty;
 use App\Models\Student;
 use App\Models\UserAccount;
 use App\Services\AuditLogger;
@@ -199,6 +200,14 @@ class AdminUsersController extends Controller
                 return redirect()
                     ->route('admin.users')
                     ->with('serverMsg', 'This user cannot be deleted because they have active or overdue borrowed equipment. Resolve those first, or deactivate the account instead.')
+                    ->with('serverMsgType', 'error');
+            }
+
+            // Deleting would erase the only record of an unsettled penalty.
+            if (Penalty::where('user_id', $account->user_id)->where('status', Penalty::STATUS_PENDING)->exists()) {
+                return redirect()
+                    ->route('admin.users')
+                    ->with('serverMsg', 'This user cannot be deleted because they have an unsettled penalty. Settle or waive it first, or deactivate the account instead.')
                     ->with('serverMsgType', 'error');
             }
 

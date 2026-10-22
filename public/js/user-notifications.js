@@ -23,7 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
         approved: 'fa-circle-check',
         rejected: 'fa-circle-xmark',
         overdue: 'fa-triangle-exclamation',
-        due: 'fa-clock'
+        due: 'fa-clock',
+        penalty: 'fa-scale-balanced'
     };
 
     let notifications = [];

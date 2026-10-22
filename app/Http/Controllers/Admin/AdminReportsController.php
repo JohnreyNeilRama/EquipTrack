@@ -7,6 +7,7 @@ use App\Models\AuditTrail;
 use App\Models\BorrowRequest;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
+use App\Models\Penalty;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -46,6 +47,7 @@ class AdminReportsController extends Controller
         'activity' => ['label' => 'User Activity Report', 'basis' => 'Borrow date'],
         'utilization' => ['label' => 'Equipment Utilization Report', 'basis' => 'Loan period'],
         'transactions' => ['label' => 'Transaction History', 'basis' => 'Borrow date'],
+        'penalties' => ['label' => 'Penalty Report', 'basis' => 'Recorded date'],
     ];
 
     /** Status filter values available for each report type (empty = no status filter). */
@@ -57,6 +59,7 @@ class AdminReportsController extends Controller
         'activity' => [],
         'utilization' => ['High', 'Moderate', 'Low', 'Not Used'],
         'transactions' => ['Borrowed', 'Overdue', 'Returned', 'Returned Late', 'Damaged', 'Incomplete', 'Lost'],
+        'penalties' => Penalty::STATUSES,
     ];
 
     private const FORMATS = ['csv' => 'CSV', 'pdf' => 'PDF', 'print' => 'Print'];
@@ -564,8 +567,68 @@ class AdminReportsController extends Controller
             'activity' => $this->activityReport($filters, $all),
             'utilization' => $this->utilizationReport($filters, $all),
             'transactions' => $this->transactionHistory($filters, $all),
+            'penalties' => $this->penaltyReport($filters),
             default => $this->borrowingReport($filters, $all),
         };
+    }
+
+    /**
+     * Damage & penalty records, filtered by the date they were recorded. Read
+     * from the penalty table (not the borrow-request records the other reports
+     * share). Amounts are what was recorded; EquipTrack takes no payments.
+     */
+    private function penaltyReport(array $filters): array
+    {
+        $rows = Penalty::with([
+            'transaction.request.equipment.category',
+            'transaction.request.equipment.department',
+            'user.student',
+            'user.facultyMember',
+            'recordedByAdmin',
+            'recordedByDept',
+        ])
+            ->when($filters['status'] !== '', fn ($query) => $query->where('status', $filters['status']))
+            ->when($filters['category'], fn ($query, $categoryId) => $query
+                ->whereHas('transaction.request.equipment', fn ($q) => $q->where('category_id', $categoryId)))
+            ->orderByDesc('recorded_at')
+            ->orderByDesc('penalty_id')
+            ->get()
+            ->filter(fn (Penalty $penalty) => $this->inRange($penalty->recorded_at, $filters['from'], $filters['to']))
+            ->map(function (Penalty $penalty) {
+                $equipment = $penalty->transaction?->request?->equipment;
+                $user = $penalty->user;
+                $isStudent = $user && $user->role === 'Student';
+
+                return [
+                    'penalty_id' => 'PEN-' . str_pad((string) $penalty->penalty_id, 4, '0', STR_PAD_LEFT),
+                    'borrower' => $user ? ($user->fullName() ?: $user->email) : 'Deleted account',
+                    'id_number' => ($isStudent ? $user?->student?->id_number : $user?->facultyMember?->faculty_id_number) ?: '—',
+                    'equipment' => $equipment?->name ?? 'Deleted equipment',
+                    'department' => $equipment?->department?->department_name ?: '—',
+                    'type' => $penalty->type,
+                    'amount' => $penalty->amountLabel() ?? '—',
+                    'description' => $penalty->description,
+                    'recorded' => $this->fmt($penalty->recorded_at),
+                    'recorded_by' => $penalty->recordedByAdmin?->name ?: ($penalty->recordedByDept?->full_name ?: '—'),
+                    'settled' => $this->fmt($penalty->settled_at),
+                    'status' => $penalty->status,
+                ];
+            });
+
+        return $this->finish('penalties', [
+            $this->col('penalty_id', 'Penalty ID'),
+            $this->col('borrower', 'Borrower'),
+            $this->col('id_number', 'Student/Faculty ID'),
+            $this->col('equipment', 'Equipment'),
+            $this->col('department', 'Department'),
+            $this->col('type', 'Type'),
+            $this->col('amount', 'Amount', 'num'),
+            $this->col('description', 'Description'),
+            $this->col('recorded', 'Recorded'),
+            $this->col('recorded_by', 'Recorded By'),
+            $this->col('settled', 'Settled / Waived'),
+            $this->col('status', 'Status', 'status'),
+        ], $rows);
     }
 
     /** Every borrow request (pending, approved, rejected) with where it currently stands. */

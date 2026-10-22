@@ -203,10 +203,31 @@
                                 <input type="text" id="eqFormBrand" class="form-control-flat" required maxlength="50" placeholder="e.g., Dell">
                             </div>
                             <div class="form-group-flat">
-                                <label for="eqFormSerial">Serial Number <span class="req" aria-hidden="true">*</span></label>
-                                <input type="text" id="eqFormSerial" class="form-control-flat mono" required maxlength="50" placeholder="e.g., SN-000123" aria-describedby="eqSerialHint">
-                                <p class="form-hint" id="eqSerialHint">Must be unique across all equipment.</p>
+                                <label for="eqFormModel">Model</label>
+                                <input type="text" id="eqFormModel" class="form-control-flat" maxlength="50" placeholder="e.g., Latitude 5420">
                             </div>
+                        </div>
+                        <div class="form-group-flat">
+                            <label for="eqFormSerial">Serial Number <span class="req" aria-hidden="true">*</span></label>
+                            <input type="text" id="eqFormSerial" class="form-control-flat mono" required maxlength="50" placeholder="e.g., SN-000123" aria-describedby="eqSerialHint">
+                            <p class="form-hint" id="eqSerialHint">Must be unique across all equipment.</p>
+                        </div>
+                    </section>
+
+                    <section class="eq-form-section" aria-labelledby="eqApprovalHeading">
+                        <h4 class="eq-form-section-title" id="eqApprovalHeading">Approval</h4>
+                        <div class="form-group-flat">
+                            <label for="eqFormClassification">Classification <span class="req" aria-hidden="true">*</span></label>
+                            <div class="select-wrapper">
+                                <select id="eqFormClassification" class="form-control-flat" required aria-describedby="eqClassHint">
+                                    <option value="">Select Classification</option>
+                                    <option value="Expensive">Expensive</option>
+                                    <option value="Not Expensive">Not Expensive</option>
+                                </select>
+                                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                            </div>
+                            <p class="form-hint" id="eqClassHint">Requests for Expensive equipment need approval from both the admin and your department. Not Expensive requests are approved by your department alone.</p>
+                            <p class="form-hint" id="eqClassLockedHint" hidden>Only the admin can change the classification of existing equipment.</p>
                         </div>
                     </section>
 
@@ -223,6 +244,10 @@
                             </div>
                         </div>
                         <p class="form-hint" id="eqQtyHint" aria-live="polite">Available units can't be more than the total.</p>
+                        <div class="form-group-flat">
+                            <label for="eqFormAccessories">Accessories Included</label>
+                            <input type="text" id="eqFormAccessories" class="form-control-flat" maxlength="150" placeholder="e.g., Charger, Power Adapter, Carrying Case">
+                        </div>
                     </section>
                 </div>
 
@@ -299,6 +324,9 @@
             </div>
 
             <footer class="eq-modal-footer">
+                <button type="button" class="btn-modal-danger" id="viewDeleteBtn">
+                    <i class="fa-regular fa-trash-can" aria-hidden="true"></i> Delete
+                </button>
                 <button type="button" class="btn-modal-secondary" id="viewCloseBtn">Close</button>
                 <button type="button" class="btn-submit-request" id="viewEditBtn">
                     <i class="fa-regular fa-pen-to-square" aria-hidden="true"></i> Edit Equipment
@@ -394,6 +422,9 @@
             const eqNameField = document.getElementById('eqFormName');
             const eqCategoryField = document.getElementById('eqFormCategory');
             const eqBrandField = document.getElementById('eqFormBrand');
+            const eqModelField = document.getElementById('eqFormModel');
+            const eqClassificationField = document.getElementById('eqFormClassification');
+            const eqAccessoriesField = document.getElementById('eqFormAccessories');
             const eqSerialField = document.getElementById('eqFormSerial');
             const eqImgField = document.getElementById('eqFormImg');
             const eqAvailField = document.getElementById('eqFormAvail');
@@ -429,6 +460,7 @@
             const viewModalStockFill = document.getElementById('viewModalStockFill');
             const viewCloseBtn = document.getElementById('viewCloseBtn');
             const viewEditBtn = document.getElementById('viewEditBtn');
+            const viewDeleteBtn = document.getElementById('viewDeleteBtn');
             let viewedItemId = null;
 
             // Toast
@@ -442,6 +474,7 @@
             // quantity updates appear here automatically.
             const URL_DATA = @json(route('department.equipment.data'));
             const URL_SAVE = @json(route('department.equipment.save'));
+            const URL_DELETE = @json(route('department.equipment.delete'));
             const CSRF_TOKEN = @json(csrf_token());
             const DEPARTMENT_NAME = @json($departmentName);
             const CATEGORY_MAP = @json($dbCategoryMap);
@@ -765,6 +798,13 @@
             eqAvailField.addEventListener('input', updateQtyState);
             eqTotalField.addEventListener('input', updateQtyState);
 
+            // The classification is chosen when registering; on edits it is shown
+            // read-only (the server ignores it, only the admin can change it).
+            function setClassificationLocked(locked) {
+                eqClassificationField.disabled = locked;
+                document.getElementById('eqClassLockedHint').hidden = !locked;
+            }
+
             function openFormModal() {
                 updateQtyState();
                 modal.querySelector('.eq-modal-body').scrollTop = 0;
@@ -780,6 +820,7 @@
                 modalSubtitle.textContent = "Provide details for the inventory item";
                 modalIcon.className = 'fa-solid fa-plus';
                 submitBtn.textContent = "Add Item";
+                setClassificationLocked(false);
 
                 showPreview("https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60");
                 openFormModal();
@@ -808,6 +849,10 @@
                 eqNameField.value = item.name;
                 eqCategoryField.value = item.category;
                 eqBrandField.value = item.brand || '';
+                eqModelField.value = item.model || '';
+                eqClassificationField.value = item.classification === 'Expensive' ? 'Expensive' : 'Not Expensive';
+                setClassificationLocked(true);
+                eqAccessoriesField.value = item.accessories || '';
                 eqSerialField.value = item.serial_number || '';
                 eqAvailField.value = item.available;
                 eqTotalField.value = item.total;
@@ -894,6 +939,42 @@
                 }
             });
 
+            // Delete the item shown in the details view (same rules as the admin delete)
+            viewDeleteBtn.addEventListener('click', () => {
+                const item = equipment.find(e => e.id == viewedItemId);
+                if (!item) return;
+                if (!confirm(`Are you sure you want to delete "${item.name}" (${item.serial_number})? This cannot be undone.`)) return;
+
+                const payload = new FormData();
+                payload.append('equipment_id', item.id);
+                viewDeleteBtn.disabled = true;
+
+                fetch(URL_DELETE, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': CSRF_TOKEN,
+                        'Accept': 'application/json'
+                    },
+                    body: payload
+                })
+                .then(res => res.json().then(data => ({ ok: res.ok, data })))
+                .then(({ ok, data }) => {
+                    if (ok && data.success) {
+                        closeViewModal();
+                        loadEquipment();
+                        showNotification('Deleted Successfully', data.message || `Deleted ${item.name}.`, 'success');
+                    } else {
+                        showNotification('Delete Failed', (data && data.message) || 'Unable to delete the equipment.', 'error');
+                    }
+                })
+                .catch(() => {
+                    showNotification('System Error', 'An unexpected error occurred while deleting equipment.', 'error');
+                })
+                .finally(() => {
+                    viewDeleteBtn.disabled = false;
+                });
+            });
+
             // Escape closes whichever equipment modal is open
             document.addEventListener('keydown', (e) => {
                 if (e.key !== 'Escape') return;
@@ -925,12 +1006,20 @@
                     return;
                 }
 
+                if (!id && !['Expensive', 'Not Expensive'].includes(eqClassificationField.value)) {
+                    showNotification('Classification Required', 'Please select an equipment classification.', 'error');
+                    return;
+                }
+
                 // Persist to the shared equipment record (server forces the
                 // department, so an item can never move to another department).
                 const payload = new FormData();
                 if (id) payload.append('equipment_id', id);
                 payload.append('name', name);
                 payload.append('brand', brand);
+                payload.append('model', eqModelField.value.trim());
+                if (!id) payload.append('classification', eqClassificationField.value);
+                payload.append('accessories_included', eqAccessoriesField.value.trim());
                 payload.append('serial_number', serial);
                 payload.append('category_id', categoryIdFor(category));
                 payload.append('image', imgUrl);

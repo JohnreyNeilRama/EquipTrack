@@ -48,6 +48,9 @@
             <a href="{{ route('department.returns') }}" class="nav-item {{ request()->routeIs('department.returns') ? 'active' : '' }}">
                 <i class="fa-solid fa-rotate-left"></i> <span>Return Confirmation</span>
             </a>
+            <a href="{{ route('department.penalties') }}" class="nav-item {{ request()->routeIs('department.penalties') ? 'active' : '' }}">
+                <i class="fa-solid fa-scale-balanced"></i> <span>Penalties</span>
+            </a>
             <a href="{{ route('department.users') }}" class="nav-item {{ request()->routeIs('department.users') ? 'active' : '' }}">
                 <i class="fa-solid fa-users"></i> <span>Department Users</span>
             </a>

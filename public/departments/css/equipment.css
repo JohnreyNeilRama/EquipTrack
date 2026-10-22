@@ -991,6 +991,39 @@
     background-color: var(--bg-color);
 }
 
+/* Destructive action, kept apart on the left of the footer */
+.btn-modal-danger {
+    height: 42px;
+    padding: 0 18px;
+    margin-right: auto;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    background-color: transparent;
+    color: #dc2626;
+    border: 1px solid rgba(220, 38, 38, 0.4);
+    transition: background-color 0.2s;
+}
+
+.btn-modal-danger:hover {
+    background-color: rgba(220, 38, 38, 0.08);
+}
+
+.btn-modal-danger:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.btn-modal-danger:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.3);
+}
+
 .btn-submit-request:focus-visible,
 .btn-modal-secondary:focus-visible,
 .modal-close:focus-visible,

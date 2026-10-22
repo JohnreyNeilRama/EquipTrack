@@ -7,6 +7,7 @@ use App\Models\AuditTrail;
 use App\Models\BorrowRequest;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
+use App\Models\Penalty;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +33,10 @@ class UserEquipmentController extends Controller
         // Instructor Name field (see store()).
         $askInstructor = auth('user')->user()->role !== 'Faculty';
 
-        return view('user.equipment', compact('dbCategories', 'dbEquipment', 'categoryCounts', 'askInstructor'));
+        // A Pending penalty blocks new requests; the page explains why.
+        $penaltyBlock = Penalty::blockingBorrowFor((int) auth('user')->user()->user_id)?->borrowBlockMessage();
+
+        return view('user.equipment', compact('dbCategories', 'dbEquipment', 'categoryCounts', 'askInstructor', 'penaltyBlock'));
     }
 
     /**
@@ -61,6 +65,11 @@ class UserEquipmentController extends Controller
         $userId = auth('user')->user()->user_id;
 
         $instructorName = $askInstructor ? trim($data['instructor_name']) : null;
+
+        // An unsettled penalty blocks new requests (config equiptrack.block_borrowing_with_pending_penalty).
+        if ($blocking = Penalty::blockingBorrowFor((int) $userId)) {
+            return response()->json(['success' => false, 'message' => $blocking->borrowBlockMessage()], 403);
+        }
 
         $result = DB::transaction(function () use ($request, $data, $userId, $instructorName) {
             $equipment = Equipment::where('equipment_id', $data['equipment_id'])

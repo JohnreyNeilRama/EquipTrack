@@ -49,6 +49,12 @@ class AuditCatalog
             'Department rejected return of borrow request' => 'Return of borrow request (department)',
         ]],
 
+        // Damage & penalty recording
+        ['label' => 'Recorded Penalty', 'module' => 'Penalties', 'prefixes' => ['Recorded penalty' => 'Penalty']],
+        ['label' => 'Updated Penalty', 'module' => 'Penalties', 'prefixes' => ['Updated penalty' => 'Penalty']],
+        ['label' => 'Settled Penalty', 'module' => 'Penalties', 'prefixes' => ['Settled penalty' => 'Penalty']],
+        ['label' => 'Waived Penalty', 'module' => 'Penalties', 'prefixes' => ['Waived penalty' => 'Penalty']],
+
         // User management
         ['label' => 'Registered Account', 'module' => 'Users', 'prefixes' => ['Registered account' => 'Account']],
         ['label' => 'Added User', 'module' => 'Users', 'prefixes' => [
@@ -169,6 +175,7 @@ class AuditCatalog
             'category' => 'Category #' . $id,
             'user_account' => 'User account #' . $id,
             'admin' => 'Admin account #' . $id,
+            'penalty' => 'Penalty #' . $id,
             'department_account' => 'Department account #' . $id,
             'report' => 'Report: ' . ucfirst($id),
             'audit' => 'Audit trail',

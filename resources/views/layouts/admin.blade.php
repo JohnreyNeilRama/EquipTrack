@@ -62,6 +62,9 @@
             <a href="{{ route('admin.monitoring') }}" class="nav-item {{ request()->routeIs('admin.monitoring') ? 'active' : '' }}">
                 <i class="fa-solid fa-desktop"></i> <span>Equipment Monitoring</span>
             </a>
+            <a href="{{ route('admin.penalties') }}" class="nav-item {{ request()->routeIs('admin.penalties') ? 'active' : '' }}">
+                <i class="fa-solid fa-scale-balanced"></i> <span>Penalties</span>
+            </a>
             <a href="{{ route('admin.reports') }}" class="nav-item {{ request()->routeIs('admin.reports') ? 'active' : '' }}">
                 <i class="fa-solid fa-file-lines"></i> <span>Reports</span>
             </a>

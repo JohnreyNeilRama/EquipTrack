@@ -6,6 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditTrail;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
+use App\Models\Penalty;
+use App\Services\AuditLogger;
+use App\Services\PenaltyService;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -23,6 +27,8 @@ use Illuminate\View\View;
  *    recorded, and the units go back into available stock only when the
  *    equipment is in Good condition. Damaged / Incomplete units stay out of
  *    the available stock until the admin updates it in Equipment Management.
+ *    Lost units also leave the total quantity. A penalty (Damage & Penalty
+ *    Recording) can be recorded in the same step; see PenaltyService.
  *  - Reject: the loan stays open (Active / Overdue) and the user can submit the
  *    return again.
  *
@@ -47,15 +53,21 @@ class DepartmentReturnsController extends Controller
             'transaction_id' => ['required', 'integer', 'min:1'],
             'condition' => ['required', Rule::in(BorrowTransaction::INSPECTED_CONDITIONS)],
             'remarks' => ['nullable', 'string', 'max:1000'],
+            // Optional penalty recorded together with the return.
+            'penalty_type' => ['nullable', Rule::in(Penalty::TYPES)],
+            'penalty_amount' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
+            'penalty_description' => ['nullable', 'required_with:penalty_type', 'string', 'max:1000'],
+        ], [
+            'penalty_description.required_with' => 'Please describe the penalty.',
         ]);
 
         $remarks = trim($data['remarks'] ?? '');
 
-        // Damage or missing parts must be described before the return is finalized.
+        // Damage, missing parts or a loss must be described before the return is finalized.
         if ($data['condition'] !== 'Good' && $remarks === '') {
             return response()->json([
                 'success' => false,
-                'message' => 'Please describe the damage or the missing parts in the remarks.',
+                'message' => 'Please describe the damage, the missing parts or the loss in the remarks.',
             ], 422);
         }
 
@@ -79,13 +91,36 @@ class DepartmentReturnsController extends Controller
                 $transaction->restoreStock($borrow);
             }
 
+            // A lost unit no longer exists, so it leaves the total quantity too.
+            if ($data['condition'] === 'Lost') {
+                $transaction->removeLostUnits($borrow);
+            }
+
+            $penalty = null;
+            if (!empty($data['penalty_type'])) {
+                $penalty = app(PenaltyService::class)->record($transaction, [
+                    'type' => $data['penalty_type'],
+                    'amount' => $data['penalty_amount'] ?? null,
+                    'description' => $data['penalty_description'],
+                ], AuditLogger::actorFor('dept', $dept));
+
+                // Undo the whole confirmation rather than confirm without the penalty.
+                if (is_string($penalty)) {
+                    throw ValidationException::withMessages(['penalty_type' => $penalty]);
+                }
+            }
+
+            $message = match ($data['condition']) {
+                'Good' => 'Return confirmed. The equipment is back in stock.',
+                'Lost' => 'Return confirmed as Lost. The unit was removed from the equipment\'s total quantity.',
+                default => 'Return confirmed as ' . $data['condition'] . '. The unit stays out of the available stock until the admin updates it.',
+            };
+
             return [
                 'action' => 'Department confirmed return of borrow request #' . $borrow->request_id
                     . ' for ' . ($borrow->equipment?->name ?? 'equipment') . ' (' . $data['condition'] . ')',
                 'details' => $remarks !== '' ? 'Remarks: ' . $remarks : null,
-                'message' => $data['condition'] === 'Good'
-                    ? 'Return confirmed. The equipment is back in stock.'
-                    : 'Return confirmed as ' . $data['condition'] . '. The unit stays out of the available stock until the admin updates it.',
+                'message' => $message . ($penalty ? ' A ' . $penalty->type . ' penalty was recorded.' : ''),
             ];
         });
     }
@@ -190,6 +225,7 @@ class DepartmentReturnsController extends Controller
             'request.user.department',
             'request.equipment.category',
             'returnReviewer',
+            'penalties',
         ])
             ->whereNotNull('return_status')
             ->whereHas('request.equipment', fn ($query) => $query->where('department_id', $departmentId))
@@ -253,6 +289,14 @@ class DepartmentReturnsController extends Controller
                 'reviewedBy' => $transaction->returnReviewer?->full_name ?: ($transaction->return_reviewed_by ? 'Department staff' : '—'),
                 'reviewedAt' => $transaction->return_reviewed_at ? $fmtDateTime($transaction->return_reviewed_at) : '—',
                 'canReview' => $pending,
+                // Penalty step of the confirm form.
+                'daysLate' => $transaction->daysLate(),
+                'suggestedLateFee' => PenaltyService::suggestedLateFee($transaction),
+                'penalties' => $transaction->penalties->map(fn (Penalty $penalty) => [
+                    'type' => $penalty->type,
+                    'amount' => $penalty->amountLabel() ?? 'No amount',
+                    'status' => $penalty->status,
+                ])->values()->all(),
             ];
         }
 

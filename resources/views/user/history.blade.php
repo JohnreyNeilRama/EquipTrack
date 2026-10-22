@@ -66,6 +66,7 @@
                             data-remarks="{{ $item['remarks'] }}"
                             data-condition="{{ $item['condition'] }}"
                             data-handled-by="{{ $item['handled_by'] }}"
+                            data-penalties="{{ $item['penalties'] }}"
                             data-img="{{ $item['img'] }}"
                             data-timestamp="{{ $item['timestamp'] }}">
                             <td class="row-index">{{ $idx + 1 }}</td>
@@ -162,6 +163,10 @@
                     <div class="detail-form-group">
                         <label class="detail-form-label">Received By</label>
                         <input type="text" id="historyHandledBy" class="detail-form-control" readonly>
+                    </div>
+                    <div class="detail-form-group">
+                        <label class="detail-form-label">Penalties</label>
+                        <input type="text" id="historyPenalties" class="detail-form-control" readonly>
                     </div>
                 </div>
             </div>
@@ -340,6 +345,7 @@
                 document.getElementById('historyCondition').value = condition;
                 document.getElementById('historyRemarks').value = remarks;
                 document.getElementById('historyHandledBy').value = handledBy;
+                document.getElementById('historyPenalties').value = row.getAttribute('data-penalties') || 'None';
 
                 const imgElement = document.getElementById('historyEqImg');
                 if (imgUrl) {
