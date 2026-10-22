@@ -240,6 +240,15 @@ class PenaltyRecordingTest extends TestCase
             ->assertSee('Penalties')
             ->assertSee('PEN-');
 
+        // The record view shows the equipment photo, its category, the units and the borrower's picture.
+        $this->equipment->update(['image' => '/storage/images/dell.jpg']);
+        $this->user->update(['profile_image' => '/storage/images/user-1-profile.jpg']);
+        $row = $this->actingAs($this->lab, 'dept')->getJson(route('department.penalties.data'))->json('penalties.0');
+        $this->assertSame('/storage/images/dell.jpg', $row['equipmentImage']);
+        $this->assertSame('Laptop', $row['category']);
+        $this->assertSame(1, $row['quantity']);
+        $this->assertSame('/storage/images/user-1-profile.jpg', $row['avatar']);
+
         $this->assertSame([], $this->actingAs($this->otherLab, 'dept')->getJson(route('department.penalties.data'))->json('penalties'));
         $this->actingAs($this->otherLab, 'dept')->postJson(route('department.penalties.settle'), ['penalty_id' => $penalty->penalty_id])
             ->assertNotFound();

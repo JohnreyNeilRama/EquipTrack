@@ -156,6 +156,7 @@ class PenaltyService
 
         return $query->with([
             'transaction.request.equipment.department',
+            'transaction.request.equipment.category',
             'user.student',
             'user.facultyMember',
             'recordedByAdmin',
@@ -182,6 +183,11 @@ class PenaltyService
                     'email' => $user?->email ?? '',
                     'equipment' => $equipment?->name ?? 'Deleted equipment',
                     'serial' => $equipment?->serial_number ?: '—',
+                    // Shown on the department's record view (photo, category, units, borrower picture).
+                    'equipmentImage' => $equipment?->imageUrl(),
+                    'category' => $equipment?->category?->category_name ?: 'General',
+                    'quantity' => max(1, (int) ($borrow?->quantity ?? 1)),
+                    'avatar' => $this->imageUrl($user?->profile_image),
                     'department' => $equipment?->department?->department_name ?: '—',
                     'type' => $penalty->type,
                     'amount' => $penalty->amount !== null ? (float) $penalty->amount : null,
@@ -252,6 +258,22 @@ class PenaltyService
         }
 
         return round((float) $value, 2);
+    }
+
+    /**
+     * A stored picture as a URL the browser can load: full URLs, data URIs and
+     * "/storage/..." paths as they are, older relative paths through asset()
+     * (the same rule as Equipment::imageUrl()); null when there is none.
+     */
+    private function imageUrl(?string $value): ?string
+    {
+        $raw = trim((string) $value);
+
+        if ($raw === '') {
+            return null;
+        }
+
+        return preg_match('/^(https?:\/\/|data:|\/storage\/)/i', $raw) ? $raw : asset(ltrim($raw, '/'));
     }
 
     private function summary(Penalty $penalty): string

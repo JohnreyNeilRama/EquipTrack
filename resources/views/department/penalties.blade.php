@@ -4,6 +4,8 @@
 
 @push('css')
 @include('partials.penalties.styles')
+{{-- Record view laid out like the Return Confirmation form (department only) --}}
+<link rel="stylesheet" href="{{ asset('departments/css/penalty-record.css') }}?v={{ filemtime(public_path('departments/css/penalty-record.css')) }}">
 @endpush
 
 @section('content')

@@ -131,16 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------------------------------
     // Details
     // ------------------------------------------------------------------
-    function openDetails(id) {
-        const p = penalties.find(item => item.id === id);
-        if (!p) return;
-        openId = id;
-
-        $('penaltyTitle').textContent = p.penaltyId;
-        const badge = $('penaltyStatusBadge');
-        badge.textContent = p.status;
-        badge.className = 'status-badge ' + (STATUS_CLASS[p.status] || 'status-pending');
-
+    // Admin record view (partials/penalties/page.blade.php).
+    function fillAdminRecord(p) {
         // Main line, then a muted second line (role / e-mail, serial number, days late, time).
         const twoLines = (main, sub) => `${escapeHTML(main)}${sub ? `<span class="dd-sub">${escapeHTML(sub)}</span>` : ''}`;
 
@@ -167,18 +159,147 @@ document.addEventListener('DOMContentLoaded', () => {
         $('pdRemarksGroup').style.display = closed && p.settleRemarks ? '' : 'none';
         $('pdRemarksLabel').textContent = p.status === 'Waived' ? 'Reason for Waiving' : 'Remarks';
         $('pdRemarks').textContent = p.settleRemarks;
+    }
 
-        // Close on the left; on the right the secondary actions, then the
-        // primary one (Mark as Settled) last and filled.
+    // Lab Personnel record view (partials/penalties/dept-record.blade.php),
+    // laid out like the Return Confirmation form.
+    function fillDeptRecord(p) {
+        const twoLines = (main, sub) => `${escapeHTML(main)}${sub ? `<span class="dd-sub">${escapeHTML(sub)}</span>` : ''}`;
+
+        showBorrowerAvatar(p.avatar, p.user);
+        $('prUserName').textContent = p.user;
+        $('prUserMeta').textContent = [p.role, p.email].filter(Boolean).join(' · ');
+
+        showEquipmentPhoto(p.equipmentImage, p.equipment);
+        $('pdEquipment').textContent = p.equipment;
+        $('prCategory').textContent = p.category;
+        $('prSerial').textContent = p.serial;
+        $('prQuantity').textContent = `${p.quantity} pc(s)`;
+        $('pdRequest').textContent = `#${p.requestId}`;
+
+        const condition = $('pdCondition');
+        const conditionKey = String(p.condition || '').toLowerCase();
+        condition.textContent = p.condition;
+        condition.className = 'condition-tag' + (['good', 'damaged', 'incomplete', 'lost'].includes(conditionKey) ? ' condition-' + conditionKey : '');
+
+        $('prDueDate').textContent = p.dueDate;
+        $('prReturnDate').textContent = p.returnDate;
+        const late = $('pdDates');
+        late.textContent = p.daysLate > 0 ? `${p.daysLate} day${p.daysLate === 1 ? '' : 's'}` : 'On time';
+        late.classList.toggle('is-late', p.daysLate > 0);
+
+        $('pdType').innerHTML = typeTag(p.type);
+        $('pdAmount').textContent = p.amountLabel;
+        $('pdAmount').classList.toggle('is-empty', p.amount === null);
+        $('pdDescription').textContent = p.description;
+        $('pdRecorded').innerHTML = twoLines(p.recordedBy, p.recordedAt);
+
+        const closed = p.status !== 'Pending';
+        const waived = p.status === 'Waived';
+        $('pdSettledGroup').style.display = closed ? '' : 'none';
+        $('prAwaitingGroup').style.display = closed ? 'none' : '';
+        $('prPendingNote').style.display = p.canEdit ? '' : 'none';
+        $('pdSettledLabel').textContent = waived ? 'Waived By' : 'Settled By';
+        $('pdSettled').innerHTML = twoLines(p.settledBy, p.settledAt);
+        $('pdReferenceGroup').style.display = p.status === 'Settled' && p.referenceNo ? '' : 'none';
+        $('pdReference').textContent = p.referenceNo;
+        $('pdRemarksGroup').style.display = closed && p.settleRemarks ? '' : 'none';
+        $('pdRemarksGroup').classList.toggle('review-info-danger', waived);
+        $('pdRemarksLabel').textContent = waived ? 'Reason for Waiving' : 'Remarks';
+        $('pdRemarks').textContent = p.settleRemarks;
+
+        document.querySelector('#penaltyModal .review-scroll').scrollTop = 0;
+    }
+
+    // The photo uploaded in Equipment Management; a placeholder when there is
+    // none or it cannot be loaded (same behaviour as Return Confirmation).
+    function showEquipmentPlaceholder() {
+        $('prEquipmentFrame').classList.add('is-missing');
+        $('prEquipmentImg').removeAttribute('src');
+        $('prEquipmentBackdrop').removeAttribute('src');
+        $('prEquipmentLink').removeAttribute('href');
+    }
+
+    function showEquipmentPhoto(url, name) {
+        if (!url) {
+            showEquipmentPlaceholder();
+            return;
+        }
+        const img = $('prEquipmentImg');
+        img.alt = `Photo of ${name}`;
+        img.onerror = showEquipmentPlaceholder;
+        img.src = url;
+        $('prEquipmentBackdrop').src = url;
+        $('prEquipmentLink').href = url;
+        $('prEquipmentLink').setAttribute('aria-label', `Open the full-size photo of ${name}`);
+        $('prEquipmentFrame').classList.remove('is-missing');
+    }
+
+    // Borrower picture, or their initials on the EquipTrack blue (drawn locally).
+    function initialsAvatar(name) {
+        const initials = String(name || '')
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map(word => Array.from(word)[0])
+            .join('')
+            .toUpperCase()
+            .replace(/[&<>"']/g, '') || 'U';
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">`
+            + `<rect width="96" height="96" fill="#385585"/>`
+            + `<text x="48" y="48" dy="0.35em" text-anchor="middle" fill="#ffffff" `
+            + `font-family="Inter, Segoe UI, Arial, sans-serif" font-size="36" font-weight="600">${initials}</text></svg>`;
+        return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+    }
+
+    function showBorrowerAvatar(url, name) {
+        const avatar = $('prUserAvatar');
+        const fallback = initialsAvatar(name);
+        avatar.alt = `${name || 'Borrower'}'s profile picture`;
+        avatar.onerror = function () {
+            this.onerror = null;
+            this.src = fallback;
+        };
+        avatar.src = url || fallback;
+    }
+
+    function openDetails(id) {
+        const p = penalties.find(item => item.id === id);
+        if (!p) return;
+        openId = id;
+
+        $('penaltyTitle').textContent = p.penaltyId;
+        const badge = $('penaltyStatusBadge');
+        badge.textContent = p.status;
+        badge.className = 'status-badge ' + (STATUS_CLASS[p.status] || 'status-pending');
+
+        if (IS_ADMIN) {
+            fillAdminRecord(p);
+        } else {
+            fillDeptRecord(p);
+        }
+
         const footer = $('penaltyFooter');
-        footer.innerHTML = p.canEdit
-            ? `<button type="button" class="btn-sheet btn-sheet-secondary" data-act="close">Close</button>
-               <div class="penalty-sheet-actions">
-                   <button type="button" class="btn-sheet btn-sheet-outline" data-act="edit"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
-                   <button type="button" class="btn-sheet btn-sheet-danger-outline" data-act="waive"><i class="fa-solid fa-ban"></i> Waive</button>
-                   <button type="button" class="btn-sheet btn-sheet-success" data-act="settle"><i class="fa-solid fa-check"></i> Mark as Settled</button>
-               </div>`
-            : `<button type="button" class="btn-sheet btn-sheet-secondary btn-sheet-block" data-act="close">Close</button>`;
+        if (IS_ADMIN) {
+            // Close on the left; on the right the secondary actions, then the
+            // primary one (Mark as Settled) last and filled.
+            footer.innerHTML = p.canEdit
+                ? `<button type="button" class="btn-sheet btn-sheet-secondary" data-act="close">Close</button>
+                   <div class="penalty-sheet-actions">
+                       <button type="button" class="btn-sheet btn-sheet-outline" data-act="edit"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
+                       <button type="button" class="btn-sheet btn-sheet-danger-outline" data-act="waive"><i class="fa-solid fa-ban"></i> Waive</button>
+                       <button type="button" class="btn-sheet btn-sheet-success" data-act="settle"><i class="fa-solid fa-check"></i> Mark as Settled</button>
+                   </div>`
+                : `<button type="button" class="btn-sheet btn-sheet-secondary btn-sheet-block" data-act="close">Close</button>`;
+        } else {
+            // Same buttons as the Return Confirmation form.
+            footer.innerHTML = p.canEdit
+                ? `<button type="button" class="btn-modal-close" data-act="close">Close</button>
+                   <button type="button" class="btn-modal-edit" data-act="edit"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
+                   <button type="button" class="btn-modal-reject-trigger" data-act="waive"><i class="fa-solid fa-ban"></i> Waive</button>
+                   <button type="button" class="btn-modal-approve" data-act="settle"><i class="fa-solid fa-check"></i> Mark as Settled</button>`
+                : `<button type="button" class="btn-modal-close is-only" data-act="close">Close</button>`;
+        }
         footer.querySelectorAll('[data-act]').forEach(btn => btn.addEventListener('click', () => {
             const act = btn.dataset.act;
             if (act === 'close') closeDetails();

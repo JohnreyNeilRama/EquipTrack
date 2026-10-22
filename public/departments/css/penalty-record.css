@@ -1,0 +1,519 @@
+/*
+ * Department Penalties: penalty record view.
+ * Same design as the Return Confirmation review form (department/returns),
+ * scoped to .penalty-review-card so nothing else on the page is affected.
+ * Loaded only by resources/views/department/penalties.blade.php.
+ */
+
+.eq-modal-card.penalty-review-card {
+    max-width: 720px !important;
+    width: calc(100% - 32px);
+}
+
+.penalty-review-card .modal-inner-card {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 110px);
+    padding-bottom: 0;
+}
+
+/* Long records scroll inside the card; the title and the buttons stay put. */
+.penalty-review-card .review-scroll {
+    overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0 -4px;
+    padding: 0 4px 4px;
+}
+
+.penalty-review-card .review-heading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0 32px 18px;
+}
+
+.penalty-review-card .review-title {
+    margin: 0;
+    font-size: var(--fs-modal-title);
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.penalty-review-card .review-requester {
+    margin-bottom: 18px;
+}
+
+.penalty-review-card .modal-requester-meta {
+    min-width: 0;
+}
+
+.penalty-review-card .modal-requester-name,
+.penalty-review-card .modal-requester-details {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+/* Numbered sections */
+.penalty-review-card .review-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px 0;
+    border-top: 1px solid var(--border-color);
+}
+
+.penalty-review-card .review-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.penalty-review-card .review-step {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: #ffffff;
+    background-color: #385585;
+    flex-shrink: 0;
+}
+
+.dark-theme .penalty-review-card .review-step {
+    background-color: #3b82f6;
+}
+
+.penalty-review-card .review-hint {
+    margin: 0;
+    font-size: var(--fs-small);
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+/* The equipment: reference photo beside its name and details */
+.penalty-review-card .return-item {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    background-color: var(--bg-color);
+}
+
+/* Whole item shown, never stretched or cropped; a blurred copy fills the spare space */
+.penalty-review-card .return-photo {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.penalty-review-card .return-photo-frame {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: #f1f5f9;
+    box-shadow: inset 0 0 0 1px var(--border-color);
+    isolation: isolate;
+}
+
+.penalty-review-card .return-photo-link {
+    position: absolute;
+    inset: 0;
+    display: block;
+    cursor: zoom-in;
+}
+
+.penalty-review-card .return-photo-link:focus-visible {
+    outline: 3px solid rgba(56, 85, 133, 0.45);
+    outline-offset: -3px;
+}
+
+.penalty-review-card .return-photo-backdrop {
+    position: absolute;
+    top: -32px;
+    left: -32px;
+    width: calc(100% + 64px);
+    height: calc(100% + 64px);
+    max-width: none;
+    object-fit: cover;
+    filter: blur(16px);
+}
+
+.penalty-review-card .return-photo-img {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.penalty-review-card .return-photo-link:hover .return-photo-img {
+    transform: scale(1.03);
+}
+
+.penalty-review-card .return-photo-zoom {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--fs-small);
+    color: #ffffff;
+    background-color: rgba(15, 23, 42, 0.6);
+    opacity: 0.85;
+    transition: opacity 0.2s, background-color 0.2s;
+}
+
+.penalty-review-card .return-photo-link:hover .return-photo-zoom,
+.penalty-review-card .return-photo-link:focus-visible .return-photo-zoom {
+    opacity: 1;
+    background-color: rgba(15, 23, 42, 0.8);
+}
+
+.penalty-review-card .return-photo-placeholder {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    color: #94a3b8;
+    font-size: var(--fs-small);
+    font-weight: 500;
+    text-align: center;
+    padding: 0 10px;
+}
+
+.penalty-review-card .return-photo-placeholder i {
+    font-size: 26px;
+}
+
+.penalty-review-card .return-photo-frame.is-missing .return-photo-link {
+    display: none;
+}
+
+.penalty-review-card .return-photo-frame.is-missing .return-photo-placeholder {
+    display: flex;
+}
+
+.penalty-review-card .return-photo figcaption {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.dark-theme .penalty-review-card .return-photo-frame {
+    background-color: #0f172a;
+}
+
+.dark-theme .penalty-review-card .return-photo-placeholder {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: #64748b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .penalty-review-card .return-photo-img { transition: none; }
+    .penalty-review-card .return-photo-link:hover .return-photo-img { transform: none; }
+}
+
+.penalty-review-card .return-item-body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding-top: 2px;
+}
+
+.penalty-review-card .return-item-label,
+.penalty-review-card .return-item-facts dt,
+.penalty-review-card .return-dates dt,
+.penalty-review-card .review-info-item dt,
+.penalty-review-card .reported-label {
+    font-size: var(--fs-badge);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.penalty-review-card .return-item-name {
+    margin: 2px 0 0;
+    font-size: var(--fs-card-title, 15px);
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--text-main);
+    overflow-wrap: anywhere;
+}
+
+.penalty-review-card .return-item-category {
+    margin: 2px 0 0;
+    font-size: var(--fs-label);
+    color: var(--text-muted);
+}
+
+.penalty-review-card .return-item-facts {
+    margin: 14px 0 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.penalty-review-card .return-item-facts > div,
+.penalty-review-card .return-dates > div {
+    min-width: 0;
+}
+
+.penalty-review-card .return-item-facts dd,
+.penalty-review-card .return-dates dd {
+    margin: 3px 0 0;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    color: var(--text-main);
+    overflow-wrap: anywhere;
+}
+
+.penalty-review-card dd.mono {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+/* Due / returned / days late as one divided strip */
+.penalty-review-card .return-dates {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.penalty-review-card .return-dates > div {
+    padding: 10px 14px;
+}
+
+.penalty-review-card .return-dates > div + div {
+    border-left: 1px solid var(--border-color);
+}
+
+.penalty-review-card .return-dates dd.is-late {
+    color: #dc2626;
+}
+
+.dark-theme .penalty-review-card .return-dates dd.is-late {
+    color: #f87171;
+}
+
+/* Read-only facts as compact tiles */
+.penalty-review-card .review-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+}
+
+.penalty-review-card .review-info-item {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-width: 0;
+}
+
+.penalty-review-card .review-info-wide {
+    grid-column: 1 / -1;
+}
+
+.penalty-review-card .review-info-item dt {
+    margin-bottom: 4px;
+}
+
+.penalty-review-card .review-info-item dd {
+    margin: 0;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    color: var(--text-main);
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+}
+
+.penalty-review-card .review-info-item .dd-sub {
+    display: block;
+    margin-top: 2px;
+    font-size: var(--fs-small);
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.penalty-review-card .pr-amount {
+    font-size: var(--fs-section) !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.penalty-review-card .pr-amount.is-empty {
+    font-size: var(--fs-body) !important;
+    font-weight: 500 !important;
+    color: var(--text-muted) !important;
+}
+
+.penalty-review-card .pr-awaiting {
+    border-color: rgba(245, 158, 11, 0.35);
+    background-color: rgba(245, 158, 11, 0.06);
+}
+
+.penalty-review-card .pr-awaiting dd {
+    color: #b45309;
+}
+
+.dark-theme .penalty-review-card .pr-awaiting dd {
+    color: #fbbf24;
+}
+
+/* Waive reason in red, like the Return Confirmation rejection reason */
+.penalty-review-card .review-info-danger {
+    border-color: rgba(239, 68, 68, 0.3);
+    background-color: rgba(239, 68, 68, 0.04);
+}
+
+.penalty-review-card .review-info-danger dt,
+.penalty-review-card .review-info-danger dd {
+    color: #ef4444;
+}
+
+/* Description: same accent box as the user's report on Return Confirmation */
+.penalty-review-card .reported-box {
+    border-left: 3px solid #385585;
+    background-color: var(--bg-color);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dark-theme .penalty-review-card .reported-box {
+    border-left-color: #3b82f6;
+}
+
+.penalty-review-card .reported-notes {
+    margin: 0;
+    font-size: var(--fs-label);
+    line-height: 1.55;
+    color: var(--text-main);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+/* Inspected condition tags (same colours as Return Confirmation) */
+.penalty-review-card .condition-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: var(--fs-badge);
+    font-weight: 600;
+    background-color: var(--bg-color);
+    color: var(--text-muted);
+}
+
+.penalty-review-card .condition-good { background-color: #d1fae5; color: #047857; }
+.penalty-review-card .condition-damaged { background-color: #fee2e2; color: #b91c1c; }
+.penalty-review-card .condition-incomplete { background-color: #fef3c7; color: #b45309; }
+.penalty-review-card .condition-lost { background-color: #ede9fe; color: #6d28d9; }
+.dark-theme .penalty-review-card .condition-good { background-color: rgba(16, 185, 129, 0.15); color: #34d399; }
+.dark-theme .penalty-review-card .condition-damaged { background-color: rgba(239, 68, 68, 0.15); color: #f87171; }
+.dark-theme .penalty-review-card .condition-incomplete { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.dark-theme .penalty-review-card .condition-lost { background-color: rgba(139, 92, 246, 0.18); color: #c4b5fd; }
+
+/* Footer: same buttons as Return Confirmation, pinned under the scrolling body */
+.penalty-review-card .review-footer {
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    margin: 0 -4px;
+    padding: 14px 4px 22px;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+}
+
+.penalty-review-card .review-footer button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.penalty-review-card .review-footer .btn-modal-close {
+    margin-right: auto;
+}
+
+.penalty-review-card .review-footer .btn-modal-close.is-only {
+    width: 100%;
+    margin-right: 0;
+}
+
+.penalty-review-card .review-footer .btn-modal-edit {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+}
+
+.penalty-review-card .review-footer .btn-modal-edit:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+@media (max-width: 640px) {
+    .penalty-review-card .return-item {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+    }
+
+    .penalty-review-card .return-photo-frame {
+        aspect-ratio: 16 / 10;
+        max-height: 220px;
+    }
+
+    .penalty-review-card .return-dates,
+    .penalty-review-card .review-info-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .penalty-review-card .return-dates > div + div {
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+    }
+
+    /* Buttons stack full-width, the main action on top */
+    .penalty-review-card .review-footer {
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+
+    .penalty-review-card .review-footer button {
+        width: 100%;
+        margin-right: 0;
+    }
+}

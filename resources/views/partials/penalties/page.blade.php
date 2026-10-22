@@ -117,6 +117,10 @@
         </div>
     </div>
 
+    @unless ($isAdmin)
+        {{-- Lab Personnel: record laid out like the Return Confirmation form --}}
+        @include('partials.penalties.dept-record')
+    @else
     {{-- Damage & Penalty Record (details) --}}
     <div class="modal-overlay" id="penaltyModal" role="dialog" aria-modal="true" aria-labelledby="penaltyTitle">
         <div class="modal-card eq-modal-card penalty-card">
@@ -181,6 +185,7 @@
             </div>
         </div>
     </div>
+    @endunless
 
     {{-- Edit / Settle / Waive / Add form --}}
     <div class="modal-overlay" id="penaltyFormModal" role="dialog" aria-modal="true" aria-labelledby="penaltyFormTitle">
