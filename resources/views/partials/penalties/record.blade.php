@@ -1,7 +1,7 @@
-{{-- Department (Lab Personnel) penalty record view. Same structure as the
-     Return Confirmation review form: title + status, the borrower, then
-     numbered sections, with the equipment's reference photo beside its
-     details. Styles: public/departments/css/penalty-record.css. The element
+{{-- Damage & Penalty Record view (Admin + Lab Personnel). Same structure as
+     the department's Return Confirmation review form: title + status, the
+     borrower, then numbered sections, with the equipment's reference photo
+     beside its details. Styles: public/ccs/penalty-record.css. The element
      ids are the ones partials/penalties/script.blade.php fills. --}}
 <div class="modal-overlay" id="penaltyModal" role="dialog" aria-modal="true" aria-labelledby="penaltyTitle">
     <div class="modal-card eq-modal-card penalty-review-card">

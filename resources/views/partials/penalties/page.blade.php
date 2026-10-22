@@ -117,75 +117,8 @@
         </div>
     </div>
 
-    @unless ($isAdmin)
-        {{-- Lab Personnel: record laid out like the Return Confirmation form --}}
-        @include('partials.penalties.dept-record')
-    @else
-    {{-- Damage & Penalty Record (details) --}}
-    <div class="modal-overlay" id="penaltyModal" role="dialog" aria-modal="true" aria-labelledby="penaltyTitle">
-        <div class="modal-card eq-modal-card penalty-card">
-            <div class="modal-outer-header">
-                <p class="modal-subtitle-top">Damage &amp; penalty record</p>
-            </div>
-            <div class="modal-inner-card penalty-sheet">
-                <button type="button" class="modal-close" id="closePenaltyBtn" aria-label="Close">&times;</button>
-
-                <header class="penalty-sheet-head">
-                    <div class="penalty-title-row">
-                        <h3 class="penalty-sheet-title" id="penaltyTitle">Penalty</h3>
-                        <span class="status-badge" id="penaltyStatusBadge">—</span>
-                    </div>
-                    <p class="penalty-sheet-meta">Request <strong id="pdRequest">—</strong> · Recorded <span id="pdRecordedDate">—</span></p>
-                </header>
-
-                <div class="penalty-sheet-body">
-                    {{-- At a glance: what the penalty is --}}
-                    <div class="penalty-glance">
-                        <div class="glance-item">
-                            <span class="glance-label">Type</span>
-                            <span class="glance-value" id="pdType">—</span>
-                        </div>
-                        <div class="glance-item">
-                            <span class="glance-label">Amount</span>
-                            <span class="glance-value glance-amount" id="pdAmount">—</span>
-                        </div>
-                        <div class="glance-item">
-                            <span class="glance-label">Inspected Condition</span>
-                            <span class="glance-value" id="pdCondition">—</span>
-                        </div>
-                    </div>
-
-                    <section class="penalty-section" aria-labelledby="pdBorrowHeading">
-                        <h4 class="penalty-section-title" id="pdBorrowHeading"><i class="fa-solid fa-user" aria-hidden="true"></i> Borrower &amp; Equipment</h4>
-                        <dl class="penalty-details">
-                            <div><dt>Borrower</dt><dd id="pdUser">—</dd></div>
-                            <div><dt>Equipment</dt><dd id="pdEquipment">—</dd></div>
-                            <div><dt>Department</dt><dd id="pdDepartment">—</dd></div>
-                            <div><dt>Due / Returned</dt><dd id="pdDates">—</dd></div>
-                        </dl>
-                    </section>
-
-                    <section class="penalty-section" aria-labelledby="pdDetailsHeading">
-                        <h4 class="penalty-section-title" id="pdDetailsHeading"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Damage &amp; Penalty Details</h4>
-                        <p class="penalty-description" id="pdDescription">—</p>
-                    </section>
-
-                    <section class="penalty-section" aria-labelledby="pdHistoryHeading">
-                        <h4 class="penalty-section-title" id="pdHistoryHeading"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Record History</h4>
-                        <dl class="penalty-details">
-                            <div><dt>Recorded By</dt><dd id="pdRecorded">—</dd></div>
-                            <div id="pdSettledGroup"><dt id="pdSettledLabel">Settled By</dt><dd id="pdSettled">—</dd></div>
-                            <div class="wide" id="pdReferenceGroup"><dt>Reference / Receipt No.</dt><dd id="pdReference">—</dd></div>
-                            <div class="wide" id="pdRemarksGroup"><dt id="pdRemarksLabel">Remarks</dt><dd id="pdRemarks">—</dd></div>
-                        </dl>
-                    </section>
-                </div>
-
-                <footer class="penalty-sheet-footer" id="penaltyFooter"></footer>
-            </div>
-        </div>
-    </div>
-    @endunless
+    {{-- Damage & Penalty Record, laid out like the department's Return Confirmation form --}}
+    @include('partials.penalties.record')
 
     {{-- Edit / Settle / Waive / Add form --}}
     <div class="modal-overlay" id="penaltyFormModal" role="dialog" aria-modal="true" aria-labelledby="penaltyFormTitle">

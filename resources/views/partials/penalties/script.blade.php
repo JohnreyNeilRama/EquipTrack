@@ -131,39 +131,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------------------------------
     // Details
     // ------------------------------------------------------------------
-    // Admin record view (partials/penalties/page.blade.php).
-    function fillAdminRecord(p) {
-        // Main line, then a muted second line (role / e-mail, serial number, days late, time).
-        const twoLines = (main, sub) => `${escapeHTML(main)}${sub ? `<span class="dd-sub">${escapeHTML(sub)}</span>` : ''}`;
-
-        $('pdUser').innerHTML = twoLines(p.user, [p.role, p.email].filter(Boolean).join(' · '));
-        $('pdEquipment').innerHTML = twoLines(p.equipment, p.serial);
-        $('pdDepartment').textContent = p.department;
-        $('pdRequest').textContent = `#${p.requestId}`;
-        $('pdRecordedDate').textContent = p.recordedAt.split(' ').slice(0, 3).join(' ');
-        $('pdDates').innerHTML = twoLines(`${p.dueDate} / ${p.returnDate}`,
-            p.daysLate > 0 ? `${p.daysLate} day${p.daysLate === 1 ? '' : 's'} late` : 'Returned on time');
-        $('pdCondition').textContent = p.condition;
-        $('pdType').innerHTML = typeTag(p.type);
-        $('pdAmount').textContent = p.amountLabel;
-        $('pdAmount').classList.toggle('is-empty', p.amount === null);
-        $('pdDescription').textContent = p.description;
-        $('pdRecorded').innerHTML = twoLines(p.recordedBy, p.recordedAt);
-
-        const closed = p.status !== 'Pending';
-        $('pdSettledGroup').style.display = closed ? '' : 'none';
-        $('pdSettledLabel').textContent = p.status === 'Waived' ? 'Waived By' : 'Settled By';
-        $('pdSettled').innerHTML = twoLines(p.settledBy, p.settledAt);
-        $('pdReferenceGroup').style.display = p.status === 'Settled' && p.referenceNo ? '' : 'none';
-        $('pdReference').textContent = p.referenceNo;
-        $('pdRemarksGroup').style.display = closed && p.settleRemarks ? '' : 'none';
-        $('pdRemarksLabel').textContent = p.status === 'Waived' ? 'Reason for Waiving' : 'Remarks';
-        $('pdRemarks').textContent = p.settleRemarks;
-    }
-
-    // Lab Personnel record view (partials/penalties/dept-record.blade.php),
-    // laid out like the Return Confirmation form.
-    function fillDeptRecord(p) {
+    // Damage & Penalty Record view (partials/penalties/record.blade.php),
+    // laid out like the department's Return Confirmation form.
+    function fillRecord(p) {
         const twoLines = (main, sub) => `${escapeHTML(main)}${sub ? `<span class="dd-sub">${escapeHTML(sub)}</span>` : ''}`;
 
         showBorrowerAvatar(p.avatar, p.user);
@@ -172,7 +142,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         showEquipmentPhoto(p.equipmentImage, p.equipment);
         $('pdEquipment').textContent = p.equipment;
-        $('prCategory').textContent = p.category;
+        // The admin sees every department's penalties, so the owning department is shown too.
+        $('prCategory').textContent = IS_ADMIN ? `${p.category} · ${p.department}` : p.category;
         $('prSerial').textContent = p.serial;
         $('prQuantity').textContent = `${p.quantity} pc(s)`;
         $('pdRequest').textContent = `#${p.requestId}`;
@@ -273,33 +244,16 @@ document.addEventListener('DOMContentLoaded', () => {
         badge.textContent = p.status;
         badge.className = 'status-badge ' + (STATUS_CLASS[p.status] || 'status-pending');
 
-        if (IS_ADMIN) {
-            fillAdminRecord(p);
-        } else {
-            fillDeptRecord(p);
-        }
+        fillRecord(p);
 
+        // Same buttons as the Return Confirmation form; Mark as Settled is the main action.
         const footer = $('penaltyFooter');
-        if (IS_ADMIN) {
-            // Close on the left; on the right the secondary actions, then the
-            // primary one (Mark as Settled) last and filled.
-            footer.innerHTML = p.canEdit
-                ? `<button type="button" class="btn-sheet btn-sheet-secondary" data-act="close">Close</button>
-                   <div class="penalty-sheet-actions">
-                       <button type="button" class="btn-sheet btn-sheet-outline" data-act="edit"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
-                       <button type="button" class="btn-sheet btn-sheet-danger-outline" data-act="waive"><i class="fa-solid fa-ban"></i> Waive</button>
-                       <button type="button" class="btn-sheet btn-sheet-success" data-act="settle"><i class="fa-solid fa-check"></i> Mark as Settled</button>
-                   </div>`
-                : `<button type="button" class="btn-sheet btn-sheet-secondary btn-sheet-block" data-act="close">Close</button>`;
-        } else {
-            // Same buttons as the Return Confirmation form.
-            footer.innerHTML = p.canEdit
-                ? `<button type="button" class="btn-modal-close" data-act="close">Close</button>
-                   <button type="button" class="btn-modal-edit" data-act="edit"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
-                   <button type="button" class="btn-modal-reject-trigger" data-act="waive"><i class="fa-solid fa-ban"></i> Waive</button>
-                   <button type="button" class="btn-modal-approve" data-act="settle"><i class="fa-solid fa-check"></i> Mark as Settled</button>`
-                : `<button type="button" class="btn-modal-close is-only" data-act="close">Close</button>`;
-        }
+        footer.innerHTML = p.canEdit
+            ? `<button type="button" class="btn-modal-close" data-act="close">Close</button>
+               <button type="button" class="btn-modal-edit" data-act="edit"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
+               <button type="button" class="btn-modal-reject-trigger" data-act="waive"><i class="fa-solid fa-ban"></i> Waive</button>
+               <button type="button" class="btn-modal-approve" data-act="settle"><i class="fa-solid fa-check"></i> Mark as Settled</button>`
+            : `<button type="button" class="btn-modal-close is-only" data-act="close">Close</button>`;
         footer.querySelectorAll('[data-act]').forEach(btn => btn.addEventListener('click', () => {
             const act = btn.dataset.act;
             if (act === 'close') closeDetails();

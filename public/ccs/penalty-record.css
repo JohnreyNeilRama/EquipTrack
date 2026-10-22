@@ -1,8 +1,8 @@
 /*
- * Department Penalties: penalty record view.
- * Same design as the Return Confirmation review form (department/returns),
- * scoped to .penalty-review-card so nothing else on the page is affected.
- * Loaded only by resources/views/department/penalties.blade.php.
+ * Penalties (Admin + Lab Personnel): Damage & Penalty Record view.
+ * Same design as the department's Return Confirmation review form
+ * (department/returns), scoped to .penalty-review-card so nothing else on the
+ * page is affected. Loaded by resources/views/partials/penalties/styles.blade.php.
  */
 
 .eq-modal-card.penalty-review-card {

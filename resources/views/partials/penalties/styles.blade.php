@@ -5,6 +5,8 @@
 <link rel="stylesheet" href="{{ asset('admin/css/adminrequests.css') }}">
 @include('partials.requests.styles')
 <link rel="stylesheet" href="{{ asset('departments/css/requests.css') }}">
+{{-- Damage & Penalty Record view (same design as the Return Confirmation form) --}}
+<link rel="stylesheet" href="{{ asset('ccs/penalty-record.css') }}?v={{ filemtime(public_path('ccs/penalty-record.css')) }}">
 <style>
     .penalties-header {
         display: flex;
@@ -124,12 +126,11 @@
     .dark-theme .status-badge.status-waived { background-color: rgba(148, 163, 184, 0.15); color: #cbd5e1; }
 
     /* ------------------------------------------------------------------
-       Damage & Penalty Record (details) and the Edit / Settle / Waive / Add
-       form. Same modal shell as the rest of the admin (modal-overlay,
-       modal-inner-card); inside it: a header, a scrolling body split into
-       titled sections, and a footer that stays in view.
+       Edit / Settle / Waive / Add form. Same modal shell as the rest of the
+       admin (modal-overlay, modal-inner-card); inside it: a header, a
+       scrolling body and a footer that stays in view. The record view itself
+       is styled by public/ccs/penalty-record.css.
        ------------------------------------------------------------------ */
-    .eq-modal-card.penalty-card { max-width: 680px !important; width: calc(100% - 32px) !important; }
     .eq-modal-card.penalty-form-card { max-width: 520px !important; width: calc(100% - 32px) !important; }
 
     .modal-inner-card.penalty-sheet {
@@ -143,12 +144,6 @@
     .penalty-sheet-head {
         padding: 0 44px 18px 0;
         border-bottom: 1px solid var(--border-color);
-    }
-    .penalty-title-row {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 10px;
     }
     .penalty-sheet-title {
         margin: 0;
@@ -195,101 +190,7 @@
     /* Sections keep their height; the body scrolls instead of squeezing them. */
     .penalty-sheet-body > * { flex-shrink: 0; }
 
-    /* At a glance: type, amount and condition side by side */
-    .penalty-glance {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        border: 1px solid var(--border-color);
-        border-radius: 14px;
-        background-color: var(--bg-color);
-        overflow: hidden;
-    }
-    .glance-item {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        padding: 14px 16px;
-        min-width: 0;
-    }
-    .glance-item + .glance-item { border-left: 1px solid var(--border-color); }
-    .glance-label {
-        font-size: var(--fs-badge);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--text-muted);
-    }
-    .glance-value {
-        font-size: var(--fs-body);
-        font-weight: 600;
-        color: var(--text-main);
-        overflow-wrap: anywhere;
-    }
-    .glance-amount {
-        font-size: var(--fs-section);
-        font-weight: 700;
-        font-variant-numeric: tabular-nums;
-    }
-    .glance-amount.is-empty { font-size: var(--fs-body); font-weight: 500; color: var(--text-muted); }
-
-    .penalty-section { display: flex; flex-direction: column; gap: 12px; }
-    .penalty-section-title {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin: 0;
-        font-size: var(--fs-label);
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
-        color: var(--section-title-color);
-    }
-    .penalty-section-title i { font-size: var(--fs-small); color: var(--primary-color); opacity: 0.85; }
-
-    .penalty-details {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 16px 24px;
-        margin: 0;
-    }
-    .penalty-details > div { min-width: 0; }
-    .penalty-details .wide { grid-column: 1 / -1; }
-    .penalty-details dt {
-        margin-bottom: 4px;
-        font-size: var(--fs-small);
-        font-weight: 600;
-        color: var(--text-muted);
-    }
-    .penalty-details dd {
-        margin: 0;
-        font-size: var(--fs-body);
-        font-weight: 500;
-        line-height: 1.45;
-        color: var(--text-main);
-        overflow-wrap: anywhere;
-        white-space: pre-line;
-    }
-    .penalty-details .dd-sub {
-        display: block;
-        margin-top: 2px;
-        font-size: var(--fs-small);
-        font-weight: 400;
-        color: var(--text-muted);
-    }
-    .penalty-description {
-        margin: 0;
-        padding: 14px 16px;
-        border-left: 3px solid var(--primary-color);
-        border-radius: 0 10px 10px 0;
-        background-color: var(--bg-color);
-        font-size: var(--fs-body);
-        line-height: 1.55;
-        color: var(--text-main);
-        overflow-wrap: anywhere;
-        white-space: pre-line;
-    }
-
-    /* Footer: Close / Cancel on the left, actions on the right, primary last */
+    /* Footer: Cancel, then the primary action */
     .penalty-sheet-footer {
         display: flex;
         align-items: center;
@@ -302,7 +203,6 @@
         background-color: var(--card-bg);
         border-radius: 0 0 24px 24px;
     }
-    .penalty-sheet-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-left: auto; }
     .penalty-form .penalty-sheet-footer { justify-content: flex-end; }
 
     .btn-sheet {
@@ -323,22 +223,14 @@
     }
     .btn-sheet:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(56, 85, 133, 0.35); }
     .btn-sheet:disabled { opacity: 0.65; cursor: progress; }
-    .btn-sheet-block { width: 100%; }
     .btn-sheet-secondary { background-color: var(--bg-color); border-color: var(--border-color); color: var(--text-main); }
     .btn-sheet-secondary:hover { background-color: var(--primary-light); }
-    .btn-sheet-outline { background-color: transparent; border-color: var(--border-color); color: var(--text-main); }
-    .btn-sheet-outline:hover { border-color: var(--primary-color); color: var(--primary-color); }
-    .btn-sheet-danger-outline { background-color: transparent; border-color: rgba(220, 38, 38, 0.4); color: #dc2626; }
-    .btn-sheet-danger-outline:hover { background-color: rgba(220, 38, 38, 0.08); }
-    .dark-theme .btn-sheet-danger-outline { color: #f87171; border-color: rgba(248, 113, 113, 0.4); }
-    .btn-sheet-success,
-    .btn-sheet-primary.is-success { background-color: #10b981; color: #ffffff; }
-    .btn-sheet-success:hover,
-    .btn-sheet-primary.is-success:hover { background-color: #059669; }
     .btn-sheet-primary { min-width: 140px; background-color: #385585; color: #ffffff; }
     .btn-sheet-primary:hover { background-color: #2f477a; }
     .btn-sheet-primary.is-danger { background-color: #dc2626; }
     .btn-sheet-primary.is-danger:hover { background-color: #b91c1c; }
+    .btn-sheet-primary.is-success { background-color: #10b981; }
+    .btn-sheet-primary.is-success:hover { background-color: #059669; }
 
     /* Form fields */
     .penalty-form { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
@@ -415,21 +307,8 @@
     @media (max-width: 640px) {
         .modal-inner-card.penalty-sheet { padding: 22px 18px 0; }
         .penalty-sheet-footer { margin: 0 -18px; padding: 14px 18px 18px; }
-        .penalty-glance,
-        .penalty-details { grid-template-columns: 1fr; }
-        .glance-item + .glance-item { border-left: none; border-top: 1px solid var(--border-color); }
-        /* Compact rows: label left, value right */
-        .glance-item {
-            flex-direction: row;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 10px 14px;
-        }
-        .glance-value { text-align: right; }
         /* Buttons stack full-width, primary action on top */
         .penalty-sheet-footer { flex-direction: column-reverse; align-items: stretch; }
-        .penalty-sheet-actions { flex-direction: column-reverse; align-items: stretch; width: 100%; margin-left: 0; }
         .penalty-sheet-footer .btn-sheet { width: 100%; }
     }
 </style>
