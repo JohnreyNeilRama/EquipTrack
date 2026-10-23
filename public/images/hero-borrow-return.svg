@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 600" width="520" height="600" role="img" aria-labelledby="title desc">
+  <title id="title">Borrow and return equipment</title>
+  <desc id="desc">A laptop inside a two-way borrow and return arrow, with a projector, an approval checklist and status badges, in the EquipTrack blue theme.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f8fd"/>
+      <stop offset="1" stop-color="#e3ecf8"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5b80bd"/>
+      <stop offset="1" stop-color="#385585"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#385585"/>
+      <stop offset="1" stop-color="#2A3F63"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#2A3F63" flood-opacity="0.14"/>
+    </filter>
+    <filter id="softSm" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#2A3F63" flood-opacity="0.16"/>
+    </filter>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.6" fill="#c9d7ec"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="520" height="600" fill="url(#bg)"/>
+  <rect x="0" y="0" width="520" height="600" fill="url(#dots)" opacity="0.55"/>
+  <circle cx="262" cy="250" r="190" fill="#ffffff" opacity="0.65"/>
+
+  <!-- Borrow / return exchange ring -->
+  <g fill="none" stroke="url(#ring)" stroke-width="12" stroke-linecap="round">
+    <path d="M 146 236 A 118 118 0 0 1 362 186"/>
+    <path d="M 378 266 A 118 118 0 0 1 162 316"/>
+  </g>
+  <!-- arrow heads -->
+  <path d="M 344 160 L 382 172 L 360 205 Z" fill="#2A3F63" stroke="#2A3F63" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M 180 342 L 142 330 L 164 297 Z" fill="#385585" stroke="#385585" stroke-width="6" stroke-linejoin="round"/>
+
+  <!-- Laptop (centre) -->
+  <g filter="url(#soft)">
+    <rect x="186" y="186" width="152" height="100" rx="12" fill="#2A3F63"/>
+    <rect x="196" y="196" width="132" height="80" rx="6" fill="url(#screen)"/>
+    <path d="M 168 290 L 356 290 L 368 306 Q 370 312 363 312 L 161 312 Q 154 312 156 306 Z" fill="#dbe4f0"/>
+    <rect x="236" y="290" width="52" height="6" rx="3" fill="#b8c7dd"/>
+  </g>
+  <!-- screen content: equipment list with a checked row -->
+  <rect x="208" y="210" width="62" height="8" rx="4" fill="#ffffff" opacity="0.9"/>
+  <rect x="208" y="228" width="108" height="12" rx="6" fill="#ffffff" opacity="0.22"/>
+  <circle cx="216" cy="234" r="4" fill="#34d399"/>
+  <rect x="226" y="231" width="52" height="6" rx="3" fill="#ffffff" opacity="0.85"/>
+  <rect x="208" y="248" width="108" height="12" rx="6" fill="#ffffff" opacity="0.22"/>
+  <circle cx="216" cy="254" r="4" fill="#fbbf24"/>
+  <rect x="226" y="251" width="40" height="6" rx="3" fill="#ffffff" opacity="0.85"/>
+
+  <!-- Approved badge (top right) -->
+  <g filter="url(#softSm)">
+    <circle cx="412" cy="118" r="34" fill="#10b981"/>
+    <path d="M 396 119 L 407 130 L 429 107" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Due-date clock badge (top left) -->
+  <g filter="url(#softSm)">
+    <circle cx="104" cy="150" r="28" fill="#ffffff"/>
+    <circle cx="104" cy="150" r="20" fill="#fef3c7" stroke="#f59e0b" stroke-width="4"/>
+    <path d="M 104 139 L 104 151 L 113 156" fill="none" stroke="#b45309" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Request checklist (bottom left) -->
+  <g filter="url(#soft)">
+    <rect x="58" y="372" width="168" height="186" rx="18" fill="#ffffff"/>
+  </g>
+  <rect x="104" y="360" width="76" height="26" rx="10" fill="#385585"/>
+  <circle cx="142" cy="373" r="5" fill="#ffffff"/>
+  <!-- row 1: approved -->
+  <circle cx="88" cy="420" r="12" fill="#d1fae5"/>
+  <path d="M 82 420 L 87 425 L 95 415" fill="none" stroke="#059669" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="110" y="414" width="90" height="12" rx="6" fill="#e2e8f0"/>
+  <!-- row 2: approved -->
+  <circle cx="88" cy="462" r="12" fill="#d1fae5"/>
+  <path d="M 82 462 L 87 467 L 95 457" fill="none" stroke="#059669" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="110" y="456" width="74" height="12" rx="6" fill="#e2e8f0"/>
+  <!-- row 3: pending -->
+  <circle cx="88" cy="504" r="12" fill="#eff6ff"/>
+  <circle cx="88" cy="504" r="4" fill="#3b82f6"/>
+  <rect x="110" y="498" width="84" height="12" rx="6" fill="#e2e8f0"/>
+
+  <!-- Projector (bottom right) -->
+  <ellipse cx="380" cy="512" rx="96" ry="12" fill="#2A3F63" opacity="0.10"/>
+  <g filter="url(#soft)">
+    <rect x="290" y="404" width="180" height="96" rx="22" fill="#ffffff"/>
+  </g>
+  <rect x="290" y="404" width="180" height="20" rx="10" fill="#eff4fa"/>
+  <circle cx="346" cy="456" r="32" fill="#2A3F63"/>
+  <circle cx="346" cy="456" r="21" fill="url(#screen)"/>
+  <circle cx="339" cy="449" r="6" fill="#ffffff" opacity="0.55"/>
+  <rect x="396" y="440" width="52" height="7" rx="3.5" fill="#cbd5e1"/>
+  <rect x="396" y="454" width="52" height="7" rx="3.5" fill="#cbd5e1"/>
+  <rect x="396" y="468" width="34" height="7" rx="3.5" fill="#cbd5e1"/>
+  <rect x="306" y="498" width="22" height="10" rx="4" fill="#b8c7dd"/>
+  <rect x="432" y="498" width="22" height="10" rx="4" fill="#b8c7dd"/>
+  <!-- borrowed tag hanging from the projector -->
+  <path d="M 452 404 Q 470 380 478 362" fill="none" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/>
+  <g filter="url(#softSm)">
+    <rect x="452" y="322" width="44" height="54" rx="10" fill="#fef3c7" transform="rotate(14 474 349)"/>
+  </g>
+  <circle cx="478" cy="336" r="5" fill="#ffffff" transform="rotate(14 474 349)"/>
+  <rect x="464" y="350" width="26" height="6" rx="3" fill="#f59e0b" transform="rotate(14 474 349)"/>
+  <rect x="464" y="361" width="18" height="6" rx="3" fill="#fbbf24" transform="rotate(14 474 349)"/>
+</svg>

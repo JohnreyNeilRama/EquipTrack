@@ -4,7 +4,7 @@
 
 @push('css')
 <meta name="description" content="EquipTrack is a centralized platform for requesting, approving, borrowing, and returning school equipment.">
-<link rel="stylesheet" href="{{ asset('ccs/landing.css') }}">
+<link rel="stylesheet" href="{{ asset('ccs/landing.css') }}?v={{ filemtime(public_path('ccs/landing.css')) }}">
 @endpush
 
 @section('content')
@@ -62,31 +62,13 @@
                 </div>
 
                 <div class="hero-status-card">
-                    <div class="status-head">
-                        <span>Equipment status</span>
-                        <i class="fa-solid fa-boxes-stacked" style="color: var(--primary); font-size: 0.85rem;"></i>
-                    </div>
-                    <div class="status-row">
-                        <div>
-                            <span class="item-name">Projector Unit 14</span>
-                            <span class="item-sub">College of Engineering</span>
-                        </div>
-                        <span class="pill pill-success">Available</span>
-                    </div>
-                    <div class="status-row">
-                        <div>
-                            <span class="item-name">Laptop Cart B</span>
-                            <span class="item-sub">Due Oct 3</span>
-                        </div>
-                        <span class="pill pill-warning">Borrowed</span>
-                    </div>
-                    <div class="status-row">
-                        <div>
-                            <span class="item-name">Survey Kit 02</span>
-                            <span class="item-sub">Pending review</span>
-                        </div>
-                        <span class="pill pill-info">Requested</span>
-                    </div>
+                    {{-- Web-optimised copies of images/Mini_picture.png: 260px card on
+                         desktop, up to ~560px wide on phones (see .hero-status-card) --}}
+                    <img src="{{ asset('images/Mini_picture-600.webp') }}"
+                         srcset="{{ asset('images/Mini_picture-600.webp') }} 600w, {{ asset('images/Mini_picture-1100.webp') }} 1100w"
+                         sizes="(max-width: 640px) calc(100vw - 80px), 260px"
+                         width="600" height="400"
+                         alt="EquipTrack on a laptop beside a projector, a camera and an approval checklist">
                 </div>
             </div>
         </div>

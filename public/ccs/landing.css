@@ -375,60 +375,16 @@ img {
     border-radius: 16px;
     box-shadow: var(--shadow-lg);
     border: 1px solid var(--border-color);
-    padding: 18px;
+    overflow: hidden;
     z-index: 3;
 }
 
-.hero-status-card .status-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-}
-
-.hero-status-card .status-head span {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-muted);
-}
-
-.status-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 9px 0;
-    font-size: 0.85rem;
-}
-
-.status-row + .status-row {
-    border-top: 1px solid var(--border-color);
-}
-
-.status-row .item-name {
-    font-weight: 600;
-    color: var(--text-main);
-}
-
-.status-row .item-sub {
+/* Mini picture (web-optimised copies of public/images/Mini_picture.png) fills the card */
+.hero-status-card img {
     display: block;
-    font-size: 0.74rem;
-    color: var(--text-muted);
-    font-weight: 400;
+    width: 100%;
+    height: auto;
 }
-
-.pill {
-    font-size: 0.72rem;
-    font-weight: 700;
-    padding: 4px 10px;
-    border-radius: var(--radius-chip);
-    white-space: nowrap;
-}
-
-.pill-success { background: var(--success-bg); color: var(--success); }
-.pill-warning { background: var(--warning-bg); color: #b45309; }
-.pill-info { background: var(--info-bg); color: var(--info); }
 
 /* --------------------------------------------------------------------
    Section scaffolding
