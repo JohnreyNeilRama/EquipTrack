@@ -3,7 +3,7 @@
 @section('title', 'EquipTrack - Register')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('ccs/register.css') }}?v=2.2">
+<link rel="stylesheet" href="{{ asset('ccs/register.css') }}?v=2.3">
 @endpush
 
 @section('content')
@@ -62,12 +62,30 @@
                     </div>
                     <div class="form-group half-width" id="yearLevelGroup">
                         <label for="year_level">Year &amp; Level</label>
-                        <select id="year_level" name="year_level" required>
-                            <option value="" disabled {{ old('year_level') === '' ? 'selected' : '' }}></option>
-                            @foreach (['1' => '1st Year', '2' => '2nd Year', '3' => '3rd Year', '4' => '4th Year'] as $val => $label)
-                                <option value="{{ $val }}" @selected(old('year_level') == $val)>{{ $label }}</option>
+                        <div class="select-wrapper">
+                            <select id="year_level" name="year_level" required>
+                                <option value="" disabled {{ old('year_level') ? '' : 'selected' }}>Select Year Level</option>
+                                @foreach (['1' => '1st Year', '2' => '2nd Year', '3' => '3rd Year', '4' => '4th Year'] as $val => $label)
+                                    <option value="{{ $val }}" @selected(old('year_level') == $val)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="department_id">Department</label>
+                    <div class="select-wrapper">
+                        <select id="department_id" name="department_id" required>
+                            <option value="" disabled {{ old('department_id') ? '' : 'selected' }}>Select Department</option>
+                            @foreach ($departments as $department)
+                                <option value="{{ $department->department_id }}" @selected(old('department_id') == $department->department_id)>
+                                    {{ $department->department_name }}{{ $department->department_code ? ' (' . $department->department_code . ')' : '' }}
+                                </option>
                             @endforeach
                         </select>
+                        <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                     </div>
                 </div>
 

@@ -20,7 +20,9 @@ class RegisteredUserController extends Controller
 {
     public function show(): View
     {
-        return view('auth.register');
+        return view('auth.register', [
+            'departments' => Department::orderBy('department_name')->get(['department_id', 'department_name', 'department_code']),
+        ]);
     }
 
     /**
@@ -38,24 +40,26 @@ class RegisteredUserController extends Controller
                 $request->input('role') === 'student' ? 'regex:/^\d{8}$/' : 'nullable',
             ],
             'year_level' => ['nullable', 'string'],
+            // The department decides which Lab Personnel see and manage this user.
+            'department_id' => ['required', 'integer', Rule::exists('department', 'department_id')],
             'email' => ['required', 'email', 'max:100', Rule::unique('user_account', 'email')],
             'address' => ['required', 'string', 'max:150'],
             'password' => ['required', 'string', 'min:6'],
         ], [
             'id_number.regex' => 'Student ID must be exactly 8 digits.',
+            'department_id.required' => 'Please select your department.',
+            'department_id.exists' => 'Please select a valid department.',
         ]);
 
         $yearLevelMap = ['1' => '1st Year', '2' => '2nd Year', '3' => '3rd Year', '4' => '4th Year'];
         $role = $data['role'] === 'teacher' ? 'Faculty' : 'Student';
 
-        $department = Department::orderBy('department_id')->first();
-
-        $account = DB::transaction(function () use ($data, $role, $yearLevelMap, $department) {
+        $account = DB::transaction(function () use ($data, $role, $yearLevelMap) {
             $account = UserAccount::create([
                 'role' => $role,
                 'email' => $data['email'],
                 'password' => Hash::make($data['password']),
-                'department_id' => $department?->department_id,
+                'department_id' => (int) $data['department_id'],
             ]);
 
             if ($role === 'Student') {

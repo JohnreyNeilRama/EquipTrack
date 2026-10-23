@@ -143,16 +143,37 @@ body {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
-    background-image: url('../images/icon_drop.png');
-    background-repeat: no-repeat;
-    background-position: right 15px top 50%;
-    background-size: 10px auto;
     padding-right: 40px;
+    color: #333;
     cursor: pointer;
 }
 
 .form-group select::-ms-expand {
     display: none;
+}
+
+/* The empty "Select …" option is showing: grey it like a placeholder. */
+.form-group select:invalid {
+    color: #9ca3af;
+}
+
+.form-group select option {
+    color: #333;
+}
+
+/* Dropdown arrow, positioned like the password eye icon. */
+.select-wrapper {
+    position: relative;
+}
+
+.select-wrapper i {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6b7280;
+    font-size: 12px;
+    pointer-events: none;
 }
 
 .form-group input:focus,
