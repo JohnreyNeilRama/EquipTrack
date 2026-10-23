@@ -119,6 +119,9 @@ class PenaltySubmission extends Model
             ? ($this->reviewedByAdmin->name ?: 'Administrator') . ' (Admin)'
             : ($this->reviewedByDept ? ($this->reviewedByDept->full_name ?: $this->reviewedByDept->email) . ' (Lab Personnel)' : '—');
 
+        // Stored in UTC; shown in Philippine time.
+        $tz = config('app.display_timezone');
+
         return [
             'id' => (int) $this->submission_id,
             'type' => $this->type,
@@ -128,9 +131,9 @@ class PenaltySubmission extends Model
             'settledOn' => $this->settled_on?->format('M d, Y') ?? '—',
             'notes' => $this->notes ?? '',
             'status' => $this->status,
-            'submittedAt' => $this->submitted_at?->format('M d, Y h:i A') ?? '—',
+            'submittedAt' => $this->submitted_at?->copy()->setTimezone($tz)->format('M d, Y h:i A') ?? '—',
             'reviewedBy' => $reviewer,
-            'reviewedAt' => $this->reviewed_at?->format('M d, Y h:i A') ?? '—',
+            'reviewedAt' => $this->reviewed_at?->copy()->setTimezone($tz)->format('M d, Y h:i A') ?? '—',
             'rejectReason' => $this->reject_reason ?? '',
             'needsInspection' => $this->needsItemInspection(),
             'files' => $this->files->map(fn (PenaltySubmissionFile $file) => [

@@ -155,7 +155,9 @@ class PenaltyService
     public function rows(Builder $query, ?string $proofFileRoute = null): array
     {
         $fmt = fn ($value) => $value ? Carbon::parse($value)->format('M d, Y') : '—';
-        $fmtTime = fn ($value) => $value ? Carbon::parse($value)->format('M d, Y h:i A') : '—';
+        // Stored in UTC; shown in Philippine time.
+        $tz = config('app.display_timezone');
+        $fmtTime = fn ($value) => $value ? Carbon::parse($value)->setTimezone($tz)->format('M d, Y h:i A') : '—';
 
         return $query->with([
             'transaction.request.equipment.department',
@@ -174,7 +176,7 @@ class PenaltyService
             ->orderByDesc('recorded_at')
             ->orderByDesc('penalty_id')
             ->get()
-            ->map(function (Penalty $penalty) use ($fmt, $fmtTime, $proofFileRoute) {
+            ->map(function (Penalty $penalty) use ($fmt, $fmtTime, $tz, $proofFileRoute) {
                 $transaction = $penalty->transaction;
                 $latest = $penalty->submissions->first();
                 $borrow = $transaction?->request;
@@ -207,7 +209,7 @@ class PenaltyService
                     'condition' => $transaction?->inspected_condition ?: '—',
                     'recordedBy' => $this->actorName($penalty->recordedByAdmin, $penalty->recordedByDept),
                     'recordedAt' => $fmtTime($penalty->recorded_at),
-                    'recordedDate' => $penalty->recorded_at?->toDateString(),
+                    'recordedDate' => $penalty->recorded_at?->copy()->setTimezone($tz)->toDateString(),
                     'settledBy' => $penalty->isPending() ? '—' : $this->actorName($penalty->settledByAdmin, $penalty->settledByDept),
                     'settledAt' => $fmtTime($penalty->settled_at),
                     'referenceNo' => $penalty->reference_no ?? '',

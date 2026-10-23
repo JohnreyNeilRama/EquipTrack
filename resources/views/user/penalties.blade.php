@@ -91,7 +91,7 @@
                         </div>
                         <div class="pp-field">
                             <label for="proofDate" id="proofDateLabel">Date Paid <span class="pp-req">*</span></label>
-                            <input type="date" id="proofDate" max="{{ now()->toDateString() }}">
+                            <input type="date" id="proofDate" max="{{ now(config('app.display_timezone'))->toDateString() }}">
                         </div>
                         <div class="pp-field pp-field-wide">
                             <label for="proofNotes">Notes <span class="pp-optional">optional</span></label>
@@ -227,8 +227,10 @@ document.addEventListener('DOMContentLoaded', () => {
             : '';
         return `
             <div class="pp-proof">
-                <h5 class="pp-proof-title">Your submission</h5>
-                ${statusLine}
+                <div class="pp-proof-head">
+                    <h5 class="pp-proof-title">Your submission</h5>
+                    ${statusLine}
+                </div>
                 <dl class="pp-proof-facts">${rows.map(([k, v]) => `<div><dt>${escapeHTML(k)}</dt><dd>${escapeHTML(v)}</dd></div>`).join('')}</dl>
                 ${proof.notes ? `<p class="pp-proof-notes">${escapeHTML(proof.notes)}</p>` : ''}
                 ${fileList(proof)}
@@ -249,27 +251,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? `<p class="pp-closed-note is-waived"><i class="fa-solid fa-hand-holding-heart"></i> Waived${p.settleRemarks ? `: ${escapeHTML(p.settleRemarks)}` : ''}</p>`
                 : '';
 
+        // Sections, top to bottom: header (ID, type, status), summary (photo,
+        // equipment, amount, description), progress, the user's submission,
+        // then the action bar.
         return `
             <article class="pp-card state-${p.proofState}${FOCUS_ID === p.id ? ' is-focus' : ''}" id="penalty-${p.id}">
-                <div class="pp-card-media">
-                    <img src="${escapeHTML(p.equipmentImage || FALLBACK_IMG)}" alt="${escapeHTML(p.equipment)}" loading="lazy"
-                         onerror="this.onerror=null; this.src='${FALLBACK_IMG}';">
-                </div>
-                <div class="pp-card-body">
-                    <div class="pp-card-top">
+                <header class="pp-card-head">
+                    <div class="pp-card-ident">
                         <span class="pp-card-id">${escapeHTML(p.penaltyId)}</span>
                         <span class="pp-type type-${String(p.type).toLowerCase().replace(/\s+/g, '-')}">${escapeHTML(p.type)}</span>
-                        <span class="pp-badge ${state.cls}"><i class="fa-solid ${state.icon}"></i> ${escapeHTML(state.badge)}</span>
                     </div>
-                    <h4 class="pp-card-title" title="${escapeHTML(p.equipment)}">${escapeHTML(p.equipment)}</h4>
-                    <p class="pp-card-meta">${escapeHTML(p.category)} · Request #${escapeHTML(p.requestId)} · Recorded ${escapeHTML(p.recordedAt.split(' ').slice(0, 3).join(' '))}</p>
-                    <div class="pp-card-amount ${p.amount === null ? 'is-empty' : ''}">${escapeHTML(p.amountLabel)}</div>
-                    <p class="pp-card-desc">${escapeHTML(p.description)}</p>
+                    <span class="pp-badge ${state.cls}"><i class="fa-solid ${state.icon}"></i> ${escapeHTML(state.badge)}</span>
+                </header>
+                <div class="pp-card-main">
+                    <div class="pp-card-media">
+                        <img src="${escapeHTML(p.equipmentImage || FALLBACK_IMG)}" alt="${escapeHTML(p.equipment)}" loading="lazy"
+                             onerror="this.onerror=null; this.src='${FALLBACK_IMG}';">
+                    </div>
+                    <div class="pp-card-info">
+                        <div class="pp-card-heading">
+                            <div class="pp-card-titles">
+                                <h4 class="pp-card-title" title="${escapeHTML(p.equipment)}">${escapeHTML(p.equipment)}</h4>
+                                <p class="pp-card-meta">${escapeHTML(p.category)} · Request #${escapeHTML(p.requestId)} · Recorded ${escapeHTML(p.recordedAt.split(' ').slice(0, 3).join(' '))}</p>
+                            </div>
+                            <div class="pp-card-amount ${p.amount === null ? 'is-empty' : ''}">${escapeHTML(p.amountLabel)}</div>
+                        </div>
+                        <p class="pp-card-desc">${escapeHTML(p.description)}</p>
+                    </div>
+                </div>
+                <div class="pp-card-progress">
                     ${tracker(p)}
                     ${closedNote}
-                    ${proofPanel(p)}
-                    ${action ? `<div class="pp-card-actions">${action}</div>` : ''}
                 </div>
+                ${proofPanel(p)}
+                ${action ? `<footer class="pp-card-actions">${action}</footer>` : ''}
             </article>`;
     }
 

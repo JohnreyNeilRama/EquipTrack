@@ -56,7 +56,7 @@ class UserPenaltiesController extends Controller
             'type' => ['required', Rule::in([PenaltySubmission::TYPE_PAYMENT, PenaltySubmission::TYPE_REPLACEMENT, PenaltySubmission::TYPE_REPAIR])],
             'reference_no' => ['nullable', 'required_if:type,' . PenaltySubmission::TYPE_PAYMENT, 'string', 'max:100'],
             'amount_paid' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
-            'settled_on' => ['required', 'date', 'before_or_equal:today'],
+            'settled_on' => ['required', 'date', 'before_or_equal:' . now(config('app.display_timezone'))->toDateString()],
             'notes' => ['nullable', 'string', 'max:1000'],
             'files' => ['required', 'array', 'min:1', 'max:' . PenaltySubmission::MAX_FILES],
             // mimes checks the file's real content, not only its name.

@@ -102,23 +102,25 @@
 .pp-tab.is-active { background-color: var(--primary-color); border-color: var(--primary-color); color: #ffffff; }
 .pp-tab:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(56, 85, 133, 0.3); }
 
-/* Cards */
+/* Cards: header (ID, type, status) / summary (photo, equipment, amount,
+   description) / progress / the user's submission / action bar. Every
+   section shares the same side padding so their contents line up. */
 .pp-list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 18px;
 }
 
 .pp-card {
-    display: grid;
-    grid-template-columns: 180px minmax(0, 1fr);
-    gap: 20px;
-    padding: 18px;
+    --pp-card-pad: 24px;
+    display: flex;
+    flex-direction: column;
     border: 1px solid var(--border-color);
     border-left: 4px solid var(--border-color);
     border-radius: 16px;
     background-color: var(--card-bg);
     box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+    overflow: hidden;
 }
 
 .pp-card.state-none { border-left-color: #f59e0b; }
@@ -127,6 +129,77 @@
 .pp-card.state-settled { border-left-color: #10b981; }
 .pp-card.state-waived { border-left-color: #94a3b8; }
 .pp-card.is-focus { box-shadow: 0 0 0 3px rgba(56, 85, 133, 0.25); }
+
+/* Header */
+.pp-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding: 14px var(--pp-card-pad);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.pp-card-ident {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-width: 0;
+}
+
+.pp-card-id {
+    font-size: var(--fs-body);
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.pp-type,
+.pp-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: var(--fs-badge);
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+/* The status badge is the card's main state, so it is a step larger. */
+.pp-badge {
+    padding: 5px 12px;
+    font-size: var(--fs-small);
+}
+
+.type-late-return { background-color: #dbeafe; color: #1d4ed8; }
+.type-damaged { background-color: #fee2e2; color: #b91c1c; }
+.type-incomplete { background-color: #fef3c7; color: #b45309; }
+.type-lost { background-color: #ede9fe; color: #6d28d9; }
+.badge-action { background-color: #fef3c7; color: #b45309; }
+.badge-rejected { background-color: #fee2e2; color: #b91c1c; }
+.badge-review { background-color: #dbeafe; color: #1d4ed8; }
+.badge-settled { background-color: #d1fae5; color: #047857; }
+.badge-waived { background-color: #e2e8f0; color: #475569; }
+.dark-theme .type-late-return, .dark-theme .badge-review { background-color: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+.dark-theme .type-damaged, .dark-theme .badge-rejected { background-color: rgba(239, 68, 68, 0.15); color: #f87171; }
+.dark-theme .type-incomplete, .dark-theme .badge-action { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.dark-theme .type-lost { background-color: rgba(139, 92, 246, 0.18); color: #c4b5fd; }
+.dark-theme .badge-settled { background-color: rgba(16, 185, 129, 0.15); color: #34d399; }
+.dark-theme .badge-waived { background-color: rgba(148, 163, 184, 0.15); color: #cbd5e1; }
+
+/* Summary: photo | equipment and amount, then the description */
+.pp-card-main {
+    display: grid;
+    grid-template-columns: 160px minmax(0, 1fr);
+    align-items: start;
+    gap: 20px;
+    padding: 20px var(--pp-card-pad);
+}
 
 .pp-card-media {
     aspect-ratio: 4 / 3;
@@ -144,60 +217,32 @@
     object-fit: contain;
 }
 
-.pp-card-body {
+.pp-card-info {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 14px;
     min-width: 0;
 }
 
-.pp-card-top {
+.pp-card-heading {
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px 20px;
 }
 
-.pp-card-id {
-    font-size: var(--fs-body);
-    font-weight: 700;
-    color: var(--text-main);
-    font-variant-numeric: tabular-nums;
+.pp-card-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
 }
-
-.pp-type,
-.pp-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: var(--fs-badge);
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.pp-badge { margin-left: auto; }
-.type-late-return { background-color: #dbeafe; color: #1d4ed8; }
-.type-damaged { background-color: #fee2e2; color: #b91c1c; }
-.type-incomplete { background-color: #fef3c7; color: #b45309; }
-.type-lost { background-color: #ede9fe; color: #6d28d9; }
-.badge-action { background-color: #fef3c7; color: #b45309; }
-.badge-rejected { background-color: #fee2e2; color: #b91c1c; }
-.badge-review { background-color: #dbeafe; color: #1d4ed8; }
-.badge-settled { background-color: #d1fae5; color: #047857; }
-.badge-waived { background-color: #e2e8f0; color: #475569; }
-.dark-theme .type-late-return, .dark-theme .badge-review { background-color: rgba(59, 130, 246, 0.15); color: #93c5fd; }
-.dark-theme .type-damaged, .dark-theme .badge-rejected { background-color: rgba(239, 68, 68, 0.15); color: #f87171; }
-.dark-theme .type-incomplete, .dark-theme .badge-action { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-.dark-theme .type-lost { background-color: rgba(139, 92, 246, 0.18); color: #c4b5fd; }
-.dark-theme .badge-settled { background-color: rgba(16, 185, 129, 0.15); color: #34d399; }
-.dark-theme .badge-waived { background-color: rgba(148, 163, 184, 0.15); color: #cbd5e1; }
 
 .pp-card-title {
-    margin: 2px 0 0;
+    margin: 0;
     font-size: var(--fs-card-title);
     font-weight: 600;
+    line-height: 1.35;
     color: var(--text-main);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -207,25 +252,30 @@
 .pp-card-meta {
     margin: 0;
     font-size: var(--fs-small);
+    line-height: 1.5;
     color: var(--text-muted);
 }
 
 .pp-card-amount {
+    flex-shrink: 0;
     font-size: var(--fs-modal-title);
     font-weight: 700;
+    line-height: 1.3;
     color: var(--text-main);
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .pp-card-amount.is-empty {
-    font-size: var(--fs-body);
+    padding-top: 2px;
+    font-size: var(--fs-label);
     font-weight: 600;
     color: var(--text-muted);
 }
 
 .pp-card-desc {
     margin: 0;
-    padding: 10px 14px;
+    padding: 12px 16px;
     border-left: 3px solid var(--primary-color);
     border-radius: 0 10px 10px 0;
     background-color: var(--bg-color);
@@ -236,13 +286,25 @@
     overflow-wrap: anywhere;
 }
 
+/* Progress */
+.pp-card-progress {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 18px var(--pp-card-pad) 20px;
+    border-top: 1px solid var(--border-color);
+}
+
 /* Progress tracker: 2 or 3 steps (set by the script in --steps). Done steps
    get a green check, the current one is outlined in blue, a rejected proof
    shows a red "!". */
 .pp-tracker {
     display: grid;
     grid-template-columns: repeat(var(--steps, 3), minmax(0, 1fr));
-    margin: 6px 0 0;
+    width: 100%;
+    max-width: 680px;
+    margin: 0;
     padding: 0;
     list-style: none;
     counter-reset: step;
@@ -250,10 +312,11 @@
 
 .pp-tracker li {
     position: relative;
-    padding-top: 30px;
+    padding: 32px 4px 0;
     text-align: center;
     font-size: var(--fs-small);
     font-weight: 600;
+    line-height: 1.35;
     color: var(--text-muted);
     counter-increment: step;
 }
@@ -299,28 +362,45 @@
 .dark-theme .pp-tracker li.is-done { color: #34d399; }
 .dark-theme .pp-tracker li.is-rejected { color: #f87171; }
 
+/* Settled / waived outcome, under the tracker */
 .pp-closed-note {
-    margin: 4px 0 0;
-    display: flex;
-    align-items: center;
+    margin: 0;
+    max-width: 100%;
+    display: inline-flex;
+    align-items: flex-start;
     gap: 8px;
-    font-size: var(--fs-body);
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: var(--fs-label);
     font-weight: 600;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
 }
 
-.pp-closed-note.is-settled { color: #059669; }
-.pp-closed-note.is-waived { color: #64748b; }
+.pp-closed-note i { margin-top: 2px; }
+.pp-closed-note.is-settled { background-color: #ecfdf5; color: #047857; }
+.pp-closed-note.is-waived { background-color: #f1f5f9; color: #475569; }
+.dark-theme .pp-closed-note.is-settled { background-color: rgba(16, 185, 129, 0.12); color: #34d399; }
+.dark-theme .pp-closed-note.is-waived { background-color: rgba(148, 163, 184, 0.12); color: #cbd5e1; }
 
 /* The user's latest submission */
 .pp-proof {
-    margin-top: 6px;
-    padding: 14px;
+    margin: 0 var(--pp-card-pad) 20px;
+    padding: 16px 18px;
     border: 1px solid var(--border-color);
     border-radius: 12px;
     background-color: var(--bg-color);
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 14px;
+}
+
+.pp-proof-head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .pp-proof-title {
@@ -337,8 +417,9 @@
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    font-size: var(--fs-body);
+    font-size: var(--fs-label);
     font-weight: 600;
+    line-height: 1.45;
     overflow-wrap: anywhere;
 }
 
@@ -346,13 +427,18 @@
 .pp-proof-status.is-review { color: #2563eb; }
 .pp-proof-status.is-approved { color: #059669; }
 .pp-proof-status.is-rejected { color: #dc2626; }
+.dark-theme .pp-proof-status.is-review { color: #93c5fd; }
+.dark-theme .pp-proof-status.is-approved { color: #34d399; }
+.dark-theme .pp-proof-status.is-rejected { color: #f87171; }
 
 .pp-proof-facts {
     margin: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 10px 16px;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 14px 16px;
 }
+
+.pp-proof-facts > div { min-width: 0; }
 
 .pp-proof-facts dt {
     font-size: var(--fs-badge);
@@ -363,8 +449,8 @@
 }
 
 .pp-proof-facts dd {
-    margin: 2px 0 0;
-    font-size: var(--fs-body);
+    margin: 4px 0 0;
+    font-size: var(--fs-label);
     font-weight: 600;
     color: var(--text-main);
     overflow-wrap: anywhere;
@@ -372,7 +458,11 @@
 
 .pp-proof-notes {
     margin: 0;
-    font-size: var(--fs-body);
+    padding: 10px 14px;
+    border-radius: 10px;
+    background-color: var(--card-bg);
+    font-size: var(--fs-label);
+    line-height: 1.55;
     color: var(--text-main);
     white-space: pre-line;
     overflow-wrap: anywhere;
@@ -397,8 +487,11 @@
     overflow: hidden;
     background-color: var(--card-bg);
     cursor: zoom-in;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+.pp-file-thumb:hover { border-color: var(--primary-color); box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08); }
+.pp-file-thumb:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(56, 85, 133, 0.3); }
 .pp-file-thumb img { width: 100%; height: 100%; object-fit: cover; }
 
 .pp-file-doc {
@@ -415,10 +508,17 @@
     font-size: var(--fs-small);
     font-weight: 600;
     text-decoration: none;
+    transition: border-color 0.2s;
 }
 
+.pp-file-doc:hover { border-color: var(--primary-color); }
 .pp-file-doc i { font-size: 22px; color: #dc2626; }
 .pp-file-doc span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.pp-history {
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
 
 .pp-history summary {
     cursor: pointer;
@@ -431,16 +531,21 @@
     margin: 8px 0 0;
     padding-left: 18px;
     font-size: var(--fs-small);
+    line-height: 1.5;
     color: var(--text-main);
 }
 
 .pp-history li + li { margin-top: 6px; }
 .pp-history li span { display: block; color: #dc2626; }
 
+/* Action bar */
 .pp-card-actions {
     display: flex;
     justify-content: flex-end;
-    margin-top: 4px;
+    gap: 10px;
+    padding: 14px var(--pp-card-pad);
+    border-top: 1px solid var(--border-color);
+    background-color: var(--bg-color);
 }
 
 /* Buttons */
@@ -455,7 +560,7 @@
     border-radius: 10px;
     font-family: inherit;
     font-size: var(--fs-label);
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
     transition: background-color 0.2s, box-shadow 0.2s;
@@ -777,11 +882,23 @@ body.pp-modal-open { overflow: hidden; }
 .pp-toast[hidden] { display: none; }
 .pp-toast.is-error { border-left-color: #ef4444; }
 
+@media (max-width: 900px) {
+    .pp-card-main { grid-template-columns: 120px minmax(0, 1fr); }
+    .pp-card-heading { flex-direction: column; }
+}
+
 @media (max-width: 760px) {
     .pp-summary { grid-template-columns: 1fr; }
-    .pp-card { grid-template-columns: minmax(0, 1fr); }
-    .pp-card-media { aspect-ratio: 16 / 9; max-height: 200px; }
-    .pp-badge { margin-left: 0; }
+    .pp-card { --pp-card-pad: 16px; }
+    /* Photo beside the title and amount; the description spans the card. */
+    .pp-card-main { grid-template-columns: 88px minmax(0, 1fr); gap: 14px; padding-top: 16px; padding-bottom: 16px; }
+    .pp-card-info { display: contents; }
+    .pp-card-heading { align-self: center; gap: 6px; }
+    .pp-card-title { white-space: normal; overflow-wrap: anywhere; }
+    .pp-card-amount { font-size: var(--fs-section); }
+    .pp-card-desc { grid-column: 1 / -1; }
+    .pp-proof { padding: 14px; }
+    .pp-proof-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .pp-fields { grid-template-columns: minmax(0, 1fr); }
     .pp-card-actions .pp-btn { width: 100%; }
     .pp-modal { padding: 0; align-items: flex-end; }
@@ -789,4 +906,11 @@ body.pp-modal-open { overflow: hidden; }
     .pp-modal-foot { flex-direction: column-reverse; }
     .pp-modal-foot .pp-btn { width: 100%; }
     .pp-toast { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+}
+
+@media (max-width: 480px) {
+    .pp-card-main { grid-template-columns: minmax(0, 1fr); }
+    .pp-card-media { aspect-ratio: 16 / 9; max-height: 180px; }
+    .pp-card-heading { align-self: stretch; }
+    .pp-proof-facts { grid-template-columns: minmax(0, 1fr); }
 }
