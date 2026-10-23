@@ -1332,3 +1332,37 @@ html:has(.equipment-container) {
 .dark-theme .penalty-block-banner strong {
     color: #f87171;
 }
+
+.penalty-block-action {
+    margin-left: auto;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 10px;
+    background-color: var(--primary-color);
+    color: #ffffff;
+    font-size: var(--fs-label);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.penalty-block-action:hover {
+    background-color: #2f477a;
+}
+
+@media (max-width: 640px) {
+    .penalty-block-banner {
+        flex-wrap: wrap;
+    }
+
+    .penalty-block-action {
+        width: 100%;
+        justify-content: center;
+        margin-left: 0;
+    }
+}

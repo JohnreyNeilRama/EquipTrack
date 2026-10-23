@@ -30,13 +30,14 @@
                         <div class="summary-card-icon icon-orange"><i class="fa-solid fa-hourglass-half"></i></div>
                     </div>
                     <span class="summary-card-label">Pending</span>
+                    <span class="summary-card-sub"><span id="sumPendingAmount">₱0.00</span> outstanding</span>
                 </div>
                 <div class="summary-card-item">
                     <div class="summary-card-header">
-                        <span class="summary-card-val" id="sumPendingAmount">₱0.00</span>
-                        <div class="summary-card-icon icon-red"><i class="fa-solid fa-peso-sign"></i></div>
+                        <span class="summary-card-val" id="sumAwaiting">0</span>
+                        <div class="summary-card-icon icon-blue"><i class="fa-solid fa-file-circle-check"></i></div>
                     </div>
-                    <span class="summary-card-label">Pending Amount</span>
+                    <span class="summary-card-label">Awaiting Verification</span>
                 </div>
                 <div class="summary-card-item">
                     <div class="summary-card-header">
@@ -64,6 +65,7 @@
                 <div class="filter-select-wrapper">
                     <select id="filterStatus" aria-label="Filter by status">
                         <option value="all">All Status</option>
+                        <option value="review">Proof under review</option>
                         @foreach (\App\Models\Penalty::STATUSES as $status)
                             <option value="{{ $status }}">{{ $status }}</option>
                         @endforeach
@@ -173,6 +175,19 @@
                             <textarea id="pfRemarks" class="detail-form-control textarea-control" rows="4" maxlength="1000"></textarea>
                         </div>
                         <p class="penalty-note" data-modes="settle"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Payment is made outside EquipTrack (e.g. at the cashier). This only records that the penalty was settled.</p>
+
+                        {{-- Approve / reject the borrower's proof --}}
+                        <div class="penalty-proof-summary" data-modes="approveProof rejectProof" id="pfProofSummary"></div>
+                        <label class="penalty-check" data-modes="approveProof" id="pfReceivedField">
+                            <input type="checkbox" id="pfItemReceived">
+                            <span>The replacement or repaired item was received and inspected <span class="req">*</span></span>
+                        </label>
+                        <p class="penalty-note" data-modes="approveProof"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Approving settles the penalty, copies the reference number, notifies the borrower and lifts their borrowing hold.</p>
+                        <div class="penalty-field" data-modes="rejectProof">
+                            <label class="detail-form-label" for="pfRejectReason">Reason for Rejecting <span class="req">*</span></label>
+                            <textarea id="pfRejectReason" class="detail-form-control textarea-control" rows="4" maxlength="1000" placeholder="e.g. The receipt is unreadable. Please upload a clearer photo."></textarea>
+                            <p class="penalty-hint">The borrower sees this reason and can submit new proof.</p>
+                        </div>
                     </div>
 
                     <footer class="penalty-sheet-footer">

@@ -35,6 +35,7 @@
                     <strong>Borrowing is on hold</strong>
                     <span>{{ $penaltyBlock }}</span>
                 </div>
+                <a href="{{ $penaltyBlockUrl }}" class="penalty-block-action"><i class="fa-solid fa-upload" aria-hidden="true"></i> Submit Proof</a>
             </div>
         @endif
 

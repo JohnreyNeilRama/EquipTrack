@@ -85,6 +85,14 @@ class Penalty extends Model
         return $this->belongsTo(DepartmentAccount::class, 'settled_by_dept_acc_id', 'dept_acc_id');
     }
 
+    /** Proof the user submitted, newest first. */
+    public function submissions()
+    {
+        return $this->hasMany(PenaltySubmission::class, 'penalty_id', 'penalty_id')
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('submission_id');
+    }
+
     public function isPending(): bool
     {
         return $this->status === self::STATUS_PENDING;
@@ -119,7 +127,7 @@ class Penalty extends Model
         $equipment = $this->transaction?->request?->equipment?->name ?? 'a returned item';
 
         return 'You have an unsettled ' . $this->type . ' penalty for ' . $equipment
-            . '. Please settle it with the department or the admin office before borrowing again.';
+            . '. Settle it, then submit your proof on My Penalties; you can borrow again once it is verified.';
     }
 
     /** "₱150.00", or null for a non-monetary penalty. */

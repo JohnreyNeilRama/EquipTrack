@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\BorrowRequest;
+use App\Models\PenaltySubmission;
 use App\Models\StaffNotificationRead;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
@@ -147,11 +148,45 @@ class ReviewerNotificationService
             }
         }
 
+        array_push($notifications, ...$this->proofNotifications($type, $departmentId));
+
         return collect($notifications)
             ->sortByDesc(fn (array $n) => $n['at']->getTimestamp())
             ->take(self::LIMIT)
             ->values()
             ->all();
+    }
+
+    /**
+     * Proof of penalty settlement waiting for verification: one notice per
+     * submission while it is Under Review. The admin sees every department's;
+     * Lab Personnel only their own equipment's.
+     */
+    private function proofNotifications(string $type, ?int $departmentId): array
+    {
+        $query = PenaltySubmission::with(['user.student', 'user.facultyMember', 'penalty.transaction.request.equipment'])
+            ->where('status', PenaltySubmission::STATUS_REVIEW);
+
+        if ($type === self::DEPT) {
+            $query->whereHas('penalty.transaction.request.equipment', fn ($e) => $e->where('department_id', $departmentId));
+        }
+
+        return $query->get()->map(function (PenaltySubmission $submission) use ($type) {
+            $penalty = $submission->penalty;
+            $borrower = $submission->user?->fullName() ?: ($submission->user?->email ?: 'A user');
+            $penaltyId = 'PEN-' . str_pad((string) $submission->penalty_id, 4, '0', STR_PAD_LEFT);
+
+            return [
+                'key' => 'proof-' . $submission->submission_id . '-submitted',
+                'type' => 'penalty',
+                'title' => 'New Proof Submitted',
+                'message' => $borrower . ' submitted proof for ' . $penaltyId . ' ('
+                    . ($penalty?->transaction?->request?->equipment?->name ?? 'equipment') . '): '
+                    . strtolower($submission->typeLabel()) . '. Please verify it.',
+                'url' => $type === self::ADMIN ? route('admin.penalties') : route('department.penalties'),
+                'at' => $submission->submitted_at ?? now(),
+            ];
+        })->all();
     }
 
     /** Who made the decision, from the viewer's point of view. */

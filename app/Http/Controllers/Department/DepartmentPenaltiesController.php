@@ -33,4 +33,9 @@ class DepartmentPenaltiesController extends PenaltyPageController
     {
         return 'department.penalties';
     }
+
+    protected function proofFileRoute(): string
+    {
+        return 'department.penalties.proof';
+    }
 }

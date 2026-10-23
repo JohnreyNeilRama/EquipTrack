@@ -34,6 +34,11 @@ class AdminPenaltiesController extends PenaltyPageController
         return 'admin.penalties';
     }
 
+    protected function proofFileRoute(): string
+    {
+        return 'admin.penalties.proof';
+    }
+
     protected function pageData(): array
     {
         return [

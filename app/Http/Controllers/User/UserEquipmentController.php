@@ -34,9 +34,12 @@ class UserEquipmentController extends Controller
         $askInstructor = auth('user')->user()->role !== 'Faculty';
 
         // A Pending penalty blocks new requests; the page explains why.
-        $penaltyBlock = Penalty::blockingBorrowFor((int) auth('user')->user()->user_id)?->borrowBlockMessage();
+        $blocking = Penalty::blockingBorrowFor((int) auth('user')->user()->user_id);
+        $penaltyBlock = $blocking?->borrowBlockMessage();
+        // Where the user submits proof for that penalty.
+        $penaltyBlockUrl = $blocking ? route('user.penalties', ['penalty' => $blocking->penalty_id]) : null;
 
-        return view('user.equipment', compact('dbCategories', 'dbEquipment', 'categoryCounts', 'askInstructor', 'penaltyBlock'));
+        return view('user.equipment', compact('dbCategories', 'dbEquipment', 'categoryCounts', 'askInstructor', 'penaltyBlock', 'penaltyBlockUrl'));
     }
 
     /**

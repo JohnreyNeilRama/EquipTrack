@@ -18,6 +18,8 @@
         'update' => route('department.penalties.update'),
         'settle' => route('department.penalties.settle'),
         'waive' => route('department.penalties.waive'),
+        'approveProof' => route('department.penalties.proof.approve'),
+        'rejectProof' => route('department.penalties.proof.reject'),
     ],
 ])
 @endpush

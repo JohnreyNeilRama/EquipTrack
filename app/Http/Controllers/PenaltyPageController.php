@@ -3,21 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Models\Penalty;
+use App\Models\PenaltySubmission;
+use App\Models\PenaltySubmissionFile;
 use App\Services\PenaltyService;
+use App\Services\PenaltySubmissionService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Penalties page for the reviewers (Admin, Lab Personnel). Subclasses say who
- * is signed in and which penalties they may see; listing, editing, settling
- * and waiving live here and in PenaltyService.
+ * is signed in and which penalties they may see; listing, editing, settling,
+ * waiving and verifying the users' proof live here, in PenaltyService and in
+ * PenaltySubmissionService.
  */
 abstract class PenaltyPageController extends Controller
 {
-    public function __construct(protected PenaltyService $penalties)
-    {
+    public function __construct(
+        protected PenaltyService $penalties,
+        protected PenaltySubmissionService $submissions,
+    ) {
     }
 
     /** Penalties this account may see and act on. */
@@ -28,6 +36,9 @@ abstract class PenaltyPageController extends Controller
 
     abstract protected function view(): string;
 
+    /** Route that serves a proof file to this account (it checks the scope). */
+    abstract protected function proofFileRoute(): string;
+
     /** Extra data for the page (the admin's Add Penalty list). */
     protected function pageData(): array
     {
@@ -36,7 +47,7 @@ abstract class PenaltyPageController extends Controller
 
     public function index(): View
     {
-        return view($this->view(), ['dbPenalties' => $this->penalties->rows($this->scope())] + $this->pageData());
+        return view($this->view(), ['dbPenalties' => $this->rows()] + $this->pageData());
     }
 
     /** JSON feed for live refresh. */
@@ -83,6 +94,69 @@ abstract class PenaltyPageController extends Controller
         return $this->act($data['penalty_id'], fn (Penalty $p) => $this->penalties->waive($p, $data['reason'], $this->actor()), 'Penalty waived.');
     }
 
+    /** Approves the proof under review and settles the penalty. */
+    public function approveProof(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'penalty_id' => ['required', 'integer', 'min:1'],
+            'item_received' => ['nullable', 'boolean'],
+        ]);
+
+        return $this->act($data['penalty_id'], function (Penalty $penalty) use ($data) {
+            $submission = $this->submissionUnderReview($penalty);
+
+            return $submission
+                ? $this->submissions->approve($submission, (bool) ($data['item_received'] ?? false), $this->actor())
+                : 'There is no proof waiting for review.';
+        }, 'Proof approved. The penalty is settled.');
+    }
+
+    /** Rejects the proof under review; the user can submit again. */
+    public function rejectProof(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'penalty_id' => ['required', 'integer', 'min:1'],
+            'reason' => ['required', 'string', 'max:1000'],
+        ], [
+            'reason.required' => 'Please tell the user why the proof was rejected.',
+        ]);
+
+        return $this->act($data['penalty_id'], function (Penalty $penalty) use ($data) {
+            $submission = $this->submissionUnderReview($penalty);
+
+            return $submission
+                ? $this->submissions->reject($submission, $data['reason'], $this->actor())
+                : 'There is no proof waiting for review.';
+        }, 'Proof rejected. The user was asked to submit again.');
+    }
+
+    /** A proof file of a penalty in this account's scope (shown inline). */
+    public function proofFile(int $file): Response
+    {
+        $penaltyIds = $this->scope()->pluck('penalty_id');
+
+        $record = PenaltySubmissionFile::whereKey($file)
+            ->whereHas('submission', fn ($query) => $query->whereIn('penalty_id', $penaltyIds))
+            ->firstOrFail();
+
+        abort_unless(Storage::disk('local')->exists($record->path), 404);
+
+        return Storage::disk('local')->response($record->path, $record->original_name, [
+            'Content-Type' => $record->mime_type,
+            'X-Content-Type-Options' => 'nosniff',
+        ], 'inline');
+    }
+
+    private function submissionUnderReview(Penalty $penalty): ?PenaltySubmission
+    {
+        return $penalty->submissions()->where('status', PenaltySubmission::STATUS_REVIEW)->first();
+    }
+
+    protected function rows(): array
+    {
+        return $this->penalties->rows($this->scope(), $this->proofFileRoute());
+    }
+
     /** Runs $apply on a penalty in scope; $apply returns an error message or null. */
     protected function act(int $penaltyId, callable $apply, string $message): JsonResponse
     {
@@ -104,7 +178,7 @@ abstract class PenaltyPageController extends Controller
         return response()->json(array_filter([
             'success' => true,
             'message' => $message,
-            'penalties' => $this->penalties->rows($this->scope()),
+            'penalties' => $this->rows(),
         ] + $this->pageData(), fn ($value) => $value !== null));
     }
 }

@@ -179,7 +179,7 @@ class UserDashboardController extends Controller
         $rows = [];
 
         // Pending penalties come first: they block new borrow requests.
-        $penalties = Penalty::with('transaction.request.equipment')
+        $penalties = Penalty::with(['transaction.request.equipment', 'submissions'])
             ->where('user_id', $userId)
             ->where('status', Penalty::STATUS_PENDING)
             ->orderBy('recorded_at')
@@ -187,15 +187,19 @@ class UserDashboardController extends Controller
 
         foreach ($penalties as $penalty) {
             $equipment = $penalty->transaction?->request?->equipment?->name ?? 'Unknown equipment';
+            // Proof already sent: the user only has to wait for staff.
+            $underReview = (bool) $penalty->submissions->first()?->isUnderReview();
 
             $rows[] = [
                 'sort' => [-1, $penalty->recorded_at?->getTimestamp() ?? 0],
-                'type' => 'danger',
-                'label' => 'Penalty: ' . $penalty->type,
+                'type' => $underReview ? 'warning' : 'danger',
+                'label' => $underReview ? 'Penalty: proof under review' : 'Penalty: ' . $penalty->type,
                 'equipment' => $equipment,
                 'title' => 'Penalty: ' . $equipment,
-                'message' => ($penalty->amountLabel() ? $penalty->amountLabel() . '. ' : '')
-                    . $penalty->description . ' Settle it with the department or the admin office.',
+                'message' => $underReview
+                    ? 'Your proof was submitted. Staff will verify it soon.'
+                    : ($penalty->amountLabel() ? $penalty->amountLabel() . '. ' : '')
+                        . $penalty->description . ' Settle it, then submit your proof on My Penalties.',
             ];
         }
 

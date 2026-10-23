@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateSummary() {
         const pending = penalties.filter(p => p.status === 'Pending');
         $('sumPending').textContent = pending.length;
+        $('sumAwaiting').textContent = penalties.filter(p => p.awaitingReview).length;
         $('sumPendingAmount').textContent = peso(pending.reduce((sum, p) => sum + (p.amount || 0), 0));
         $('sumSettled').textContent = penalties.filter(p => p.status === 'Settled').length;
         $('sumWaived').textContent = penalties.filter(p => p.status === 'Waived').length;
@@ -59,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const filtered = penalties.filter(p => {
             const haystack = `${p.penaltyId} ${p.user} ${p.email} ${p.equipment} ${p.serial} ${p.department} #${p.requestId}`.toLowerCase();
             return haystack.includes(query)
-                && (status === 'all' || p.status === status)
+                && (status === 'all' || (status === 'review' ? p.awaitingReview : p.status === status))
                 && (type === 'all' || p.type === type)
                 && (department === 'all' || p.department === department);
         });
@@ -83,9 +84,11 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.className = 'admin-table-row';
             tr.addEventListener('click', (e) => { if (!e.target.closest('button')) openDetails(p.id); });
 
-            const action = p.canEdit
-                ? `<button class="btn-approve" data-open="${p.id}"><i class="fa-solid fa-gavel"></i> Manage</button>`
-                : `<button class="btn-view-only" data-open="${p.id}"><i class="fa-solid fa-eye"></i> View</button>`;
+            const action = p.awaitingReview
+                ? `<button class="btn-approve" data-open="${p.id}"><i class="fa-solid fa-file-circle-check"></i> Review</button>`
+                : p.canEdit
+                    ? `<button class="btn-approve" data-open="${p.id}"><i class="fa-solid fa-gavel"></i> Manage</button>`
+                    : `<button class="btn-view-only" data-open="${p.id}"><i class="fa-solid fa-eye"></i> View</button>`;
 
             // The request number is in the View form; the table shows the penalty ID only.
             const equipmentSub = IS_ADMIN ? p.department : p.serial;
@@ -102,7 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="col-fit">${typeTag(p.type)}</td>
                 <td class="col-fit col-amount"><span class="penalty-amount ${p.amount === null ? 'none' : ''}">${escapeHTML(p.amountLabel)}</span></td>
                 <td class="col-fit">${escapeHTML(p.recordedAt.split(' ').slice(0, 3).join(' '))}</td>
-                <td class="col-fit"><span class="status-badge ${STATUS_CLASS[p.status] || 'status-pending'}">${escapeHTML(p.status)}</span></td>
+                <td class="col-fit">
+                    <span class="status-badge ${STATUS_CLASS[p.status] || 'status-pending'}">${escapeHTML(p.status)}</span>
+                    ${p.awaitingReview ? '<span class="penalty-proof-tag" title="Proof submitted: awaiting verification"><i class="fa-solid fa-paperclip"></i> Proof sent</span>' : ''}
+                </td>
                 <td class="col-fit action-cell">${action}</td>`;
             tr.querySelector('[data-open]').addEventListener('click', () => openDetails(p.id));
             tableBody.appendChild(tr);
@@ -169,6 +175,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const waived = p.status === 'Waived';
         $('pdSettledGroup').style.display = closed ? '' : 'none';
         $('prAwaitingGroup').style.display = closed ? 'none' : '';
+        $('prAwaitingGroup').classList.toggle('review-info-review', p.awaitingReview);
+        $('prAwaitingGroup').querySelector('dd').textContent = p.awaitingReview ? 'Proof submitted · awaiting verification' : 'Awaiting settlement';
         $('prPendingNote').style.display = p.canEdit ? '' : 'none';
         $('pdSettledLabel').textContent = waived ? 'Waived By' : 'Settled By';
         $('pdSettled').innerHTML = twoLines(p.settledBy, p.settledAt);
@@ -179,7 +187,50 @@ document.addEventListener('DOMContentLoaded', () => {
         $('pdRemarksLabel').textContent = waived ? 'Reason for Waiving' : 'Remarks';
         $('pdRemarks').textContent = p.settleRemarks;
 
+        renderProof(p);
+
         document.querySelector('#penaltyModal .review-scroll').scrollTop = 0;
+    }
+
+    const PROOF_BADGE = { 'Under Review': 'status-review', 'Approved': 'status-approved', 'Rejected': 'status-rejected' };
+
+    // 4. The borrower's latest proof, its files and earlier attempts.
+    function renderProof(p) {
+        const section = $('prProofSection');
+        const proof = p.proof;
+        section.hidden = !proof;
+        if (!proof) return;
+
+        const badge = $('prProofBadge');
+        badge.textContent = proof.status;
+        badge.className = 'status-badge pr-proof-badge ' + (PROOF_BADGE[proof.status] || 'status-pending');
+
+        const tile = (label, value, wide = false, extra = '') => value
+            ? `<div class="review-info-item${wide ? ' review-info-wide' : ''}${extra}"><dt>${escapeHTML(label)}</dt><dd>${escapeHTML(value)}</dd></div>` : '';
+        const files = proof.files.map(f => `
+            <li><a class="pr-proof-file" href="${escapeHTML(f.url)}" target="_blank" rel="noopener" title="${escapeHTML(f.name)}">
+                ${f.isImage ? `<img src="${escapeHTML(f.url)}" alt="${escapeHTML(f.name)}" loading="lazy">` : '<span class="pr-proof-doc"><i class="fa-solid fa-file-pdf"></i></span>'}
+                <span>${escapeHTML(f.name)} · ${escapeHTML(f.size)}</span>
+            </a></li>`).join('');
+        const history = p.proofHistory.length
+            ? `<details class="pr-proof-history"><summary>Earlier submissions (${p.proofHistory.length})</summary><ul>${p.proofHistory.map(h =>
+                `<li><strong>${escapeHTML(h.status)}</strong> · ${escapeHTML(h.typeLabel)} · ${escapeHTML(h.submittedAt)}${h.rejectReason ? `<span>Reason: ${escapeHTML(h.rejectReason)}</span>` : ''}</li>`).join('')}</ul></details>`
+            : '';
+        const dateLabel = proof.type === 'Payment' ? 'Date Paid' : (proof.type === 'Replacement' ? 'Date Replaced' : 'Date Repaired');
+
+        $('prProofBody').innerHTML = `
+            <dl class="review-info-grid">
+                ${tile('Settlement', proof.typeLabel)}
+                ${tile('Submitted', proof.submittedAt)}
+                ${tile('Reference / Receipt No.', proof.referenceNo)}
+                ${tile('Amount Paid', proof.amountPaid)}
+                ${tile(dateLabel, proof.settledOn)}
+                ${proof.status !== 'Under Review' ? tile(proof.status === 'Approved' ? 'Approved By' : 'Rejected By', `${proof.reviewedBy} · ${proof.reviewedAt}`) : ''}
+                ${tile('Notes from the borrower', proof.notes, true)}
+                ${tile('Reason for Rejecting', proof.rejectReason, true, ' review-info-danger')}
+            </dl>
+            ${files ? `<ul class="pr-proof-files">${files}</ul>` : ''}
+            ${history}`;
     }
 
     // The photo uploaded in Equipment Management; a placeholder when there is
@@ -246,9 +297,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         fillRecord(p);
 
-        // Same buttons as the Return Confirmation form; Mark as Settled is the main action.
+        // Same buttons as the Return Confirmation form. With proof waiting,
+        // Approve & Settle is the main action; otherwise Mark as Settled.
         const footer = $('penaltyFooter');
-        footer.innerHTML = p.canEdit
+        footer.innerHTML = p.awaitingReview
+            ? `<button type="button" class="btn-modal-close" data-act="close">Close</button>
+               <button type="button" class="btn-modal-edit" data-act="waive"><i class="fa-solid fa-ban"></i> Waive</button>
+               <button type="button" class="btn-modal-reject-trigger" data-act="rejectProof"><i class="fa-solid fa-xmark"></i> Reject Proof</button>
+               <button type="button" class="btn-modal-approve" data-act="approveProof"><i class="fa-solid fa-check"></i> Approve &amp; Settle</button>`
+            : p.canEdit
             ? `<button type="button" class="btn-modal-close" data-act="close">Close</button>
                <button type="button" class="btn-modal-edit" data-act="edit"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
                <button type="button" class="btn-modal-reject-trigger" data-act="waive"><i class="fa-solid fa-ban"></i> Waive</button>
@@ -276,6 +333,8 @@ document.addEventListener('DOMContentLoaded', () => {
         edit: { title: 'Edit Penalty', subtitle: 'Change the amount or description of a pending penalty', submit: 'Save Changes' },
         settle: { title: 'Mark as Settled', subtitle: 'The penalty was paid or fulfilled outside the system', submit: 'Mark as Settled' },
         waive: { title: 'Waive Penalty', subtitle: 'Cancel this penalty; the reason is kept on record', submit: 'Waive Penalty' },
+        approveProof: { title: 'Approve Proof', subtitle: 'Verify the borrower’s proof and settle the penalty', submit: 'Approve & Settle' },
+        rejectProof: { title: 'Reject Proof', subtitle: 'The borrower will be asked to submit new proof', submit: 'Reject Proof' },
     };
 
     function openForm(mode, p = null) {
@@ -296,8 +355,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 + `<span class="ctx-part ctx-user" title="${escapeHTML(p.user)}">${escapeHTML(p.user)}</span>`
             : '';
         submitBtn.textContent = FORM_TEXT[mode].submit;
-        submitBtn.classList.toggle('is-danger', mode === 'waive');
-        submitBtn.classList.toggle('is-success', mode === 'settle');
+        submitBtn.classList.toggle('is-danger', mode === 'waive' || mode === 'rejectProof');
+        submitBtn.classList.toggle('is-success', mode === 'settle' || mode === 'approveProof');
+
+        if ((mode === 'approveProof' || mode === 'rejectProof') && p && p.proof) {
+            const proof = p.proof;
+            const item = (label, value) => value ? `<div><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></div>` : '';
+            $('pfProofSummary').innerHTML = item('Settlement', proof.typeLabel)
+                + item('Reference No.', proof.referenceNo || '—')
+                + item('Amount Paid', proof.amountPaid)
+                + item('Date', proof.settledOn)
+                + item('Files', `${proof.files.length} attached`);
+            // Replacement / repair: staff must have the item in hand.
+            $('pfReceivedField').hidden = mode !== 'approveProof' || !proof.needsInspection;
+        }
 
         const remarksLabel = $('pfRemarksLabel');
         remarksLabel.innerHTML = mode === 'waive'
@@ -384,6 +455,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 payload.penalty_id = openId;
                 url = URLS.update;
             }
+        } else if (formMode === 'approveProof') {
+            const needsItem = !$('pfReceivedField').hidden;
+            if (needsItem && !$('pfItemReceived').checked) {
+                $('pfReceivedField').classList.add('is-invalid');
+                showNotification('Confirmation Required', 'Confirm that the replacement or repaired item was received and inspected.', 'error');
+                return;
+            }
+            payload.penalty_id = openId;
+            payload.item_received = needsItem && $('pfItemReceived').checked ? '1' : '0';
+            url = URLS.approveProof;
+        } else if (formMode === 'rejectProof') {
+            const reason = $('pfRejectReason').value.trim();
+            if (!reason) return invalid('pfRejectReason', 'Please tell the borrower why the proof was rejected.');
+            payload.penalty_id = openId;
+            payload.reason = reason;
+            url = URLS.rejectProof;
         } else if (formMode === 'settle') {
             payload.penalty_id = openId;
             payload.reference_no = $('pfReference').value.trim();
@@ -452,6 +539,7 @@ document.addEventListener('DOMContentLoaded', () => {
         el.addEventListener(el === searchInput ? 'input' : 'change', () => { currentPage = 1; renderTable(); });
     });
     form.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', () => el.classList.remove('is-invalid')));
+    $('pfItemReceived').addEventListener('change', () => $('pfReceivedField').classList.remove('is-invalid'));
 
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
     setInterval(refresh, 15000);

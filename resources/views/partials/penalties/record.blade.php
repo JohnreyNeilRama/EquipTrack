@@ -134,6 +134,15 @@
                     </dl>
                     <p class="review-hint pr-note" id="prPendingNote">Payment is handled outside EquipTrack. Mark the penalty as settled once it has been paid or fulfilled, or waive it with a reason.</p>
                 </section>
+
+                {{-- 4. Proof the borrower submitted (filled by the script; hidden when there is none) --}}
+                <section class="review-section" id="prProofSection" hidden>
+                    <h4 class="review-section-title">
+                        <span class="review-step">4</span> Submitted Proof
+                        <span class="status-badge pr-proof-badge" id="prProofBadge">—</span>
+                    </h4>
+                    <div class="pr-proof" id="prProofBody"></div>
+                </section>
             </div>
 
             <div class="modal-actions-footer review-footer" id="penaltyFooter"></div>

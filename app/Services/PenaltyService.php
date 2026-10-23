@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BorrowTransaction;
 use App\Models\Penalty;
+use App\Models\PenaltySubmission;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -145,11 +146,13 @@ class PenaltyService
     }
 
     /**
-     * Rows for the Penalties pages, newest first.
+     * Rows for the Penalties pages (and the user's My Penalties page), newest
+     * first. $proofFileRoute is the route that serves proof files to the
+     * viewer; it is needed to list the submitted proof.
      *
      * @return array<int, array<string, mixed>>
      */
-    public function rows(Builder $query): array
+    public function rows(Builder $query, ?string $proofFileRoute = null): array
     {
         $fmt = fn ($value) => $value ? Carbon::parse($value)->format('M d, Y') : '—';
         $fmtTime = fn ($value) => $value ? Carbon::parse($value)->format('M d, Y h:i A') : '—';
@@ -163,13 +166,17 @@ class PenaltyService
             'recordedByDept',
             'settledByAdmin',
             'settledByDept',
+            'submissions.files',
+            'submissions.reviewedByAdmin',
+            'submissions.reviewedByDept',
         ])
             ->orderByRaw("case when status = 'Pending' then 0 else 1 end")
             ->orderByDesc('recorded_at')
             ->orderByDesc('penalty_id')
             ->get()
-            ->map(function (Penalty $penalty) use ($fmt, $fmtTime) {
+            ->map(function (Penalty $penalty) use ($fmt, $fmtTime, $proofFileRoute) {
                 $transaction = $penalty->transaction;
+                $latest = $penalty->submissions->first();
                 $borrow = $transaction?->request;
                 $equipment = $borrow?->equipment;
                 $user = $penalty->user;
@@ -206,6 +213,14 @@ class PenaltyService
                     'referenceNo' => $penalty->reference_no ?? '',
                     'settleRemarks' => $penalty->settle_remarks ?? '',
                     'canEdit' => $penalty->isPending(),
+                    // Proof of settlement submitted by the user (newest first).
+                    'proofState' => $this->proofState($penalty, $latest),
+                    'awaitingReview' => (bool) $latest?->isUnderReview(),
+                    'proofTypes' => PenaltySubmission::typesFor($penalty->type),
+                    'proof' => $latest && $proofFileRoute ? $latest->toProofArray($proofFileRoute) : null,
+                    'proofHistory' => $proofFileRoute
+                        ? $penalty->submissions->slice(1)->map(fn (PenaltySubmission $s) => $s->toProofArray($proofFileRoute))->values()->all()
+                        : [],
                 ];
             })
             ->all();
@@ -249,6 +264,23 @@ class PenaltyService
             ->filter()
             ->values()
             ->all();
+    }
+
+    /**
+     * none / review / rejected while the penalty is Pending (from the latest
+     * proof), then settled / waived.
+     */
+    private function proofState(Penalty $penalty, ?PenaltySubmission $latest): string
+    {
+        if (!$penalty->isPending()) {
+            return strtolower($penalty->status);
+        }
+
+        return match ($latest?->status) {
+            PenaltySubmission::STATUS_REVIEW => 'review',
+            PenaltySubmission::STATUS_REJECTED => 'rejected',
+            default => 'none',
+        };
     }
 
     private function amount($value): ?float

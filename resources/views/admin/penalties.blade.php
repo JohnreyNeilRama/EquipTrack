@@ -19,6 +19,8 @@
         'update' => route('admin.penalties.update'),
         'settle' => route('admin.penalties.settle'),
         'waive' => route('admin.penalties.waive'),
+        'approveProof' => route('admin.penalties.proof.approve'),
+        'rejectProof' => route('admin.penalties.proof.reject'),
     ],
 ])
 @endpush

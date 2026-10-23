@@ -54,6 +54,9 @@ class AuditCatalog
         ['label' => 'Updated Penalty', 'module' => 'Penalties', 'prefixes' => ['Updated penalty' => 'Penalty']],
         ['label' => 'Settled Penalty', 'module' => 'Penalties', 'prefixes' => ['Settled penalty' => 'Penalty']],
         ['label' => 'Waived Penalty', 'module' => 'Penalties', 'prefixes' => ['Waived penalty' => 'Penalty']],
+        ['label' => 'Submitted Proof', 'module' => 'Penalties', 'prefixes' => ['Submitted proof for penalty' => 'Proof for penalty']],
+        ['label' => 'Approved Proof', 'module' => 'Penalties', 'prefixes' => ['Approved proof for penalty' => 'Proof for penalty']],
+        ['label' => 'Rejected Proof', 'module' => 'Penalties', 'prefixes' => ['Rejected proof for penalty' => 'Proof for penalty']],
 
         // User management
         ['label' => 'Registered Account', 'module' => 'Users', 'prefixes' => ['Registered account' => 'Account']],

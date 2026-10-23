@@ -304,6 +304,63 @@
     }
     .penalty-note i { margin-top: 2px; color: var(--primary-color); }
 
+    /* Proof approve / reject */
+    .penalty-proof-summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 16px;
+        padding: 12px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        background-color: var(--bg-color);
+        font-size: var(--fs-label);
+        text-align: left;
+    }
+    .penalty-proof-summary span { display: block; font-size: var(--fs-badge); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); }
+    .penalty-proof-summary strong { display: block; margin-top: 2px; color: var(--text-main); overflow-wrap: anywhere; }
+    .penalty-check {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 14px;
+        border: 1.5px solid rgba(245, 158, 11, 0.45);
+        border-radius: 10px;
+        background-color: rgba(245, 158, 11, 0.06);
+        font-size: var(--fs-label);
+        font-weight: 600;
+        color: var(--text-main);
+        text-align: left;
+        cursor: pointer;
+    }
+    .penalty-check input { width: 16px; height: 16px; margin-top: 1px; accent-color: #10b981; flex-shrink: 0; }
+    .penalty-check.is-invalid { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12); }
+    .penalty-proof-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: var(--fs-badge);
+        font-weight: 600;
+        white-space: nowrap;
+        background-color: #dbeafe;
+        color: #1d4ed8;
+    }
+    .dark-theme .penalty-proof-tag { background-color: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+    .penalties-table .penalty-proof-tag { display: flex; width: max-content; }
+
+    /* Pending card: the outstanding amount under the count */
+    .penalties-summary-grid .summary-card-sub {
+        display: block;
+        margin-top: 2px;
+        font-size: var(--fs-small);
+        font-weight: 600;
+        color: #dc2626;
+        font-variant-numeric: tabular-nums;
+    }
+    .dark-theme .penalties-summary-grid .summary-card-sub { color: #f87171; }
+
     @media (max-width: 640px) {
         .modal-inner-card.penalty-sheet { padding: 22px 18px 0; }
         .penalty-sheet-footer { margin: 0 -18px; padding: 14px 18px 18px; }

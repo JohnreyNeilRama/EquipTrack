@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
 use App\Models\Penalty;
+use App\Models\PenaltySubmission;
 use App\Models\UserNotificationRead;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -335,13 +336,16 @@ class UserNotificationController extends Controller
 
     /**
      * One notice when a penalty is recorded (listed for as long as it is
-     * Pending) and one when it is settled or waived (for STATUS_WINDOW_DAYS).
+     * Pending), one when it is settled or waived, and one per proof the user
+     * submitted: received while staff review it, rejected with the reason
+     * (both for STATUS_WINDOW_DAYS once decided). An approved proof settles
+     * the penalty, so the settled notice covers it.
      */
     private function penaltyNotifications(int $userId): array
     {
         $since = now()->subDays(self::STATUS_WINDOW_DAYS);
 
-        $penalties = Penalty::with('transaction.request.equipment')
+        $penalties = Penalty::with(['transaction.request.equipment', 'submissions'])
             ->where('user_id', $userId)
             ->where(fn ($query) => $query
                 ->where('status', Penalty::STATUS_PENDING)
@@ -353,6 +357,7 @@ class UserNotificationController extends Controller
         foreach ($penalties as $penalty) {
             $equipment = $penalty->transaction?->request?->equipment?->name ?? 'the equipment';
             $amount = $penalty->amountLabel();
+            $url = route('user.penalties', ['penalty' => $penalty->penalty_id]);
 
             if ($penalty->isPending() || $penalty->recorded_at?->gte($since)) {
                 $notifications[] = [
@@ -361,8 +366,8 @@ class UserNotificationController extends Controller
                     'title' => 'Penalty Issued',
                     'message' => 'A ' . $penalty->type . ' penalty' . ($amount ? ' of ' . $amount : '')
                         . ' was recorded for ' . $equipment . ': ' . Str::limit($penalty->description, 120)
-                        . ' Settle it with the department or the admin office.',
-                    'url' => route('user.history'),
+                        . ' Settle it, then submit your proof on My Penalties.',
+                    'url' => $url,
                     'at' => $penalty->recorded_at ?? now(),
                 ];
             }
@@ -374,10 +379,34 @@ class UserNotificationController extends Controller
                     'type' => 'approved',
                     'title' => $waived ? 'Penalty Waived' : 'Penalty Settled',
                     'message' => 'Your ' . $penalty->type . ' penalty for ' . $equipment
-                        . ($waived ? ' was waived.' : ' was marked as settled.'),
-                    'url' => route('user.history'),
+                        . ($waived ? ' was waived.' : ' was marked as settled. You can borrow equipment again.'),
+                    'url' => $url,
                     'at' => $penalty->settled_at,
                 ];
+            }
+
+            foreach ($penalty->submissions as $submission) {
+                if ($submission->isUnderReview()) {
+                    $notifications[] = [
+                        'key' => 'proof-' . $submission->submission_id . '-received',
+                        'type' => 'due',
+                        'title' => 'Proof Received',
+                        'message' => 'Your proof for the ' . $penalty->type . ' penalty on ' . $equipment
+                            . ' was received. Staff will verify it soon.',
+                        'url' => $url,
+                        'at' => $submission->submitted_at ?? now(),
+                    ];
+                } elseif ($submission->status === PenaltySubmission::STATUS_REJECTED && $submission->reviewed_at?->gte($since)) {
+                    $notifications[] = [
+                        'key' => 'proof-' . $submission->submission_id . '-rejected',
+                        'type' => 'rejected',
+                        'title' => 'Proof Rejected',
+                        'message' => 'Your proof for ' . $equipment . ' was not accepted. Reason: '
+                            . Str::limit((string) $submission->reject_reason, 120) . ' Please submit new proof.',
+                        'url' => $url,
+                        'at' => $submission->reviewed_at,
+                    ];
+                }
             }
         }
 

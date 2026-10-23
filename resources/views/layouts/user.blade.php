@@ -65,6 +65,9 @@
             <a href="{{ route('user.history') }}" class="nav-item {{ request()->routeIs('user.history') ? 'active' : '' }}">
                 <i class="fa-solid fa-clock-rotate-left"></i> <span>Borrowing History</span>
             </a>
+            <a href="{{ route('user.penalties') }}" class="nav-item {{ request()->routeIs('user.penalties') ? 'active' : '' }}">
+                <i class="fa-solid fa-scale-balanced"></i> <span>My Penalties</span>
+            </a>
         </nav>
     </aside>
 

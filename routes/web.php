@@ -27,6 +27,7 @@ use App\Http\Controllers\User\UserDashboardController;
 use App\Http\Controllers\User\UserEquipmentController;
 use App\Http\Controllers\User\UserHistoryController;
 use App\Http\Controllers\User\UserNotificationController;
+use App\Http\Controllers\User\UserPenaltiesController;
 use App\Http\Controllers\User\UserProfileController;
 use App\Http\Controllers\User\UserRequestsController;
 use App\Http\Controllers\User\UserReturnsController;
@@ -76,6 +77,9 @@ Route::middleware(['auth:admin', 'active'])->prefix('admin')->name('admin.')->gr
     Route::post('/penalties/update', [AdminPenaltiesController::class, 'update'])->name('penalties.update');
     Route::post('/penalties/settle', [AdminPenaltiesController::class, 'settle'])->name('penalties.settle');
     Route::post('/penalties/waive', [AdminPenaltiesController::class, 'waive'])->name('penalties.waive');
+    Route::post('/penalties/proof/approve', [AdminPenaltiesController::class, 'approveProof'])->name('penalties.proof.approve');
+    Route::post('/penalties/proof/reject', [AdminPenaltiesController::class, 'rejectProof'])->name('penalties.proof.reject');
+    Route::get('/penalties/proof/file/{file}', [AdminPenaltiesController::class, 'proofFile'])->whereNumber('file')->name('penalties.proof');
     Route::get('/audit', [AdminAuditController::class, 'index'])->name('audit');
     Route::get('/audit/data', [AdminAuditController::class, 'data'])->name('audit.data');
     Route::get('/audit/export', [AdminAuditController::class, 'export'])->name('audit.export');
@@ -107,6 +111,9 @@ Route::middleware(['auth:dept', 'active'])->prefix('department')->name('departme
     Route::post('/penalties/update', [DepartmentPenaltiesController::class, 'update'])->name('penalties.update');
     Route::post('/penalties/settle', [DepartmentPenaltiesController::class, 'settle'])->name('penalties.settle');
     Route::post('/penalties/waive', [DepartmentPenaltiesController::class, 'waive'])->name('penalties.waive');
+    Route::post('/penalties/proof/approve', [DepartmentPenaltiesController::class, 'approveProof'])->name('penalties.proof.approve');
+    Route::post('/penalties/proof/reject', [DepartmentPenaltiesController::class, 'rejectProof'])->name('penalties.proof.reject');
+    Route::get('/penalties/proof/file/{file}', [DepartmentPenaltiesController::class, 'proofFile'])->whereNumber('file')->name('penalties.proof');
     Route::get('/users', [DepartmentUsersController::class, 'index'])->name('users');
     Route::get('/users/data', [DepartmentUsersController::class, 'data'])->name('users.data');
     Route::get('/monitoring', [DepartmentMonitoringController::class, 'index'])->name('monitoring');
@@ -129,6 +136,10 @@ Route::middleware(['auth:user', 'active'])->prefix('user')->name('user.')->group
     Route::get('/returns', [UserReturnsController::class, 'index'])->name('returns');
     Route::post('/returns', [UserReturnsController::class, 'store'])->name('returns.store');
     Route::get('/history', [UserHistoryController::class, 'index'])->name('history');
+    Route::get('/penalties', [UserPenaltiesController::class, 'index'])->name('penalties');
+    Route::get('/penalties/data', [UserPenaltiesController::class, 'data'])->name('penalties.data');
+    Route::post('/penalties/proof', [UserPenaltiesController::class, 'submit'])->middleware('throttle:10,1')->name('penalties.submit');
+    Route::get('/penalties/proof/file/{file}', [UserPenaltiesController::class, 'file'])->whereNumber('file')->name('penalties.file');
     Route::get('/notifications', [UserNotificationController::class, 'index'])->name('notifications');
     Route::post('/notifications/read', [UserNotificationController::class, 'markRead'])->name('notifications.read');
 });
