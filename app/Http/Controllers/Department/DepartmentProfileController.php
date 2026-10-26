@@ -6,13 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\DepartmentAccount;
 use App\Rules\UniqueAccountEmail;
+use App\Services\AccountPassword;
 use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class DepartmentProfileController extends Controller
@@ -48,18 +47,9 @@ class DepartmentProfileController extends Controller
                     ->ignore($account->dept_acc_id, 'dept_acc_id')
                     ->where(fn ($q) => $q->where('employee_id', '!=', '')),
             ],
-            'current_password' => ['nullable', 'string'],
-            'new_password' => ['nullable', 'string', Password::defaults(), 'different:current_password'],
-            'confirm_password' => ['nullable', 'required_with:new_password', 'same:new_password'],
-        ], [
-            'new_password.different' => 'Your new password must be different from your current password.',
-        ]);
-
-        if (!empty($data['new_password'])) {
-            if (empty($data['current_password']) || !Hash::check($data['current_password'], $account->password)) {
-                return response()->json(['success' => false, 'message' => 'Current password is incorrect.'], 400);
-            }
-        }
+            // Optional Change Password fields, checked by the shared rules.
+            ...AccountPassword::rules('dept', optional: true),
+        ], AccountPassword::messages());
 
         $update = [
             'full_name' => $data['full_name'],
@@ -69,10 +59,6 @@ class DepartmentProfileController extends Controller
 
         // NOTE vs legacy: the `role` field is no longer accepted here (a dept
         // account could POST any value to grant itself a different role).
-        if (!empty($data['new_password'])) {
-            $update['password'] = Hash::make($data['new_password']);
-        }
-
         $changed = AuditLogger::changedFields(
             $account->only(['full_name', 'email', 'employee_id']),
             $update,
@@ -85,8 +71,9 @@ class DepartmentProfileController extends Controller
         if ($changed) {
             AuditLogger::log('Updated profile', $entity, 'Changed: ' . implode(', ', $changed), AuditLogger::actorFor('dept', $account), $request);
         }
-        if (isset($update['password'])) {
-            AuditLogger::log('Changed password', $entity, null, AuditLogger::actorFor('dept', $account), $request);
+        // The current password was verified by the validation rules above.
+        if (!empty($data['new_password'])) {
+            AccountPassword::change($account, 'dept', $data['new_password'], $entity, $request);
         }
 
         return response()->json(['success' => true, 'message' => 'Profile information updated successfully!']);

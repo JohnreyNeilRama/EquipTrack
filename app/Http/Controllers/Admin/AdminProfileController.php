@@ -5,14 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Rules\UniqueAccountEmail;
+use App\Services\AccountPassword;
 use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class AdminProfileController extends Controller
@@ -39,20 +38,18 @@ class AdminProfileController extends Controller
             'admin_full_name' => ['required', 'string', 'max:100'],
             'admin_email' => ['required', 'email', 'max:100', Rule::unique('admin', 'email')->ignore($admin->admin_id, 'admin_id'), UniqueAccountEmail::except(UniqueAccountEmail::ADMIN, $admin->admin_id)],
             'admin_employee_id' => ['nullable', 'string', 'max:50'],
-            'current_password' => ['nullable', 'string'],
-            'new_password' => ['nullable', 'string', Password::defaults(), 'different:current_password'],
-            'confirm_password' => ['nullable', 'required_with:new_password', 'same:new_password'],
+            // Optional Change Password fields, checked by the shared rules.
+            ...AccountPassword::rules('admin', optional: true),
         ], [
             'admin_email.unique' => 'Another admin already uses that email/username.',
-            'confirm_password.same' => 'New password and confirm password do not match.',
-            'new_password.different' => 'Your new password must be different from your current password.',
+            ...AccountPassword::messages(),
         ]);
 
         $update = [
             'name' => $data['admin_full_name'],
             'username' => $data['admin_email'], // legacy kept username synced to email
             'email' => $data['admin_email'],
-            'employee_id' => $data['admin_employee_id'] ?: $admin->employee_id,
+            'employee_id' => ($data['admin_employee_id'] ?? null) ?: $admin->employee_id,
         ];
 
         // username has a UNIQUE index and legacy mirrored email into it; a
@@ -64,17 +61,6 @@ class AdminProfileController extends Controller
             return redirect()->route('admin.profile')
                 ->with('error_msg', 'Another admin already uses that email/username.')
                 ->withInput();
-        }
-
-        if (!empty($data['new_password'])) {
-            // FIX vs legacy: an empty current_password let a forged POST set a new
-            // password with zero verification. It is now required to change it.
-            if (empty($data['current_password']) || !Hash::check($data['current_password'], $admin->password)) {
-                return redirect()->route('admin.profile')
-                    ->with('error_msg', 'Current password is incorrect.')
-                    ->withInput();
-            }
-            $update['password'] = Hash::make($data['new_password']);
         }
 
         $changed = AuditLogger::changedFields(
@@ -89,8 +75,9 @@ class AdminProfileController extends Controller
         if ($changed) {
             AuditLogger::log('Updated profile', $entity, 'Changed: ' . implode(', ', $changed), AuditLogger::actorFor('admin', $admin), $request);
         }
-        if (isset($update['password'])) {
-            AuditLogger::log('Changed password', $entity, null, AuditLogger::actorFor('admin', $admin), $request);
+        // The current password was verified by the validation rules above.
+        if (!empty($data['new_password'])) {
+            AccountPassword::change($admin, 'admin', $data['new_password'], $entity, $request);
         }
 
         return redirect()->route('admin.profile')->with('success_msg', 'Profile changes saved successfully!');

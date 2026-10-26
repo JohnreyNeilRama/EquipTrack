@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Rules\UniqueAccountEmail;
+use App\Services\AccountPassword;
 use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -93,6 +94,20 @@ class UserProfileController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => 'Personal information updated successfully!']);
+    }
+
+    /** Change Password section of the profile page. */
+    public function password(Request $request): JsonResponse
+    {
+        $data = $request->validate(AccountPassword::rules('user'), AccountPassword::messages());
+
+        $account = auth('user')->user();
+        AccountPassword::change($account, 'user', $data['new_password'], 'user_account:' . $account->user_id, $request);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Your password has been updated. Other devices signed in to your account have been signed out.',
+        ]);
     }
 
     public function avatar(Request $request): JsonResponse

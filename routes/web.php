@@ -54,7 +54,7 @@ Route::middleware(['auth:admin', 'auth.session', 'active'])->prefix('admin')->na
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [AdminDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [AdminProfileController::class, 'show'])->name('profile');
-    Route::post('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile', [AdminProfileController::class, 'update'])->middleware('throttle:profile-update')->name('profile.update');
     Route::post('/profile/avatar', [AdminProfileController::class, 'avatar'])->name('profile.avatar');
     Route::get('/equipment', [AdminEquipmentController::class, 'index'])->name('equipment');
     Route::get('/equipment/data', [AdminEquipmentController::class, 'data'])->name('equipment.data');
@@ -96,7 +96,7 @@ Route::middleware(['auth:dept', 'auth.session', 'active'])->prefix('department')
     Route::get('/dashboard', [DepartmentDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [DepartmentDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [DepartmentProfileController::class, 'show'])->name('profile');
-    Route::post('/profile', [DepartmentProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile', [DepartmentProfileController::class, 'update'])->middleware('throttle:profile-update')->name('profile.update');
     Route::post('/profile/avatar', [DepartmentProfileController::class, 'avatar'])->name('profile.avatar');
     // Equipment assigned to this department (same records the admin manages).
     Route::get('/equipment', [DepartmentEquipmentController::class, 'index'])->name('equipment');
@@ -133,6 +133,7 @@ Route::middleware(['auth:user', 'auth.session', 'active'])->prefix('user')->name
     Route::get('/dashboard/data', [UserDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [UserProfileController::class, 'show'])->name('profile');
     Route::post('/profile', [UserProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/password', [UserProfileController::class, 'password'])->middleware('throttle:change-password')->name('profile.password');
     Route::post('/profile/avatar', [UserProfileController::class, 'avatar'])->name('profile.avatar');
     Route::get('/equipment', [UserEquipmentController::class, 'index'])->name('equipment');
     Route::post('/equipment/borrow', [UserEquipmentController::class, 'store'])->name('borrow.store');

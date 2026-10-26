@@ -191,7 +191,7 @@
     const URL_AVATAR = @json(route('department.profile.avatar'));
     const CSRF_TOKEN = @json(csrf_token());
     const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
-    const MIN_PASSWORD_LENGTH = 6;
+    const MIN_PASSWORD_LENGTH = 8;
 
     // Show / hide password (real buttons, so they work from the keyboard too)
     document.querySelectorAll('.btn-toggle-password').forEach(btn => {
@@ -277,7 +277,7 @@
         if (currentPasswordVal || newPasswordVal || confirmPasswordVal) {
             if (!newPasswordVal) return showToast('Enter a new password, or clear the password fields.', 'error');
             if (!currentPasswordVal) return showToast('Enter your current password to set a new one.', 'error');
-            if (newPasswordVal.length < MIN_PASSWORD_LENGTH) return showToast(`New password must be at least ${MIN_PASSWORD_LENGTH} characters.`, 'error');
+            if (newPasswordVal.length < MIN_PASSWORD_LENGTH || !/[A-Za-z]/.test(newPasswordVal) || !/\d/.test(newPasswordVal)) return showToast(`New password must be at least ${MIN_PASSWORD_LENGTH} characters and include a letter and a number.`, 'error');
             if (newPasswordVal !== confirmPasswordVal) {
                 setConfirmError('Passwords do not match.');
                 return showToast('New password and confirmation do not match.', 'error');

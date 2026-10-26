@@ -384,6 +384,155 @@
     box-shadow: 0 6px 15px rgba(42, 63, 99, 0.3);
 }
 
+/* Change Password section */
+.profile-section-divider {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 40px 0 35px;
+}
+
+.form-control.password-control {
+    padding-right: 48px; /* room for the show/hide button */
+}
+
+.btn-toggle-password {
+    position: absolute;
+    right: 8px;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 15px;
+    cursor: pointer;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.btn-toggle-password:hover {
+    color: var(--primary-color);
+    background-color: var(--primary-light);
+}
+
+.btn-toggle-password:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(56, 85, 133, 0.25);
+}
+
+/* The two new-password fields sit side by side when the card has room and
+   stack when it doesn't (the card is narrow on small laptops). */
+.password-row,
+.password-row .form-group {
+    min-width: 0;
+}
+
+.form-row.password-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 24px 25px;
+}
+
+.password-checklist {
+    list-style: none;
+    margin: -8px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+    gap: 8px 25px;
+}
+
+.password-actions {
+    flex-wrap: wrap;
+}
+
+/* Buttons may shrink (and their label wrap) rather than overflow the card. */
+.password-actions .btn-save,
+.password-actions .btn-cancel {
+    flex: 0 1 auto;
+    max-width: 100%;
+}
+
+@media (max-width: 600px) {
+    .password-actions .btn-save,
+    .password-actions .btn-cancel {
+        flex: 1 1 100%;
+    }
+
+    .password-actions .btn-save {
+        order: -1; /* primary action first when stacked */
+    }
+}
+
+.password-checklist li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-small);
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: color 0.2s;
+}
+
+.password-checklist li i {
+    font-size: 13px;
+    color: var(--border-color);
+    transition: color 0.2s;
+}
+
+.password-checklist li.is-met {
+    color: #047857;
+}
+
+.password-checklist li.is-met i {
+    color: #10b981;
+}
+
+.dark-theme .password-checklist li.is-met {
+    color: #34d399;
+}
+
+.password-message {
+    margin: 0;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: var(--fs-label);
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.password-message.is-error {
+    background-color: #fee2e2;
+    border: 1px solid #fca5a5;
+    color: #b91c1c;
+}
+
+.password-message.is-success {
+    background-color: #d1fae5;
+    border: 1px solid #6ee7b7;
+    color: #047857;
+}
+
+.dark-theme .password-message.is-error {
+    background-color: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #f87171;
+}
+
+.dark-theme .password-message.is-success {
+    background-color: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: #34d399;
+}
+
+.btn-save:disabled {
+    opacity: 0.7;
+    cursor: progress;
+    transform: none;
+}
+
 /* Responsiveness */
 @media (max-width: 992px) {
     .profile-container {
