@@ -210,7 +210,7 @@
 
                     <div class="form-group-flat">
                         <label>Password</label>
-                        <input type="password" id="studPassword" name="password" class="form-control-flat" required placeholder="••••••••" minlength="6">
+                        <input type="password" id="studPassword" name="password" class="form-control-flat" required placeholder="••••••••" minlength="8" title="At least 8 characters, with letters and numbers.">
                     </div>
 
                     <button type="submit" class="btn-submit-request" style="margin-top: 10px;">
@@ -278,7 +278,7 @@
 
                     <div class="form-group-flat">
                         <label>Password <span style="color: #ef4444;">*</span></label>
-                        <input type="password" id="deptPassword" name="password" class="form-control-flat" required placeholder="••••••••" minlength="6">
+                        <input type="password" id="deptPassword" name="password" class="form-control-flat" required placeholder="••••••••" minlength="8" title="At least 8 characters, with letters and numbers.">
                     </div>
 
                     <button type="submit" class="btn-submit-request" style="margin-top: 10px;">

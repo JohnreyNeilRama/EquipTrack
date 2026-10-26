@@ -45,8 +45,12 @@ Route::get('/register', [RegisteredUserController::class, 'show'])->name('regist
 Route::post('/register', [RegisteredUserController::class, 'store'])->middleware('throttle:10,1');
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
+// auth.session signs a session out once its account's password changes
+// elsewhere (Change Password or a reset); the session that made the change
+// stays signed in.
+
 // Admin
-Route::middleware(['auth:admin', 'active'])->prefix('admin')->name('admin.')->group(function () use ($catNames) {
+Route::middleware(['auth:admin', 'auth.session', 'active'])->prefix('admin')->name('admin.')->group(function () use ($catNames) {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [AdminDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [AdminProfileController::class, 'show'])->name('profile');
@@ -88,7 +92,7 @@ Route::middleware(['auth:admin', 'active'])->prefix('admin')->name('admin.')->gr
 });
 
 // Department
-Route::middleware(['auth:dept', 'active'])->prefix('department')->name('department.')->group(function () use ($catNames) {
+Route::middleware(['auth:dept', 'auth.session', 'active'])->prefix('department')->name('department.')->group(function () use ($catNames) {
     Route::get('/dashboard', [DepartmentDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [DepartmentDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [DepartmentProfileController::class, 'show'])->name('profile');
@@ -124,7 +128,7 @@ Route::middleware(['auth:dept', 'active'])->prefix('department')->name('departme
 });
 
 // User (Student / Faculty)
-Route::middleware(['auth:user', 'active'])->prefix('user')->name('user.')->group(function () {
+Route::middleware(['auth:user', 'auth.session', 'active'])->prefix('user')->name('user.')->group(function () {
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [UserDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [UserProfileController::class, 'show'])->name('profile');

@@ -102,7 +102,7 @@
                 <div class="form-group">
                     <label for="password">Password</label>
                     <div class="password-input-container">
-                        <input type="password" id="password" name="password" required>
+                        <input type="password" id="password" name="password" required minlength="8" title="At least 8 characters, with letters and numbers.">
                         <i class="fa-regular fa-eye toggle-password" id="togglePassword"></i>
                     </div>
                 </div>

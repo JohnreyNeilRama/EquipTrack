@@ -110,11 +110,30 @@ return [
     |
     */
 
+    // One broker per account type, each with its own token table, so a reset
+    // token can only ever apply to the kind of account it was issued for.
+    // Tokens are stored hashed, expire after 30 minutes and are deleted once
+    // used; a new reset email for the same address needs a 60-second wait.
     'passwords' => [
+        // Students & Faculty
         'users' => [
-            'provider' => 'users',
-            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire' => 60,
+            'provider' => 'user_accounts',
+            'table' => 'password_reset_tokens',
+            'expire' => 30,
+            'throttle' => 60,
+        ],
+        // System administrators
+        'admins' => [
+            'provider' => 'admins',
+            'table' => 'admin_password_reset_tokens',
+            'expire' => 30,
+            'throttle' => 60,
+        ],
+        // Laboratory Personnel (department accounts)
+        'departments' => [
+            'provider' => 'department_accounts',
+            'table' => 'dept_password_reset_tokens',
+            'expire' => 30,
             'throttle' => 60,
         ],
     ],

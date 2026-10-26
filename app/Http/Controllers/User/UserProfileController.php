@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Rules\UniqueAccountEmail;
 use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,7 +39,7 @@ class UserProfileController extends Controller
         $data = $request->validate([
             'first_name' => ['required', 'string', 'max:50'],
             'last_name' => ['nullable', 'string', 'max:50'],
-            'email' => ['required', 'email', 'max:100', Rule::unique('user_account', 'email')->ignore($account->user_id, 'user_id')],
+            'email' => ['required', 'email', 'max:100', Rule::unique('user_account', 'email')->ignore($account->user_id, 'user_id'), UniqueAccountEmail::except(UniqueAccountEmail::USER, $account->user_id)],
             'year_level' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string', 'max:150'],
         ], [

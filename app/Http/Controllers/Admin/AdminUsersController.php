@@ -9,6 +9,7 @@ use App\Models\DepartmentAccount;
 use App\Models\Penalty;
 use App\Models\Student;
 use App\Models\UserAccount;
+use App\Rules\UniqueAccountEmail;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class AdminUsersController extends Controller
@@ -37,9 +39,9 @@ class AdminUsersController extends Controller
             'id_number' => ['required', 'string', 'regex:/^\d{8}$/'],
             'year_level' => ['required', 'string', 'max:20'],
             'department' => ['nullable', 'string'],
-            'email' => ['required', 'email', 'max:100', Rule::unique('user_account', 'email')],
+            'email' => ['required', 'email', 'max:100', Rule::unique('user_account', 'email'), new UniqueAccountEmail()],
             'address' => ['required', 'string', 'max:150'],
-            'password' => ['required', 'string', 'min:6'],
+            'password' => ['required', 'string', Password::defaults()],
         ], [
             'id_number.regex' => 'Student ID must be exactly 8 digits.',
             'email.unique' => 'An account with email :input already exists.',
@@ -92,10 +94,10 @@ class AdminUsersController extends Controller
         $data = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
             'employee_id' => ['required', 'string', 'max:100', Rule::unique('department_account', 'employee_id')],
-            'email' => ['required', 'email', 'max:100', Rule::unique('department_account', 'email')],
+            'email' => ['required', 'email', 'max:100', Rule::unique('department_account', 'email'), new UniqueAccountEmail()],
             'role' => ['required', Rule::in(['Department Head', 'Department Staff', 'Department Admin'])],
             'department_id' => ['required', 'integer', Rule::exists('department', 'department_id')],
-            'password' => ['required', 'string', 'min:6'],
+            'password' => ['required', 'string', Password::defaults()],
         ], [
             'employee_id.unique' => 'A department account with this email or employee ID already exists.',
             'email.unique' => 'A department account with this email or employee ID already exists.',

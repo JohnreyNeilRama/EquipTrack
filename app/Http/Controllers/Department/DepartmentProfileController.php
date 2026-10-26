@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Department;
 use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\DepartmentAccount;
+use App\Rules\UniqueAccountEmail;
 use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class DepartmentProfileController extends Controller
@@ -38,6 +40,7 @@ class DepartmentProfileController extends Controller
             'email' => [
                 'required', 'email', 'max:100',
                 Rule::unique('department_account', 'email')->ignore($account->dept_acc_id, 'dept_acc_id'),
+                UniqueAccountEmail::except(UniqueAccountEmail::DEPT, $account->dept_acc_id),
             ],
             'employee_id' => [
                 'nullable', 'string', 'max:100',
@@ -46,8 +49,10 @@ class DepartmentProfileController extends Controller
                     ->where(fn ($q) => $q->where('employee_id', '!=', '')),
             ],
             'current_password' => ['nullable', 'string'],
-            'new_password' => ['nullable', 'string', 'min:6'],
+            'new_password' => ['nullable', 'string', Password::defaults(), 'different:current_password'],
             'confirm_password' => ['nullable', 'required_with:new_password', 'same:new_password'],
+        ], [
+            'new_password.different' => 'Your new password must be different from your current password.',
         ]);
 
         if (!empty($data['new_password'])) {

@@ -153,7 +153,7 @@
                                 <i class="fa-solid fa-eye" aria-hidden="true"></i>
                             </button>
                         </div>
-                        <p class="field-hint" id="newPasswordHint">At least 6 characters.</p>
+                        <p class="field-hint" id="newPasswordHint">At least 8 characters, with letters and numbers.</p>
                     </div>
 
                     <div class="form-group-item">

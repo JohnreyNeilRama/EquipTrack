@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
+use App\Rules\UniqueAccountEmail;
 use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -11,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class AdminProfileController extends Controller
@@ -35,14 +37,15 @@ class AdminProfileController extends Controller
 
         $data = $request->validate([
             'admin_full_name' => ['required', 'string', 'max:100'],
-            'admin_email' => ['required', 'email', 'max:100', Rule::unique('admin', 'email')->ignore($admin->admin_id, 'admin_id')],
+            'admin_email' => ['required', 'email', 'max:100', Rule::unique('admin', 'email')->ignore($admin->admin_id, 'admin_id'), UniqueAccountEmail::except(UniqueAccountEmail::ADMIN, $admin->admin_id)],
             'admin_employee_id' => ['nullable', 'string', 'max:50'],
             'current_password' => ['nullable', 'string'],
-            'new_password' => ['nullable', 'string', 'min:6'],
+            'new_password' => ['nullable', 'string', Password::defaults(), 'different:current_password'],
             'confirm_password' => ['nullable', 'required_with:new_password', 'same:new_password'],
         ], [
             'admin_email.unique' => 'Another admin already uses that email/username.',
             'confirm_password.same' => 'New password and confirm password do not match.',
+            'new_password.different' => 'Your new password must be different from your current password.',
         ]);
 
         $update = [

@@ -7,12 +7,14 @@ use App\Models\Department;
 use App\Models\FacultyMember;
 use App\Models\Student;
 use App\Models\UserAccount;
+use App\Rules\UniqueAccountEmail;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -42,9 +44,9 @@ class RegisteredUserController extends Controller
             'year_level' => ['nullable', 'string'],
             // The department decides which Lab Personnel see and manage this user.
             'department_id' => ['required', 'integer', Rule::exists('department', 'department_id')],
-            'email' => ['required', 'email', 'max:100', Rule::unique('user_account', 'email')],
+            'email' => ['required', 'email', 'max:100', Rule::unique('user_account', 'email'), new UniqueAccountEmail()],
             'address' => ['required', 'string', 'max:150'],
-            'password' => ['required', 'string', 'min:6'],
+            'password' => ['required', 'string', Password::defaults()],
         ], [
             'id_number.regex' => 'Student ID must be exactly 8 digits.',
             'department_id.required' => 'Please select your department.',
