@@ -52,14 +52,19 @@ class UserEquipmentController extends Controller
         // instructors), so for them the field is neither required nor saved.
         $askInstructor = auth('user')->user()->role !== 'Faculty';
 
+        // "Today" in Philippine time: the app clock runs in UTC, which is still
+        // the previous day before 8:00 AM here.
+        $today = now(config('app.display_timezone'))->toDateString();
+
         $data = $request->validate([
             'equipment_id' => ['required', 'integer', 'min:1'],
-            'borrow_date' => ['required', 'date'],
+            'borrow_date' => ['required', 'date', 'after_or_equal:' . $today],
             'return_date' => ['required', 'date', 'after_or_equal:borrow_date'],
             'purpose' => ['required', 'string', 'max:255'],
             'instructor_name' => [$askInstructor ? 'required' : 'nullable', 'string', 'max:150'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ], [
+            'borrow_date.after_or_equal' => 'The borrow date cannot be in the past.',
             'return_date.after_or_equal' => 'Return date cannot be earlier than borrow date.',
             'instructor_name.required' => "Please enter your instructor's name.",
             'instructor_name.max' => "The instructor's name may not be longer than 150 characters.",

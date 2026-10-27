@@ -298,24 +298,31 @@
         const borrowDateInput = document.getElementById('borrowDate');
         const returnDateInput = document.getElementById('returnDate');
 
+        // Dates as YYYY-MM-DD in the user's own time zone. toISOString() would
+        // give the UTC date, which is still yesterday before 8:00 AM in the
+        // Philippines. The server checks the same rule in Philippine time.
+        const toYmd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const addDays = (ymd, days) => {
+            const [y, m, d] = ymd.split('-').map(Number);
+            return toYmd(new Date(y, m - 1, d + days));
+        };
+
         // Set minimum dates
-        const today = new Date().toISOString().split('T')[0];
+        const today = toYmd(new Date());
+        const tomorrowYmd = addDays(today, 1);
         if (borrowDateInput) {
             borrowDateInput.min = today;
             borrowDateInput.value = today;
         }
 
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
         if (returnDateInput) {
-            returnDateInput.min = tomorrow.toISOString().split('T')[0];
+            returnDateInput.min = tomorrowYmd;
         }
 
         if (borrowDateInput && returnDateInput) {
             borrowDateInput.addEventListener('change', () => {
-                const selectedBorrowDate = new Date(borrowDateInput.value);
-                selectedBorrowDate.setDate(selectedBorrowDate.getDate() + 1);
-                returnDateInput.min = selectedBorrowDate.toISOString().split('T')[0];
+                if (!borrowDateInput.value) return;
+                returnDateInput.min = addDays(borrowDateInput.value, 1);
                 if (returnDateInput.value && returnDateInput.value < returnDateInput.min) {
                     returnDateInput.value = returnDateInput.min;
                 }
@@ -346,7 +353,7 @@
                 if (borrowDateInput) borrowDateInput.value = today;
                 if (returnDateInput) {
                     returnDateInput.value = "";
-                    returnDateInput.min = tomorrow.toISOString().split('T')[0];
+                    returnDateInput.min = tomorrowYmd;
                 }
 
                 if (modal) modal.classList.add('show');
@@ -423,8 +430,11 @@
                     submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting...';
                 }
 
+                // Accept: JSON makes the server answer refused input with its
+                // own message instead of redirecting.
                 fetch(@json(route('user.borrow.store')), {
                     method: 'POST',
+                    headers: { 'Accept': 'application/json' },
                     body: formData
                 })
                 .then(res => res.json())
@@ -436,7 +446,9 @@
                             window.location.href = data.redirect;
                         }
                     } else {
-                        alert('Submission Error: ' + (data.message || 'Failed to submit request.'));
+                        const firstError = data.errors ? Object.values(data.errors)[0] : null;
+                        const message = (Array.isArray(firstError) ? firstError[0] : firstError) || data.message || 'Failed to submit request.';
+                        alert('Submission Error: ' + message);
                     }
                 })
                 .catch(err => {
