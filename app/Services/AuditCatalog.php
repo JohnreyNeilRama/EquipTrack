@@ -18,6 +18,8 @@ class AuditCatalog
         // Authentication
         ['label' => 'Login', 'module' => 'Authentication', 'prefixes' => ['Login' => '']],
         ['label' => 'Logout', 'module' => 'Authentication', 'prefixes' => ['Logout' => '']],
+        ['label' => 'Requested Password Reset', 'module' => 'Authentication', 'prefixes' => ['Requested password reset' => 'Password reset']],
+        ['label' => 'Reset Password', 'module' => 'Authentication', 'prefixes' => ['Reset password via email link' => 'Password']],
 
         // Equipment management
         ['label' => 'Added Equipment', 'module' => 'Equipment Management', 'prefixes' => ['Registered equipment' => 'Equipment']],

@@ -11,6 +11,8 @@ use App\Http\Controllers\Admin\AdminReportsController;
 use App\Http\Controllers\Admin\AdminRequestsController;
 use App\Http\Controllers\Admin\AdminUsersController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Department\DepartmentDashboardController;
 
@@ -44,6 +46,10 @@ Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:6
 Route::get('/register', [RegisteredUserController::class, 'show'])->name('register');
 Route::post('/register', [RegisteredUserController::class, 'store'])->middleware('throttle:10,1');
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
+Route::get('/forgot-password', [PasswordResetLinkController::class, 'show'])->name('password.request');
+Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
+Route::get('/reset-password/{token}', [NewPasswordController::class, 'show'])->name('password.reset');
+Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.store');
 
 // auth.session signs a session out once its account's password changes
 // elsewhere (Change Password or a reset); the session that made the change

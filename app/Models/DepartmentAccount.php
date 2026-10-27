@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -46,5 +47,11 @@ class DepartmentAccount extends Authenticatable
         }
 
         return substr($initials, 0, 2) ?: 'DP';
+    }
+
+    /** EquipTrack's reset email, sent through this account type's broker ('departments'). */
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new ResetPasswordNotification($token, 'departments'));
     }
 }

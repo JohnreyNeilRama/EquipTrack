@@ -3,7 +3,7 @@
 @section('title', 'EquipTrack - Login')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('ccs/login.css') }}">
+<link rel="stylesheet" href="{{ asset('ccs/login.css') }}?v={{ filemtime(public_path('ccs/login.css')) }}">
 @endpush
 
 @section('content')
@@ -17,6 +17,13 @@
             @if ($registered)
                 <div style="color: #065f46; background: #d1fae5; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 15px; border: 1px solid #6ee7b7; display: flex; align-items: center; gap: 8px;">
                     <i class="fa-solid fa-circle-check" style="color: #059669;"></i> Account created successfully! Please log in below.
+                </div>
+            @endif
+
+            @if (session('status'))
+                <div class="auth-alert is-success" role="status">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>{{ session('status') }}</span>
                 </div>
             @endif
 
@@ -53,6 +60,7 @@
                         <span class="checkmark"></span>
                         Remember Me
                     </label>
+                    <a href="{{ route('password.request') }}" class="forgot-password" id="forgotLink">Forgot password?</a>
                 </div>
 
                 <button type="submit" class="login-btn">Login</button>
@@ -80,10 +88,9 @@
         });
     }
 
-    // Smooth transition to Registration page
-    const registerLink = document.getElementById('registerLink');
-    if (registerLink) {
-        registerLink.addEventListener('click', function(e) {
+    // Smooth transition to the Registration and Forgot Password pages
+    ['registerLink', 'forgotLink'].map(id => document.getElementById(id)).filter(Boolean).forEach(link => {
+        link.addEventListener('click', function(e) {
             e.preventDefault();
             const panel = document.querySelector('.login-panel');
             if (panel) {
@@ -94,7 +101,7 @@
                 window.location.href = this.href;
             }, 400);
         });
-    }
+    });
 
     // Fix missing panel when using browser back button (bfcache restore)
     window.addEventListener('pageshow', function (event) {
