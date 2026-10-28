@@ -5,7 +5,7 @@
 @push('css')
 <link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
 <link rel="stylesheet" href="{{ asset('admin/css/adminequipment.css') }}">
-<link rel="stylesheet" href="{{ asset('admin/css/adminusers.css') }}">
+<link rel="stylesheet" href="{{ asset('admin/css/adminusers.css') }}?v={{ filemtime(public_path('admin/css/adminusers.css')) }}">
 @endpush
 
 @php
@@ -102,6 +102,9 @@
             <div class="controls-right-buttons">
                 <button class="btn-add-student" id="addStudentBtn">
                     <i class="fa-solid fa-graduation-cap"></i> Add Student
+                </button>
+                <button class="btn-add-faculty" id="addFacultyBtn">
+                    <i class="fa-solid fa-chalkboard-user"></i> Add Faculty
                 </button>
                 <button class="btn-add-department" id="addDepartmentBtn">
                     <i class="fa-solid fa-building"></i> Add Department
@@ -215,6 +218,84 @@
 
                     <button type="submit" class="btn-submit-request" style="margin-top: 10px;">
                         Create Student Account
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Add Faculty Modal --}}
+    @php $facultyOld = old('form_type') === 'faculty'; @endphp
+    <div class="modal-overlay" id="facultyModal">
+        <div class="modal-card eq-modal-card">
+            <div class="modal-outer-header">
+                <p class="modal-subtitle-top">Register a new faculty member account in the system</p>
+            </div>
+            <div class="modal-inner-card">
+                <button class="modal-close" id="closeFacultyModalBtn">&times;</button>
+                <h3 class="modal-title-center">Add Faculty Account</h3>
+
+                <form id="facultyForm" action="{{ route('admin.users.faculty') }}" method="POST" class="new-modal-form" style="padding-top: 10px;">
+                    @csrf
+                    {{-- Tells the page to reopen this form if the server finds a problem --}}
+                    <input type="hidden" name="form_type" value="faculty">
+
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group-flat">
+                            <label for="facFirstName">First Name</label>
+                            <input type="text" id="facFirstName" name="first_name" class="form-control-flat" required maxlength="50" placeholder="Dennis" value="{{ $facultyOld ? old('first_name') : '' }}">
+                        </div>
+                        <div class="form-group-flat">
+                            <label for="facLastName">Last Name</label>
+                            <input type="text" id="facLastName" name="last_name" class="form-control-flat" required maxlength="50" placeholder="Durano" value="{{ $facultyOld ? old('last_name') : '' }}">
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group-flat">
+                            <label for="facIdNumber">Faculty ID Number</label>
+                            <input type="text" id="facIdNumber" name="faculty_id_number" class="form-control-flat" required maxlength="20" pattern="[A-Za-z0-9\-]+" title="Letters, numbers and hyphens only." placeholder="e.g., T-00987" value="{{ $facultyOld ? old('faculty_id_number') : '' }}">
+                        </div>
+                        <div class="form-group-flat">
+                            <label for="facLicense">Teaching License No.</label>
+                            <input type="text" id="facLicense" name="teaching_license_no" class="form-control-flat" required maxlength="30" pattern="[A-Za-z0-9\-]+" title="Letters, numbers and hyphens only." placeholder="e.g., 1234567" value="{{ $facultyOld ? old('teaching_license_no') : '' }}">
+                        </div>
+                    </div>
+
+                    <div class="form-group-flat">
+                        <label for="facEducation">Highest Educational Attainment <span class="label-optional">(optional)</span></label>
+                        <input type="text" id="facEducation" name="highest_educational_attainment" class="form-control-flat" maxlength="100" placeholder="e.g., Master of Information Technology" value="{{ $facultyOld ? old('highest_educational_attainment') : '' }}">
+                    </div>
+
+                    <div class="form-group-flat">
+                        <label for="facDepartment">Department</label>
+                        <div class="flat-select-wrapper" style="width: 100%;">
+                            <select id="facDepartment" name="department" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                                <option value="" disabled @selected(!($facultyOld && old('department')))>Select Department</option>
+                                @foreach ($departmentsList as $deptOption)
+                                    <option value="{{ $deptOption->department_name }}" @selected($facultyOld && old('department') === $deptOption->department_name)>{{ $deptOption->department_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group-flat">
+                        <label for="facEmail">Email Address</label>
+                        <input type="email" id="facEmail" name="email" class="form-control-flat" required maxlength="100" placeholder="dennis.durano@example.com" value="{{ $facultyOld ? old('email') : '' }}">
+                    </div>
+
+                    <div class="form-group-flat">
+                        <label for="facAddress">Home Address</label>
+                        <input type="text" id="facAddress" name="address" class="form-control-flat" required maxlength="150" placeholder="123 University Ave, Tech City" value="{{ $facultyOld ? old('address') : '' }}">
+                    </div>
+
+                    <div class="form-group-flat">
+                        <label for="facPassword">Password</label>
+                        <input type="password" id="facPassword" name="password" class="form-control-flat" required placeholder="••••••••" minlength="8" autocomplete="new-password" title="At least 8 characters, with letters and numbers.">
+                    </div>
+
+                    <button type="submit" class="btn-submit-request" style="margin-top: 10px;">
+                        Create Faculty Account
                     </button>
                 </form>
             </div>
@@ -427,6 +508,11 @@
         const closeStudentModalBtn = document.getElementById('closeStudentModalBtn');
         const studentForm = document.getElementById('studentForm');
 
+        const facultyModal = document.getElementById('facultyModal');
+        const addFacultyBtn = document.getElementById('addFacultyBtn');
+        const closeFacultyModalBtn = document.getElementById('closeFacultyModalBtn');
+        const facultyForm = document.getElementById('facultyForm');
+
         const departmentModal = document.getElementById('departmentModal');
         const addDepartmentBtn = document.getElementById('addDepartmentBtn');
         const closeDeptModalBtn = document.getElementById('closeDeptModalBtn');
@@ -464,7 +550,9 @@
             @php
                 $isDeptError = $errors->hasAny(['full_name', 'employee_id', 'department_id', 'role']);
             @endphp
-            @if ($isDeptError)
+            @if (old('form_type') === 'faculty')
+                facultyModal.classList.add('show');
+            @elseif ($isDeptError)
                 departmentModal.classList.add('show');
             @else
                 studentModal.classList.add('show');
@@ -795,6 +883,33 @@
             }
         });
 
+        facultyForm.addEventListener('submit', (e) => {
+            const idNumber = document.getElementById('facIdNumber').value.trim();
+            const email = document.getElementById('facEmail').value.trim();
+            const password = document.getElementById('facPassword').value;
+
+            if (!/^[A-Za-z0-9-]+$/.test(idNumber)) {
+                e.preventDefault();
+                showNotification('Validation Error', 'The faculty ID number may contain only letters, numbers and hyphens.', 'error');
+                return;
+            }
+            if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+                e.preventDefault();
+                showNotification('Validation Error', 'The password must be at least 8 characters and include a letter and a number.', 'error');
+                return;
+            }
+
+            const exists = users.some(u =>
+                (u.email && u.email.toLowerCase() === email.toLowerCase()) ||
+                (u.id_number && u.id_number.toLowerCase() === idNumber.toLowerCase())
+            );
+            if (exists) {
+                e.preventDefault();
+                showNotification('Registration Error', 'A user with this faculty ID number or email already exists.', 'error');
+                return;
+            }
+        });
+
         departmentForm.addEventListener('submit', (e) => {
             const emailEl = document.getElementById('deptEmail');
             const empIdEl = document.getElementById('deptEmployeeId');
@@ -832,6 +947,22 @@
         closeStudentModalBtn.addEventListener('click', () => {
             studentModal.classList.remove('show');
             studentForm.reset();
+        });
+
+        addFacultyBtn.addEventListener('click', () => {
+            facultyModal.classList.add('show');
+        });
+
+        closeFacultyModalBtn.addEventListener('click', () => {
+            facultyModal.classList.remove('show');
+            facultyForm.reset();
+        });
+
+        facultyModal.addEventListener('click', (e) => {
+            if (e.target === facultyModal) {
+                facultyModal.classList.remove('show');
+                facultyForm.reset();
+            }
         });
 
         addDepartmentBtn.addEventListener('click', () => {

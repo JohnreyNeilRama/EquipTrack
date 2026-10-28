@@ -9,10 +9,16 @@
 
 .controls-right-buttons {
     display: flex;
+    flex-wrap: wrap;
     gap: 12px;
 }
 
-.btn-add-student, .btn-add-department {
+.label-optional {
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.btn-add-student, .btn-add-faculty, .btn-add-department {
     height: 46px;
     padding: 0 24px;
     border-radius: 23px;
@@ -29,17 +35,17 @@
     box-shadow: 0 4px 10px rgba(56, 85, 133, 0.15);
 }
 
-.btn-add-student:hover, .btn-add-department:hover {
+.btn-add-student:hover, .btn-add-faculty:hover, .btn-add-department:hover {
     background-color: #2f477a;
     transform: translateY(-1px);
 }
 
-.dark-theme .btn-add-student, .dark-theme .btn-add-department {
+.dark-theme .btn-add-student, .dark-theme .btn-add-faculty, .dark-theme .btn-add-department {
     background-color: var(--primary-sidebar);
     color: white;
 }
 
-.dark-theme .btn-add-student:hover, .dark-theme .btn-add-department:hover {
+.dark-theme .btn-add-student:hover, .dark-theme .btn-add-faculty:hover, .dark-theme .btn-add-department:hover {
     background-color: #2563eb;
 }
 

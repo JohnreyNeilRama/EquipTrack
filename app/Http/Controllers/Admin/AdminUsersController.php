@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BorrowTransaction;
 use App\Models\Department;
 use App\Models\DepartmentAccount;
+use App\Models\FacultyMember;
 use App\Models\Penalty;
 use App\Models\Student;
 use App\Models\UserAccount;
@@ -86,6 +87,71 @@ class AdminUsersController extends Controller
         return redirect()
             ->route('admin.users')
             ->with('serverMsg', "Student account for '{$data['first_name']} {$data['last_name']}' created successfully!")
+            ->with('serverMsgType', 'success');
+    }
+
+    /**
+     * Creates a Faculty account (user_account + faculty_member), the Admin's
+     * counterpart to self-registration as a teacher.
+     */
+    public function addFaculty(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'first_name' => ['required', 'string', 'max:50'],
+            'last_name' => ['required', 'string', 'max:50'],
+            'faculty_id_number' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9-]+$/', Rule::unique('faculty_member', 'faculty_id_number')],
+            'teaching_license_no' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9-]+$/', Rule::unique('faculty_member', 'teaching_license_no')],
+            'highest_educational_attainment' => ['nullable', 'string', 'max:100'],
+            'department' => ['required', 'string', Rule::exists('department', 'department_name')],
+            'email' => ['required', 'email', 'max:100', Rule::unique('user_account', 'email'), new UniqueAccountEmail()],
+            'address' => ['required', 'string', 'max:150'],
+            'password' => ['required', 'string', Password::defaults()],
+        ], [
+            'faculty_id_number.required' => 'Enter the faculty ID number.',
+            'faculty_id_number.regex' => 'The faculty ID number may contain only letters, numbers and hyphens.',
+            'faculty_id_number.unique' => 'Another faculty member already has this faculty ID number.',
+            'teaching_license_no.required' => 'Enter the teaching license number.',
+            'teaching_license_no.regex' => 'The teaching license number may contain only letters, numbers and hyphens.',
+            'teaching_license_no.unique' => 'Another faculty member already has this teaching license number.',
+            'department.required' => 'Select a department.',
+            'department.exists' => 'Select a valid department.',
+            'email.unique' => 'An account with email :input already exists.',
+        ]);
+
+        $deptId = Department::where('department_name', $data['department'])->value('department_id');
+
+        $account = DB::transaction(function () use ($data, $deptId) {
+            $account = UserAccount::create([
+                'role' => 'Faculty',
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+                'department_id' => $deptId,
+            ]);
+
+            FacultyMember::create([
+                'user_id' => $account->user_id,
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
+                'faculty_id_number' => strtoupper(trim($data['faculty_id_number'])),
+                'teaching_license_no' => strtoupper(trim($data['teaching_license_no'])),
+                'highest_educational_attainment' => ($data['highest_educational_attainment'] ?? null) ?: null,
+                'address' => $data['address'],
+            ]);
+
+            return $account;
+        });
+
+        AuditLogger::log(
+            'Added faculty account',
+            'user_account:' . $account->user_id,
+            $data['first_name'] . ' ' . $data['last_name'] . ' (' . $data['email'] . ')',
+            null,
+            $request,
+        );
+
+        return redirect()
+            ->route('admin.users')
+            ->with('serverMsg', "Faculty account for '{$data['first_name']} {$data['last_name']}' created successfully!")
             ->with('serverMsgType', 'success');
     }
 

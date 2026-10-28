@@ -64,6 +64,7 @@ class AuditCatalog
         ['label' => 'Registered Account', 'module' => 'Users', 'prefixes' => ['Registered account' => 'Account']],
         ['label' => 'Added User', 'module' => 'Users', 'prefixes' => [
             'Added student account' => 'Student account',
+            'Added faculty account' => 'Faculty account',
             'Added department account' => 'Department account',
         ]],
         ['label' => 'Updated User', 'module' => 'Users', 'prefixes' => ['Updated user' => 'User']],

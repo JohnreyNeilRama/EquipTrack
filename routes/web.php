@@ -72,6 +72,7 @@ Route::middleware(['auth:admin', 'auth.session', 'active'])->prefix('admin')->na
     Route::post('/requests/update-status', [AdminRequestsController::class, 'updateStatus'])->name('requests.update');
     Route::get('/users', [AdminUsersController::class, 'index'])->name('users');
     Route::post('/users/student', [AdminUsersController::class, 'addStudent'])->name('users.student');
+    Route::post('/users/faculty', [AdminUsersController::class, 'addFaculty'])->name('users.faculty');
     Route::post('/users/department', [AdminUsersController::class, 'addDepartment'])->name('users.department');
     Route::post('/users/toggle-status', [AdminUsersController::class, 'toggleStatus'])->name('users.toggle');
     Route::post('/users/delete', [AdminUsersController::class, 'delete'])->name('users.delete');
