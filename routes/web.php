@@ -73,6 +73,7 @@ Route::middleware(['auth:admin', 'auth.session', 'active'])->prefix('admin')->na
     Route::get('/users', [AdminUsersController::class, 'index'])->name('users');
     Route::post('/users/student', [AdminUsersController::class, 'addStudent'])->name('users.student');
     Route::post('/users/faculty', [AdminUsersController::class, 'addFaculty'])->name('users.faculty');
+    Route::post('/users/update', [AdminUsersController::class, 'updateUser'])->name('users.update');
     Route::post('/users/department', [AdminUsersController::class, 'addDepartment'])->name('users.department');
     Route::post('/users/toggle-status', [AdminUsersController::class, 'toggleStatus'])->name('users.toggle');
     Route::post('/users/delete', [AdminUsersController::class, 'delete'])->name('users.delete');
@@ -127,6 +128,10 @@ Route::middleware(['auth:dept', 'auth.session', 'active'])->prefix('department')
     Route::get('/penalties/proof/file/{file}', [DepartmentPenaltiesController::class, 'proofFile'])->whereNumber('file')->name('penalties.proof');
     Route::get('/users', [DepartmentUsersController::class, 'index'])->name('users');
     Route::get('/users/data', [DepartmentUsersController::class, 'data'])->name('users.data');
+    Route::post('/users/student', [DepartmentUsersController::class, 'addStudent'])->name('users.student');
+    Route::post('/users/faculty', [DepartmentUsersController::class, 'addFaculty'])->name('users.faculty');
+    Route::post('/users/update', [DepartmentUsersController::class, 'update'])->name('users.update');
+    Route::post('/users/status', [DepartmentUsersController::class, 'setStatus'])->name('users.status');
     Route::get('/monitoring', [DepartmentMonitoringController::class, 'index'])->name('monitoring');
     Route::get('/history', [DepartmentHistoryController::class, 'index'])->name('history');
     Route::get('/history/data', [DepartmentHistoryController::class, 'data'])->name('history.data');

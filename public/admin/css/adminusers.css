@@ -82,6 +82,32 @@
     background-color: rgba(239, 68, 68, 0.1);
 }
 
+/* "Edit Details" in the User Details window */
+.modal-actions-footer .btn-modal-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: #385585;
+    border: none;
+    color: #ffffff;
+}
+
+.modal-actions-footer .btn-modal-edit:hover {
+    background-color: #2f477a;
+}
+
+.dark-theme .modal-actions-footer .btn-modal-edit {
+    background-color: var(--primary-sidebar);
+}
+
+.edit-form-note {
+    margin: 0 0 6px;
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
 .dark-theme .btn-action-toggle {
     border-color: #334155;
     color: #94a3b8;

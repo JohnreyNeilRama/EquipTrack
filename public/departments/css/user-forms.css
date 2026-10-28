@@ -1,0 +1,371 @@
+/* EquipTrack — Department Users: Add Student / Add Faculty / Edit Details.
+   Builds on the .modal-overlay / .modal-card / .modal-close styles in users.css
+   and uses the same field look as the department Equipment form. Every form
+   rule is scoped under #userFormModal so nothing else on the page changes. */
+
+/* "Add Student" / "Add Faculty" in the filter bar */
+.users-add-actions {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+
+.btn-add-user {
+    height: 44px;
+    padding: 0 20px;
+    border-radius: 22px;
+    background-color: #385585;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+    transition: background-color 0.2s, transform 0.1s;
+    box-shadow: 0 4px 10px rgba(56, 85, 133, 0.15);
+}
+
+.btn-add-user:hover {
+    background-color: #2f477a;
+    transform: translateY(-1px);
+}
+
+.btn-add-user:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(56, 85, 133, 0.35);
+}
+
+.dark-theme .btn-add-user {
+    background-color: var(--primary-sidebar);
+}
+
+.dark-theme .btn-add-user:hover {
+    background-color: #2563eb;
+}
+
+@media (max-width: 992px) {
+    .users-add-actions {
+        margin-left: 0;
+    }
+
+    .users-add-actions .btn-add-user {
+        flex: 1 1 160px;
+    }
+}
+
+/* The form card */
+/* Title and buttons stay in view; only the fields scroll on short screens. */
+#userFormModal .modal-card {
+    max-width: 580px;
+    max-height: calc(100vh - 40px);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#userFormModal .uf-head {
+    padding: 24px 28px 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+#userFormModal .uf-title {
+    margin: 0;
+    padding-right: 40px;
+    font-size: var(--fs-modal-title);
+    font-weight: 700;
+    color: var(--section-title-color);
+    line-height: 1.3;
+}
+
+#userFormModal .uf-subtitle {
+    margin: 4px 0 0;
+    padding-right: 40px;
+    font-size: var(--fs-label);
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+#userFormModal .uf-body {
+    padding: 20px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+#userFormModal .uf-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+#userFormModal .form-group-flat {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+#userFormModal .form-group-flat label {
+    font-size: var(--fs-label);
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+#userFormModal .label-optional {
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+#userFormModal .form-control-flat {
+    width: 100%;
+    height: 42px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: var(--fs-body);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#userFormModal .form-control-flat:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(56, 85, 133, 0.15);
+}
+
+#userFormModal .form-control-flat[readonly] {
+    color: var(--text-muted);
+    cursor: default;
+}
+
+#userFormModal select.form-control-flat {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 36px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    cursor: pointer;
+}
+
+#userFormModal .uf-note {
+    margin: 0;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background-color: var(--primary-light);
+    color: var(--text-main);
+    font-size: var(--fs-small);
+    line-height: 1.5;
+}
+
+#userFormModal .uf-error {
+    margin: 0;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background-color: #fee2e2;
+    border: 1px solid #fca5a5;
+    color: #b91c1c;
+    font-size: var(--fs-label);
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+#userFormModal .uf-error[hidden] {
+    display: none;
+}
+
+.dark-theme #userFormModal .uf-error {
+    background-color: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #f87171;
+}
+
+#userFormModal .uf-foot {
+    padding: 16px 28px 24px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+#userFormModal .uf-btn {
+    height: 42px;
+    padding: 0 22px;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+#userFormModal .uf-btn-secondary {
+    background-color: transparent;
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+}
+
+#userFormModal .uf-btn-secondary:hover {
+    background-color: var(--primary-light);
+}
+
+#userFormModal .uf-btn-primary {
+    min-width: 150px;
+    background-color: #385585;
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 10px rgba(56, 85, 133, 0.2);
+}
+
+#userFormModal .uf-btn-primary:hover {
+    background-color: #2f477a;
+}
+
+#userFormModal .uf-btn-primary:disabled {
+    opacity: 0.7;
+    cursor: progress;
+}
+
+@media (max-width: 600px) {
+    #userFormModal .uf-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    #userFormModal .uf-head,
+    #userFormModal .uf-body,
+    #userFormModal .uf-foot {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+    #userFormModal .uf-btn {
+        flex: 1 1 100%;
+    }
+
+    #userFormModal .uf-btn-primary {
+        order: -1;
+    }
+}
+
+/* View Details window: "Edit Details" and "Deactivate/Activate Account" */
+#viewUserModal .modal-actions-footer .btn-modal-edit {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: #385585;
+    color: #ffffff;
+    border: none;
+}
+
+#viewUserModal .modal-actions-footer .btn-modal-edit:hover {
+    background-color: #2f477a;
+}
+
+#viewUserModal .modal-actions-footer .btn-modal-status {
+    flex: 1;
+    background-color: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #dc2626;
+}
+
+#viewUserModal .modal-actions-footer .btn-modal-status:hover {
+    background-color: rgba(239, 68, 68, 0.08);
+}
+
+#viewUserModal .modal-actions-footer .btn-modal-status.is-activate {
+    border-color: rgba(16, 185, 129, 0.4);
+    color: #047857;
+}
+
+#viewUserModal .modal-actions-footer .btn-modal-status.is-activate:hover {
+    background-color: rgba(16, 185, 129, 0.08);
+}
+
+#viewUserModal .modal-actions-footer button:disabled {
+    opacity: 0.7;
+    cursor: progress;
+}
+
+.dark-theme #viewUserModal .modal-actions-footer .btn-modal-edit {
+    background-color: var(--primary-sidebar);
+}
+
+.dark-theme #viewUserModal .modal-actions-footer .btn-modal-status {
+    color: #f87171;
+}
+
+.dark-theme #viewUserModal .modal-actions-footer .btn-modal-status.is-activate {
+    color: #34d399;
+}
+
+@media (max-width: 600px) {
+    #viewUserModal .modal-actions-footer {
+        flex-wrap: wrap;
+    }
+
+    #viewUserModal .modal-actions-footer button {
+        flex: 1 1 100%;
+    }
+}
+
+/* Toast (same look as the department Profile page) */
+.toast-notification {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 14px 22px;
+    border-radius: 12px;
+    background-color: #1e293b;
+    color: #ffffff;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 10000;
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast-notification #toastIcon {
+    color: #10b981;
+}
+
+.toast-notification.is-error #toastIcon {
+    color: #f87171;
+}
+
+@media (max-width: 640px) {
+    .toast-notification {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+    }
+}

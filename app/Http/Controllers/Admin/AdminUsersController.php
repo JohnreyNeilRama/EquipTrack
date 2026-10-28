@@ -6,16 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\BorrowTransaction;
 use App\Models\Department;
 use App\Models\DepartmentAccount;
-use App\Models\FacultyMember;
 use App\Models\Penalty;
-use App\Models\Student;
 use App\Models\UserAccount;
 use App\Rules\UniqueAccountEmail;
 use App\Services\AuditLogger;
+use App\Services\UserAccountCreator;
+use App\Services\UserAccountEditor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -34,60 +33,7 @@ class AdminUsersController extends Controller
 
     public function addStudent(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'first_name' => ['required', 'string', 'max:50'],
-            'last_name' => ['required', 'string', 'max:50'],
-            'id_number' => ['required', 'string', 'regex:/^\d{8}$/'],
-            'year_level' => ['required', 'string', 'max:20'],
-            'department' => ['nullable', 'string'],
-            'email' => ['required', 'email', 'max:100', Rule::unique('user_account', 'email'), new UniqueAccountEmail()],
-            'address' => ['required', 'string', 'max:150'],
-            'password' => ['required', 'string', Password::defaults()],
-        ], [
-            'id_number.regex' => 'Student ID must be exactly 8 digits.',
-            'email.unique' => 'An account with email :input already exists.',
-        ]);
-
-        $deptName = trim($data['department'] ?? '');
-        $dept = $deptName !== ''
-            ? Department::where('department_name', $deptName)->first()
-            : null;
-        $deptId = $dept?->department_id ?? Department::orderBy('department_id')->value('department_id');
-
-        // FIX vs legacy: the student-child insert was never checked, so a failure
-        // left an account without a profile row while still reporting success.
-        $account = DB::transaction(function () use ($data, $deptId) {
-            $account = UserAccount::create([
-                'role' => 'Student',
-                'email' => $data['email'],
-                'password' => Hash::make($data['password']),
-                'department_id' => $deptId,
-            ]);
-
-            Student::create([
-                'user_id' => $account->user_id,
-                'first_name' => $data['first_name'],
-                'last_name' => $data['last_name'],
-                'id_number' => $data['id_number'],
-                'year_level' => $data['year_level'],
-                'address' => $data['address'],
-            ]);
-
-            return $account;
-        });
-
-        AuditLogger::log(
-            'Added student account',
-            'user_account:' . $account->user_id,
-            $data['first_name'] . ' ' . $data['last_name'] . ' (' . $data['email'] . ')',
-            null,
-            $request,
-        );
-
-        return redirect()
-            ->route('admin.users')
-            ->with('serverMsg', "Student account for '{$data['first_name']} {$data['last_name']}' created successfully!")
-            ->with('serverMsgType', 'success');
+        return $this->addUserAccount($request, 'Student');
     }
 
     /**
@@ -96,62 +42,64 @@ class AdminUsersController extends Controller
      */
     public function addFaculty(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'first_name' => ['required', 'string', 'max:50'],
-            'last_name' => ['required', 'string', 'max:50'],
-            'faculty_id_number' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9-]+$/', Rule::unique('faculty_member', 'faculty_id_number')],
-            'teaching_license_no' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9-]+$/', Rule::unique('faculty_member', 'teaching_license_no')],
-            'highest_educational_attainment' => ['nullable', 'string', 'max:100'],
-            'department' => ['required', 'string', Rule::exists('department', 'department_name')],
-            'email' => ['required', 'email', 'max:100', Rule::unique('user_account', 'email'), new UniqueAccountEmail()],
-            'address' => ['required', 'string', 'max:150'],
-            'password' => ['required', 'string', Password::defaults()],
-        ], [
-            'faculty_id_number.required' => 'Enter the faculty ID number.',
-            'faculty_id_number.regex' => 'The faculty ID number may contain only letters, numbers and hyphens.',
-            'faculty_id_number.unique' => 'Another faculty member already has this faculty ID number.',
-            'teaching_license_no.required' => 'Enter the teaching license number.',
-            'teaching_license_no.regex' => 'The teaching license number may contain only letters, numbers and hyphens.',
-            'teaching_license_no.unique' => 'Another faculty member already has this teaching license number.',
+        return $this->addUserAccount($request, 'Faculty');
+    }
+
+    /**
+     * Add Student / Add Faculty. The rules and saving are shared with the
+     * department Users page (UserAccountCreator); the Admin also picks the
+     * department (by name, as the forms send it).
+     */
+    private function addUserAccount(Request $request, string $role): RedirectResponse
+    {
+        $rules = ($role === 'Faculty' ? UserAccountCreator::facultyRules() : UserAccountCreator::studentRules())
+            + ['department' => ['required', 'string', Rule::exists('department', 'department_name')]];
+
+        $data = $request->validate($rules, UserAccountCreator::messages() + [
             'department.required' => 'Select a department.',
             'department.exists' => 'Select a valid department.',
-            'email.unique' => 'An account with email :input already exists.',
         ]);
 
-        $deptId = Department::where('department_name', $data['department'])->value('department_id');
+        $deptId = (int) Department::where('department_name', $data['department'])->value('department_id');
 
-        $account = DB::transaction(function () use ($data, $deptId) {
-            $account = UserAccount::create([
-                'role' => 'Faculty',
-                'email' => $data['email'],
-                'password' => Hash::make($data['password']),
-                'department_id' => $deptId,
-            ]);
-
-            FacultyMember::create([
-                'user_id' => $account->user_id,
-                'first_name' => $data['first_name'],
-                'last_name' => $data['last_name'],
-                'faculty_id_number' => strtoupper(trim($data['faculty_id_number'])),
-                'teaching_license_no' => strtoupper(trim($data['teaching_license_no'])),
-                'highest_educational_attainment' => ($data['highest_educational_attainment'] ?? null) ?: null,
-                'address' => $data['address'],
-            ]);
-
-            return $account;
-        });
-
-        AuditLogger::log(
-            'Added faculty account',
-            'user_account:' . $account->user_id,
-            $data['first_name'] . ' ' . $data['last_name'] . ' (' . $data['email'] . ')',
-            null,
-            $request,
-        );
+        UserAccountCreator::create($role, $data, $deptId, AuditLogger::actorFor('admin', auth('admin')->user()), $request);
 
         return redirect()
             ->route('admin.users')
-            ->with('serverMsg', "Faculty account for '{$data['first_name']} {$data['last_name']}' created successfully!")
+            ->with('serverMsg', "{$role} account for '{$data['first_name']} {$data['last_name']}' created successfully!")
+            ->with('serverMsgType', 'success');
+    }
+
+    /**
+     * Edit User: saves changes to a Student, Faculty or Laboratory Personnel
+     * account. The rules and saving are shared (UserAccountEditor).
+     */
+    public function updateUser(Request $request): RedirectResponse
+    {
+        $target = $request->validate([
+            'user_id' => ['required', 'integer', 'min:1'],
+            'user_type' => ['required', 'in:user_account,department'],
+        ]);
+
+        // Department rows carry a 100000 offset on the page (see fetchDbUsers).
+        $account = $target['user_type'] === 'department'
+            ? DepartmentAccount::find($target['user_id'] - 100000)
+            : UserAccount::with(['student', 'facultyMember'])->find($target['user_id']);
+
+        if (!$account) {
+            return redirect()->route('admin.users')
+                ->with('serverMsg', 'That account no longer exists.')
+                ->with('serverMsgType', 'error');
+        }
+
+        $data = $request->validate(UserAccountEditor::rules($account), UserAccountEditor::messages());
+
+        $changed = UserAccountEditor::update($account, $data, AuditLogger::actorFor('admin', auth('admin')->user()), $request);
+
+        return redirect()->route('admin.users')
+            ->with('serverMsg', $changed
+                ? 'Account details updated. Changed: ' . implode(', ', $changed) . '.'
+                : 'No changes to save.')
             ->with('serverMsgType', 'success');
     }
 
@@ -384,8 +332,12 @@ class AdminUsersController extends Controller
                 'status' => $row->status ?: 'Active',
                 'username' => explode('@', $row->email)[0],
                 'created_at' => $row->date_created ? Carbon::parse($row->date_created)->format('M j, Y, g:i A') : 'Database Record',
-                'last_online' => $row->last_online ? Carbon::parse($row->last_online)->format('M j, Y, g:i A') : 'Offline / Never',
+                // last_online is saved by the app in UTC; date_created comes from the database
+                // clock, which already runs on Philippine time, so only this one is converted.
+                'last_online' => $row->last_online ? Carbon::parse($row->last_online)->setTimezone(config('app.display_timezone'))->format('M j, Y, g:i A') : 'Offline / Never',
                 'profile_image' => $row->profile_image ?: null,
+                // Real current values for the Edit form (the fields above may hold display defaults).
+                'edit' => UserAccountEditor::values($row),
             ];
         }
 
@@ -426,8 +378,11 @@ class AdminUsersController extends Controller
                 'employee_id' => $empId,
                 'department_id' => $row->department_id,
                 'created_at' => $row->created_at ? Carbon::parse($row->created_at)->format('M j, Y, g:i A') : 'Database Record',
-                'last_online' => $row->last_online ? Carbon::parse($row->last_online)->format('M j, Y, g:i A') : 'Offline / Never',
+                // last_online is saved by the app in UTC; date_created comes from the database
+                // clock, which already runs on Philippine time, so only this one is converted.
+                'last_online' => $row->last_online ? Carbon::parse($row->last_online)->setTimezone(config('app.display_timezone'))->format('M j, Y, g:i A') : 'Offline / Never',
                 'profile_image' => $shared ?: null,
+                'edit' => UserAccountEditor::values($row),
             ];
         }
 

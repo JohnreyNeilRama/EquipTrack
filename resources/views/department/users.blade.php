@@ -5,6 +5,7 @@
 @push('css')
 <link rel="stylesheet" href="{{ asset('departments/css/users.css') }}">
 <link rel="stylesheet" href="{{ asset('departments/css/user-details-modal.css') }}">
+<link rel="stylesheet" href="{{ asset('departments/css/user-forms.css') }}?v={{ filemtime(public_path('departments/css/user-forms.css')) }}">
 @endpush
 
 @section('content')
@@ -87,6 +88,15 @@
                     <option value="inactive">Inactive</option>
                 </select>
                 <i class="fa-solid fa-chevron-down"></i>
+            </div>
+
+            <div class="users-add-actions">
+                <button type="button" class="btn-add-user" id="addStudentBtn">
+                    <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> Add Student
+                </button>
+                <button type="button" class="btn-add-user" id="addFacultyBtn">
+                    <i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i> Add Faculty
+                </button>
             </div>
         </div>
 
@@ -200,10 +210,103 @@
                 </div>
 
                 <div class="modal-actions-footer">
+                    <button type="button" class="btn-modal-edit" id="modalEditDetailsBtn"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i> Edit Details</button>
+                    <button type="button" class="btn-modal-status" id="modalStatusBtn">Deactivate Account</button>
                     <button type="button" class="btn-modal-close" id="modalCloseDetailsBtn">Close</button>
                 </div>
             </div>
         </div>
+    </div>
+
+    {{-- Add Student / Add Faculty / Edit Details: one form; the script shows the fields for the case --}}
+    <div class="modal-overlay" id="userFormModal">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="ufTitle">
+            <button type="button" class="modal-close" id="closeUserFormBtn" aria-label="Close">&times;</button>
+            <div class="uf-head">
+                <h3 class="uf-title" id="ufTitle">Add Student</h3>
+                <p class="uf-subtitle" id="ufSubtitle">The account is added to {{ $departmentName }}.</p>
+            </div>
+
+            <form id="userForm" class="uf-body" novalidate>
+                <input type="hidden" name="user_id" id="ufUserId">
+
+                <p class="uf-note" id="ufNote" hidden></p>
+
+                <div class="uf-row">
+                    <div class="form-group-flat">
+                        <label for="ufFirstName">First Name</label>
+                        <input type="text" id="ufFirstName" name="first_name" class="form-control-flat" required maxlength="50">
+                    </div>
+                    <div class="form-group-flat">
+                        <label for="ufLastName">Last Name</label>
+                        <input type="text" id="ufLastName" name="last_name" class="form-control-flat" required maxlength="50">
+                    </div>
+                </div>
+
+                <div class="uf-row" data-for="student">
+                    <div class="form-group-flat">
+                        <label for="ufIdNumber">Student ID Number</label>
+                        <input type="text" id="ufIdNumber" name="id_number" class="form-control-flat" required pattern="\d{8}" maxlength="8" inputmode="numeric" placeholder="e.g., 20230123" title="Student ID must be exactly 8 digits.">
+                    </div>
+                    <div class="form-group-flat">
+                        <label for="ufYearLevel">Year &amp; Level</label>
+                        <select id="ufYearLevel" name="year_level" class="form-control-flat" required>
+                            @foreach (\App\Services\UserAccountEditor::YEAR_LEVELS as $level)
+                                <option value="{{ $level }}">{{ $level }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="uf-row" data-for="faculty">
+                    <div class="form-group-flat">
+                        <label for="ufFacultyId">Faculty ID Number</label>
+                        <input type="text" id="ufFacultyId" name="faculty_id_number" class="form-control-flat" required maxlength="20" pattern="[A-Za-z0-9\-]+" placeholder="e.g., T-00987" title="Letters, numbers and hyphens only.">
+                    </div>
+                    <div class="form-group-flat">
+                        <label for="ufLicense">Teaching License No.</label>
+                        <input type="text" id="ufLicense" name="teaching_license_no" class="form-control-flat" required maxlength="30" pattern="[A-Za-z0-9\-]+" placeholder="e.g., 1234567" title="Letters, numbers and hyphens only.">
+                    </div>
+                </div>
+
+                <div class="form-group-flat" data-for="faculty">
+                    <label for="ufEducation">Highest Educational Attainment <span class="label-optional">(optional)</span></label>
+                    <input type="text" id="ufEducation" name="highest_educational_attainment" class="form-control-flat" maxlength="100" placeholder="e.g., Master of Information Technology">
+                </div>
+
+                <div class="form-group-flat">
+                    <label for="ufDepartment">Department</label>
+                    <input type="text" id="ufDepartment" class="form-control-flat" value="{{ $departmentName }}" readonly aria-readonly="true">
+                </div>
+
+                <div class="form-group-flat">
+                    <label for="ufEmail">Email Address</label>
+                    <input type="email" id="ufEmail" name="email" class="form-control-flat" required maxlength="100" placeholder="name@example.com">
+                </div>
+
+                <div class="form-group-flat">
+                    <label for="ufAddress">Home Address</label>
+                    <input type="text" id="ufAddress" name="address" class="form-control-flat" required maxlength="150" placeholder="123 University Ave, Tech City">
+                </div>
+
+                <div class="form-group-flat" data-for="add">
+                    <label for="ufPassword">Password</label>
+                    <input type="password" id="ufPassword" name="password" class="form-control-flat" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters, with letters and numbers">
+                </div>
+
+                <p class="uf-error" id="ufError" role="alert" hidden></p>
+            </form>
+
+            <div class="uf-foot">
+                <button type="button" class="uf-btn uf-btn-secondary" id="cancelUserFormBtn">Cancel</button>
+                <button type="submit" form="userForm" class="uf-btn uf-btn-primary" id="ufSubmitBtn">Create Account</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-notification" id="toastNotif" role="status" aria-live="polite">
+        <i class="fa-solid fa-circle-check" id="toastIcon" aria-hidden="true"></i>
+        <span id="toastMessage"></span>
     </div>
 @endsection
 
@@ -344,8 +447,195 @@
                 document.getElementById('modalLastOnline').value = user.lastOnline || 'Offline / Never';
                 document.getElementById('modalAddress').value = user.address || 'N/A';
 
+                // Activate / Deactivate follows the account's current status.
+                activeUserId = Number(user.id);
+                const statusBtn = document.getElementById('modalStatusBtn');
+                const isActive = user.status.toLowerCase() === 'active';
+                statusBtn.textContent = isActive ? 'Deactivate Account' : 'Activate Account';
+                statusBtn.classList.toggle('is-activate', !isActive);
+                statusBtn.disabled = false;
+
                 viewUserModal.classList.add('show');
             };
+
+            // --------------------------------------------------------------
+            // Add Student / Add Faculty / Edit Details / Activate-Deactivate
+            // (own department only; the server checks every request)
+            // --------------------------------------------------------------
+            const CSRF_TOKEN = @json(csrf_token());
+            const URLS = {
+                student: @json(route('department.users.student')),
+                faculty: @json(route('department.users.faculty')),
+                update: @json(route('department.users.update')),
+                status: @json(route('department.users.status')),
+            };
+            const userFormModal = document.getElementById('userFormModal');
+            const userForm = document.getElementById('userForm');
+            const ufError = document.getElementById('ufError');
+            const ufNote = document.getElementById('ufNote');
+            const ufSubmitBtn = document.getElementById('ufSubmitBtn');
+            let activeUserId = null;
+            let formMode = null; // 'student' | 'faculty' | 'edit'
+
+            function showToast(msg, type = 'success') {
+                const toast = document.getElementById('toastNotif');
+                document.getElementById('toastMessage').textContent = msg;
+                toast.classList.toggle('is-error', type === 'error');
+                document.getElementById('toastIcon').className = type === 'error' ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check';
+                toast.classList.add('show');
+                clearTimeout(showToast.timer);
+                showToast.timer = setTimeout(() => toast.classList.remove('show'), 3500);
+            }
+
+            function firstError(data, fallback) {
+                if (data && data.errors) {
+                    const first = Object.values(data.errors)[0];
+                    if (Array.isArray(first) && first.length) return first[0];
+                }
+                return (data && data.message) || fallback;
+            }
+
+            // POST and read the JSON reply, including validation errors (422).
+            function post(url, formData) {
+                formData.append('_token', CSRF_TOKEN);
+                return fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, credentials: 'same-origin', body: formData })
+                    .then(res => res.json().catch(() => ({})).then(data => ({ ok: res.ok && data.success, status: res.status, data })));
+            }
+
+            function applyServerUsers(data) {
+                if (data && Array.isArray(data.users)) {
+                    users = data.users;
+                    renderTable();
+                }
+            }
+
+            function openUserForm(mode, user = null) {
+                formMode = mode;
+                userForm.reset();
+                ufError.hidden = true;
+                const type = mode === 'edit' ? (user.role === 'Faculty' ? 'faculty' : 'student') : mode;
+
+                // Show only the fields for this case; hidden ones are disabled so they aren't sent.
+                userForm.querySelectorAll('[data-for]').forEach(group => {
+                    const show = group.dataset.for === type || (group.dataset.for === 'add' && mode !== 'edit');
+                    group.style.display = show ? '' : 'none';
+                    group.querySelectorAll('input, select').forEach(input => { input.disabled = !show; });
+                });
+
+                document.getElementById('ufUserId').value = user ? user.id : '';
+                const typeLabel = type === 'faculty' ? 'Faculty' : 'Student';
+                document.getElementById('ufTitle').textContent = mode === 'edit' ? `Edit ${typeLabel} Account` : `Add ${typeLabel}`;
+                document.getElementById('ufSubtitle').textContent = mode === 'edit'
+                    ? `Update the account details of ${user.fullName}.`
+                    : `The account is added to your department.`;
+                ufNote.hidden = mode !== 'edit';
+                ufNote.textContent = "Passwords aren't changed here. The account owner can use Change Password on their profile, or Forgot Password on the login page.";
+                ufSubmitBtn.textContent = mode === 'edit' ? 'Save Changes' : 'Create Account';
+
+                if (mode === 'edit') {
+                    const v = user.edit || {};
+                    const fields = { first_name: 'ufFirstName', last_name: 'ufLastName', id_number: 'ufIdNumber', year_level: 'ufYearLevel',
+                        faculty_id_number: 'ufFacultyId', teaching_license_no: 'ufLicense', highest_educational_attainment: 'ufEducation',
+                        email: 'ufEmail', address: 'ufAddress' };
+                    Object.entries(fields).forEach(([name, id]) => {
+                        const el = document.getElementById(id);
+                        if (!el.disabled) el.value = v[name] ?? '';
+                    });
+                }
+
+                userFormModal.classList.add('show');
+                setTimeout(() => document.getElementById('ufFirstName').focus(), 50);
+            }
+
+            // Shows the error and scrolls it into view (the fields scroll on short screens).
+            function showFormError(message) {
+                ufError.textContent = message;
+                ufError.hidden = false;
+                ufError.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+
+            function closeUserForm() {
+                userFormModal.classList.remove('show');
+            }
+
+            document.getElementById('addStudentBtn').addEventListener('click', () => openUserForm('student'));
+            document.getElementById('addFacultyBtn').addEventListener('click', () => openUserForm('faculty'));
+            document.getElementById('closeUserFormBtn').addEventListener('click', closeUserForm);
+            document.getElementById('cancelUserFormBtn').addEventListener('click', closeUserForm);
+            userFormModal.addEventListener('click', (e) => { if (e.target === userFormModal) closeUserForm(); });
+
+            document.getElementById('modalEditDetailsBtn').addEventListener('click', () => {
+                const user = users.find(u => Number(u.id) === activeUserId);
+                if (!user) return;
+                viewUserModal.classList.remove('show');
+                openUserForm('edit', user);
+            });
+
+            userForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                ufError.hidden = true;
+
+                // Quick checks; the server checks everything again.
+                if (formMode !== 'edit') {
+                    const pw = document.getElementById('ufPassword').value;
+                    if (pw.length < 8 || !/[A-Za-z]/.test(pw) || !/\d/.test(pw)) {
+                        showFormError('The password must be at least 8 characters and include a letter and a number.');
+                        return;
+                    }
+                }
+
+                ufSubmitBtn.disabled = true;
+                const label = ufSubmitBtn.textContent;
+                ufSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+                post(formMode === 'edit' ? URLS.update : URLS[formMode], new FormData(userForm))
+                    .then(({ ok, status, data }) => {
+                        if (!ok) {
+                            showFormError(status === 419
+                                ? 'Your session expired. Please reload the page and try again.'
+                                : firstError(data, 'The account could not be saved.'));
+                            return;
+                        }
+                        applyServerUsers(data);
+                        closeUserForm();
+                        showToast(data.message || 'Saved.');
+                    })
+                    .catch(() => {
+                        showFormError('Could not reach the server. Check your connection and try again.');
+                    })
+                    .finally(() => {
+                        ufSubmitBtn.disabled = false;
+                        ufSubmitBtn.textContent = label;
+                    });
+            });
+
+            document.getElementById('modalStatusBtn').addEventListener('click', () => {
+                const user = users.find(u => Number(u.id) === activeUserId);
+                if (!user) return;
+                const activate = user.status.toLowerCase() !== 'active';
+                const statusBtn = document.getElementById('modalStatusBtn');
+                statusBtn.disabled = true;
+
+                const formData = new FormData();
+                formData.append('user_id', user.id);
+                formData.append('status', activate ? 'Active' : 'Deactivated');
+                post(URLS.status, formData)
+                    .then(({ ok, data }) => {
+                        if (!ok) {
+                            showToast(firstError(data, 'The account status could not be changed.'), 'error');
+                            return;
+                        }
+                        applyServerUsers(data);
+                        viewUserModal.classList.remove('show');
+                        showToast(data.message || 'Account updated.');
+                    })
+                    .catch(() => showToast('Could not reach the server. Check your connection and try again.', 'error'))
+                    .finally(() => { statusBtn.disabled = false; });
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && userFormModal.classList.contains('show')) closeUserForm();
+            });
 
             const modalCloseDetailsBtn = document.getElementById('modalCloseDetailsBtn');
             if (modalCloseDetailsBtn) {

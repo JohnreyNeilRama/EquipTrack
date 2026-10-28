@@ -302,6 +302,120 @@
         </div>
     </div>
 
+    {{-- Edit User Modal: one form; the script shows the fields for the account's type --}}
+    <div class="modal-overlay" id="editUserModal">
+        <div class="modal-card eq-modal-card">
+            <div class="modal-outer-header">
+                <p class="modal-subtitle-top" id="editUserSubtitle">Update account details</p>
+            </div>
+            <div class="modal-inner-card">
+                <button class="modal-close" id="closeEditUserModalBtn">&times;</button>
+                <h3 class="modal-title-center" id="editUserTitle">Edit Account</h3>
+
+                <form id="editUserForm" action="{{ route('admin.users.update') }}" method="POST" class="new-modal-form" style="padding-top: 10px;">
+                    @csrf
+                    <input type="hidden" name="form_type" value="edit">
+                    <input type="hidden" name="user_id" id="editUserId">
+                    <input type="hidden" name="user_type" id="editUserType">
+
+                    <p class="edit-form-note">Passwords aren't changed here. The account owner can use Change Password on their profile, or Forgot Password on the login page.</p>
+
+                    <div class="form-row" data-for="student faculty" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group-flat">
+                            <label for="editFirstName">First Name</label>
+                            <input type="text" id="editFirstName" name="first_name" class="form-control-flat" required maxlength="50">
+                        </div>
+                        <div class="form-group-flat">
+                            <label for="editLastName">Last Name</label>
+                            <input type="text" id="editLastName" name="last_name" class="form-control-flat" required maxlength="50">
+                        </div>
+                    </div>
+
+                    <div class="form-group-flat" data-for="dept">
+                        <label for="editFullName">Full Name</label>
+                        <input type="text" id="editFullName" name="full_name" class="form-control-flat" required maxlength="255">
+                    </div>
+
+                    <div class="form-row" data-for="student" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group-flat">
+                            <label for="editIdNumber">Student ID Number</label>
+                            <input type="text" id="editIdNumber" name="id_number" class="form-control-flat" required pattern="\d{8}" maxlength="8" inputmode="numeric" title="Student ID must be exactly 8 digits.">
+                        </div>
+                        <div class="form-group-flat">
+                            <label for="editYearLevel">Year &amp; Level</label>
+                            <div class="flat-select-wrapper" style="width: 100%;">
+                                <select id="editYearLevel" name="year_level" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                                    @foreach (\App\Services\UserAccountEditor::YEAR_LEVELS as $level)
+                                        <option value="{{ $level }}">{{ $level }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row" data-for="faculty" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group-flat">
+                            <label for="editFacultyId">Faculty ID Number</label>
+                            <input type="text" id="editFacultyId" name="faculty_id_number" class="form-control-flat" required maxlength="20" pattern="[A-Za-z0-9\-]+" title="Letters, numbers and hyphens only.">
+                        </div>
+                        <div class="form-group-flat">
+                            <label for="editLicense">Teaching License No.</label>
+                            <input type="text" id="editLicense" name="teaching_license_no" class="form-control-flat" required maxlength="30" pattern="[A-Za-z0-9\-]+" title="Letters, numbers and hyphens only.">
+                        </div>
+                    </div>
+
+                    <div class="form-group-flat" data-for="faculty">
+                        <label for="editEducation">Highest Educational Attainment <span class="label-optional">(optional)</span></label>
+                        <input type="text" id="editEducation" name="highest_educational_attainment" class="form-control-flat" maxlength="100">
+                    </div>
+
+                    <div class="form-row" data-for="dept" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group-flat">
+                            <label for="editEmployeeId">Employee ID</label>
+                            <input type="text" id="editEmployeeId" name="employee_id" class="form-control-flat" required maxlength="100">
+                        </div>
+                        <div class="form-group-flat">
+                            <label for="editRole">Role</label>
+                            <div class="flat-select-wrapper" style="width: 100%;">
+                                <select id="editRole" name="role" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                                    @foreach (\App\Services\UserAccountEditor::DEPT_ROLES as $deptRole)
+                                        <option value="{{ $deptRole }}">{{ $deptRole }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group-flat">
+                        <label for="editDepartment">Department</label>
+                        <div class="flat-select-wrapper" style="width: 100%;">
+                            <select id="editDepartment" name="department_id" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
+                                <option value="" disabled>Select Department</option>
+                                @foreach ($departmentsList as $deptOption)
+                                    <option value="{{ $deptOption->department_id }}">{{ $deptOption->department_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group-flat">
+                        <label for="editEmail">Email Address</label>
+                        <input type="email" id="editEmail" name="email" class="form-control-flat" required maxlength="100">
+                    </div>
+
+                    <div class="form-group-flat" data-for="student faculty">
+                        <label for="editAddress">Home Address</label>
+                        <input type="text" id="editAddress" name="address" class="form-control-flat" required maxlength="150">
+                    </div>
+
+                    <button type="submit" class="btn-submit-request" style="margin-top: 10px;">
+                        Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     {{-- Add Department Modal --}}
     <div class="modal-overlay" id="departmentModal">
         <div class="modal-card eq-modal-card">
@@ -453,6 +567,7 @@
 
                 {{-- Modal Actions Footer --}}
                 <div class="modal-actions-footer" style="display: flex; gap: 12px; align-items: center;">
+                    <button type="button" id="modalEditDetailsBtn" class="btn-modal-edit" style="flex: 1;"><i class="fa-regular fa-pen-to-square"></i> Edit Details</button>
                     <button type="button" id="modalToggleStatusBtn" class="btn-modal-toggle-status" style="flex: 1; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: background 0.2s ease, transform 0.1s ease;">Deactivate Account</button>
                     <button type="button" class="btn-modal-close" style="flex: 1;" id="modalCloseDetailsBtn">Close</button>
                 </div>
@@ -513,6 +628,10 @@
         const closeFacultyModalBtn = document.getElementById('closeFacultyModalBtn');
         const facultyForm = document.getElementById('facultyForm');
 
+        const editUserModal = document.getElementById('editUserModal');
+        const editUserForm = document.getElementById('editUserForm');
+        const closeEditUserModalBtn = document.getElementById('closeEditUserModalBtn');
+
         const departmentModal = document.getElementById('departmentModal');
         const addDepartmentBtn = document.getElementById('addDepartmentBtn');
         const closeDeptModalBtn = document.getElementById('closeDeptModalBtn');
@@ -550,7 +669,9 @@
             @php
                 $isDeptError = $errors->hasAny(['full_name', 'employee_id', 'department_id', 'role']);
             @endphp
-            @if (old('form_type') === 'faculty')
+            @if (old('form_type') === 'edit')
+                openEditUserModal(@json((int) old('user_id')), @json(\Illuminate\Support\Arr::except(old(), ['_token', 'form_type'])));
+            @elseif (old('form_type') === 'faculty')
                 facultyModal.classList.add('show');
             @elseif ($isDeptError)
                 departmentModal.classList.add('show');
@@ -739,6 +860,53 @@
                 new_status: newStatus,
             });
         };
+
+        // Edit User: shows the fields for the account's type and fills in its
+        // current values (or, after a refused save, what the admin typed).
+        // A function declaration, so the error handler above can call it.
+        function openEditUserModal(id, typedValues = null) {
+            const user = users.find(u => u.id === id);
+            if (!user) return;
+
+            const type = user.db_type === 'department' ? 'dept' : (user.role === 'teacher' ? 'faculty' : 'student');
+            const titles = { student: 'Edit Student Account', faculty: 'Edit Faculty Account', dept: 'Edit Laboratory Personnel Account' };
+            const fullName = user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
+            document.getElementById('editUserTitle').textContent = titles[type];
+            document.getElementById('editUserSubtitle').textContent = `Update the account details of ${fullName}`;
+
+            // Only the fields for this type are visible and sent.
+            editUserForm.querySelectorAll('[data-for]').forEach(group => {
+                const show = group.dataset.for.split(' ').includes(type);
+                // Two-field rows are grids (side by side); keep that when shown.
+                group.style.display = show ? (group.classList.contains('form-row') ? 'grid' : '') : 'none';
+                group.querySelectorAll('input, select').forEach(input => { input.disabled = !show; });
+            });
+
+            document.getElementById('editUserId').value = user.id;
+            document.getElementById('editUserType').value = user.db_type;
+
+            const values = typedValues || user.edit || {};
+            const fields = {
+                first_name: 'editFirstName', last_name: 'editLastName', full_name: 'editFullName',
+                id_number: 'editIdNumber', year_level: 'editYearLevel',
+                faculty_id_number: 'editFacultyId', teaching_license_no: 'editLicense', highest_educational_attainment: 'editEducation',
+                employee_id: 'editEmployeeId', role: 'editRole',
+                department_id: 'editDepartment', email: 'editEmail', address: 'editAddress',
+            };
+            Object.entries(fields).forEach(([name, elementId]) => {
+                const el = document.getElementById(elementId);
+                if (!el || el.disabled) return;
+                const value = values[name] ?? '';
+                if (el.tagName === 'SELECT' && value !== '' && ![...el.options].some(o => o.value === String(value))) {
+                    // Keep an older value (e.g. a role no longer offered) selectable.
+                    el.add(new Option(value, value));
+                }
+                el.value = value === null ? '' : String(value);
+            });
+
+            editUserModal.classList.add('show');
+        }
+        window.openEditUserModal = openEditUserModal;
 
         // Delete User Account
         window.deleteUser = function(id) {
@@ -965,6 +1133,27 @@
             }
         });
 
+        closeEditUserModalBtn.addEventListener('click', () => {
+            editUserModal.classList.remove('show');
+        });
+
+        editUserModal.addEventListener('click', (e) => {
+            if (e.target === editUserModal) {
+                editUserModal.classList.remove('show');
+            }
+        });
+
+        // Quick checks before sending; the server checks everything again.
+        editUserForm.addEventListener('submit', (e) => {
+            const id = Number(document.getElementById('editUserId').value);
+            const email = document.getElementById('editEmail').value.trim().toLowerCase();
+            const taken = users.some(u => u.id !== id && (u.email || '').toLowerCase() === email);
+            if (taken) {
+                e.preventDefault();
+                showNotification('Validation Error', 'Another account already uses this email address.', 'error');
+            }
+        });
+
         addDepartmentBtn.addEventListener('click', () => {
             departmentModal.classList.add('show');
         });
@@ -991,6 +1180,13 @@
         closeUserDetailsBtn.addEventListener('click', () => {
             userDetailsModal.classList.remove('show');
         });
+        // Edit Details: from the User Details window to the Edit form for that user.
+        document.getElementById('modalEditDetailsBtn').addEventListener('click', () => {
+            if (!activeModalUser) return;
+            userDetailsModal.classList.remove('show');
+            openEditUserModal(activeModalUser.id);
+        });
+
         modalCloseDetailsBtn.addEventListener('click', () => {
             userDetailsModal.classList.remove('show');
         });
