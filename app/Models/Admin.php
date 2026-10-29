@@ -21,6 +21,8 @@ class Admin extends Authenticatable
         'employee_id',
         'profile_image',
         'password',
+        'status',
+        'last_online',
     ];
 
     protected $hidden = [

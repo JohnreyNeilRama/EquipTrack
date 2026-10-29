@@ -8,14 +8,9 @@ use App\Models\Department;
 use App\Models\Penalty;
 use App\Services\AuditLogger;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 /**
- * Admin Penalties page: every department's penalties. Besides editing,
- * settling and waiving, the admin can add a penalty to any returned loan
- * (one the department did not record at Return Confirmation).
+ * Admin Penalties page: every department's penalties and returned loans.
  */
 class AdminPenaltiesController extends PenaltyPageController
 {
@@ -39,35 +34,16 @@ class AdminPenaltiesController extends PenaltyPageController
         return 'admin.penalties.proof';
     }
 
-    protected function pageData(): array
+    /** Every department's returned loans. */
+    protected function loanScope(): Builder
     {
-        return [
-            'returnedLoans' => $this->penalties->returnedLoans(BorrowTransaction::query()),
-            'departments' => Department::orderBy('department_name')->pluck('department_name')->all(),
-        ];
+        return BorrowTransaction::query();
     }
 
-    public function store(Request $request): JsonResponse
+    protected function pageData(): array
     {
-        $data = $request->validate([
-            'transaction_id' => ['required', 'integer', 'min:1'],
-            'type' => ['required', Rule::in(Penalty::TYPES)],
-            'amount' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
-            'description' => ['required', 'string', 'max:1000'],
-        ]);
-
-        $transaction = BorrowTransaction::with('request')->find($data['transaction_id']);
-
-        if (!$transaction || !$transaction->request) {
-            return response()->json(['success' => false, 'message' => 'Returned loan not found.'], 404);
-        }
-
-        $result = $this->penalties->record($transaction, $data, $this->actor());
-
-        if (is_string($result)) {
-            return response()->json(['success' => false, 'message' => $result], 400);
-        }
-
-        return $this->feed('Penalty recorded.');
+        return parent::pageData() + [
+            'departments' => Department::orderBy('department_name')->pluck('department_name')->all(),
+        ];
     }
 }

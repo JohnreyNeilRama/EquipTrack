@@ -65,6 +65,7 @@ class AuditCatalog
         ['label' => 'Added User', 'module' => 'Users', 'prefixes' => [
             'Added student account' => 'Student account',
             'Added faculty account' => 'Faculty account',
+            'Added admin account' => 'Admin account',
             'Added department account' => 'Department account',
         ]],
         ['label' => 'Updated User', 'module' => 'Users', 'prefixes' => ['Updated user' => 'User']],
@@ -73,6 +74,7 @@ class AuditCatalog
         ['label' => 'Deleted User', 'module' => 'Users', 'prefixes' => [
             'Deleted user account' => 'Account',
             'Deleted department account' => 'Department account',
+            'Deleted admin account' => 'Admin account',
         ]],
 
         // Own account (admin, department and user profile pages)

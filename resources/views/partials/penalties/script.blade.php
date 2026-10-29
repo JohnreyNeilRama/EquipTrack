@@ -1,5 +1,5 @@
 {{-- Shared Penalties page script (Admin + Lab Personnel).
-     $party: 'admin' or 'dept'; $urls: data, update, settle, waive (+ store for the admin). --}}
+     $party: 'admin' or 'dept'; $urls: data, store, update, settle, waive, approveProof, rejectProof. --}}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const IS_ADMIN = @json($party === 'admin');
@@ -326,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ------------------------------------------------------------------
-    // Forms: add (admin) / edit / settle / waive
+    // Forms: add / edit / settle / waive
     // ------------------------------------------------------------------
     const FORM_TEXT = {
         add: { title: 'Add Penalty', subtitle: 'Record a penalty on a returned loan', submit: 'Record Penalty' },
@@ -416,7 +416,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (IS_ADMIN) {
+    // Add Penalty (Admin: any returned loan; Lab Personnel: their department's).
+    if (URLS.store) {
         $('pfLoan').addEventListener('change', () => { $('pfAmount').value = ''; syncAddTypes(); });
         $('pfType').addEventListener('change', fillLateFee);
         $('addPenaltyBtn').addEventListener('click', () => openForm('add'));

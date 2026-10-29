@@ -18,7 +18,7 @@
     color: var(--text-muted);
 }
 
-.btn-add-student, .btn-add-faculty, .btn-add-department {
+.btn-add-student, .btn-add-faculty, .btn-add-admin, .btn-add-department {
     height: 46px;
     padding: 0 24px;
     border-radius: 23px;
@@ -35,17 +35,17 @@
     box-shadow: 0 4px 10px rgba(56, 85, 133, 0.15);
 }
 
-.btn-add-student:hover, .btn-add-faculty:hover, .btn-add-department:hover {
+.btn-add-student:hover, .btn-add-faculty:hover, .btn-add-admin:hover, .btn-add-department:hover {
     background-color: #2f477a;
     transform: translateY(-1px);
 }
 
-.dark-theme .btn-add-student, .dark-theme .btn-add-faculty, .dark-theme .btn-add-department {
+.dark-theme .btn-add-student, .dark-theme .btn-add-faculty, .dark-theme .btn-add-admin, .dark-theme .btn-add-department {
     background-color: var(--primary-sidebar);
     color: white;
 }
 
-.dark-theme .btn-add-student:hover, .dark-theme .btn-add-faculty:hover, .dark-theme .btn-add-department:hover {
+.dark-theme .btn-add-student:hover, .dark-theme .btn-add-faculty:hover, .dark-theme .btn-add-admin:hover, .dark-theme .btn-add-department:hover {
     background-color: #2563eb;
 }
 
@@ -99,6 +99,31 @@
 
 .dark-theme .modal-actions-footer .btn-modal-edit {
     background-color: var(--primary-sidebar);
+}
+
+/* Your own admin account in the list */
+.you-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background-color: rgba(56, 85, 133, 0.12);
+    color: #385585;
+    font-size: var(--fs-badge);
+    font-weight: 700;
+    vertical-align: middle;
+}
+
+.dark-theme .you-badge {
+    background-color: rgba(96, 165, 250, 0.15);
+    color: #93c5fd;
+}
+
+.btn-action-toggle:disabled,
+.btn-action-delete:disabled,
+.btn-modal-toggle-status:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
 .edit-form-note {

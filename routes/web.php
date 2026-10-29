@@ -75,6 +75,7 @@ Route::middleware(['auth:admin', 'auth.session', 'active'])->prefix('admin')->na
     Route::post('/users/faculty', [AdminUsersController::class, 'addFaculty'])->name('users.faculty');
     Route::post('/users/update', [AdminUsersController::class, 'updateUser'])->name('users.update');
     Route::post('/users/department', [AdminUsersController::class, 'addDepartment'])->name('users.department');
+    Route::post('/users/admin', [AdminUsersController::class, 'addAdmin'])->name('users.admin');
     Route::post('/users/toggle-status', [AdminUsersController::class, 'toggleStatus'])->name('users.toggle');
     Route::post('/users/delete', [AdminUsersController::class, 'delete'])->name('users.delete');
     Route::post('/users/profile-image', [AdminUsersController::class, 'updateProfileImage'])->name('users.image');
@@ -120,6 +121,7 @@ Route::middleware(['auth:dept', 'auth.session', 'active'])->prefix('department')
     Route::post('/returns/reject', [DepartmentReturnsController::class, 'reject'])->name('returns.reject');
     Route::get('/penalties', [DepartmentPenaltiesController::class, 'index'])->name('penalties');
     Route::get('/penalties/data', [DepartmentPenaltiesController::class, 'data'])->name('penalties.data');
+    Route::post('/penalties/store', [DepartmentPenaltiesController::class, 'store'])->name('penalties.store');
     Route::post('/penalties/update', [DepartmentPenaltiesController::class, 'update'])->name('penalties.update');
     Route::post('/penalties/settle', [DepartmentPenaltiesController::class, 'settle'])->name('penalties.settle');
     Route::post('/penalties/waive', [DepartmentPenaltiesController::class, 'waive'])->name('penalties.waive');

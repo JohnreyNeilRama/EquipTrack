@@ -14,11 +14,10 @@
                     @endif
                 </p>
             </div>
-            @if ($isAdmin)
-                <button type="button" class="btn-add-penalty" id="addPenaltyBtn">
-                    <i class="fa-solid fa-plus"></i> Add Penalty
-                </button>
-            @endif
+            {{-- Admin: any returned loan. Lab Personnel: their department's, e.g. damage found after Return Confirmation. --}}
+            <button type="button" class="btn-add-penalty" id="addPenaltyBtn">
+                <i class="fa-solid fa-plus"></i> Add Penalty
+            </button>
         </div>
 
         <div class="requests-summary-section">
@@ -139,20 +138,16 @@
 
                 <form id="penaltyForm" class="penalty-form" novalidate>
                     <div class="penalty-sheet-body penalty-form-body">
-                        @if ($isAdmin)
-                            <div class="penalty-field" data-modes="add">
-                                <label class="detail-form-label" for="pfLoan">Returned Loan <span class="req">*</span></label>
-                                <select id="pfLoan" class="detail-form-control"></select>
-                                <p class="penalty-hint" id="pfLoanHint">Only returned loans that can still take a penalty are listed.</p>
-                            </div>
-                        @endif
+                        <div class="penalty-field" data-modes="add">
+                            <label class="detail-form-label" for="pfLoan">Returned Loan <span class="req">*</span></label>
+                            <select id="pfLoan" class="detail-form-control"></select>
+                            <p class="penalty-hint" id="pfLoanHint">Only returned loans that can still take a penalty are listed.</p>
+                        </div>
                         <div class="penalty-field-row" data-modes="add edit">
-                            @if ($isAdmin)
-                                <div class="penalty-field" data-modes="add">
-                                    <label class="detail-form-label" for="pfType">Type <span class="req">*</span></label>
-                                    <select id="pfType" class="detail-form-control"></select>
-                                </div>
-                            @endif
+                            <div class="penalty-field" data-modes="add">
+                                <label class="detail-form-label" for="pfType">Type <span class="req">*</span></label>
+                                <select id="pfType" class="detail-form-control"></select>
+                            </div>
                             <div class="penalty-field" data-modes="add edit">
                                 <label class="detail-form-label" for="pfAmount">Amount <span class="optional">optional</span></label>
                                 <div class="penalty-input-prefix">

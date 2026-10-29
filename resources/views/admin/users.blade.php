@@ -95,6 +95,7 @@
                         <option value="student">Student</option>
                         <option value="teacher">Faculty Member</option>
                         <option value="department">Department</option>
+                        <option value="administrator">Administrator</option>
                     </select>
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
@@ -105,6 +106,9 @@
                 </button>
                 <button class="btn-add-faculty" id="addFacultyBtn">
                     <i class="fa-solid fa-chalkboard-user"></i> Add Faculty
+                </button>
+                <button class="btn-add-admin" id="addAdminBtn">
+                    <i class="fa-solid fa-user-shield"></i> Add Admin
                 </button>
                 <button class="btn-add-department" id="addDepartmentBtn">
                     <i class="fa-solid fa-building"></i> Add Department
@@ -302,6 +306,51 @@
         </div>
     </div>
 
+    {{-- Add Admin Modal --}}
+    @php $adminOld = old('form_type') === 'admin'; @endphp
+    <div class="modal-overlay" id="adminModal">
+        <div class="modal-card eq-modal-card">
+            <div class="modal-outer-header">
+                <p class="modal-subtitle-top">Register a new administrator account in the system</p>
+            </div>
+            <div class="modal-inner-card">
+                <button class="modal-close" id="closeAdminModalBtn">&times;</button>
+                <h3 class="modal-title-center">Add Administrator Account</h3>
+
+                <form id="adminForm" action="{{ route('admin.users.admin') }}" method="POST" class="new-modal-form" style="padding-top: 10px;">
+                    @csrf
+                    <input type="hidden" name="form_type" value="admin">
+
+                    <p class="edit-form-note">Administrators can manage every account, all departments' equipment and requests, reports and the audit trail. The email address is also used as the username.</p>
+
+                    <div class="form-group-flat">
+                        <label for="admName">Full Name</label>
+                        <input type="text" id="admName" name="name" class="form-control-flat" required maxlength="100" placeholder="e.g., Maria Santos" value="{{ $adminOld ? old('name') : '' }}">
+                    </div>
+
+                    <div class="form-group-flat">
+                        <label for="admEmployeeId">Employee ID <span class="label-optional">(optional)</span></label>
+                        <input type="text" id="admEmployeeId" name="employee_id" class="form-control-flat" maxlength="50" placeholder="e.g., ADM-0002" value="{{ $adminOld ? old('employee_id') : '' }}">
+                    </div>
+
+                    <div class="form-group-flat">
+                        <label for="admEmail">Email Address</label>
+                        <input type="email" id="admEmail" name="email" class="form-control-flat" required maxlength="100" placeholder="admin@example.com" value="{{ $adminOld ? old('email') : '' }}">
+                    </div>
+
+                    <div class="form-group-flat">
+                        <label for="admPassword">Password</label>
+                        <input type="password" id="admPassword" name="password" class="form-control-flat" required minlength="8" autocomplete="new-password" placeholder="••••••••" title="At least 8 characters, with letters and numbers.">
+                    </div>
+
+                    <button type="submit" class="btn-submit-request" style="margin-top: 10px;">
+                        Create Administrator Account
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     {{-- Edit User Modal: one form; the script shows the fields for the account's type --}}
     <div class="modal-overlay" id="editUserModal">
         <div class="modal-card eq-modal-card">
@@ -329,6 +378,16 @@
                             <label for="editLastName">Last Name</label>
                             <input type="text" id="editLastName" name="last_name" class="form-control-flat" required maxlength="50">
                         </div>
+                    </div>
+
+                    <div class="form-group-flat" data-for="admin">
+                        <label for="editAdminName">Full Name</label>
+                        <input type="text" id="editAdminName" name="name" class="form-control-flat" required maxlength="100">
+                    </div>
+
+                    <div class="form-group-flat" data-for="admin">
+                        <label for="editAdminEmployeeId">Employee ID <span class="label-optional">(optional)</span></label>
+                        <input type="text" id="editAdminEmployeeId" name="employee_id" class="form-control-flat" maxlength="50">
                     </div>
 
                     <div class="form-group-flat" data-for="dept">
@@ -386,7 +445,7 @@
                         </div>
                     </div>
 
-                    <div class="form-group-flat">
+                    <div class="form-group-flat" data-for="student faculty dept">
                         <label for="editDepartment">Department</label>
                         <div class="flat-select-wrapper" style="width: 100%;">
                             <select id="editDepartment" name="department_id" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
@@ -628,6 +687,9 @@
         const closeFacultyModalBtn = document.getElementById('closeFacultyModalBtn');
         const facultyForm = document.getElementById('facultyForm');
 
+        const adminModal = document.getElementById('adminModal');
+        const adminForm = document.getElementById('adminForm');
+
         const editUserModal = document.getElementById('editUserModal');
         const editUserForm = document.getElementById('editUserForm');
         const closeEditUserModalBtn = document.getElementById('closeEditUserModalBtn');
@@ -673,6 +735,8 @@
                 openEditUserModal(@json((int) old('user_id')), @json(\Illuminate\Support\Arr::except(old(), ['_token', 'form_type'])));
             @elseif (old('form_type') === 'faculty')
                 facultyModal.classList.add('show');
+            @elseif (old('form_type') === 'admin')
+                adminModal.classList.add('show');
             @elseif ($isDeptError)
                 departmentModal.classList.add('show');
             @else
@@ -760,11 +824,13 @@
                     const statusClass = 'status-' + user.status.toLowerCase();
                     const toggleText = user.status.toLowerCase() === 'active' ? 'Deactivate' : 'Activate';
                     const fullName = user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
+                    // Your own admin account: no Deactivate/Delete here (use Profile; another admin can do it).
+                    const selfLock = user.is_self ? ' disabled title="You can\'t deactivate or delete your own account."' : '';
 
                     tr.innerHTML = `
                         <td class="col-user">
                             <div class="user-details-cell">
-                                <span class="user-name-text" title="${escapeHTML(fullName)}">${escapeHTML(fullName)}</span>
+                                <span class="user-name-text" title="${escapeHTML(fullName)}">${escapeHTML(fullName)}</span>${user.is_self ? ' <span class="you-badge">You</span>' : ''}
                             </div>
                         </td>
                         <td><strong>${escapeHTML(user.id_number)}</strong></td>
@@ -774,8 +840,8 @@
                         <td><span class="status-badge ${statusClass}">${escapeHTML(user.status)}</span></td>
                         <td class="action-cell" style="text-align: center;">
                             <div class="action-buttons" style="justify-content: center; gap: 8px;">
-                                <button class="btn-action-toggle" onclick="toggleUserStatus(${user.id})">${toggleText}</button>
-                                <button class="btn-action-delete" onclick="deleteUser(${user.id})"><i class="fa-regular fa-trash-can"></i></button>
+                                <button class="btn-action-toggle" onclick="toggleUserStatus(${user.id})"${selfLock}>${toggleText}</button>
+                                <button class="btn-action-delete" onclick="deleteUser(${user.id})" aria-label="Delete ${escapeHTML(fullName)}"${selfLock}><i class="fa-regular fa-trash-can"></i></button>
                             </div>
                         </td>
                     `;
@@ -868,8 +934,8 @@
             const user = users.find(u => u.id === id);
             if (!user) return;
 
-            const type = user.db_type === 'department' ? 'dept' : (user.role === 'teacher' ? 'faculty' : 'student');
-            const titles = { student: 'Edit Student Account', faculty: 'Edit Faculty Account', dept: 'Edit Laboratory Personnel Account' };
+            const type = user.db_type === 'admin' ? 'admin' : (user.db_type === 'department' ? 'dept' : (user.role === 'teacher' ? 'faculty' : 'student'));
+            const titles = { student: 'Edit Student Account', faculty: 'Edit Faculty Account', dept: 'Edit Laboratory Personnel Account', admin: 'Edit Administrator Account' };
             const fullName = user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
             document.getElementById('editUserTitle').textContent = titles[type];
             document.getElementById('editUserSubtitle').textContent = `Update the account details of ${fullName}`;
@@ -890,7 +956,7 @@
                 first_name: 'editFirstName', last_name: 'editLastName', full_name: 'editFullName',
                 id_number: 'editIdNumber', year_level: 'editYearLevel',
                 faculty_id_number: 'editFacultyId', teaching_license_no: 'editLicense', highest_educational_attainment: 'editEducation',
-                employee_id: 'editEmployeeId', role: 'editRole',
+                employee_id: type === 'admin' ? 'editAdminEmployeeId' : 'editEmployeeId', role: 'editRole', name: 'editAdminName',
                 department_id: 'editDepartment', email: 'editEmail', address: 'editAddress',
             };
             Object.entries(fields).forEach(([name, elementId]) => {
@@ -983,6 +1049,8 @@
             const modalToggle = document.getElementById('modalToggleStatusBtn');
             if (modalToggle) {
                 modalToggle.textContent = user.status.toLowerCase() === 'active' ? 'Deactivate Account' : 'Activate Account';
+                modalToggle.disabled = !!user.is_self;
+                modalToggle.title = user.is_self ? "You can't deactivate your own account." : '';
             }
 
             userDetailsModal.classList.add('show');
@@ -1151,6 +1219,37 @@
             if (taken) {
                 e.preventDefault();
                 showNotification('Validation Error', 'Another account already uses this email address.', 'error');
+            }
+        });
+
+        document.getElementById('addAdminBtn').addEventListener('click', () => {
+            adminModal.classList.add('show');
+        });
+
+        document.getElementById('closeAdminModalBtn').addEventListener('click', () => {
+            adminModal.classList.remove('show');
+            adminForm.reset();
+        });
+
+        adminModal.addEventListener('click', (e) => {
+            if (e.target === adminModal) {
+                adminModal.classList.remove('show');
+                adminForm.reset();
+            }
+        });
+
+        // Quick checks before sending; the server checks everything again.
+        adminForm.addEventListener('submit', (e) => {
+            const email = document.getElementById('admEmail').value.trim().toLowerCase();
+            const password = document.getElementById('admPassword').value;
+            if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+                e.preventDefault();
+                showNotification('Validation Error', 'The password must be at least 8 characters and include a letter and a number.', 'error');
+                return;
+            }
+            if (users.some(u => (u.email || '').toLowerCase() === email || (u.username || '').toLowerCase() === email)) {
+                e.preventDefault();
+                showNotification('Registration Error', 'An account with this email already exists.', 'error');
             }
         });
 

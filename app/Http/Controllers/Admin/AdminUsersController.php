@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin;
 use App\Models\BorrowTransaction;
 use App\Models\Department;
 use App\Models\DepartmentAccount;
@@ -23,6 +24,9 @@ use Illuminate\View\View;
 
 class AdminUsersController extends Controller
 {
+    /** Admin rows carry this offset on the page, like department rows carry 100000. */
+    private const ADMIN_ID_OFFSET = 200000;
+
     public function index(): View
     {
         $dbUsers = $this->fetchDbUsers();
@@ -71,20 +75,22 @@ class AdminUsersController extends Controller
     }
 
     /**
-     * Edit User: saves changes to a Student, Faculty or Laboratory Personnel
-     * account. The rules and saving are shared (UserAccountEditor).
+     * Edit User: saves changes to a Student, Faculty, Laboratory Personnel or
+     * Administrator account. The rules and saving are shared (UserAccountEditor).
      */
     public function updateUser(Request $request): RedirectResponse
     {
         $target = $request->validate([
             'user_id' => ['required', 'integer', 'min:1'],
-            'user_type' => ['required', 'in:user_account,department'],
+            'user_type' => ['required', 'in:user_account,department,admin'],
         ]);
 
-        // Department rows carry a 100000 offset on the page (see fetchDbUsers).
-        $account = $target['user_type'] === 'department'
-            ? DepartmentAccount::find($target['user_id'] - 100000)
-            : UserAccount::with(['student', 'facultyMember'])->find($target['user_id']);
+        // Department rows carry a 100000 offset on the page, admin rows 200000 (see fetchDbUsers).
+        $account = match ($target['user_type']) {
+            'department' => DepartmentAccount::find($target['user_id'] - 100000),
+            'admin' => Admin::find($target['user_id'] - self::ADMIN_ID_OFFSET),
+            default => UserAccount::with(['student', 'facultyMember'])->find($target['user_id']),
+        };
 
         if (!$account) {
             return redirect()->route('admin.users')
@@ -101,6 +107,67 @@ class AdminUsersController extends Controller
                 ? 'Account details updated. Changed: ' . implode(', ', $changed) . '.'
                 : 'No changes to save.')
             ->with('serverMsgType', 'success');
+    }
+
+    /**
+     * Add Admin. The email is also the username (as on the admin Profile page);
+     * the new admin can change the password from their Profile.
+     */
+    public function addAdmin(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'employee_id' => ['nullable', 'string', 'max:50'],
+            'email' => ['required', 'email', 'max:100', Rule::unique('admin', 'email'), Rule::unique('admin', 'username'), new UniqueAccountEmail()],
+            'password' => ['required', 'string', Password::defaults()],
+        ], [
+            'name.required' => "Enter the administrator's full name.",
+            'email.unique' => 'An account with email :input already exists.',
+        ]);
+
+        $admin = Admin::create([
+            'name' => $data['name'],
+            'username' => $data['email'],
+            'email' => $data['email'],
+            'employee_id' => ($data['employee_id'] ?? '') ?: null,
+            'password' => Hash::make($data['password']),
+            'status' => 'Active',
+        ]);
+
+        AuditLogger::log(
+            'Added admin account',
+            'admin:' . $admin->admin_id,
+            $data['name'] . ' (' . $data['email'] . ')',
+            AuditLogger::actorFor('admin', auth('admin')->user()),
+            $request,
+        );
+
+        return redirect()
+            ->route('admin.users')
+            ->with('serverMsg', "Administrator account for '{$data['name']}' created successfully!")
+            ->with('serverMsgType', 'success');
+    }
+
+    /**
+     * Safeguards for deactivating or deleting an administrator: never your own
+     * account, and never the last active one, so EquipTrack always keeps at
+     * least one administrator who can sign in. Returns a reason, or null.
+     */
+    private function adminSafeguard(Admin $target, string $action): ?string
+    {
+        if ((int) $target->admin_id === (int) auth('admin')->id()) {
+            return "You can't {$action} your own account. Ask another administrator to do it.";
+        }
+
+        $otherActiveAdmins = Admin::where('admin_id', '!=', $target->admin_id)
+            ->where(fn ($q) => $q->whereNull('status')->orWhere('status', '!=', 'Deactivated'))
+            ->count();
+
+        if (strtolower((string) $target->status) !== 'deactivated' && $otherActiveAdmins === 0) {
+            return "This is the last active administrator account, so it can't be {$action}d. Add or activate another administrator first.";
+        }
+
+        return null;
     }
 
     public function addDepartment(Request $request): RedirectResponse
@@ -151,13 +218,26 @@ class AdminUsersController extends Controller
     {
         $data = $request->validate([
             'target_user_id' => ['required', 'integer', 'min:1'],
-            'target_user_type' => ['required', 'in:user_account,department'],
+            'target_user_type' => ['required', 'in:user_account,department,admin'],
             'new_status' => ['required', 'in:Active,Deactivated'],
         ]);
 
         // FIX vs legacy: the button only mutated the client-side array and never
         // POSTed, so deactivation was never persisted.
-        if ($data['target_user_type'] === 'department') {
+        if ($data['target_user_type'] === 'admin') {
+            $account = Admin::find($data['target_user_id'] - self::ADMIN_ID_OFFSET);
+            if (!$account) {
+                return redirect()->route('admin.users')->with('serverMsg', 'That account no longer exists.')->with('serverMsgType', 'error');
+            }
+            if ($data['new_status'] === 'Deactivated' && ($reason = $this->adminSafeguard($account, 'deactivate'))) {
+                return redirect()->route('admin.users')->with('serverMsg', $reason)->with('serverMsgType', 'error');
+            }
+            $entity = 'admin:' . $account->admin_id;
+            $name = $account->name ?: $account->email;
+            $previous = $account->status;
+            $account->update(['status' => $data['new_status']]);
+            $account->status = $previous; // for the "real change" check below
+        } elseif ($data['target_user_type'] === 'department') {
             $account = DepartmentAccount::find($data['target_user_id'] - 100000);
             $entity = $account ? 'department_account:' . $account->dept_acc_id : '';
             $name = $account ? ($account->full_name ?: $account->email) : '';
@@ -195,7 +275,19 @@ class AdminUsersController extends Controller
             'user_type' => ['required', 'string'],
         ]);
 
-        if ($data['user_type'] === 'department') {
+        if ($data['user_type'] === 'admin') {
+            $account = Admin::findOrFail($data['user_id'] - self::ADMIN_ID_OFFSET);
+            if ($reason = $this->adminSafeguard($account, 'delete')) {
+                return redirect()->route('admin.users')->with('serverMsg', $reason)->with('serverMsgType', 'error');
+            }
+            // Records this admin reviewed or recorded keep their history
+            // (those columns are set to empty, not deleted).
+            $logEntity = 'admin:' . $account->admin_id;
+            $logAction = 'Deleted admin account';
+            $logDetails = ($account->name ?: 'Administrator') . ' (' . $account->email . ')';
+            $account->delete();
+            $msg = 'Administrator account deleted successfully.';
+        } elseif ($data['user_type'] === 'department') {
             // Strip the 100000 display offset before touching the database.
             $account = DepartmentAccount::findOrFail($data['user_id'] - 100000);
             $logEntity = 'department_account:' . $account->dept_acc_id;
@@ -246,7 +338,7 @@ class AdminUsersController extends Controller
     {
         $data = $request->validate([
             'target_user_id' => ['required', 'integer', 'min:1'],
-            'target_user_type' => ['required', 'in:user_account,department'],
+            'target_user_type' => ['required', 'in:user_account,department,admin'],
             'admin_profile_img_file' => [
                 'required', 'file', 'max:5120', 'mimes:jpeg,png,webp,gif',
             ],
@@ -258,11 +350,15 @@ class AdminUsersController extends Controller
         Storage::disk('public')->put($filename, file_get_contents($file->getRealPath()));
         $path = '/storage/' . $filename;
 
-        $targetExists = $data['target_user_type'] === 'department'
-            ? DepartmentAccount::whereKey($data['target_user_id'] - 100000)->exists()
-            : UserAccount::whereKey($data['target_user_id'])->exists();
+        $targetExists = match ($data['target_user_type']) {
+            'department' => DepartmentAccount::whereKey($data['target_user_id'] - 100000)->exists(),
+            'admin' => Admin::whereKey($data['target_user_id'] - self::ADMIN_ID_OFFSET)->exists(),
+            default => UserAccount::whereKey($data['target_user_id'])->exists(),
+        };
 
-        if ($data['target_user_type'] === 'department') {
+        if ($data['target_user_type'] === 'admin') {
+            Admin::whereKey($data['target_user_id'] - self::ADMIN_ID_OFFSET)->update(['profile_image' => $path]);
+        } elseif ($data['target_user_type'] === 'department') {
             $account = DepartmentAccount::find($data['target_user_id'] - 100000);
             $account?->update(['profile_image' => $path]);
             if ($account?->department_id) {
@@ -277,9 +373,11 @@ class AdminUsersController extends Controller
         if ($targetExists) {
             AuditLogger::log(
                 'Updated user profile picture',
-                $data['target_user_type'] === 'department'
-                    ? 'department_account:' . ($data['target_user_id'] - 100000)
-                    : 'user_account:' . $data['target_user_id'],
+                match ($data['target_user_type']) {
+                    'department' => 'department_account:' . ($data['target_user_id'] - 100000),
+                    'admin' => 'admin:' . ($data['target_user_id'] - self::ADMIN_ID_OFFSET),
+                    default => 'user_account:' . $data['target_user_id'],
+                },
                 null,
                 null,
                 $request,
@@ -382,6 +480,33 @@ class AdminUsersController extends Controller
                 // clock, which already runs on Philippine time, so only this one is converted.
                 'last_online' => $row->last_online ? Carbon::parse($row->last_online)->setTimezone(config('app.display_timezone'))->format('M j, Y, g:i A') : 'Offline / Never',
                 'profile_image' => $shared ?: null,
+                'edit' => UserAccountEditor::values($row),
+            ];
+        }
+
+        // 3. Administrators
+        $currentAdminId = (int) auth('admin')->id();
+        foreach (Admin::orderBy('admin_id')->get() as $row) {
+            $email = $row->email ?: $row->username;
+            $dbUsers[] = [
+                'id' => self::ADMIN_ID_OFFSET + (int) $row->admin_id,
+                'db_type' => 'admin',
+                'first_name' => $row->name ?: 'Administrator',
+                'last_name' => '',
+                'id_number' => $row->employee_id ?: ('ADM-' . sprintf('%04d', $row->admin_id)),
+                'role' => 'administrator',
+                'year_level' => 'N/A',
+                'email' => (string) $email,
+                'address' => 'N/A',
+                'department' => 'All Departments',
+                'status' => $row->status ?: 'Active',
+                'username' => (string) $row->username,
+                'is_self' => (int) $row->admin_id === $currentAdminId,
+                // Added before this column existed: unknown.
+                'created_at' => $row->created_at ? Carbon::parse($row->created_at)->format('M j, Y, g:i A') : 'Database Record',
+                // Saved by the app in UTC; created_at comes from the database clock (Philippine time).
+                'last_online' => $row->last_online ? Carbon::parse($row->last_online)->setTimezone(config('app.display_timezone'))->format('M j, Y, g:i A') : 'Offline / Never',
+                'profile_image' => $row->profile_image ?: null,
                 'edit' => UserAccountEditor::values($row),
             ];
         }

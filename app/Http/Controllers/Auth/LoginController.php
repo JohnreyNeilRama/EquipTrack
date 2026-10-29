@@ -80,6 +80,13 @@ class LoginController extends Controller
         // 2. Admin accounts — matched by username OR email.
         $admin = Admin::where('username', $input)->orWhere('email', $input)->first();
         if ($admin && Hash::check($password, $admin->password)) {
+            if (strtolower((string) $admin->status) === 'deactivated') {
+                throw ValidationException::withMessages([
+                    'email' => 'This administrator account has been deactivated.',
+                ]);
+            }
+            $admin->forceFill(['last_online' => now()])->save();
+
             return $this->logInto('admin', $admin, $remember);
         }
 

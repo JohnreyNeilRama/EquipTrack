@@ -15,6 +15,7 @@
     'party' => 'dept',
     'urls' => [
         'data' => route('department.penalties.data'),
+        'store' => route('department.penalties.store'),
         'update' => route('department.penalties.update'),
         'settle' => route('department.penalties.settle'),
         'waive' => route('department.penalties.waive'),

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BorrowTransaction;
 use App\Models\Penalty;
 use App\Models\PenaltySubmission;
 use App\Models\PenaltySubmissionFile;
@@ -11,14 +12,15 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Penalties page for the reviewers (Admin, Lab Personnel). Subclasses say who
- * is signed in and which penalties they may see; listing, editing, settling,
- * waiving and verifying the users' proof live here, in PenaltyService and in
- * PenaltySubmissionService.
+ * is signed in and which penalties and returned loans they may see; listing,
+ * recording, editing, settling, waiving and verifying the users' proof live
+ * here, in PenaltyService and in PenaltySubmissionService.
  */
 abstract class PenaltyPageController extends Controller
 {
@@ -39,10 +41,13 @@ abstract class PenaltyPageController extends Controller
     /** Route that serves a proof file to this account (it checks the scope). */
     abstract protected function proofFileRoute(): string;
 
-    /** Extra data for the page (the admin's Add Penalty list). */
+    /** Borrow transactions this account may record a penalty on (Add Penalty). */
+    abstract protected function loanScope(): Builder;
+
+    /** Extra data for the page: the returned loans for Add Penalty. */
     protected function pageData(): array
     {
-        return [];
+        return ['returnedLoans' => $this->penalties->returnedLoans($this->loanScope())];
     }
 
     public function index(): View
@@ -54,6 +59,35 @@ abstract class PenaltyPageController extends Controller
     public function data(): JsonResponse
     {
         return $this->feed();
+    }
+
+    /**
+     * Add Penalty: records a penalty on a returned loan in this account's scope,
+     * for example damage found after the return was confirmed. PenaltyService
+     * allows it only on returned loans and only once per type.
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'transaction_id' => ['required', 'integer', 'min:1'],
+            'type' => ['required', Rule::in(Penalty::TYPES)],
+            'amount' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
+            'description' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $transaction = $this->loanScope()->with('request')->find($data['transaction_id']);
+
+        if (!$transaction instanceof BorrowTransaction || !$transaction->request) {
+            return response()->json(['success' => false, 'message' => 'Returned loan not found.'], 404);
+        }
+
+        $result = $this->penalties->record($transaction, $data, $this->actor());
+
+        if (is_string($result)) {
+            return response()->json(['success' => false, 'message' => $result], 400);
+        }
+
+        return $this->feed('Penalty recorded.');
     }
 
     public function update(Request $request): JsonResponse

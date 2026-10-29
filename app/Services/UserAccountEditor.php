@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Admin;
 use App\Models\DepartmentAccount;
 use App\Models\UserAccount;
 use App\Rules\UniqueAccountEmail;
@@ -10,9 +11,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
- * Editing an existing account's details: Students, Faculty members and
- * Laboratory Personnel (department accounts). Used by the Admin Users page;
- * the department Users page can reuse it with its department fixed.
+ * Editing an existing account's details: Students, Faculty members,
+ * Laboratory Personnel (department accounts) and Administrators. Used by the
+ * Admin Users page; the department Users page reuses it with its department
+ * fixed.
  *
  * Passwords are not edited here (the owner uses Change Password or Forgot
  * Password), and a Student cannot become Faculty or the other way round, since
@@ -31,6 +33,7 @@ class UserAccountEditor
         'first_name' => 'First name',
         'last_name' => 'Last name',
         'full_name' => 'Full name',
+        'name' => 'Full name',
         'id_number' => 'Student ID',
         'year_level' => 'Year level',
         'faculty_id_number' => 'Faculty ID',
@@ -44,8 +47,17 @@ class UserAccountEditor
     ];
 
     /** Validation rules for the account's type. */
-    public static function rules(UserAccount|DepartmentAccount $account): array
+    public static function rules(UserAccount|DepartmentAccount|Admin $account): array
     {
+        if ($account instanceof Admin) {
+            return [
+                'name' => ['required', 'string', 'max:100'],
+                'employee_id' => ['nullable', 'string', 'max:50'],
+                // An admin's email is also their username (kept in sync, as on the profile page).
+                'email' => ['required', 'email', 'max:100', Rule::unique('admin', 'email')->ignore($account->admin_id, 'admin_id'), Rule::unique('admin', 'username')->ignore($account->admin_id, 'admin_id'), UniqueAccountEmail::except(UniqueAccountEmail::ADMIN, $account->admin_id)],
+            ];
+        }
+
         $department = ['required', 'integer', Rule::exists('department', 'department_id')];
 
         if ($account instanceof DepartmentAccount) {
@@ -98,8 +110,16 @@ class UserAccountEditor
     }
 
     /** The account's current values, as the edit form needs them. */
-    public static function values(UserAccount|DepartmentAccount $account): array
+    public static function values(UserAccount|DepartmentAccount|Admin $account): array
     {
+        if ($account instanceof Admin) {
+            return [
+                'name' => (string) $account->name,
+                'employee_id' => (string) $account->employee_id,
+                'email' => (string) ($account->email ?: $account->username),
+            ];
+        }
+
         if ($account instanceof DepartmentAccount) {
             return [
                 'full_name' => (string) $account->full_name,
@@ -137,7 +157,7 @@ class UserAccountEditor
      *
      * @return string[] labels of the fields that changed (empty: nothing to save)
      */
-    public static function update(UserAccount|DepartmentAccount $account, array $data, array $actor, ?Request $request = null): array
+    public static function update(UserAccount|DepartmentAccount|Admin $account, array $data, array $actor, ?Request $request = null): array
     {
         $before = self::values($account);
         $after = array_intersect_key($data, $before) + $before;
@@ -153,6 +173,17 @@ class UserAccountEditor
         }
 
         DB::transaction(function () use ($account, $after) {
+            if ($account instanceof Admin) {
+                $account->update([
+                    'name' => $after['name'],
+                    'employee_id' => ($after['employee_id'] ?? '') ?: null,
+                    'email' => $after['email'],
+                    'username' => $after['email'],
+                ]);
+
+                return;
+            }
+
             if ($account instanceof DepartmentAccount) {
                 $account->update([
                     'full_name' => $after['full_name'],
@@ -190,11 +221,14 @@ class UserAccountEditor
             }
         });
 
-        $isDept = $account instanceof DepartmentAccount;
-        $name = $isDept ? $after['full_name'] : trim($after['first_name'] . ' ' . $after['last_name']);
+        [$name, $entity] = match (true) {
+            $account instanceof Admin => [$after['name'], 'admin:' . $account->admin_id],
+            $account instanceof DepartmentAccount => [$after['full_name'], 'department_account:' . $account->dept_acc_id],
+            default => [trim($after['first_name'] . ' ' . $after['last_name']), 'user_account:' . $account->user_id],
+        };
         AuditLogger::log(
             'Updated user account',
-            $isDept ? 'department_account:' . $account->dept_acc_id : 'user_account:' . $account->user_id,
+            $entity,
             $name . ' (' . $after['email'] . ') · Changed: ' . implode(', ', $changed),
             $actor,
             $request,

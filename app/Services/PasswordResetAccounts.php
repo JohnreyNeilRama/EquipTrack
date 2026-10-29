@@ -37,7 +37,7 @@ class PasswordResetAccounts
         return null;
     }
 
-    /** Admins have no status column; Student/Faculty and Lab Personnel can be deactivated. */
+    /** Any account type can be deactivated (status = 'Deactivated'). */
     public static function isDeactivated(object $account): bool
     {
         return strtolower((string) ($account->status ?? '')) === 'deactivated';

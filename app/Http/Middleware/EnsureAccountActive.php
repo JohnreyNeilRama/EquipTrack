@@ -12,7 +12,7 @@ class EnsureAccountActive
 {
     public function handle(Request $request, Closure $next): Response
     {
-        foreach (['user', 'dept'] as $guard) {
+        foreach (['user', 'dept', 'admin'] as $guard) {
             $account = auth($guard)->user();
             if ($account && strtolower((string) $account->status) === 'deactivated') {
                 auth($guard)->logout();
