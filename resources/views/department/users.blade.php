@@ -121,10 +121,10 @@
             <!-- Table Footer Pagination Matching Reference Image -->
             <div class="table-footer-pagination">
                 <span class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 entries</span>
-                <div class="pagination-controls">
-                    <button class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></button>
-                    <button class="page-btn active">1</button>
-                    <button class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></button>
+                <div class="pagination-controls" id="paginationControls">
+                    <button type="button" class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button type="button" class="page-btn active">1</button>
+                    <button type="button" class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
             </div>
         </div>
@@ -336,6 +336,13 @@
             const filterStatusSelect = document.getElementById('filterStatus');
             const emptyStateContainer = document.getElementById('emptyStateContainer');
             const paginationInfo = document.getElementById('paginationInfo');
+            const paginationControls = document.getElementById('paginationControls');
+
+            // Pagination (same as the Monitoring and History pages): 10 per page.
+            // The background refresh keeps the current page; a new search or
+            // filter goes back to page 1.
+            let currentPage = 1;
+            const pageSize = 10;
 
             // Summary metrics
             const sumTotalUsers = document.getElementById('sumTotalUsers');
@@ -661,10 +668,9 @@
                 const selectedRole = filterRoleSelect.value.toLowerCase();
                 const selectedStatus = filterStatusSelect.value.toLowerCase();
 
-                const rows = tableBody.querySelectorAll('tr');
-                let visibleCount = 0;
+                const rows = Array.from(tableBody.querySelectorAll('tr'));
 
-                rows.forEach(row => {
+                const matched = rows.filter(row => {
                     const searchData = row.getAttribute('data-search');
                     const rowUserType = row.getAttribute('data-usertype');
                     const rowStatus = row.getAttribute('data-status');
@@ -672,32 +678,82 @@
                     const matchesSearch = searchData.includes(query);
                     const matchesRole = (selectedRole === 'all' || rowUserType.includes(selectedRole));
                     const matchesStatus = (selectedStatus === 'all' || rowStatus === selectedStatus);
-
-                    if (matchesSearch && matchesRole && matchesStatus) {
-                        row.style.display = '';
-                        visibleCount++;
-                    } else {
-                        row.style.display = 'none';
-                    }
+                    return matchesSearch && matchesRole && matchesStatus;
                 });
 
+                const visibleCount = matched.length;
+                const totalPages = Math.max(1, Math.ceil(visibleCount / pageSize));
+                if (currentPage > totalPages) currentPage = totalPages;
+
+                const startIndex = (currentPage - 1) * pageSize;
+                const endIndex = Math.min(startIndex + pageSize, visibleCount);
+                const pageRows = matched.slice(startIndex, endIndex);
+
+                // Only the current page's rows are shown (rows are hidden, not removed).
+                rows.forEach(row => {
+                    row.style.display = 'none';
+                    row.classList.remove('last-visible-row');
+                });
+                pageRows.forEach(row => { row.style.display = ''; });
+
                 // Mark the last visible row so the table's footer line doesn't
-                // double up with that row's bottom line (rows are hidden, not removed).
-                rows.forEach(row => row.classList.remove('last-visible-row'));
-                const visibleRows = Array.from(rows).filter(row => row.style.display !== 'none');
-                if (visibleRows.length) {
-                    visibleRows[visibleRows.length - 1].classList.add('last-visible-row');
+                // double up with that row's bottom line.
+                if (pageRows.length) {
+                    pageRows[pageRows.length - 1].classList.add('last-visible-row');
                 }
 
                 if (paginationInfo) {
-                    paginationInfo.textContent = `Showing ${visibleCount > 0 ? 1 : 0} to ${visibleCount} of ${visibleCount} entries`;
+                    paginationInfo.textContent = visibleCount > 0
+                        ? `Showing ${startIndex + 1} to ${endIndex} of ${visibleCount} entries`
+                        : 'Showing 0 to 0 of 0 entries';
                 }
+                renderPaginationButtons(totalPages);
 
                 if (visibleCount === 0) {
                     emptyStateContainer.style.display = 'flex';
                 } else {
                     emptyStateContainer.style.display = 'none';
                 }
+            }
+
+            // Render pagination buttons dynamically (keeps the existing page-btn design)
+            function renderPaginationButtons(totalPages) {
+                paginationControls.innerHTML = '';
+
+                const makeBtn = (html, disabled, active, onClick, label) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'page-btn' + (disabled ? ' disabled' : '') + (active ? ' active' : '');
+                    btn.innerHTML = html;
+                    btn.disabled = disabled;
+                    if (label) btn.setAttribute('aria-label', label);
+                    if (active) btn.setAttribute('aria-current', 'page');
+                    if (!disabled) btn.addEventListener('click', onClick);
+                    return btn;
+                };
+
+                paginationControls.appendChild(makeBtn('<i class="fa-solid fa-chevron-left"></i>', currentPage <= 1, false, () => {
+                    currentPage--;
+                    filterTable();
+                }, 'Previous page'));
+
+                for (let i = 1; i <= totalPages; i++) {
+                    paginationControls.appendChild(makeBtn(String(i), false, currentPage === i, () => {
+                        currentPage = i;
+                        filterTable();
+                    }, 'Page ' + i));
+                }
+
+                paginationControls.appendChild(makeBtn('<i class="fa-solid fa-chevron-right"></i>', currentPage >= totalPages, false, () => {
+                    currentPage++;
+                    filterTable();
+                }, 'Next page'));
+            }
+
+            // A new search or filter starts again from the first page.
+            function applyFilters() {
+                currentPage = 1;
+                filterTable();
             }
 
             // Reload the department's users so new, edited and deactivated
@@ -717,9 +773,9 @@
                     .catch(err => console.error('Error refreshing users:', err));
             }
 
-            searchInput.addEventListener('input', filterTable);
-            filterRoleSelect.addEventListener('change', filterTable);
-            filterStatusSelect.addEventListener('change', filterTable);
+            searchInput.addEventListener('input', applyFilters);
+            filterRoleSelect.addEventListener('change', applyFilters);
+            filterStatusSelect.addEventListener('change', applyFilters);
 
             // Initial render, then keep it current.
             renderTable();

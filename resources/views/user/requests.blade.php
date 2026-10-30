@@ -33,6 +33,7 @@
                 <option value="Pending">Pending</option>
                 <option value="Approved">Approved</option>
                 <option value="Rejected">Rejected</option>
+                <option value="Cancelled">Cancelled</option>
             </select>
         </div>
     </div>
@@ -78,7 +79,8 @@
                         data-reject-reason="{{ $req->reject_reason }}"
                         data-dual="{{ $req->requiresDualApproval() ? '1' : '0' }}"
                         data-admin-status="{{ $req->admin_status ?: 'Pending' }}"
-                        data-dept-status="{{ $req->dept_status ?: 'Pending' }}">
+                        data-dept-status="{{ $req->dept_status ?: 'Pending' }}"
+                        data-cancelled-at="{{ $req->cancelled_at ? $req->cancelled_at->copy()->timezone(config('app.display_timezone'))->format('M d, Y, g:i A') : '' }}">
                         <td>{{ $idx + 1 }}</td>
                         <td class="equipment-col">
                             <div class="eq-cell" style="display: flex; align-items: center; gap: 12px;">
@@ -98,7 +100,7 @@
                             </span>
                         </td>
                         <td style="text-align: center;">
-                            <button type="button" class="btn-view-request" onclick="openRequestDetails(this)">
+                            <button type="button" class="btn-view-request" aria-label="View details of {{ $eqName }}">
                                 <i class="fa-regular fa-eye"></i> View
                             </button>
                         </td>
@@ -198,7 +200,45 @@
                         <label class="detail-form-label text-danger">Reason for Rejection</label>
                         <textarea id="detailReason" class="detail-form-control textarea-control text-danger-control" readonly rows="2"></textarea>
                     </div>
+                    <div class="detail-form-group" id="detailCancelledGroup" style="display: none;">
+                        <label class="detail-form-label">Cancelled On</label>
+                        <input type="text" id="detailCancelledAt" class="detail-form-control" readonly>
+                    </div>
                 </div>
+
+                {{-- Only while the request is still Pending --}}
+                <div class="detail-cancel-row" id="detailCancelRow" style="display: none;">
+                    <span class="detail-cancel-hint">Changed your mind? You can cancel while the request is still pending.</span>
+                    <button type="button" class="btn-cancel-request" id="openCancelConfirmBtn">
+                        <i class="fa-solid fa-ban"></i> Cancel Request
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{-- Cancel Request confirmation --}}
+    <div class="modal-overlay" id="cancelConfirmModal">
+        <div class="modal-card details-modal-card cancel-confirm-card">
+            <div class="modal-inner-card">
+                <h3 class="modal-title-center">Cancel this request?</h3>
+                <p class="cancel-confirm-text">
+                    Your request for <strong id="cancelConfirmEq"></strong> will be withdrawn and the
+                    laboratory will no longer review it. This can't be undone, but you can submit a new request any time.
+                </p>
+                <div class="modal-form-actions">
+                    <button type="button" class="btn-modal-cancel" id="keepRequestBtn">Keep Request</button>
+                    <button type="button" class="btn-modal-danger" id="confirmCancelBtn">Cancel Request</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-notification" id="requestsToast" role="status" aria-live="polite">
+        <div class="toast-content">
+            <i class="fa-solid fa-circle-check toast-icon"></i>
+            <div class="toast-message">
+                <span class="toast-title"></span>
+                <span class="toast-desc"></span>
             </div>
         </div>
     </div>
@@ -303,9 +343,8 @@
         paginationButtons.appendChild(nextBtn);
     }
 
-    // Function to open request details modal
-    function openRequestDetails(button) {
-        const row = button.closest('.request-row');
+    // Opens the request details modal for a table row
+    function openRequestDetails(row) {
 
         const eqName = row.getAttribute('data-equipment');
         const eqCategory = row.getAttribute('data-category');
@@ -349,8 +388,15 @@
             reasonGroup.style.display = 'none';
         }
 
+        const cancelledAt = row.getAttribute('data-cancelled-at');
+        document.getElementById('detailCancelledGroup').style.display = status === 'Cancelled' && cancelledAt ? 'block' : 'none';
+        document.getElementById('detailCancelledAt').value = cancelledAt || '';
+
+        activeRow = row;
+        document.getElementById('detailCancelRow').style.display = status === 'Pending' ? 'flex' : 'none';
+
         const approvalsGroup = document.getElementById('detailApprovalsGroup');
-        if (row.getAttribute('data-dual') === '1') {
+        if (row.getAttribute('data-dual') === '1' && status !== 'Cancelled') {
             const paint = (id, value) => {
                 const el = document.getElementById(id);
                 el.textContent = value;
@@ -366,6 +412,13 @@
         detailsModal.classList.add('show');
     }
 
+    // Details window: the View button, or a click anywhere on the row (same as
+    // Borrowing History). The button has no handler of its own, so its click
+    // reaches the row once and the window opens once.
+    allRows.forEach(row => {
+        row.addEventListener('click', () => openRequestDetails(row));
+    });
+
     closeDetailsBtn.addEventListener('click', () => {
         detailsModal.classList.remove('show');
     });
@@ -373,6 +426,91 @@
     detailsModal.addEventListener('click', (e) => {
         if (e.target === detailsModal) {
             detailsModal.classList.remove('show');
+        }
+    });
+
+    // ---- Cancel a pending request ----
+    const cancelConfirmModal = document.getElementById('cancelConfirmModal');
+    const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+    const requestsToast = document.getElementById('requestsToast');
+    let activeRow = null;
+    let toastTimer = null;
+
+    function showToast(title, message, type = 'success') {
+        const ok = type === 'success';
+        const icon = requestsToast.querySelector('.toast-icon');
+        requestsToast.querySelector('.toast-title').textContent = title;
+        requestsToast.querySelector('.toast-desc').textContent = message;
+        icon.className = 'fa-solid ' + (ok ? 'fa-circle-check' : 'fa-circle-xmark') + ' toast-icon';
+        icon.style.color = ok ? '#10b981' : '#ef4444';
+        requestsToast.querySelector('.toast-content').style.borderLeft = '4px solid ' + (ok ? '#10b981' : '#ef4444');
+        requestsToast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => requestsToast.classList.remove('show'), 4000);
+    }
+
+    function closeCancelConfirm() {
+        cancelConfirmModal.classList.remove('show');
+    }
+
+    document.getElementById('openCancelConfirmBtn').addEventListener('click', () => {
+        if (!activeRow) return;
+        document.getElementById('cancelConfirmEq').textContent = activeRow.getAttribute('data-equipment');
+        cancelConfirmModal.classList.add('show');
+    });
+    document.getElementById('keepRequestBtn').addEventListener('click', closeCancelConfirm);
+    cancelConfirmModal.addEventListener('click', (e) => {
+        if (e.target === cancelConfirmModal) closeCancelConfirm();
+    });
+
+    // Marks the row Cancelled in place (the page is not reloaded).
+    function markRowCancelled(row) {
+        const now = new Date();
+        const stamp = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            + ', ' + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        row.setAttribute('data-status', 'Cancelled');
+        row.setAttribute('data-cancelled-at', stamp);
+        const badge = row.querySelector('.detail-status-badge');
+        badge.textContent = 'Cancelled';
+        badge.className = 'detail-status-badge status-cancelled';
+    }
+
+    confirmCancelBtn.addEventListener('click', async () => {
+        const row = activeRow;
+        if (!row) return;
+
+        confirmCancelBtn.disabled = true;
+        confirmCancelBtn.textContent = 'Cancelling...';
+
+        try {
+            const response = await fetch(@json(route('user.requests.cancel')), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': @json(csrf_token()),
+                },
+                body: JSON.stringify({ request_id: row.getAttribute('data-id') }),
+            });
+            const data = await response.json().catch(() => ({}));
+
+            closeCancelConfirm();
+            detailsModal.classList.remove('show');
+
+            if (response.ok && data.success) {
+                markRowCancelled(row);
+                renderRequestsTable();
+                showToast('Request Cancelled', data.message || 'Your request has been cancelled.');
+            } else {
+                showToast('Unable to Cancel', data.message || 'The request could not be cancelled. Please refresh the page and try again.', 'error');
+            }
+        } catch (error) {
+            console.error('Cancel request failed:', error);
+            closeCancelConfirm();
+            showToast('System Error', 'An unexpected error occurred. Please try again.', 'error');
+        } finally {
+            confirmCancelBtn.disabled = false;
+            confirmCancelBtn.textContent = 'Cancel Request';
         }
     });
 

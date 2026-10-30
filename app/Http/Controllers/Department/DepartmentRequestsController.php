@@ -68,6 +68,13 @@ class DepartmentRequestsController extends Controller
             ], 400);
         }
 
+        if ($borrow->overall_status === BorrowRequest::STATUS_CANCELLED) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The borrower cancelled this request.',
+            ], 400);
+        }
+
         if ($borrow->overall_status === 'Rejected') {
             return response()->json([
                 'success' => false,
@@ -80,6 +87,9 @@ class DepartmentRequestsController extends Controller
 
         $result = DB::transaction(function () use ($request, $data, $borrow, $dept, $now, $reason) {
             $locked = BorrowRequest::where('request_id', $borrow->request_id)->lockForUpdate()->first();
+            if ($locked?->overall_status === BorrowRequest::STATUS_CANCELLED) {
+                return ['code' => 400, 'message' => 'The borrower cancelled this request.'];
+            }
             if (!$locked || $locked->dept_status !== 'Pending' || $locked->overall_status === 'Rejected') {
                 return ['code' => 400, 'message' => 'This request has already been reviewed.'];
             }

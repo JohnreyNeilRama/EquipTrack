@@ -52,7 +52,7 @@ class AdminReportsController extends Controller
 
     /** Status filter values available for each report type (empty = no status filter). */
     private const STATUSES = [
-        'borrowing' => ['Pending', 'Approved', 'Rejected', 'Borrowed', 'Overdue', 'Returned'],
+        'borrowing' => ['Pending', 'Approved', 'Rejected', 'Cancelled', 'Borrowed', 'Overdue', 'Returned'],
         'return' => ['Returned', 'Returned Late', 'Damaged', 'Incomplete', 'Lost'],
         'inventory' => ['Available', 'Unavailable', 'On Hold', 'Under Maintenance'],
         'overdue' => [],
@@ -300,8 +300,8 @@ class AdminReportsController extends Controller
             || $transaction->status === 'Overdue'
         );
 
-        if ($overall === 'Rejected') {
-            $lifecycle = 'Rejected';
+        if ($overall === 'Rejected' || $overall === BorrowRequest::STATUS_CANCELLED) {
+            $lifecycle = $overall;
         } elseif ($overall !== 'Approved') {
             $lifecycle = 'Pending';
         } elseif ($returned) {
@@ -631,13 +631,13 @@ class AdminReportsController extends Controller
         ], $rows);
     }
 
-    /** Every borrow request (pending, approved, rejected) with where it currently stands. */
+    /** Every borrow request (pending, approved, rejected, cancelled) with where it currently stands. */
     private function borrowingReport(array $filters, Collection $all): array
     {
         $rows = $this->scope($all, $filters)
             ->filter(fn (array $row) => match ($filters['status']) {
                 '' => true,
-                'Pending', 'Approved', 'Rejected' => $row['overall'] === $filters['status'],
+                'Pending', 'Approved', 'Rejected', 'Cancelled' => $row['overall'] === $filters['status'],
                 default => $row['lifecycle'] === $filters['status'],
             })
             ->sort(fn (array $a, array $b) => [$this->stamp($b['borrow']), $b['request_id']] <=> [$this->stamp($a['borrow']), $a['request_id']])
@@ -785,6 +785,7 @@ class AdminReportsController extends Controller
                     'approved' => $group->where('overall', 'Approved')->count(),
                     'rejected' => $group->where('overall', 'Rejected')->count(),
                     'pending' => $group->where('overall', 'Pending')->count(),
+                    'cancelled' => $group->where('overall', BorrowRequest::STATUS_CANCELLED)->count(),
                     'returned' => $group->where('loan', 'Returned')->count(),
                     'borrowed' => $group->where('loan', 'Active')->count(),
                     'overdue' => $group->where('overdue', true)->count(),
@@ -800,6 +801,7 @@ class AdminReportsController extends Controller
             $this->col('approved', 'Approved', 'num'),
             $this->col('rejected', 'Rejected', 'num'),
             $this->col('pending', 'Pending', 'num'),
+            $this->col('cancelled', 'Cancelled', 'num'),
             $this->col('returned', 'Returned', 'num'),
             $this->col('borrowed', 'Currently Borrowed', 'num'),
             $this->col('overdue', 'Overdue', 'num'),

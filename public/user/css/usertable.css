@@ -2,8 +2,8 @@
    EquipTrack - User table component (.requests-table-card)
    --------------------------------------------------------------------------
    The table design of the My Requests page, shared by every User page that
-   shows the same table: My Requests and the Dashboard tables. Page-specific
-   spacing and extras stay in each page's own stylesheet.
+   shows the same table: My Requests, Borrowing History and the Dashboard
+   tables. Page-specific spacing and extras stay in each page's own stylesheet.
    ========================================================================== */
 
 .requests-table-card {
@@ -107,6 +107,72 @@
 .dark-theme .requests-table-card .detail-status-badge.status-rejected {
     background-color: rgba(248, 113, 113, 0.15);
     color: #f87171;
+}
+
+/* Loan statuses (Dashboard, Borrowing History), in the same badge design */
+.requests-table-card .detail-status-badge {
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.requests-table-card .detail-status-badge.status-returned {
+    background-color: rgba(16, 185, 129, 0.08);
+    color: #10b981;
+}
+
+.requests-table-card .detail-status-badge.status-borrowed {
+    background-color: rgba(56, 85, 133, 0.1);
+    color: var(--primary-color);
+}
+
+.requests-table-card .detail-status-badge.status-overdue,
+.requests-table-card .detail-status-badge.status-late-return {
+    background-color: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+}
+
+/* Returned by the user, waiting for the department's confirmation */
+.requests-table-card .detail-status-badge.status-pending-confirmation {
+    background-color: rgba(245, 158, 11, 0.12);
+    color: #b45309;
+}
+
+.dark-theme .requests-table-card .detail-status-badge.status-returned {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}
+
+.dark-theme .requests-table-card .detail-status-badge.status-borrowed {
+    background-color: rgba(96, 165, 250, 0.15);
+    color: #93c5fd;
+}
+
+.dark-theme .requests-table-card .detail-status-badge.status-overdue,
+.dark-theme .requests-table-card .detail-status-badge.status-late-return {
+    background-color: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+}
+
+.dark-theme .requests-table-card .detail-status-badge.status-pending-confirmation {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+}
+
+/* View button in the Action column */
+.btn-view-request {
+    background-color: #4f6b9c;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 20px;
+    font-size: var(--fs-label);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-view-request:hover {
+    background-color: #3b537c;
 }
 
 @media (max-width: 768px) {

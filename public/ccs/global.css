@@ -1142,3 +1142,20 @@ tbody tr:hover td {
 
 
 
+
+/* Cancelled borrow requests (withdrawn by the borrower): muted grey on every page */
+.detail-status-badge.status-cancelled {
+    background-color: #f1f5f9;
+    color: #94a3b8;
+}
+.status-text.status-cancelled,
+.status-cancelled {
+    color: #94a3b8;
+}
+.dark-theme .detail-status-badge.status-cancelled {
+    background-color: rgba(148, 163, 184, 0.12) !important;
+    color: #94a3b8 !important;
+}
+.dark-theme .status-cancelled {
+    color: #94a3b8 !important;
+}

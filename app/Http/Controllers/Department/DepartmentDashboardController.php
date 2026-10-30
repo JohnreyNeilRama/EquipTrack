@@ -135,7 +135,7 @@ class DepartmentDashboardController extends Controller
                 ->where('dept_status', 'Pending')
                 ->where(function ($query) {
                     $query->whereNull('overall_status')
-                        ->orWhere('overall_status', '!=', 'Rejected');
+                        ->orWhereNotIn('overall_status', ['Rejected', BorrowRequest::STATUS_CANCELLED]);
                 })
                 ->count(),
             'borrowedEquipment' => $borrowedUnits,

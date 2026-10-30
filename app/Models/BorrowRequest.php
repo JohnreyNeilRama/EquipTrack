@@ -10,6 +10,9 @@ class BorrowRequest extends Model
 
     public const PARTY_DEPT = 'dept';
 
+    /** overall_status of a request its borrower withdrew while it was Pending. */
+    public const STATUS_CANCELLED = 'Cancelled';
+
     protected $table = 'borrow_request';
     protected $primaryKey = 'request_id';
     public $timestamps = false;
@@ -34,6 +37,7 @@ class BorrowRequest extends Model
         'dept_reviewed_at',
         'overall_status',
         'reject_reason',
+        'cancelled_at',
     ];
 
     protected $casts = [
@@ -43,6 +47,7 @@ class BorrowRequest extends Model
         'borrow_date' => 'date',
         'admin_reviewed_at' => 'datetime',
         'dept_reviewed_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
 
     public function user()
@@ -68,6 +73,21 @@ class BorrowRequest extends Model
     public function transaction()
     {
         return $this->hasOne(BorrowTransaction::class, 'request_id', 'request_id');
+    }
+
+    /** Rejected or Cancelled: no one can approve or reject it any more. */
+    public function isClosed(): bool
+    {
+        return in_array($this->overall_status, ['Rejected', self::STATUS_CANCELLED], true);
+    }
+
+    /**
+     * The borrower can cancel while the request is still Pending and no loan
+     * exists yet (an Expensive request approved by only one party still counts).
+     */
+    public function canBeCancelled(): bool
+    {
+        return ($this->overall_status ?: 'Pending') === 'Pending' && !$this->transaction()->exists();
     }
 
     /**

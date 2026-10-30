@@ -713,47 +713,6 @@
 }
 
 /* --------------------------------------------------------------------------
-   Status badges: the My Requests table badge (usertable.css) already styles
-   Pending / Approved / Rejected. These are the loan statuses only the
-   Dashboard shows, in the same badge design.
-   -------------------------------------------------------------------------- */
-.requests-table-card .detail-status-badge {
-    display: inline-block;
-    white-space: nowrap;
-}
-
-.requests-table-card .detail-status-badge.status-borrowed {
-    background-color: rgba(56, 85, 133, 0.1);
-    color: var(--primary-color);
-}
-
-.requests-table-card .detail-status-badge.status-overdue {
-    background-color: rgba(239, 68, 68, 0.08);
-    color: #ef4444;
-}
-
-/* Returned by the user, waiting for the department's confirmation */
-.requests-table-card .detail-status-badge.status-pending-confirmation {
-    background-color: rgba(245, 158, 11, 0.12);
-    color: #b45309;
-}
-
-.dark-theme .requests-table-card .detail-status-badge.status-borrowed {
-    background-color: rgba(96, 165, 250, 0.15);
-    color: #93c5fd;
-}
-
-.dark-theme .requests-table-card .detail-status-badge.status-overdue {
-    background-color: rgba(248, 113, 113, 0.15);
-    color: #f87171;
-}
-
-.dark-theme .requests-table-card .detail-status-badge.status-pending-confirmation {
-    background-color: rgba(245, 158, 11, 0.15);
-    color: #fbbf24;
-}
-
-/* --------------------------------------------------------------------------
    Background-refresh failure notice (hidden unless a refresh fails)
    -------------------------------------------------------------------------- */
 .dash-refresh-error {

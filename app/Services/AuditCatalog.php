@@ -37,6 +37,7 @@ class AuditCatalog
             'Rejected borrow request' => 'Borrow request',
             'Department rejected borrow request' => 'Borrow request (department)',
         ]],
+        ['label' => 'Cancelled Request', 'module' => 'Requests', 'prefixes' => ['Cancelled borrow request' => 'Borrow request']],
 
         // Returns
         ['label' => 'Returned Equipment', 'module' => 'Returns', 'prefixes' => [

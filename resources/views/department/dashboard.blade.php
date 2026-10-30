@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
 {{-- Recent Borrow Requests: same table, badges, buttons and details modal as the Borrow Requests page --}}
 <link rel="stylesheet" href="{{ asset('admin/css/adminequipment.css') }}">
-<link rel="stylesheet" href="{{ asset('admin/css/adminrequests.css') }}">
+<link rel="stylesheet" href="{{ asset('admin/css/adminrequests.css') }}?v={{ filemtime(public_path('admin/css/adminrequests.css')) }}">
 @include('partials.requests.styles')
 <link rel="stylesheet" href="{{ asset('departments/css/departmentdashboard.css') }}">
 <style>

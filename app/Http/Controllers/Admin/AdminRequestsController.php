@@ -70,6 +70,13 @@ class AdminRequestsController extends Controller
         }
 
         // The department workflow may have already rejected this request.
+        if ($borrow->overall_status === BorrowRequest::STATUS_CANCELLED) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The borrower cancelled this request.',
+            ], 400);
+        }
+
         if ($borrow->overall_status === 'Rejected') {
             return response()->json([
                 'success' => false,
@@ -84,6 +91,9 @@ class AdminRequestsController extends Controller
         $result = DB::transaction(function () use ($request, $data, $borrow, $admin, $now, $reason) {
             // Re-fetch under a lock so concurrent approvals cannot double-decrement stock.
             $locked = BorrowRequest::where('request_id', $borrow->request_id)->lockForUpdate()->first();
+            if ($locked?->overall_status === BorrowRequest::STATUS_CANCELLED) {
+                return ['code' => 400, 'message' => 'The borrower cancelled this request.'];
+            }
             if (!$locked || $locked->admin_status !== 'Pending' || $locked->overall_status === 'Rejected') {
                 return ['code' => 400, 'message' => 'This request has already been reviewed.'];
             }

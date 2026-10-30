@@ -370,8 +370,17 @@
             document.getElementById('modalNotes').value = req.notes || 'None';
 
             const reasonGroup = document.getElementById('modalReasonGroup');
+            const reasonLabel = document.getElementById('modalReasonLabel');
+            const reasonBox = document.getElementById('modalReason');
+            const cancelled = req.status.toLowerCase() === 'cancelled';
+            reasonLabel.textContent = cancelled ? 'Cancelled' : 'Reason for Rejection';
+            reasonLabel.classList.toggle('text-danger', !cancelled);
+            reasonBox.classList.toggle('text-danger-control', !cancelled);
             if (req.status.toLowerCase() === 'rejected') {
                 document.getElementById('modalReason').value = req.rejectReason || 'No reason provided.';
+                reasonGroup.style.display = 'block';
+            } else if (req.status.toLowerCase() === 'cancelled') {
+                document.getElementById('modalReason').value = 'Cancelled by the borrower' + (req.cancelledAt ? ' on ' + req.cancelledAt : '') + ', before it was reviewed.';
                 reasonGroup.style.display = 'block';
             } else {
                 reasonGroup.style.display = 'none';

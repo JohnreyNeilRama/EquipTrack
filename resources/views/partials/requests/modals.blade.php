@@ -79,7 +79,7 @@
                     </div>
                 </div>
                 <div class="detail-form-group" id="modalReasonGroup" style="display: none; margin-bottom: 16px;">
-                    <label class="detail-form-label text-danger">Reason for Rejection</label>
+                    <label class="detail-form-label text-danger" id="modalReasonLabel">Reason for Rejection</label>
                     <textarea id="modalReason" class="detail-form-control textarea-control text-danger-control" rows="2" readonly></textarea>
                 </div>
 

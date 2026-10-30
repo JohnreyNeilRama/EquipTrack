@@ -69,6 +69,9 @@ class RequestTableRows
             'requiresBothApprovals' => $row->requiresDualApproval(),
             'canReview' => $canReview,
             'rejectReason' => $row->reject_reason ?? '',
+            'cancelledAt' => $row->cancelled_at
+                ? $row->cancelled_at->copy()->timezone(config('app.display_timezone'))->format('M d, Y h:i A')
+                : '',
         ];
     }
 }

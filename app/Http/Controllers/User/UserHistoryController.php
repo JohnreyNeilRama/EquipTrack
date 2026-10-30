@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\BorrowRequest;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class UserHistoryController extends Controller
@@ -77,7 +78,7 @@ class UserHistoryController extends Controller
     /**
      * Returned / Late Return for settled transactions, Pending Confirmation for
      * returns the department has not verified yet, Borrowed / Overdue for items
-     * still out, and Pending / Rejected for requests not yet loaned.
+     * still out, and Pending / Rejected / Cancelled for requests not yet loaned.
      */
     private function resolveStatus(BorrowRequest $request, $dueDateRaw, $returnDateRaw): string
     {
@@ -103,7 +104,11 @@ class UserHistoryController extends Controller
             return $isOverdue ? 'Overdue' : 'Borrowed';
         }
 
-        return $request->overall_status === 'Rejected' ? 'Rejected' : 'Pending';
+        return match ($request->overall_status) {
+            'Rejected' => 'Rejected',
+            BorrowRequest::STATUS_CANCELLED => 'Cancelled',
+            default => 'Pending',
+        };
     }
 
     /**
@@ -125,15 +130,10 @@ class UserHistoryController extends Controller
         return $remarks !== '' ? $remarks : '—';
     }
 
+    /** Table badge: "Late Return" -> status-late-return (styled in user/css/usertable.css). */
     private function statusClass(string $status): string
     {
-        return match ($status) {
-            'Returned' => 'status-returned',
-            'Late Return', 'Overdue' => 'status-late',
-            'Rejected' => 'status-rejected',
-            'Pending', 'Pending Confirmation' => 'status-pending',
-            default => 'status-borrowed',
-        };
+        return 'status-' . Str::slug($status);
     }
 
     private function badgeClass(string $status): string
@@ -142,6 +142,7 @@ class UserHistoryController extends Controller
             'Returned' => 'approved',
             'Borrowed' => 'borrowed',
             'Pending', 'Pending Confirmation' => 'pending',
+            'Cancelled' => 'cancelled',
             default => 'rejected',
         };
     }

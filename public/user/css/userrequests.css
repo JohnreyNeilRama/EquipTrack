@@ -188,23 +188,12 @@
     color: #ef4444; /* Red */
 }
 
-/* Action button and placeholders */
-.btn-view-request {
-    background-color: #4f6b9c; /* Soft blue matching view buttons in screenshot */
-    color: #ffffff;
-    border: none;
-    border-radius: 6px;
-    padding: 6px 20px;
-    font-size: var(--fs-label);
-    font-weight: 500;
+/* A click anywhere on a row opens its details (same as Borrowing History) */
+.my-requests-table tbody tr.request-row {
     cursor: pointer;
-    transition: background-color 0.2s;
 }
 
-.btn-view-request:hover {
-    background-color: #3b537c;
-}
-
+/* Action placeholders (the View button is in usertable.css) */
 .action-placeholder {
     color: var(--text-muted);
     padding-left: 10px;
@@ -529,5 +518,190 @@ html:has(.requests-table-card) {
     .requests-table-card .my-requests-table th:first-child,
     .requests-table-card .my-requests-table td:first-child {
         padding-left: 20px !important;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Cancelled requests and the Cancel Request action
+   -------------------------------------------------------------------------- */
+.detail-cancel-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.detail-cancel-hint {
+    font-size: var(--fs-label);
+    color: var(--text-muted);
+}
+
+.btn-cancel-request {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    color: #ef4444;
+    border: 1px solid #fca5a5;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: var(--fs-label);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-cancel-request:hover {
+    background: #fef2f2;
+    border-color: #ef4444;
+}
+
+.dark-theme .btn-cancel-request {
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.4);
+}
+
+.dark-theme .btn-cancel-request:hover {
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.cancel-confirm-card {
+    max-width: 440px !important;
+}
+
+.cancel-confirm-text {
+    font-size: var(--fs-body);
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.6;
+    margin: 8px 0 24px 0;
+}
+
+.cancel-confirm-text strong {
+    color: var(--text-main);
+}
+
+.modal-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-modal-cancel,
+.btn-modal-danger {
+    border: none;
+    border-radius: 10px;
+    padding: 12px 24px;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-modal-cancel {
+    background: var(--bg-color);
+    color: var(--text-muted);
+}
+
+.btn-modal-cancel:hover {
+    background: var(--border-color);
+    color: var(--text-main);
+}
+
+.btn-modal-danger {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+.btn-modal-danger:hover:not(:disabled) {
+    background: #dc2626;
+}
+
+.btn-modal-danger:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+/* Toast (same look as the Return Item page) */
+.toast-notification {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(20px);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.toast-notification.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.toast-content {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+    border: 1px solid var(--border-color);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 325px;
+}
+
+.toast-icon {
+    font-size: 24px;
+}
+
+.toast-message {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.toast-title {
+    font-size: var(--fs-body);
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 2px;
+}
+
+.toast-desc {
+    font-size: var(--fs-label);
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+    .detail-cancel-row {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .modal-form-actions {
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+
+    .btn-modal-cancel,
+    .btn-modal-danger {
+        width: 100%;
+    }
+
+    .toast-content {
+        min-width: 0;
+    }
+
+    .toast-notification {
+        left: 16px;
+        right: 16px;
     }
 }

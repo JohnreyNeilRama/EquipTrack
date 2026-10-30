@@ -152,6 +152,7 @@ Route::middleware(['auth:user', 'auth.session', 'active'])->prefix('user')->name
     Route::get('/equipment', [UserEquipmentController::class, 'index'])->name('equipment');
     Route::post('/equipment/borrow', [UserEquipmentController::class, 'store'])->name('borrow.store');
     Route::get('/requests', [UserRequestsController::class, 'index'])->name('requests');
+    Route::post('/requests/cancel', [UserRequestsController::class, 'cancel'])->middleware('throttle:20,1')->name('requests.cancel');
     Route::get('/returns', [UserReturnsController::class, 'index'])->name('returns');
     Route::post('/returns', [UserReturnsController::class, 'store'])->name('returns.store');
     Route::get('/history', [UserHistoryController::class, 'index'])->name('history');

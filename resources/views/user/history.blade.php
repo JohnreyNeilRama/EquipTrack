@@ -1,9 +1,10 @@
 @extends('layouts.user')
 
-@section('title', 'EquipTrack')
+@section('title', 'EquipTrack - Borrowing History')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('user/css/userhistory.css') }}">
+<link rel="stylesheet" href="{{ asset('user/css/usertable.css') }}?v={{ filemtime(public_path('user/css/usertable.css')) }}">
+<link rel="stylesheet" href="{{ asset('user/css/userhistory.css') }}?v={{ filemtime(public_path('user/css/userhistory.css')) }}">
 @endpush
 
 @section('content')
@@ -30,6 +31,7 @@
                         <option value="Pending Confirmation">Pending Confirmation</option>
                         <option value="Pending">Pending</option>
                         <option value="Rejected">Rejected</option>
+                        <option value="Cancelled">Cancelled</option>
                     </select>
                 </div>
                 <div class="filter-wrapper">
@@ -42,16 +44,18 @@
         </div>
 
         <!-- Table Container -->
-        <div class="table-container card history-table-card">
-            <table @if ($historyItems->isEmpty()) style="display: none;" @endif>
+        {{-- The My Requests table component (user/css/usertable.css) --}}
+        <div class="table-container card requests-table-card history-table-card">
+            <table class="history-table" @if ($historyItems->isEmpty()) style="display: none;" @endif>
                 <thead>
                     <tr>
                         <th class="col-no">No.</th>
                         <th>Equipment</th>
-                        <th>Borrow Date</th>
-                        <th>Return Date</th>
-                        <th>Status</th>
-                        <th>Remarks</th>
+                        <th class="col-date">Borrow Date</th>
+                        <th class="col-date">Return Date</th>
+                        <th class="col-status">Status</th>
+                        <th class="col-remarks">Remarks</th>
+                        <th class="col-action">Action</th>
                     </tr>
                 </thead>
                 <tbody id="historyTableBody">
@@ -69,7 +73,7 @@
                             data-penalties="{{ $item['penalties'] }}"
                             data-img="{{ $item['img'] }}"
                             data-timestamp="{{ $item['timestamp'] }}">
-                            <td class="row-index">{{ $idx + 1 }}</td>
+                            <td class="row-index col-no">{{ $idx + 1 }}</td>
                             <td class="equipment-col">
                                 <div class="eq-cell" style="display: flex; align-items: center; gap: 12px;">
                                     <img src="{{ $item['img'] }}" alt="{{ $item['equipment'] }}" class="eq-thumb" style="width: 42px; height: 42px; border-radius: 8px; object-fit: cover; background: #fff;" onerror="this.onerror=null; this.src='{{ asset('images/EquipTrack_logo.png') }}';">
@@ -79,12 +83,20 @@
                                     </div>
                                 </div>
                             </td>
-                            <td>{{ $item['borrow_date'] }}</td>
-                            <td>{{ $item['return_date'] }}</td>
-                            <td>
-                                <span class="status-text {{ $item['status_class'] }}">{{ $item['status'] }}</span>
+                            <td class="col-date">{{ $item['borrow_date'] }}</td>
+                            <td class="col-date">{{ $item['return_date'] }}</td>
+                            <td class="col-status">
+                                <span class="detail-status-badge {{ $item['status_class'] }}">{{ $item['status'] }}</span>
                             </td>
-                            <td class="col-remarks">{{ $item['remarks'] }}</td>
+                            {{-- One line ending in "…"; the full text is in the tooltip and the details window --}}
+                            <td class="col-remarks">
+                                <span class="remarks-text" @if ($item['remarks'] !== '—') title="{{ $item['remarks'] }}" @endif>{{ $item['remarks'] }}</span>
+                            </td>
+                            <td class="col-action">
+                                <button type="button" class="btn-view-request" aria-label="View details of {{ $item['equipment'] }}">
+                                    <i class="fa-regular fa-eye"></i> View
+                                </button>
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -158,7 +170,7 @@
                 <div class="detail-lower-section">
                     <div class="detail-form-group">
                         <label class="detail-form-label">Transaction Remarks</label>
-                        <textarea id="historyRemarks" class="detail-form-control textarea-control" readonly rows="2"></textarea>
+                        <textarea id="historyRemarks" class="detail-form-control textarea-control" readonly rows="3"></textarea>
                     </div>
                     <div class="detail-form-group">
                         <label class="detail-form-label">Received By</label>
@@ -324,7 +336,7 @@
         // Initial render (keeps the server-provided order, just paginated)
         updateHistoryTable(false);
 
-        // Click Row Event for Details Modal
+        // Details window: the View button, or a click anywhere on the row
         const historyRows = document.querySelectorAll('.history-row');
         historyRows.forEach(row => {
             row.addEventListener('click', () => {
