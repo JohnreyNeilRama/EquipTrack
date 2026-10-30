@@ -449,13 +449,24 @@
         width: 100%;
     }
 
+    /* Status and Sort share the row equally, and stack when the screen is
+       too narrow for both to show their text (no fixed minimum width here,
+       so one box can't squeeze the other). */
     .filters-right {
         width: 100%;
+        flex-wrap: wrap;
+        gap: 12px;
     }
 
-    .filter-wrapper, .filter-select {
-        flex: 1;
+    .filter-wrapper {
+        flex: 1 1 150px;
+        min-width: 0;
+    }
+
+    .filter-select,
+    .sort-select {
         width: 100%;
+        min-width: 0;
     }
     
 

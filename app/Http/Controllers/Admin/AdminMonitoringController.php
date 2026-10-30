@@ -120,7 +120,7 @@ class AdminMonitoringController extends Controller
                     : ($user->facultyMember?->faculty_id_number ?? '');
 
                 $isOverdue = ($transaction->due_date
-                    && Carbon::parse($transaction->due_date)->startOfDay()->lt(now()->startOfDay()))
+                    && Carbon::parse($transaction->due_date)->startOfDay()->lt(BorrowTransaction::today()))
                     || $transaction->status === 'Overdue';
 
                 $loanRows[] = [

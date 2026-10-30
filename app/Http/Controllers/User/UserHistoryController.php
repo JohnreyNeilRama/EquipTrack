@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\BorrowRequest;
+use App\Models\BorrowTransaction;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -99,7 +100,7 @@ class UserHistoryController extends Controller
 
         if ($isOut) {
             $isOverdue = $dueDateRaw
-                && Carbon::parse($dueDateRaw)->startOfDay()->lt(now()->startOfDay());
+                && Carbon::parse($dueDateRaw)->startOfDay()->lt(BorrowTransaction::today());
 
             return $isOverdue ? 'Overdue' : 'Borrowed';
         }

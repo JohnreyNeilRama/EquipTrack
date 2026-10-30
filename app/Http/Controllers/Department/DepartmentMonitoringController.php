@@ -96,13 +96,13 @@ class DepartmentMonitoringController extends Controller
                     : ($user->facultyMember?->faculty_id_number ?? '');
 
                 $isOverdue = ($transaction->due_date
-                    && Carbon::parse($transaction->due_date)->startOfDay()->lt(now()->startOfDay()))
+                    && Carbon::parse($transaction->due_date)->startOfDay()->lt(BorrowTransaction::today()))
                     || $transaction->status === 'Overdue';
 
                 // Whole days past the due date (overdue) or left until it (shown
                 // as "Due today" / "Due tomorrow" in the table). Display only.
                 $daysFromDue = $transaction->due_date
-                    ? (int) now()->startOfDay()->diffInDays(Carbon::parse($transaction->due_date)->startOfDay(), false)
+                    ? (int) BorrowTransaction::today()->diffInDays(Carbon::parse($transaction->due_date)->startOfDay(), false)
                     : null;
 
                 $loanRows[] = [

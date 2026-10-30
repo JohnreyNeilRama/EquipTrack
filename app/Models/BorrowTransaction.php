@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 class BorrowTransaction extends Model
 {
@@ -24,6 +25,18 @@ class BorrowTransaction extends Model
     /** Conditions the department can record when inspecting a returned unit. */
     public const INSPECTED_CONDITIONS = ['Good', 'Damaged', 'Incomplete', 'Lost'];
 
+    /**
+     * Today's date in the Philippines, for due/overdue checks. The app clock
+     * is UTC, where the date only changes at 8:00 AM Philippine time, but due
+     * dates are Philippine dates. Returned at midnight in the app timezone,
+     * like the date columns (due_date, borrow_date, …) are read, so the two
+     * compare and count days directly.
+     */
+    public static function today(): Carbon
+    {
+        return Carbon::parse(Carbon::now(config('app.display_timezone'))->toDateString());
+    }
+
     protected $table = 'borrow_transaction';
     protected $primaryKey = 'transaction_id';
     public $timestamps = false;
@@ -44,6 +57,8 @@ class BorrowTransaction extends Model
         'return_reviewed_at',
         'return_reject_reason',
         'return_restores_stock',
+        'due_reminder_sent_at',
+        'overdue_reminder_sent_at',
     ];
 
     protected $casts = [
@@ -53,6 +68,8 @@ class BorrowTransaction extends Model
         'return_submitted_at' => 'datetime',
         'return_reviewed_at' => 'datetime',
         'return_restores_stock' => 'boolean',
+        'due_reminder_sent_at' => 'datetime',
+        'overdue_reminder_sent_at' => 'datetime',
     ];
 
     public function request()

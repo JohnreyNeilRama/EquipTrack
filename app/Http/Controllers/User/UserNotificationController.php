@@ -197,7 +197,7 @@ class UserNotificationController extends Controller
      */
     private function overdueNotifications(int $userId): array
     {
-        $today = now()->startOfDay();
+        $today = BorrowTransaction::today();
 
         $loans = BorrowTransaction::with('request.equipment')
             ->where('status', '!=', 'Returned')
@@ -241,7 +241,7 @@ class UserNotificationController extends Controller
                 'message' => $message,
                 'url' => route('user.returns'),
                 // Today's reminder.
-                'at' => $today->copy(),
+                'at' => $this->startOfToday(),
             ];
         }
 
@@ -279,8 +279,14 @@ class UserNotificationController extends Controller
             },
             'message' => $equipment . ' is due ' . $when . ' (' . $due->format('M d, Y') . '). Please return it on time.',
             'url' => route('user.returns'),
-            'at' => $today->copy(),
+            'at' => $this->startOfToday(),
         ];
+    }
+
+    /** Midnight today in Philippine time: when today's reminders "arrived". */
+    private function startOfToday(): Carbon
+    {
+        return Carbon::now(config('app.display_timezone'))->startOfDay();
     }
 
     /** One notice per return the department confirmed or rejected. */

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditTrail;
 use App\Models\BorrowRequest;
+use App\Models\BorrowTransaction;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
 use App\Models\Penalty;
@@ -249,7 +250,7 @@ class AdminReportsController extends Controller
 
     private function buildPayload(array $filters): array
     {
-        $today = now()->startOfDay();
+        $today = BorrowTransaction::today();
         $all = $this->loadRecords($today);
 
         return [
@@ -875,7 +876,7 @@ class AdminReportsController extends Controller
      */
     private function utilizationReport(array $filters, Collection $all): array
     {
-        $today = now()->startOfDay();
+        $today = BorrowTransaction::today();
 
         $loans = $all->filter(fn (array $row) => $row['loan'] !== null
             && $row['borrow'] !== null

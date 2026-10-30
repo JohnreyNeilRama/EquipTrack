@@ -112,7 +112,7 @@ class DepartmentDashboardController extends Controller
      */
     private function stats(int $departmentId, $loans): array
     {
-        $today = now()->startOfDay();
+        $today = BorrowTransaction::today();
         $borrowedUnits = 0;
         $overdueUnits = 0;
 
@@ -187,7 +187,7 @@ class DepartmentDashboardController extends Controller
     /** Overdue alerts: one row per loan that is past its due date. */
     private function overdueLoans($loans): array
     {
-        $today = now()->startOfDay();
+        $today = BorrowTransaction::today();
         $rows = [];
 
         foreach ($loans as $loan) {
@@ -216,7 +216,7 @@ class DepartmentDashboardController extends Controller
     /** Upcoming returns: non-overdue active loans scheduled to be returned. */
     private function upcomingReturns($loans): array
     {
-        $today = now()->startOfDay();
+        $today = BorrowTransaction::today();
         $rows = [];
 
         foreach ($loans as $loan) {

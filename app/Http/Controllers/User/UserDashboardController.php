@@ -52,7 +52,7 @@ class UserDashboardController extends Controller
     private function buildDashboard(): array
     {
         $userId = (int) auth('user')->user()->user_id;
-        $today = now()->startOfDay();
+        $today = BorrowTransaction::today();
 
         $loans = $this->activeLoans($userId);
 
