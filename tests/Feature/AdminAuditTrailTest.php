@@ -178,8 +178,11 @@ class AdminAuditTrailTest extends TestCase
 
     public function test_public_registration_is_recorded(): void
     {
+        $department = Department::create(['department_name' => 'College of Computer Studies', 'department_code' => 'CCS']);
+
         $this->post('/register', [
             'role' => 'student',
+            'department_id' => $department->department_id,
             'first_name' => 'Ana',
             'last_name' => 'Reyes',
             'id_number' => '20210001',
@@ -205,7 +208,10 @@ class AdminAuditTrailTest extends TestCase
 
     public function test_user_management_changes_are_recorded_without_duplicates(): void
     {
+        $department = Department::create(['department_name' => 'College of Computer Studies', 'department_code' => 'CCS']);
+
         $this->actingAs($this->admin, 'admin')->post(route('admin.users.student'), [
+            'department' => $department->department_name,
             'first_name' => 'Maria',
             'last_name' => 'Santos',
             'id_number' => '20220002',

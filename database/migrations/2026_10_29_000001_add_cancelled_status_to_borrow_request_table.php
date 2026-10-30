@@ -11,7 +11,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("ALTER TABLE borrow_request MODIFY overall_status ENUM('Pending','Approved','Rejected','Cancelled') NOT NULL DEFAULT 'Pending'");
+        // ->change() works on MySQL and on SQLite (the test database).
+        Schema::table('borrow_request', function (Blueprint $table) {
+            $table->enum('overall_status', ['Pending', 'Approved', 'Rejected', 'Cancelled'])->default('Pending')->change();
+        });
 
         if (!Schema::hasColumn('borrow_request', 'cancelled_at')) {
             Schema::table('borrow_request', function (Blueprint $table) {
@@ -29,7 +32,9 @@ return new class extends Migration
             'reject_reason' => 'Cancelled by the borrower.',
         ]);
 
-        DB::statement("ALTER TABLE borrow_request MODIFY overall_status ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending'");
+        Schema::table('borrow_request', function (Blueprint $table) {
+            $table->enum('overall_status', ['Pending', 'Approved', 'Rejected'])->default('Pending')->change();
+        });
 
         if (Schema::hasColumn('borrow_request', 'cancelled_at')) {
             Schema::table('borrow_request', function (Blueprint $table) {

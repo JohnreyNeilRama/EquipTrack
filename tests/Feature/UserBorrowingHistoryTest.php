@@ -209,7 +209,7 @@ class UserBorrowingHistoryTest extends TestCase
 
         $row = $this->historyRow();
         $this->assertSame('Pending Confirmation', $row['status']);
-        $this->assertSame('status-pending', $row['status_class']);
+        $this->assertSame('status-pending-confirmation', $row['status_class']);
         $this->assertSame('—', $row['return_date']);
 
         $this->confirmReturn($requestId, 'Good', 'No visible damage');
@@ -246,7 +246,7 @@ class UserBorrowingHistoryTest extends TestCase
         $row = $this->historyRow();
 
         $this->assertSame('Late Return', $row['status']);
-        $this->assertSame('status-late', $row['status_class']);
+        $this->assertSame('status-late-return', $row['status_class']);
         $this->assertSame('rejected', $row['badge_class']);
         $this->assertSame('Damaged — Screen flickers', $row['condition']);
         $this->assertSame('Screen flickers', $row['remarks']);
@@ -265,7 +265,7 @@ class UserBorrowingHistoryTest extends TestCase
         $row = $this->historyRow();
 
         $this->assertSame('Overdue', $row['status']);
-        $this->assertSame('status-late', $row['status_class']);
+        $this->assertSame('status-overdue', $row['status_class']);
         $this->assertSame('rejected', $row['badge_class']);
         $this->assertSame('—', $row['return_date']);
     }
@@ -294,7 +294,7 @@ class UserBorrowingHistoryTest extends TestCase
             ->assertOk()
             ->assertSee('Dell Latitude')
             ->assertSee('data-status="Borrowed"', false)
-            ->assertSee('status-text status-borrowed', false)
+            ->assertSee('detail-status-badge status-borrowed', false)
             ->assertSee('data-badge="borrowed"', false)
             ->assertSee('data-handled-by="Lab Custodian"', false)
             ->assertSee('data-timestamp=', false)
