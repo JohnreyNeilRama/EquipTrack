@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\BorrowRequest;
+use App\Models\BorrowTransaction;
+use App\Models\Equipment;
 use App\Models\PenaltySubmission;
 use App\Models\StaffNotificationRead;
 use Illuminate\Database\QueryException;
@@ -15,16 +17,20 @@ use Illuminate\Support\Str;
  * Reservation Status Alerts for the reviewers: Admin and Lab Personnel
  * (department accounts).
  *
- * Notifications are derived live from borrow_request, so they always match the
- * real review decisions and can never be duplicated. Each decision (Approve or
- * Reject) by a reviewer is one notification with a deterministic key:
+ * Notifications are derived live from borrow_request, borrow_transaction and
+ * penalty_submission, so they always match the real records and can never be
+ * duplicated. Each one has a deterministic key:
  *
- *   review-{request_id}-{admin|dept}-{approved|rejected}
+ *   review-{request_id}-{admin|dept}-{approved|rejected}  a reviewer's decision
+ *   request-{request_id}-new                              a request waiting for this reviewer
+ *   return-{transaction_id}-submitted-{time}              a return waiting for confirmation (Lab Personnel)
+ *   proof-{submission_id}-submitted                       a penalty proof waiting for verification
  *
  * Scope:
- *  - Admin sees the decisions on every request.
- *  - Lab Personnel sees the decisions on requests for equipment owned by their
- *    own department.
+ *  - Admin sees the decisions on every request, and the new Expensive requests
+ *    waiting for the admin's review.
+ *  - Lab Personnel sees the decisions on, the new requests for, and the returns
+ *    of equipment owned by their own department.
  *
  * Only the read state is stored (staff_notification_reads).
  */
@@ -148,6 +154,12 @@ class ReviewerNotificationService
             }
         }
 
+        array_push($notifications, ...$this->newRequestNotifications($type, $departmentId));
+
+        if ($type === self::DEPT) {
+            array_push($notifications, ...$this->pendingReturnNotifications($departmentId));
+        }
+
         array_push($notifications, ...$this->proofNotifications($type, $departmentId));
 
         return collect($notifications)
@@ -155,6 +167,79 @@ class ReviewerNotificationService
             ->take(self::LIMIT)
             ->values()
             ->all();
+    }
+
+    /**
+     * New reservation requests waiting for this reviewer: one notice per request
+     * while it is Pending on the viewer's side. The admin reviews Expensive
+     * requests only; Lab Personnel review every request for their own
+     * department's equipment. Once reviewed, rejected or cancelled the notice
+     * is gone (the decision notice takes over).
+     */
+    private function newRequestNotifications(string $type, ?int $departmentId): array
+    {
+        $query = BorrowRequest::with(['equipment', 'user.student', 'user.facultyMember'])
+            ->where('overall_status', 'Pending');
+
+        if ($type === self::ADMIN) {
+            $query->where('admin_status', 'Pending')
+                ->where('equipment_classification', Equipment::CLASS_EXPENSIVE);
+        } else {
+            $query->where('dept_status', 'Pending')
+                ->whereHas('equipment', fn ($e) => $e->where('department_id', $departmentId));
+        }
+
+        return $query->get()->map(function (BorrowRequest $row) use ($type) {
+            $borrower = $row->user?->fullName() ?: ($row->user?->email ?: 'A user');
+            $from = $row->borrow_date ?? $row->date_needed;
+            $until = $row->due_date ?? $row->return_date;
+            $dates = $from
+                ? ' for ' . $from->format('M d') . ($until && !$until->isSameDay($from) ? ' to ' . $until->format('M d') : '')
+                : '';
+            // Expensive equipment needs both approvals; tell each side who else reviews it.
+            $also = $row->requiresDualApproval()
+                ? ($type === self::ADMIN ? ' It also needs Lab Personnel approval.' : ' It also needs the admin\'s approval.')
+                : '';
+
+            return [
+                'key' => 'request-' . $row->request_id . '-new',
+                'type' => 'request',
+                'title' => 'New Reservation Request',
+                'message' => $borrower . ' requested ' . ($row->equipment?->name ?? 'equipment') . $dates
+                    . '. Please review it.' . $also,
+                'url' => $type === self::ADMIN ? route('admin.requests') : route('department.requests'),
+                'at' => $row->date_requested ? Carbon::parse($row->date_requested) : now(),
+            ];
+        })->all();
+    }
+
+    /**
+     * Returns waiting for Lab Personnel to inspect and confirm: one notice per
+     * submission while it is Pending Confirmation. The key carries the
+     * submission time, so a return handed in again after a rejection is a new
+     * unread notice. Only Lab Personnel confirm returns, so the admin gets none.
+     */
+    private function pendingReturnNotifications(?int $departmentId): array
+    {
+        return BorrowTransaction::with(['request.equipment', 'request.user.student', 'request.user.facultyMember'])
+            ->where('return_status', BorrowTransaction::RETURN_PENDING)
+            ->whereHas('request.equipment', fn ($e) => $e->where('department_id', $departmentId))
+            ->get()
+            ->map(function (BorrowTransaction $transaction) {
+                $user = $transaction->request?->user;
+                $borrower = $user?->fullName() ?: ($user?->email ?: 'A user');
+                $submittedAt = $transaction->return_submitted_at ?? now();
+
+                return [
+                    'key' => 'return-' . $transaction->transaction_id . '-submitted-' . $submittedAt->getTimestamp(),
+                    'type' => 'return',
+                    'title' => 'Return Awaiting Confirmation',
+                    'message' => $borrower . ' returned ' . ($transaction->request?->equipment?->name ?? 'equipment')
+                        . '. Please inspect it and confirm the return.',
+                    'url' => route('department.returns'),
+                    'at' => $submittedAt,
+                ];
+            })->all();
     }
 
     /**

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Admin;
 use App\Models\BorrowRequest;
+use App\Models\BorrowTransaction;
 use App\Models\Department;
 use App\Models\DepartmentAccount;
 use App\Models\Equipment;
@@ -17,9 +18,10 @@ use Tests\TestCase;
 
 /**
  * Notification module for the reviewers: Admin and Lab Personnel (department)
- * get Reservation Status Alerts when a request is approved or rejected. The
- * alerts are derived from the review decisions, never duplicated, and a
- * department only sees requests for its own equipment.
+ * get Reservation Status Alerts when a request is approved or rejected, when a
+ * new request waits for their review, and (Lab Personnel) when a return waits
+ * for confirmation. The alerts are derived from the records, never duplicated,
+ * and a department only sees its own equipment's.
  */
 class ReviewerNotificationTest extends TestCase
 {
@@ -141,11 +143,124 @@ class ReviewerNotificationTest extends TestCase
         $this->getJson(route('department.notifications'))->assertUnauthorized();
     }
 
-    public function test_pending_requests_do_not_notify_reviewers(): void
+    public function test_a_new_not_expensive_request_alerts_only_the_owning_department(): void
     {
-        $this->makeRequest($this->makeEquipment($this->ccs));
+        $request = $this->makeRequest($this->makeEquipment($this->ccs, 'Dell Latitude'), [
+            'equipment_classification' => Equipment::CLASS_NOT_EXPENSIVE,
+        ]);
 
+        $feed = $this->deptFeed($this->ccsLab);
+        $this->assertCount(1, $feed['notifications']);
+        $this->assertSame('request-' . $request->request_id . '-new', $feed['notifications'][0]['key']);
+        $this->assertSame('request', $feed['notifications'][0]['type']);
+        $this->assertSame('New Reservation Request', $feed['notifications'][0]['title']);
+        $this->assertStringContainsString('Juan Dela Cruz requested Dell Latitude', $feed['notifications'][0]['message']);
+        $this->assertStringNotContainsString('admin', $feed['notifications'][0]['message']);
+        $this->assertSame(route('department.requests'), $feed['notifications'][0]['url']);
+        $this->assertSame(1, $feed['unreadCount']);
+
+        // The admin does not review Not Expensive requests; other departments never see it.
         $this->assertSame([], $this->adminFeed()['notifications']);
+        $this->assertSame([], $this->deptFeed($this->cbaLab)['notifications']);
+    }
+
+    public function test_a_new_expensive_request_alerts_the_admin_and_the_department_until_each_reviews_it(): void
+    {
+        $request = $this->makeRequest($this->makeEquipment($this->ccs), [
+            'equipment_classification' => Equipment::CLASS_EXPENSIVE,
+        ]);
+        $key = 'request-' . $request->request_id . '-new';
+
+        $adminFeed = $this->adminFeed();
+        $this->assertSame([$key], array_column($adminFeed['notifications'], 'key'));
+        $this->assertStringContainsString('also needs Lab Personnel approval', $adminFeed['notifications'][0]['message']);
+        $this->assertSame(route('admin.requests'), $adminFeed['notifications'][0]['url']);
+
+        $deptFeed = $this->deptFeed($this->ccsLab);
+        $this->assertSame([$key], array_column($deptFeed['notifications'], 'key'));
+        $this->assertStringContainsString('also needs the admin\'s approval', $deptFeed['notifications'][0]['message']);
+
+        // The department approves: its own "new request" notice is replaced by the
+        // decision, while the admin still has the request to review.
+        $request->update([
+            'dept_status' => 'Approved',
+            'dept_acc_id' => $this->ccsLab->dept_acc_id,
+            'dept_reviewed_at' => now(),
+        ]);
+
+        $deptKeys = array_column($this->deptFeed($this->ccsLab)['notifications'], 'key');
+        $this->assertNotContains($key, $deptKeys);
+        $this->assertContains('review-' . $request->request_id . '-dept-approved', $deptKeys);
+
+        $adminKeys = array_column($this->adminFeed()['notifications'], 'key');
+        $this->assertContains($key, $adminKeys);
+        $this->assertContains('review-' . $request->request_id . '-dept-approved', $adminKeys);
+    }
+
+    public function test_rejected_or_cancelled_requests_no_longer_ask_for_review(): void
+    {
+        $equipment = $this->makeEquipment($this->ccs);
+        $this->makeRequest($equipment, [
+            'equipment_classification' => Equipment::CLASS_EXPENSIVE,
+            'overall_status' => BorrowRequest::STATUS_CANCELLED,
+            'cancelled_at' => now(),
+        ]);
+        $rejected = $this->makeRequest($equipment, [
+            'equipment_classification' => Equipment::CLASS_EXPENSIVE,
+            'overall_status' => 'Rejected',
+            'dept_status' => 'Rejected',
+            'dept_acc_id' => $this->ccsLab->dept_acc_id,
+            'dept_reviewed_at' => now(),
+        ]);
+
+        // Only the department's rejection is listed; nobody is asked to review either request.
+        $this->assertSame(['review-' . $rejected->request_id . '-dept-rejected'], array_column($this->adminFeed()['notifications'], 'key'));
+        $this->assertSame(['review-' . $rejected->request_id . '-dept-rejected'], array_column($this->deptFeed($this->ccsLab)['notifications'], 'key'));
+    }
+
+    public function test_a_submitted_return_alerts_the_owning_department_until_it_is_confirmed(): void
+    {
+        $request = $this->makeRequest($this->makeEquipment($this->ccs, 'Dell Latitude'), [
+            'overall_status' => 'Approved',
+            'dept_status' => 'Approved',
+            'dept_acc_id' => $this->ccsLab->dept_acc_id,
+            // Reviewed long ago, so only the return is listed.
+            'dept_reviewed_at' => now()->subDays(40),
+        ]);
+        $submittedAt = now()->subMinutes(10)->startOfSecond();
+        $transaction = BorrowTransaction::create([
+            'request_id' => $request->request_id,
+            'borrow_date' => now()->subDays(3)->toDateString(),
+            'due_date' => now()->toDateString(),
+            'status' => 'Active',
+            'return_status' => BorrowTransaction::RETURN_PENDING,
+            'return_submitted_at' => $submittedAt,
+        ]);
+        $key = 'return-' . $transaction->transaction_id . '-submitted-' . $submittedAt->getTimestamp();
+
+        $feed = $this->deptFeed($this->ccsLab);
+        $this->assertSame([$key], array_column($feed['notifications'], 'key'));
+        $this->assertSame('return', $feed['notifications'][0]['type']);
+        $this->assertSame('Return Awaiting Confirmation', $feed['notifications'][0]['title']);
+        $this->assertStringContainsString('Juan Dela Cruz returned Dell Latitude', $feed['notifications'][0]['message']);
+        $this->assertSame(route('department.returns'), $feed['notifications'][0]['url']);
+
+        // Lab Personnel confirm returns, so neither the admin nor another department is alerted.
+        $this->assertSame([], $this->adminFeed()['notifications']);
+        $this->assertSame([], $this->deptFeed($this->cbaLab)['notifications']);
+
+        // Rejected, then handed in again: a new unread notice.
+        $this->actingAs($this->ccsLab, 'dept')
+            ->postJson(route('department.notifications.read'), ['keys' => [$key]])
+            ->assertOk();
+        $resubmittedAt = now()->startOfSecond();
+        $transaction->update(['return_submitted_at' => $resubmittedAt]);
+
+        $feed = $this->deptFeed($this->ccsLab);
+        $this->assertSame(['return-' . $transaction->transaction_id . '-submitted-' . $resubmittedAt->getTimestamp()], array_column($feed['notifications'], 'key'));
+        $this->assertSame(1, $feed['unreadCount']);
+
+        $transaction->update(['status' => 'Returned', 'return_status' => BorrowTransaction::RETURN_CONFIRMED]);
         $this->assertSame([], $this->deptFeed($this->ccsLab)['notifications']);
     }
 

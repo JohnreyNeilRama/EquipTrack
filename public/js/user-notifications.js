@@ -24,7 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
         rejected: 'fa-circle-xmark',
         overdue: 'fa-triangle-exclamation',
         due: 'fa-clock',
-        penalty: 'fa-scale-balanced'
+        penalty: 'fa-scale-balanced',
+        request: 'fa-inbox',
+        return: 'fa-rotate-left'
     };
 
     let notifications = [];

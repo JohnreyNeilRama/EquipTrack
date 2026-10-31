@@ -33,14 +33,33 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $isStudent = $request->input('role') === 'student';
+
+        // Faculty IDs are stored upper-case, the same as when staff add them,
+        // so "t-1001" and "T-1001" count as the same ID.
+        if (is_string($request->input('id_number'))) {
+            $idNumber = trim($request->input('id_number'));
+            $request->merge(['id_number' => $isStudent ? $idNumber : strtoupper($idNumber)]);
+        }
+
         $data = $request->validate([
             'role' => ['required', Rule::in(['student', 'teacher'])],
             'first_name' => ['required', 'string', 'max:50'],
             'last_name' => ['required', 'string', 'max:50'],
-            'id_number' => [
-                'required', 'string', 'max:20',
-                $request->input('role') === 'student' ? 'regex:/^\d{8}$/' : 'nullable',
-            ],
+            // Checked here so a taken ID shows a message instead of failing on
+            // the database's unique key.
+            'id_number' => $isStudent
+                ? ['required', 'string', 'regex:/^\d{8}$/', Rule::unique('student', 'id_number')]
+                : [
+                    'required', 'string', 'max:20', 'regex:/^[A-Za-z0-9-]+$/',
+                    Rule::unique('faculty_member', 'faculty_id_number'),
+                    // The teaching license number is derived from the ID and is unique too.
+                    function (string $attribute, mixed $value, \Closure $fail) {
+                        if (FacultyMember::where('teaching_license_no', 'TL-' . $value)->exists()) {
+                            $fail('Another faculty member already has this faculty ID number.');
+                        }
+                    },
+                ],
             'year_level' => ['nullable', 'string'],
             // The department decides which Lab Personnel see and manage this user.
             'department_id' => ['required', 'integer', Rule::exists('department', 'department_id')],
@@ -48,7 +67,12 @@ class RegisteredUserController extends Controller
             'address' => ['required', 'string', 'max:150'],
             'password' => ['required', 'string', Password::defaults()],
         ], [
-            'id_number.regex' => 'Student ID must be exactly 8 digits.',
+            'id_number.regex' => $isStudent
+                ? 'Student ID must be exactly 8 digits.'
+                : 'The faculty ID number may contain only letters, numbers and hyphens.',
+            'id_number.unique' => $isStudent
+                ? 'Another student already has this student ID.'
+                : 'Another faculty member already has this faculty ID number.',
             'department_id.required' => 'Please select your department.',
             'department_id.exists' => 'Please select a valid department.',
         ]);
