@@ -130,6 +130,9 @@ class AdminDashboardTest extends TestCase
             'request_id' => $requestId,
             'status' => 'Approved',
         ])->assertOk()->assertJson(['success' => true, 'overallStatus' => 'Approved']);
+
+        // Lab Personnel hand the item over at the counter.
+        $this->releaseLoan($requestId);
     }
 
     /** The department verifies the physical return (Return Confirmation). */

@@ -45,6 +45,9 @@
             <a href="{{ route('department.requests') }}" class="nav-item {{ request()->routeIs('department.requests') ? 'active' : '' }}">
                 <i class="fa-solid fa-clipboard-list"></i> <span>Borrow Requests</span>
             </a>
+            <a href="{{ route('department.releases') }}" class="nav-item {{ request()->routeIs('department.releases') ? 'active' : '' }}">
+                <i class="fa-solid fa-hand-holding"></i> <span>Release Equipment</span>
+            </a>
             <a href="{{ route('department.returns') }}" class="nav-item {{ request()->routeIs('department.returns') ? 'active' : '' }}">
                 <i class="fa-solid fa-rotate-left"></i> <span>Return Confirmation</span>
             </a>

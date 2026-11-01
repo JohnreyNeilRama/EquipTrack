@@ -142,7 +142,7 @@ class UserNotificationController extends Controller
     private function statusNotifications(int $userId): array
     {
         $since = now()->subDays(self::STATUS_WINDOW_DAYS);
-        $rows = BorrowRequest::with('equipment')
+        $rows = BorrowRequest::with(['equipment', 'transaction'])
             ->where('user_id', $userId)
             ->whereIn('overall_status', ['Approved', 'Rejected'])
             ->get();
@@ -160,14 +160,31 @@ class UserNotificationController extends Controller
             $equipment = $row->equipment?->name ?? 'the equipment';
 
             if ($row->overall_status === 'Approved') {
+                // Approval holds the unit; the borrower picks it up at the lab.
+                $pickup = $row->transaction?->borrow_date;
+
                 $notifications[] = [
                     'key' => 'request-' . $row->request_id . '-approved',
                     'type' => 'approved',
                     'title' => 'Request Approved',
-                    'message' => 'Your request to borrow ' . $equipment . ' has been approved.',
+                    'message' => 'Your request to borrow ' . $equipment . ' has been approved. It is ready for pickup'
+                        . ($pickup ? ' on ' . $pickup->format('M d, Y') : '') . '. Bring your school ID to the lab.',
                     'url' => route('user.returns'),
                     'at' => $at,
                 ];
+
+                // Never picked up: the request was closed and the unit freed.
+                $unclaimedAt = $row->transaction?->isNotClaimed() ? $row->transaction->unclaimed_at : null;
+                if ($unclaimedAt && $unclaimedAt->gte($since)) {
+                    $notifications[] = [
+                        'key' => 'request-' . $row->request_id . '-not-claimed',
+                        'type' => 'rejected',
+                        'title' => 'Not Claimed',
+                        'message' => 'You did not pick up ' . $equipment . ', so the lab closed the request. You can request it again.',
+                        'url' => route('user.history'),
+                        'at' => $unclaimedAt,
+                    ];
+                }
 
                 continue;
             }
@@ -200,7 +217,7 @@ class UserNotificationController extends Controller
         $today = BorrowTransaction::today();
 
         $loans = BorrowTransaction::with('request.equipment')
-            ->where('status', '!=', 'Returned')
+            ->onLoan()
             ->whereHas('request', fn ($query) => $query
                 ->where('user_id', $userId)
                 ->where('overall_status', 'Approved'))

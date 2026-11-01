@@ -116,6 +116,9 @@ class UserReturnItemTest extends TestCase
             ])
             ->assertOk()
             ->assertJson(['success' => true]);
+
+        // Lab Personnel hand the item over at the counter.
+        $this->releaseLoan($requestId);
     }
 
     /** The department verifies the physical return (Return Confirmation). */

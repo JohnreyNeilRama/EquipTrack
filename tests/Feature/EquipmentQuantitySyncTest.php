@@ -136,6 +136,9 @@ class EquipmentQuantitySyncTest extends TestCase
     /** The user returns the item and the department confirms it in Good condition. */
     private function returnItem(int $requestId)
     {
+        // Lab Personnel handed it over first.
+        $this->releaseLoan($requestId);
+
         $this->actingAs($this->user, 'user')->postJson(route('user.returns.store'), [
             'request_id' => $requestId,
             'condition' => 'Good',
@@ -193,9 +196,10 @@ class EquipmentQuantitySyncTest extends TestCase
             'dept_acc_id' => $this->deptAccount->dept_acc_id,
         ]);
 
+        // The unit is held for the borrower until Lab Personnel release it.
         $transaction = BorrowTransaction::where('request_id', $requestId)->first();
         $this->assertNotNull($transaction);
-        $this->assertSame('Active', $transaction->status);
+        $this->assertSame(BorrowTransaction::STATUS_READY, $transaction->status);
     }
 
     public function test_admin_then_department_approval_deducts_stock_only_once(): void
@@ -293,7 +297,7 @@ class EquipmentQuantitySyncTest extends TestCase
         $this->assertSame(2, (int) $fresh->total_qty);
         $this->assertDatabaseHas('borrow_transaction', [
             'request_id' => $requestId,
-            'status' => 'Active',
+            'status' => BorrowTransaction::STATUS_READY,
         ]);
         $this->assertDatabaseHas('borrow_request', [
             'request_id' => $requestId,

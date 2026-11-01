@@ -79,10 +79,20 @@ class UserHistoryController extends Controller
     /**
      * Returned / Late Return for settled transactions, Pending Confirmation for
      * returns the department has not verified yet, Borrowed / Overdue for items
-     * still out, and Pending / Rejected / Cancelled for requests not yet loaned.
+     * still out, Ready for Pickup / Not Claimed for approved items that were
+     * not handed over, and Pending / Rejected / Cancelled for requests not yet
+     * loaned.
      */
     private function resolveStatus(BorrowRequest $request, $dueDateRaw, $returnDateRaw): string
     {
+        if ($request->transaction?->isReadyForPickup()) {
+            return BorrowTransaction::STATUS_READY;
+        }
+
+        if ($request->transaction?->isNotClaimed()) {
+            return BorrowTransaction::STATUS_NOT_CLAIMED;
+        }
+
         if ($returnDateRaw) {
             $wasLate = $dueDateRaw
                 && Carbon::parse($returnDateRaw)->startOfDay()->gt(Carbon::parse($dueDateRaw)->startOfDay());
@@ -141,9 +151,9 @@ class UserHistoryController extends Controller
     {
         return match ($status) {
             'Returned' => 'approved',
-            'Borrowed' => 'borrowed',
+            'Borrowed', BorrowTransaction::STATUS_READY => 'borrowed',
             'Pending', 'Pending Confirmation' => 'pending',
-            'Cancelled' => 'cancelled',
+            'Cancelled', BorrowTransaction::STATUS_NOT_CLAIMED => 'cancelled',
             default => 'rejected',
         };
     }

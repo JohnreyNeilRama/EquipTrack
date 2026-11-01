@@ -152,7 +152,9 @@ class BorrowRequest extends Model
      * Activates the loan for an approved request exactly once: the equipment's
      * available quantity is decreased by the requested quantity (never below
      * zero), the equipment is flagged Unavailable when its stock runs out, and
-     * the Active borrow_transaction is created.
+     * the borrow_transaction is created as Ready for Pickup: the unit is held
+     * for the borrower, and the loan only becomes Active when Lab Personnel
+     * release it at the counter (DepartmentReleasesController).
      *
      * Both the admin and the department approval workflows call this, so it is
      * idempotent: when a transaction already exists (the other approver already
@@ -197,7 +199,7 @@ class BorrowRequest extends Model
             'request_id' => $this->request_id,
             'borrow_date' => $this->borrow_date ?: $this->date_needed,
             'due_date' => $this->due_date ?: $this->return_date,
-            'status' => 'Active',
+            'status' => BorrowTransaction::STATUS_READY,
         ]);
 
         return ['code' => 200];

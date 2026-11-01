@@ -26,6 +26,8 @@ use Illuminate\View\View;
  * approved rows without a transaction still count as out). The active-loan set
  * is built once and reused by the stats, the table and the reminders, so those
  * figures can never disagree with each other or with the Return Item page.
+ * Loans still waiting for pickup are listed in the table (Ready for Pickup)
+ * but are not on loan yet, so the stats and reminders leave them out.
  */
 class UserDashboardController extends Controller
 {
@@ -55,19 +57,20 @@ class UserDashboardController extends Controller
         $today = BorrowTransaction::today();
 
         $loans = $this->activeLoans($userId);
+        $onLoan = $loans->reject(fn (array $loan) => $loan['readyForPickup'])->values();
 
         return [
-            'stats' => $this->stats($userId, $loans, $today),
+            'stats' => $this->stats($userId, $onLoan, $today),
             'activeBorrows' => $this->activeBorrowRows($loans, $today),
             'recentRequests' => $this->recentRequests($userId),
-            'reminders' => $this->reminders($userId, $loans, $today),
+            'reminders' => $this->reminders($userId, $onLoan, $today),
             'generatedAt' => now()->toIso8601String(),
         ];
     }
 
     /**
-     * The user's approved requests that are still out (not Returned), with the
-     * due date resolved the same way the history page does.
+     * The user's approved requests that are still open (not Returned or Not
+     * Claimed), with the due date resolved the same way the history page does.
      */
     private function activeLoans(int $userId): Collection
     {
@@ -75,7 +78,8 @@ class UserDashboardController extends Controller
             ->where('user_id', $userId)
             ->where('overall_status', 'Approved')
             ->get()
-            ->reject(fn (BorrowRequest $request) => $request->transaction && $request->transaction->status === 'Returned')
+            ->reject(fn (BorrowRequest $request) => $request->transaction
+                && in_array($request->transaction->status, [BorrowTransaction::STATUS_RETURNED, BorrowTransaction::STATUS_NOT_CLAIMED], true))
             ->map(function (BorrowRequest $request) {
                 $transaction = $request->transaction;
 
@@ -85,6 +89,7 @@ class UserDashboardController extends Controller
                     'borrowDate' => $transaction?->borrow_date ?: $request->borrow_date ?: $request->date_needed,
                     'dueDate' => $transaction?->due_date ?: $request->due_date ?: $request->return_date,
                     'flaggedOverdue' => $transaction?->status === 'Overdue',
+                    'readyForPickup' => (bool) $transaction?->isReadyForPickup(),
                 ];
             })
             ->values();
@@ -132,9 +137,12 @@ class UserDashboardController extends Controller
                 'borrowDate' => $this->fmt($loan['borrowDate']),
                 'dueDate' => $this->fmt($loan['dueDate']),
                 // Still out until the department confirms the submitted return.
-                'status' => $loan['request']->transaction?->isReturnPending()
-                    ? 'Pending Confirmation'
-                    : ($this->isOverdue($loan, $today) ? 'Overdue' : 'Borrowed'),
+                'status' => match (true) {
+                    $loan['readyForPickup'] => 'Ready for Pickup',
+                    (bool) $loan['request']->transaction?->isReturnPending() => 'Pending Confirmation',
+                    $this->isOverdue($loan, $today) => 'Overdue',
+                    default => 'Borrowed',
+                },
             ])
             ->values()
             ->all();

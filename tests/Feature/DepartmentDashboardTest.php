@@ -461,8 +461,17 @@ class DepartmentDashboardTest extends TestCase
             'quantity' => 2,
         ]);
 
-        // Same code path the admin/department approval workflow uses.
+        // Same code path the admin/department approval workflow uses: the
+        // units are held as soon as it is approved...
         $req->activateLoan();
+
+        $held = $this->actingAs($this->deptAccountA, 'dept')
+            ->getJson(route('department.dashboard.data'))->json();
+        $this->assertSame(2, $held['stats']['availableUnits']);
+        $this->assertSame(0, $held['stats']['borrowedEquipment']);
+
+        // ...and count as borrowed once Lab Personnel hand them over.
+        $this->releaseLoan($req->request_id);
 
         $afterBorrow = $this->actingAs($this->deptAccountA, 'dept')
             ->getJson(route('department.dashboard.data'))->json();

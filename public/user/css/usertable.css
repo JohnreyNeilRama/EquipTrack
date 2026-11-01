@@ -137,6 +137,28 @@
     color: #b45309;
 }
 
+/* Approved, waiting to be picked up at the lab */
+.requests-table-card .detail-status-badge.status-ready-for-pickup {
+    background-color: rgba(56, 85, 133, 0.1);
+    color: var(--primary-color);
+}
+
+/* Never picked up; the request is closed */
+.requests-table-card .detail-status-badge.status-not-claimed {
+    background-color: rgba(71, 85, 105, 0.08);
+    color: #475569;
+}
+
+.dark-theme .requests-table-card .detail-status-badge.status-ready-for-pickup {
+    background-color: rgba(96, 165, 250, 0.15);
+    color: #93c5fd;
+}
+
+.dark-theme .requests-table-card .detail-status-badge.status-not-claimed {
+    background-color: rgba(226, 232, 240, 0.1);
+    color: #cbd5e1;
+}
+
 .dark-theme .requests-table-card .detail-status-badge.status-returned {
     background-color: rgba(16, 185, 129, 0.15);
     color: #34d399;

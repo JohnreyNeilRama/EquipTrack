@@ -115,6 +115,7 @@ class PenaltyRecordingTest extends TestCase
             'request_id' => $requestId,
             'status' => 'Approved',
         ])->assertOk();
+        $this->releaseLoan($requestId);
 
         $transaction = BorrowTransaction::where('request_id', $requestId)->firstOrFail();
         if ($daysLate > 0) {
@@ -347,6 +348,7 @@ class PenaltyRecordingTest extends TestCase
             'instructor_name' => 'Prof. Santos',
         ])->json('request_id');
         $this->actingAs($this->lab, 'dept')->postJson(route('department.requests.update'), ['request_id' => $requestId, 'status' => 'Approved']);
+        $this->releaseLoan($requestId);
         $active = BorrowTransaction::where('request_id', $requestId)->firstOrFail();
 
         $this->actingAs($this->admin, 'admin')->postJson(route('admin.penalties.store'), [

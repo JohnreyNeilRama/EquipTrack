@@ -53,7 +53,7 @@ class AdminReportsController extends Controller
 
     /** Status filter values available for each report type (empty = no status filter). */
     private const STATUSES = [
-        'borrowing' => ['Pending', 'Approved', 'Rejected', 'Cancelled', 'Borrowed', 'Overdue', 'Returned'],
+        'borrowing' => ['Pending', 'Approved', 'Rejected', 'Cancelled', 'Ready for Pickup', 'Not Claimed', 'Borrowed', 'Overdue', 'Returned'],
         'return' => ['Returned', 'Returned Late', 'Damaged', 'Incomplete', 'Lost'],
         'inventory' => ['Available', 'Unavailable', 'On Hold', 'Under Maintenance'],
         'overdue' => [],
@@ -286,13 +286,20 @@ class AdminReportsController extends Controller
 
         $overall = $request->overall_status ?: 'Pending';
 
-        // A loan only exists for an approved request that has a transaction
-        // (the same population the Dashboard and Monitoring pages use).
-        $isLoan = $overall === 'Approved' && $transaction !== null;
+        // A loan only exists for an approved request whose equipment was handed
+        // over (the same population the Dashboard and Monitoring pages use).
+        // Ready for Pickup and Not Claimed requests never reached the borrower.
+        $readyForPickup = $overall === 'Approved' && $transaction?->isReadyForPickup();
+        $notClaimed = $overall === 'Approved' && $transaction?->isNotClaimed();
+        $isLoan = $overall === 'Approved' && $transaction !== null && !$readyForPickup && !$notClaimed;
         $returned = $isLoan && $transaction->status === 'Returned';
         $active = $isLoan && !$returned;
 
-        $borrow = $transaction?->borrow_date ?? $request->borrow_date ?? $request->date_needed;
+        // A released loan starts on the day it was handed over (Philippine date).
+        $releasedOn = $isLoan && $transaction->released_at
+            ? Carbon::parse($transaction->released_at->copy()->timezone(config('app.display_timezone'))->toDateString())
+            : null;
+        $borrow = $releasedOn ?? $transaction?->borrow_date ?? $request->borrow_date ?? $request->date_needed;
         $due = $transaction?->due_date ?? $request->due_date ?? $request->return_date;
         $returnedOn = $returned ? $transaction->return_date : null;
 
@@ -305,6 +312,10 @@ class AdminReportsController extends Controller
             $lifecycle = $overall;
         } elseif ($overall !== 'Approved') {
             $lifecycle = 'Pending';
+        } elseif ($readyForPickup) {
+            $lifecycle = 'Ready for Pickup';
+        } elseif ($notClaimed) {
+            $lifecycle = 'Not Claimed';
         } elseif ($returned) {
             $lifecycle = 'Returned';
         } elseif ($overdue) {

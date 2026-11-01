@@ -26,7 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
         due: 'fa-clock',
         penalty: 'fa-scale-balanced',
         request: 'fa-inbox',
-        return: 'fa-rotate-left'
+        return: 'fa-rotate-left',
+        pickup: 'fa-hand-holding'
     };
 
     let notifications = [];

@@ -138,13 +138,13 @@ class AdminDashboardController extends Controller
     }
 
     /**
-     * Approved requests whose transaction has not been returned yet.
-     * `status` is the borrow_transaction enum (Active / Overdue / Returned).
+     * Approved requests whose equipment is with the borrower: released and
+     * not returned yet (Active / Overdue). Ready for Pickup is not on loan.
      */
     private function activeLoans()
     {
         return BorrowTransaction::with(['request.user', 'request.equipment'])
-            ->where('status', '!=', 'Returned')
+            ->onLoan()
             ->whereHas('request', fn ($query) => $query->where('overall_status', 'Approved'))
             ->orderBy('transaction_id')
             ->get();

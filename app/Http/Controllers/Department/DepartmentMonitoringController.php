@@ -49,12 +49,14 @@ class DepartmentMonitoringController extends Controller
             return [];
         }
 
-        // Loans still out (Active / Overdue) for this department's equipment, keyed by equipment.
+        // Loans still tying up a unit of this department's equipment, keyed by
+        // equipment: out on loan (Active / Overdue) or held for pickup (Ready
+        // for Pickup, shown as Reserved).
         $activeTransactions = BorrowTransaction::with([
             'request.user.student',
             'request.user.facultyMember',
         ])
-            ->where('status', '!=', 'Returned')
+            ->whereIn('status', BorrowTransaction::OPEN)
             ->whereHas('request', function ($query) use ($departmentId) {
                 $query->where('overall_status', 'Approved')
                     ->whereHas('equipment', fn ($equipment) => $equipment->where('department_id', $departmentId));
@@ -95,13 +97,14 @@ class DepartmentMonitoringController extends Controller
                     ? ($user->student?->id_number ?? '')
                     : ($user->facultyMember?->faculty_id_number ?? '');
 
-                $isOverdue = ($transaction->due_date
+                $reserved = $transaction->isReadyForPickup();
+                $isOverdue = !$reserved && (($transaction->due_date
                     && Carbon::parse($transaction->due_date)->startOfDay()->lt(BorrowTransaction::today()))
-                    || $transaction->status === 'Overdue';
+                    || $transaction->status === 'Overdue');
 
                 // Whole days past the due date (overdue) or left until it (shown
                 // as "Due today" / "Due tomorrow" in the table). Display only.
-                $daysFromDue = $transaction->due_date
+                $daysFromDue = $transaction->due_date && !$reserved
                     ? (int) BorrowTransaction::today()->diffInDays(Carbon::parse($transaction->due_date)->startOfDay(), false)
                     : null;
 
@@ -114,7 +117,7 @@ class DepartmentMonitoringController extends Controller
                     'role' => ucfirst($user->role),
                     // Their own profile picture (null: the View window draws initials).
                     'avatar' => $this->profileImageUrl($user->profile_image),
-                    'status' => $isOverdue ? 'Overdue' : 'Borrowed',
+                    'status' => $reserved ? 'Reserved' : ($isOverdue ? 'Overdue' : 'Borrowed'),
                     'borrowDate' => $fmt($transaction->borrow_date),
                     'returnDate' => $fmt($transaction->due_date),
                     'daysOverdue' => $daysFromDue !== null && $daysFromDue < 0 ? -$daysFromDue : 0,

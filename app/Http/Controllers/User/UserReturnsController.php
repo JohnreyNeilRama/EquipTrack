@@ -28,7 +28,10 @@ class UserReturnsController extends Controller
             ->where('overall_status', 'Approved')
             ->orderByDesc('request_id')
             ->get()
-            ->reject(fn ($request) => $request->transaction && $request->transaction->status === 'Returned')
+            // Returned and Not Claimed loans are closed; Ready for Pickup ones
+            // stay listed (with pickup details instead of a Return button).
+            ->reject(fn ($request) => $request->transaction
+                && in_array($request->transaction->status, [BorrowTransaction::STATUS_RETURNED, BorrowTransaction::STATUS_NOT_CLAIMED], true))
             ->values();
 
         return view('user.returns', compact('returnItems'));
@@ -74,6 +77,15 @@ class UserReturnsController extends Controller
 
             if ($transaction && $transaction->status === 'Returned') {
                 return ['code' => 400, 'message' => 'This item has already been returned.'];
+            }
+
+            // Only equipment the borrower actually received can be returned.
+            if ($transaction && $transaction->isReadyForPickup()) {
+                return ['code' => 400, 'message' => 'This item has not been released to you yet. Pick it up at the lab first.'];
+            }
+
+            if ($transaction && $transaction->isNotClaimed()) {
+                return ['code' => 400, 'message' => 'This item was never picked up, so there is nothing to return.'];
             }
 
             if ($transaction && $transaction->isReturnPending()) {

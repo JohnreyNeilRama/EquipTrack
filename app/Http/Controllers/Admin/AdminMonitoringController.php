@@ -77,13 +77,14 @@ class AdminMonitoringController extends Controller
             return $rows;
         }
 
-        // Transactions that are still out on loan (Active / Overdue), keyed by equipment.
+        // Loans still tying up a unit, keyed by equipment: out on loan (Active /
+        // Overdue) or held for pickup (Ready for Pickup, shown as Reserved).
         $activeTransactions = BorrowTransaction::with([
             'request.user.student',
             'request.user.facultyMember',
             'request.user.department',
         ])
-            ->where('status', '!=', 'Returned')
+            ->whereIn('status', BorrowTransaction::OPEN)
             ->whereHas('request', fn ($query) => $query->where('overall_status', 'Approved'))
             ->orderBy('transaction_id')
             ->get()
@@ -119,9 +120,10 @@ class AdminMonitoringController extends Controller
                     ? ($user->student?->id_number ?? '')
                     : ($user->facultyMember?->faculty_id_number ?? '');
 
-                $isOverdue = ($transaction->due_date
+                $reserved = $transaction->isReadyForPickup();
+                $isOverdue = !$reserved && (($transaction->due_date
                     && Carbon::parse($transaction->due_date)->startOfDay()->lt(BorrowTransaction::today()))
-                    || $transaction->status === 'Overdue';
+                    || $transaction->status === 'Overdue');
 
                 $loanRows[] = [
                     'id' => (int) $equipment->equipment_id,
@@ -132,7 +134,7 @@ class AdminMonitoringController extends Controller
                     'category' => $equipment->category?->category_name ?: 'General',
                     // The borrower's department, not the equipment owner's.
                     'department' => $user->department?->department_name ?? '',
-                    'status' => $isOverdue ? 'Overdue' : 'Borrowed',
+                    'status' => $reserved ? 'Reserved' : ($isOverdue ? 'Overdue' : 'Borrowed'),
                     'borrowDate' => $transaction->borrow_date ? Carbon::parse($transaction->borrow_date)->format('M d, Y') : '—',
                     'dueDate' => $transaction->due_date ? Carbon::parse($transaction->due_date)->format('M d, Y') : '—',
                     'date' => $request->date_requested ? Carbon::parse($request->date_requested)->format('M d, Y') : '—',

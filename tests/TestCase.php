@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Models\BorrowTransaction;
 use Illuminate\Contracts\Auth\Authenticatable as UserContract;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
@@ -22,5 +23,17 @@ abstract class TestCase extends BaseTestCase
         }
 
         return parent::actingAs($user, $guard);
+    }
+
+    /**
+     * Hands an approved request's equipment to the borrower, as Lab Personnel
+     * do on the Release Equipment page: the Ready for Pickup loan becomes
+     * Active. Tests about borrowing and returning start from a released loan.
+     */
+    protected function releaseLoan(int $requestId): void
+    {
+        BorrowTransaction::where('request_id', $requestId)
+            ->where('status', BorrowTransaction::STATUS_READY)
+            ->update(['status' => BorrowTransaction::STATUS_ACTIVE, 'released_at' => now()]);
     }
 }

@@ -365,6 +365,7 @@ class DepartmentEquipmentTest extends TestCase
             'request_id' => $requestId,
             'status' => 'Approved',
         ])->assertOk();
+        $this->releaseLoan($requestId);
 
         $row = collect($this->deptEquipment($this->deptAccount))->firstWhere('id', $equipment->equipment_id);
         $this->assertSame(0, $row['available']);

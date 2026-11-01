@@ -172,12 +172,12 @@ class DepartmentDashboardController extends Controller
     }
 
     /**
-     * Active loans (not returned, request approved) for equipment owned by this department.
+     * Active loans (released and not returned, request approved) for equipment owned by this department.
      */
     private function activeLoans(int $departmentId)
     {
         return BorrowTransaction::with(['request.user.student', 'request.user.facultyMember', 'request.equipment'])
-            ->where('status', '!=', 'Returned')
+            ->onLoan()
             ->whereHas('request', fn ($query) => $query->where('overall_status', 'Approved'))
             ->whereHas('request.equipment', fn ($query) => $query->where('department_id', $departmentId))
             ->orderBy('transaction_id')

@@ -112,6 +112,9 @@ class UserBorrowingHistoryTest extends TestCase
         $this->actingAs($this->deptAccount, 'dept')
             ->postJson(route('department.requests.update'), ['request_id' => $requestId, 'status' => 'Approved'])
             ->assertOk();
+
+        // Lab Personnel hand the item over at the counter.
+        $this->releaseLoan($requestId);
     }
 
     private function reject(int $requestId, string $reason = 'Not needed for this term'): void

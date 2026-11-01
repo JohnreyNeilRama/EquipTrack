@@ -3,7 +3,7 @@
 @section('title', 'EquipTrack')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('user/css/userreturns.css') }}">
+<link rel="stylesheet" href="{{ asset('user/css/userreturns.css') }}?v={{ filemtime(public_path('user/css/userreturns.css')) }}">
 @endpush
 
 @php
@@ -61,6 +61,11 @@
                             if ($awaitingConfirmation) {
                                 $status = 'Pending Confirmation';
                             }
+                            // Approved but not handed over yet: picked up at the lab first.
+                            $readyForPickup = (bool) $item->transaction?->isReadyForPickup();
+                            if ($readyForPickup) {
+                                $status = 'Ready for Pickup';
+                            }
                             $imgUrl = $resolveImg($eq->image ?? '');
                         @endphp
                         <tr class="return-row"
@@ -92,7 +97,9 @@
                                 @endif
                             </td>
                             <td>
-                                @if ($awaitingConfirmation)
+                                @if ($readyForPickup)
+                                    <span class="awaiting-confirmation-note" title="Pick it up at the lab and bring your school ID."><i class="fa-solid fa-id-card"></i> Pick up at the lab</span>
+                                @elseif ($awaitingConfirmation)
                                     <span class="awaiting-confirmation-note"><i class="fa-solid fa-hourglass-half"></i> Awaiting department</span>
                                 @else
                                     <button type="button" class="btn-return-action" onclick="openReturnModal(this)">

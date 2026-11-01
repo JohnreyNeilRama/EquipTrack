@@ -40,7 +40,8 @@ class SendLoanReminders extends Command
         $failed = 0;
 
         $loans = BorrowTransaction::with('request.equipment', 'request.user')
-            ->where('status', '!=', 'Returned')
+            // Only loans the borrower actually has: never one still waiting for pickup.
+            ->onLoan()
             ->whereNotNull('due_date')
             ->whereHas('request', fn ($query) => $query->where('overall_status', 'Approved'))
             ->get();

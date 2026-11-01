@@ -24,6 +24,7 @@
                 <div class="filter-wrapper">
                     <select id="statusHistoryFilter" class="filter-select">
                         <option value="All">All</option>
+                        <option value="Ready for Pickup">Ready for Pickup</option>
                         <option value="Borrowed">Borrowed</option>
                         <option value="Overdue">Overdue</option>
                         <option value="Returned">Returned</option>
@@ -32,6 +33,7 @@
                         <option value="Pending">Pending</option>
                         <option value="Rejected">Rejected</option>
                         <option value="Cancelled">Cancelled</option>
+                        <option value="Not Claimed">Not Claimed</option>
                     </select>
                 </div>
                 <div class="filter-wrapper">

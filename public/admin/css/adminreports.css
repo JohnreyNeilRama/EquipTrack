@@ -782,6 +782,39 @@ body {
     filter: brightness(1.1);
 }
 
+/* Release step: approved but not handed over / never picked up */
+.status-pill.ready-for-pickup {
+    background-color: rgba(56, 85, 133, 0.1);
+    color: #385585;
+}
+
+.status-pill.not-claimed,
+.status-pill.cancelled {
+    background-color: rgba(71, 85, 105, 0.1);
+    color: #475569;
+}
+
+.status-pill.ready-for-pickup::before,
+.status-pill.not-claimed::before,
+.status-pill.cancelled::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    background-color: currentColor;
+    border-radius: 50%;
+}
+
+.dark-theme .status-pill.ready-for-pickup {
+    background-color: rgba(96, 165, 250, 0.15);
+    color: #93c5fd;
+}
+
+.dark-theme .status-pill.not-claimed,
+.dark-theme .status-pill.cancelled {
+    background-color: rgba(226, 232, 240, 0.1);
+    color: #cbd5e1;
+}
+
 @media (max-width: 992px) {
     .reports-stats-row.four {
         grid-template-columns: repeat(2, 1fr);

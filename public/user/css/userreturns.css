@@ -121,6 +121,12 @@
     color: #fbbf24;
 }
 
+/* Approved, waiting to be picked up at the lab (no Return button yet) */
+.status-text.status-ready-for-pickup {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
 .awaiting-confirmation-note {
     display: inline-flex;
     align-items: center;

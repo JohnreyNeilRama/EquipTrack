@@ -104,6 +104,7 @@ class ReturnConfirmationTest extends TestCase
             'request_id' => $requestId,
             'status' => 'Approved',
         ])->assertOk();
+        $this->releaseLoan($requestId);
 
         return $requestId;
     }

@@ -23,14 +23,15 @@ use Illuminate\Support\Str;
  *
  *   review-{request_id}-{admin|dept}-{approved|rejected}  a reviewer's decision
  *   request-{request_id}-new                              a request waiting for this reviewer
+ *   pickup-{transaction_id}                               an item due for pickup today or earlier (Lab Personnel)
  *   return-{transaction_id}-submitted-{time}              a return waiting for confirmation (Lab Personnel)
  *   proof-{submission_id}-submitted                       a penalty proof waiting for verification
  *
  * Scope:
  *  - Admin sees the decisions on every request, and the new Expensive requests
  *    waiting for the admin's review.
- *  - Lab Personnel sees the decisions on, the new requests for, and the returns
- *    of equipment owned by their own department.
+ *  - Lab Personnel sees the decisions on, the new requests for, the pickups
+ *    and the returns of equipment owned by their own department.
  *
  * Only the read state is stored (staff_notification_reads).
  */
@@ -157,6 +158,7 @@ class ReviewerNotificationService
         array_push($notifications, ...$this->newRequestNotifications($type, $departmentId));
 
         if ($type === self::DEPT) {
+            array_push($notifications, ...$this->pickupNotifications($departmentId));
             array_push($notifications, ...$this->pendingReturnNotifications($departmentId));
         }
 
@@ -211,6 +213,42 @@ class ReviewerNotificationService
                 'at' => $row->date_requested ? Carbon::parse($row->date_requested) : now(),
             ];
         })->all();
+    }
+
+    /**
+     * Approved equipment the borrower should pick up today, or whose pickup
+     * date has passed without a release: one notice per loan while it is Ready
+     * for Pickup, so Lab Personnel release it or mark it Not Claimed. Only Lab
+     * Personnel release equipment, so the admin gets none.
+     */
+    private function pickupNotifications(?int $departmentId): array
+    {
+        $today = BorrowTransaction::today();
+        $tz = config('app.display_timezone');
+
+        return BorrowTransaction::with(['request.equipment', 'request.user.student', 'request.user.facultyMember'])
+            ->where('status', BorrowTransaction::STATUS_READY)
+            ->whereDate('borrow_date', '<=', $today->toDateString())
+            ->whereHas('request.equipment', fn ($e) => $e->where('department_id', $departmentId))
+            ->get()
+            ->map(function (BorrowTransaction $transaction) use ($today, $tz) {
+                $user = $transaction->request?->user;
+                $borrower = $user?->fullName() ?: ($user?->email ?: 'A user');
+                $equipment = $transaction->request?->equipment?->name ?? 'equipment';
+                $passed = $transaction->borrow_date->lt($today);
+
+                return [
+                    'key' => 'pickup-' . $transaction->transaction_id,
+                    'type' => 'pickup',
+                    'title' => $passed ? 'Pickup Date Passed' : 'Pickup Today',
+                    'message' => $passed
+                        ? $borrower . ' has not picked up ' . $equipment . ' (pickup date ' . $transaction->borrow_date->format('M d') . '). Release it or mark it Not Claimed.'
+                        : $borrower . ' is picking up ' . $equipment . ' today. Check their school ID, then release it.',
+                    'url' => route('department.releases'),
+                    // Arrives at the start of the pickup day (Philippine time).
+                    'at' => Carbon::parse($transaction->borrow_date->toDateString(), $tz),
+                ];
+            })->all();
     }
 
     /**

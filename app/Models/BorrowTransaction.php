@@ -7,6 +7,25 @@ use Illuminate\Support\Carbon;
 
 class BorrowTransaction extends Model
 {
+    /** Approved; the unit is held for the borrower but not handed over yet. */
+    public const STATUS_READY = 'Ready for Pickup';
+
+    /** Released to the borrower (Lab Personnel handed it over). */
+    public const STATUS_ACTIVE = 'Active';
+
+    public const STATUS_OVERDUE = 'Overdue';
+
+    public const STATUS_RETURNED = 'Returned';
+
+    /** The borrower never picked it up; the held unit went back to stock. */
+    public const STATUS_NOT_CLAIMED = 'Not Claimed';
+
+    /** Statuses of a loan the borrower actually has (released, not returned yet). */
+    public const ON_LOAN = [self::STATUS_ACTIVE, self::STATUS_OVERDUE];
+
+    /** Statuses that still tie up a unit: held for pickup or out on loan. */
+    public const OPEN = [self::STATUS_READY, self::STATUS_ACTIVE, self::STATUS_OVERDUE];
+
     /** The user submitted the return; the department has not verified it yet. */
     public const RETURN_PENDING = 'Pending Confirmation';
 
@@ -48,6 +67,9 @@ class BorrowTransaction extends Model
         'return_date',
         'condition_on_return',
         'status',
+        'released_at',
+        'released_by',
+        'unclaimed_at',
         'return_status',
         'return_submitted_at',
         'reported_condition',
@@ -65,6 +87,8 @@ class BorrowTransaction extends Model
         'borrow_date' => 'date',
         'due_date' => 'date',
         'return_date' => 'date',
+        'released_at' => 'datetime',
+        'unclaimed_at' => 'datetime',
         'return_submitted_at' => 'datetime',
         'return_reviewed_at' => 'datetime',
         'return_restores_stock' => 'boolean',
@@ -81,6 +105,34 @@ class BorrowTransaction extends Model
     public function returnReviewer()
     {
         return $this->belongsTo(DepartmentAccount::class, 'return_reviewed_by', 'dept_acc_id');
+    }
+
+    /** Department account (Lab Personnel) that handed the item to the borrower. */
+    public function releaser()
+    {
+        return $this->belongsTo(DepartmentAccount::class, 'released_by', 'dept_acc_id');
+    }
+
+    /** Loans the borrower actually has: released and not returned yet. */
+    public function scopeOnLoan($query)
+    {
+        return $query->whereIn('status', self::ON_LOAN);
+    }
+
+    public function isReadyForPickup(): bool
+    {
+        return $this->status === self::STATUS_READY;
+    }
+
+    public function isNotClaimed(): bool
+    {
+        return $this->status === self::STATUS_NOT_CLAIMED;
+    }
+
+    /** Released to the borrower and not returned yet. */
+    public function isOnLoan(): bool
+    {
+        return in_array($this->status, self::ON_LOAN, true);
     }
 
     public function isReturnPending(): bool

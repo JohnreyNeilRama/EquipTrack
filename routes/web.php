@@ -22,6 +22,7 @@ use App\Http\Controllers\Department\DepartmentMonitoringController;
 use App\Http\Controllers\Department\DepartmentNotificationController;
 use App\Http\Controllers\Department\DepartmentPenaltiesController;
 use App\Http\Controllers\Department\DepartmentProfileController;
+use App\Http\Controllers\Department\DepartmentReleasesController;
 use App\Http\Controllers\Department\DepartmentRequestsController;
 use App\Http\Controllers\Department\DepartmentReturnsController;
 use App\Http\Controllers\Department\DepartmentUsersController;
@@ -61,6 +62,7 @@ Route::middleware(['auth:admin', 'auth.session', 'active'])->prefix('admin')->na
     Route::get('/dashboard/data', [AdminDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [AdminProfileController::class, 'show'])->name('profile');
     Route::post('/profile', [AdminProfileController::class, 'update'])->middleware('throttle:profile-update')->name('profile.update');
+    Route::post('/profile/password', [AdminProfileController::class, 'password'])->middleware('throttle:change-password')->name('profile.password');
     Route::post('/profile/avatar', [AdminProfileController::class, 'avatar'])->name('profile.avatar');
     Route::get('/equipment', [AdminEquipmentController::class, 'index'])->name('equipment');
     Route::get('/equipment/data', [AdminEquipmentController::class, 'data'])->name('equipment.data');
@@ -106,6 +108,7 @@ Route::middleware(['auth:dept', 'auth.session', 'active'])->prefix('department')
     Route::get('/dashboard/data', [DepartmentDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [DepartmentProfileController::class, 'show'])->name('profile');
     Route::post('/profile', [DepartmentProfileController::class, 'update'])->middleware('throttle:profile-update')->name('profile.update');
+    Route::post('/profile/password', [DepartmentProfileController::class, 'password'])->middleware('throttle:change-password')->name('profile.password');
     Route::post('/profile/avatar', [DepartmentProfileController::class, 'avatar'])->name('profile.avatar');
     // Equipment assigned to this department (same records the admin manages).
     Route::get('/equipment', [DepartmentEquipmentController::class, 'index'])->name('equipment');
@@ -115,6 +118,11 @@ Route::middleware(['auth:dept', 'auth.session', 'active'])->prefix('department')
     Route::get('/requests', [DepartmentRequestsController::class, 'index'])->name('requests');
     Route::get('/requests/data', [DepartmentRequestsController::class, 'data'])->name('requests.data');
     Route::post('/requests/update-status', [DepartmentRequestsController::class, 'updateStatus'])->name('requests.update');
+    // Release Confirmation: hand approved equipment to the borrower (or mark it Not Claimed).
+    Route::get('/releases', [DepartmentReleasesController::class, 'index'])->name('releases');
+    Route::get('/releases/data', [DepartmentReleasesController::class, 'data'])->name('releases.data');
+    Route::post('/releases/release', [DepartmentReleasesController::class, 'release'])->name('releases.release');
+    Route::post('/releases/not-claimed', [DepartmentReleasesController::class, 'notClaimed'])->name('releases.not-claimed');
     Route::get('/returns', [DepartmentReturnsController::class, 'index'])->name('returns');
     Route::get('/returns/data', [DepartmentReturnsController::class, 'data'])->name('returns.data');
     Route::post('/returns/confirm', [DepartmentReturnsController::class, 'confirm'])->name('returns.confirm');
