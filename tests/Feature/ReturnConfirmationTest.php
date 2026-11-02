@@ -359,6 +359,42 @@ class ReturnConfirmationTest extends TestCase
         $this->assertSame('Pending Confirmation', $this->transaction($id)->return_status);
     }
 
+    public function test_the_user_form_offers_the_same_conditions_as_the_inspection(): void
+    {
+        $id = $this->borrow();
+
+        $html = $this->actingAs($this->user, 'user')->get(route('user.returns'))->assertOk()->getContent();
+        preg_match('/<select id="returnCondition".*?<\/select>/s', $html, $select);
+        preg_match_all('/<option value="([^"]+)"/', $select[0], $options);
+
+        $this->assertSame(BorrowTransaction::INSPECTED_CONDITIONS, $options[1]);
+
+        // Anything else is still refused.
+        $this->submitReturn($id, 'Broken')->assertStatus(422)->assertJsonValidationErrors('condition');
+    }
+
+    public function test_a_user_can_report_an_incomplete_return_and_the_department_sees_it(): void
+    {
+        $id = $this->borrow();
+
+        $this->submitReturn($id, 'Incomplete', 'Charger missing')->assertOk()->assertJson(['success' => true]);
+
+        $transaction = $this->transaction($id);
+        $this->assertSame('Pending Confirmation', $transaction->return_status);
+        $this->assertSame('Incomplete — Charger missing', $transaction->reported_condition);
+
+        $row = $this->deptRows()->firstWhere('requestId', $id);
+        $this->assertSame('Incomplete', $row['reportedCondition']);
+        $this->assertSame('Charger missing', $row['reportedRemarks']);
+        $this->assertSame('Incomplete', $row['condition']);
+
+        // Confirmed as Incomplete, it is recorded on the loan like any other condition.
+        $this->confirm($id, 'Incomplete', 'Charger missing')->assertOk();
+        $transaction->refresh();
+        $this->assertSame('Incomplete', $transaction->inspected_condition);
+        $this->assertSame('Incomplete — Charger missing', $transaction->condition_on_return);
+    }
+
     // ------------------------------------------------------------------
     // Rejecting
     // ------------------------------------------------------------------

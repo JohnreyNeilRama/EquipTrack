@@ -143,6 +143,7 @@
                                     <select id="returnCondition" class="detail-form-control select-control" required>
                                         <option value="Good">Good / Working</option>
                                         <option value="Damaged">Damaged</option>
+                                        <option value="Incomplete">Incomplete</option>
                                         <option value="Lost">Lost</option>
                                     </select>
                                 </div>

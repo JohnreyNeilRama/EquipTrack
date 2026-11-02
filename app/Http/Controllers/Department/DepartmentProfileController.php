@@ -79,6 +79,20 @@ class DepartmentProfileController extends Controller
         return response()->json(['success' => true, 'message' => 'Profile information updated successfully!']);
     }
 
+    /** Change Password section of the profile page (same as the User account's). */
+    public function password(Request $request): JsonResponse
+    {
+        $data = $request->validate(AccountPassword::rules('dept'), AccountPassword::messages());
+
+        $account = auth('dept')->user();
+        AccountPassword::change($account, 'dept', $data['new_password'], 'department_account:' . $account->dept_acc_id, $request);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Your password has been updated. Other devices signed in to your account have been signed out.',
+        ]);
+    }
+
     public function avatar(Request $request): JsonResponse
     {
         $data = $request->validate([

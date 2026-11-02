@@ -1394,7 +1394,7 @@
                 penaltyDescription.value = '';
                 penaltyDescription.classList.remove('is-invalid');
                 // Start from what the user reported when it is one of the inspection options.
-                setCondition(['Good', 'Damaged', 'Lost'].includes(r.reportedCondition) ? r.reportedCondition : 'Good');
+                setCondition(['Good', 'Damaged', 'Incomplete', 'Lost'].includes(r.reportedCondition) ? r.reportedCondition : 'Good');
                 inspectRemarks.value = '';
                 inspectRemarks.classList.remove('is-invalid');
                 syncRemarksCounter();

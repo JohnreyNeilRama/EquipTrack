@@ -1,249 +1,423 @@
 @extends('layouts.admin')
 
-@section('title', 'EquipTrack - Admin Profile')
+@section('title', 'EquipTrack - Profile')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
-<link rel="stylesheet" href="{{ asset('admin/css/adminprofile.css') }}">
+{{-- The Admin layout's shared toast is styled here --}}
+<link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}?v={{ filemtime(public_path('admin/css/admindashboard.css')) }}">
+<link rel="stylesheet" href="{{ asset('admin/css/adminprofile.css') }}?v={{ filemtime(public_path('admin/css/adminprofile.css')) }}">
 @endpush
+
+@php
+    $display_avatar_url = $admin_profile_image
+        ?: 'https://ui-avatars.com/api/?name=' . urlencode($admin_name) . '&background=385585&color=fff&size=300&bold=true';
+@endphp
 
 @section('content')
     <div class="profile-container">
-        {{-- Header Section --}}
-        <div class="profile-header-section">
-            <h1 class="profile-page-title">Profile</h1>
-            <p class="profile-page-subtitle">Manage your administrator account information and security settings.</p>
+        {{-- Left Column: Profile Summary --}}
+        <div class="profile-summary card">
+            <div class="profile-banner"></div>
+            <div class="profile-img-wrapper">
+                <div class="profile-img-container">
+                    <img src="{{ $display_avatar_url }}" alt="Admin" class="profile-img" id="profileAvatarImg">
+                </div>
+                <button type="button" class="btn-upload-icon" id="btnUploadAvatar"
+                        title="Upload picture (JPG, PNG, WebP or GIF, up to 5 MB)" aria-label="Upload profile picture">
+                    <i class="fa-solid fa-camera" aria-hidden="true"></i>
+                </button>
+                <input type="file" id="avatarFileInput" hidden accept="image/jpeg,image/png,image/webp,image/gif">
+            </div>
+            <div class="profile-info">
+                <h3 class="profile-name" id="cardProfileName">{{ $admin_name }}</h3>
+                <p class="profile-role">System Administrator</p>
+                <div class="profile-divider"></div>
+                <ul class="profile-stats">
+                    <li>
+                        <span class="stat-label">Email</span>
+                        {{-- <wbr> after the @: a long address wraps there, not mid-word --}}
+                        <span class="stat-value" id="cardProfileEmail">{!! str_replace('@', '@<wbr>', e($admin_email)) !!}</span>
+                    </li>
+                    <li>
+                        <span class="stat-label">Employee ID</span>
+                        <span class="stat-value {{ $admin_employee_id ? '' : 'is-empty' }}" id="cardEmployeeId">{{ $admin_employee_id ?: 'Not set' }}</span>
+                    </li>
+                </ul>
+                <button type="button" class="btn-logout" id="profileLogoutBtn"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
+            </div>
         </div>
 
-        @if ($success_msg)
-            <div style="color: #065f46; background: #d1fae5; padding: 12px 18px; border-radius: 10px; font-size: 0.95rem; margin-bottom: 20px; border: 1px solid #6ee7b7; display: flex; align-items: center; gap: 10px;">
-                <i class="fa-solid fa-circle-check" style="color: #059669; font-size: 1.1rem;"></i> {{ $success_msg }}
+        {{-- Right Column: Personal Information --}}
+        <div class="profile-details card">
+            <div class="details-header">
+                <h2 class="details-title">Personal Information</h2>
+                <p class="details-subtitle">View and update your profile details and settings.</p>
             </div>
-        @endif
-
-        @if ($error_msg)
-            <div style="color: #ef4444; background: #fee2e2; padding: 12px 18px; border-radius: 10px; font-size: 0.95rem; margin-bottom: 20px; border: 1px solid #fca5a5; display: flex; align-items: center; gap: 10px;">
-                <i class="fa-solid fa-circle-exclamation" style="color: #dc2626; font-size: 1.1rem;"></i> {{ $error_msg }}
-            </div>
-        @endif
-
-        @if ($errors->any())
-            <div style="color: #ef4444; background: #fee2e2; padding: 12px 18px; border-radius: 10px; font-size: 0.95rem; margin-bottom: 20px; border: 1px solid #fca5a5; display: flex; align-items: center; gap: 10px;">
-                <i class="fa-solid fa-circle-exclamation" style="color: #dc2626; font-size: 1.1rem;"></i> {{ $errors->first() }}
-            </div>
-        @endif
-
-        {{-- Two-Column Profile Grid --}}
-        <div class="profile-layout-grid">
-            {{-- Left Overview Card --}}
-            <div class="profile-card profile-sidebar-card">
-                <div class="avatar-upload-container">
-                    <div class="avatar-image-ring">
-                        <img src="{{ $admin_profile_image ?: 'https://ui-avatars.com/api/?name=' . urlencode($admin_name) . '&background=5C74A8&color=fff&size=200' }}" id="profileAvatarImg" alt="Admin Avatar">
+            <form class="profile-form" id="personalInfoForm" novalidate>
+                <div class="form-group">
+                    <label for="adminFullName">Full Name</label>
+                    <div class="input-wrapper">
+                        <i class="fa-regular fa-user input-icon"></i>
+                        <input type="text" id="adminFullName" name="admin_full_name" class="form-control" value="{{ $admin_name }}" placeholder="Enter full name" autocomplete="name" maxlength="100" readonly>
                     </div>
-                    <button type="button" class="btn-avatar-camera" id="btnUploadAvatar" title="Change Profile Picture">
-                        <i class="fa-solid fa-camera"></i>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="adminEmail">Email Address</label>
+                        <div class="input-wrapper">
+                            <i class="fa-regular fa-envelope input-icon"></i>
+                            <input type="email" id="adminEmail" name="admin_email" class="form-control" value="{{ $admin_email }}" placeholder="Enter email address" autocomplete="email" maxlength="100" readonly>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="adminEmployeeId">Employee ID</label>
+                        <div class="input-wrapper">
+                            <i class="fa-regular fa-id-badge input-icon"></i>
+                            <input type="text" id="adminEmployeeId" name="admin_employee_id" class="form-control" value="{{ $admin_employee_id }}" placeholder="Enter employee ID" maxlength="50" readonly>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="adminRole">Role</label>
+                    {{-- Display-only: every admin account is a System Administrator --}}
+                    <div class="input-wrapper is-locked">
+                        <i class="fa-solid fa-briefcase input-icon"></i>
+                        <input type="text" id="adminRole" class="form-control" value="System Administrator" readonly data-locked>
+                        <i class="fa-solid fa-lock lock-icon" aria-hidden="true"></i>
+                    </div>
+                </div>
+
+                <div class="form-actions" id="formActions">
+                    <button type="button" class="btn-edit-profile" id="btnEditProfile">
+                        <i class="fa-solid fa-pen-to-square"></i> Edit Profile
                     </button>
-                    <input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
+                    <button type="button" class="btn-cancel" id="btnCancelEdit" style="display: none;">Cancel</button>
+                    <button type="submit" class="btn-save" id="btnSaveEdit" style="display: none;">Save Changes</button>
                 </div>
+            </form>
 
-                <h3 class="profile-card-name" id="cardProfileName">{{ $admin_name }}</h3>
-                <p class="profile-card-role">System Administrator</p>
-                <p class="profile-card-email" id="cardProfileEmail">{{ $admin_email }}</p>
-
-                <div class="profile-status-wrapper">
-                    <span class="profile-status-badge">ACTIVE</span>
-                </div>
-
-                <div class="profile-card-footer">
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="btn-profile-logout">
-                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
-                        </button>
-                    </form>
-                </div>
+            {{-- Change Password --}}
+            <div class="profile-section-divider" role="presentation"></div>
+            <div class="details-header">
+                <h2 class="details-title">Change Password</h2>
+                <p class="details-subtitle">Enter your current password, then choose a new one. Other devices signed in to your account will be signed out.</p>
             </div>
+            <form class="profile-form" id="changePasswordForm" novalidate>
+                <div class="form-group">
+                    <label for="currentPassword">Current Password</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <input type="password" id="currentPassword" name="current_password" class="form-control password-control" placeholder="Enter current password" autocomplete="current-password" required>
+                        <button type="button" class="btn-toggle-password" data-target="currentPassword" aria-label="Show password" aria-pressed="false"><i class="fa-solid fa-eye"></i></button>
+                    </div>
+                </div>
 
-            {{-- Right Form Card --}}
-            <div class="profile-card profile-details-card">
-                <form id="adminProfileForm" action="{{ route('admin.profile.update') }}" method="POST">
-                    @csrf
-                    {{-- Personal Information Block --}}
-                    <div class="form-section-block">
-                        <h2 class="form-section-title">Personal Information</h2>
-
-                        <div class="profile-form-group">
-                            <label for="adminFullName">Full Name</label>
-                            <input type="text" id="adminFullName" name="admin_full_name" class="profile-input" value="{{ old('admin_full_name', $admin_name) }}" placeholder="Enter full name" required>
-                        </div>
-
-                        <div class="profile-form-group">
-                            <label for="adminEmail">Email</label>
-                            <input type="email" id="adminEmail" name="admin_email" class="profile-input" value="{{ old('admin_email', $admin_email) }}" placeholder="Enter email address" required>
-                        </div>
-
-                        <div class="profile-form-row">
-                            <div class="profile-form-group">
-                                <label for="adminEmployeeId">Employee ID</label>
-                                <input type="text" id="adminEmployeeId" name="admin_employee_id" class="profile-input" value="{{ old('admin_employee_id', $admin_employee_id) }}" placeholder="Enter employee ID">
-                            </div>
-                            <div class="profile-form-group">
-                                <label for="adminRole">Role</label>
-                                <input type="text" id="adminRole" class="profile-input" value="System Administrator" readonly>
-                            </div>
+                <div class="form-row password-row">
+                    <div class="form-group">
+                        <label for="newPassword">New Password</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-key input-icon"></i>
+                            <input type="password" id="newPassword" name="new_password" class="form-control password-control" placeholder="Enter new password" autocomplete="new-password" aria-describedby="passwordChecklist" required>
+                            <button type="button" class="btn-toggle-password" data-target="newPassword" aria-label="Show password" aria-pressed="false"><i class="fa-solid fa-eye"></i></button>
                         </div>
                     </div>
-
-                    <div class="profile-section-divider"></div>
-
-                    {{-- Change Password Block --}}
-                    <div class="form-section-block">
-                        <h2 class="form-section-title">Change Password</h2>
-
-                        <div class="profile-form-group">
-                            <label for="currentPassword">Current Password</label>
-                            <div class="password-field-container">
-                                <input type="password" id="currentPassword" name="current_password" class="profile-input" placeholder="Enter current password">
-                                <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('currentPassword', this)" title="Toggle password visibility">
-                                    <i class="fa-regular fa-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="profile-form-group">
-                            <label for="newPassword">New Password</label>
-                            <div class="password-field-container">
-                                <input type="password" id="newPassword" name="new_password" class="profile-input" placeholder="Enter new password">
-                                <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('newPassword', this)" title="Toggle password visibility">
-                                    <i class="fa-regular fa-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="profile-form-group">
-                            <label for="confirmPassword">Confirm Password</label>
-                            <div class="password-field-container">
-                                <input type="password" id="confirmPassword" name="confirm_password" class="profile-input" placeholder="Confirm new password">
-                                <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility('confirmPassword', this)" title="Toggle password visibility">
-                                    <i class="fa-regular fa-eye"></i>
-                                </button>
-                            </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm New Password</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-key input-icon"></i>
+                            <input type="password" id="confirmPassword" name="confirm_password" class="form-control password-control" placeholder="Re-enter new password" autocomplete="new-password" aria-describedby="passwordChecklist" required>
+                            <button type="button" class="btn-toggle-password" data-target="confirmPassword" aria-label="Show password" aria-pressed="false"><i class="fa-solid fa-eye"></i></button>
                         </div>
                     </div>
+                </div>
 
-                    {{-- Form Actions --}}
-                    <div class="profile-actions-bar">
-                        <button type="button" class="btn-form-cancel" id="btnCancelProfile">Cancel</button>
-                        <button type="submit" class="btn-form-save" id="btnSaveProfile">Save Changes</button>
-                    </div>
-                </form>
-            </div>
+                <ul class="password-checklist" id="passwordChecklist" aria-live="polite">
+                    <li data-rule="length"><i class="fa-solid fa-circle-check"></i> At least 8 characters</li>
+                    <li data-rule="letter"><i class="fa-solid fa-circle-check"></i> Includes a letter</li>
+                    <li data-rule="number"><i class="fa-solid fa-circle-check"></i> Includes a number</li>
+                    <li data-rule="match"><i class="fa-solid fa-circle-check"></i> Passwords match</li>
+                </ul>
+
+                <p class="password-message" id="passwordMessage" role="alert" hidden></p>
+
+                <div class="form-actions password-actions">
+                    <button type="button" class="btn-cancel" id="btnClearPassword">Clear</button>
+                    <button type="submit" class="btn-save" id="btnUpdatePassword"><i class="fa-solid fa-key"></i> Save Password</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    {{-- Toast Notification --}}
-    <div class="toast-notification" id="toastNotif">
-        <i class="fa-solid fa-circle-check"></i> <span id="toastMsg">Profile changes saved successfully!</span>
-    </div>
+    <form id="logoutForm" method="POST" action="{{ route('logout') }}" style="display:none;">@csrf</form>
 @endsection
 
 @push('scripts')
 <script>
-    // Password Visibility Toggle Function
-    function togglePasswordVisibility(inputId, buttonEl) {
-        const inputField = document.getElementById(inputId);
-        const icon = buttonEl.querySelector('i');
-        if (inputField.type === 'password') {
-            inputField.type = 'text';
-            icon.classList.remove('fa-eye');
-            icon.classList.add('fa-eye-slash');
-        } else {
-            inputField.type = 'password';
-            icon.classList.remove('fa-eye-slash');
-            icon.classList.add('fa-eye');
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', () => {
+        const URL_UPDATE = @json(route('admin.profile.update'));
+        const URL_PASSWORD = @json(route('admin.profile.password'));
         const URL_AVATAR = @json(route('admin.profile.avatar'));
+        const CSRF_TOKEN = @json(csrf_token());
+        const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 
-        // Avatar Upload Trigger & Handler
+        // The Admin layout's shared toast (showNotification, admin-shell.js)
+        function showToast(msg, type = 'success') {
+            showNotification(type === 'error' ? 'Error' : 'Success', msg, type);
+        }
+
+        // Reads a JSON reply even for 4xx responses, so Laravel's validation
+        // messages (e.g. "The admin email has already been taken.") reach the user.
+        function readJson(res) {
+            return res.json().catch(() => ({ success: false })).then(body => ({ status: res.status, body }));
+        }
+
+        function firstError(body, fallback) {
+            if (body && body.errors) {
+                const first = Object.values(body.errors)[0];
+                if (Array.isArray(first) && first.length) return first[0];
+            }
+            return (body && body.message) || fallback;
+        }
+
+        // Profile picture upload
         const btnUploadAvatar = document.getElementById('btnUploadAvatar');
         const avatarFileInput = document.getElementById('avatarFileInput');
         const profileAvatarImg = document.getElementById('profileAvatarImg');
 
-        if (btnUploadAvatar && avatarFileInput) {
-            btnUploadAvatar.addEventListener('click', function() {
-                avatarFileInput.click();
-            });
+        btnUploadAvatar.addEventListener('click', () => avatarFileInput.click());
 
-            avatarFileInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const formData = new FormData();
-                    formData.append('_token', @json(csrf_token()));
-                    formData.append('admin_avatar_file', file);
-                    fetch(URL_AVATAR, {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success && data.image_url) {
-                            if (profileAvatarImg) profileAvatarImg.src = data.image_url;
-                            window.navAvatarDbValue = data.image_url;
-                            if (typeof syncNavbarAvatar === 'function') syncNavbarAvatar(data.image_url);
-                            showToast('Profile picture updated successfully!');
-                        } else {
-                            alert(data.message || 'Error uploading profile picture');
-                        }
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        alert('An error occurred while uploading profile picture.');
-                    });
-                }
-            });
-        }
+        avatarFileInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            this.value = ''; // allow choosing the same file again later
+            if (!file) return;
 
-        // Toast Helper
-        function showToast(msg) {
-            const toast = document.getElementById('toastNotif');
-            const toastMsg = document.getElementById('toastMsg');
-            if (toast && toastMsg) {
-                toastMsg.textContent = msg;
-                toast.classList.add('show');
-                setTimeout(() => {
-                    toast.classList.remove('show');
-                }, 3500);
+            if (file.size > MAX_AVATAR_BYTES) {
+                return showToast('Profile picture must be 5 MB or smaller.', 'error');
             }
+
+            const formData = new FormData();
+            formData.append('_token', CSRF_TOKEN);
+            formData.append('admin_avatar_file', file);
+
+            btnUploadAvatar.disabled = true;
+
+            fetch(URL_AVATAR, { method: 'POST', headers: { 'Accept': 'application/json' }, body: formData })
+                .then(readJson)
+                .then(({ body }) => {
+                    if (body.success && body.image_url) {
+                        profileAvatarImg.src = body.image_url;
+                        window.navAvatarDbValue = body.image_url;
+                        if (typeof syncNavbarAvatar === 'function') syncNavbarAvatar(body.image_url);
+                        showToast(body.message || 'Profile picture updated successfully!');
+                    } else {
+                        showToast(firstError(body, 'Failed to update profile picture.'), 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    showToast('Error uploading profile picture.', 'error');
+                })
+                .finally(() => {
+                    btnUploadAvatar.disabled = false;
+                });
+        });
+
+        // Personal Information: read-only until Edit Profile is clicked.
+        // The role (data-locked) always stays read-only.
+        const personalInfoForm = document.getElementById('personalInfoForm');
+        const btnEditProfile = document.getElementById('btnEditProfile');
+        const btnCancelEdit = document.getElementById('btnCancelEdit');
+        const btnSaveEdit = document.getElementById('btnSaveEdit');
+        const editableInputs = personalInfoForm.querySelectorAll('.form-control:not([data-locked])');
+
+        let initialFormState = {};
+
+        function captureFormState() {
+            editableInputs.forEach(input => {
+                initialFormState[input.name] = input.value;
+            });
         }
 
-        // Form Validation on submit
-        const adminProfileForm = document.getElementById('adminProfileForm');
-        if (adminProfileForm) {
-            adminProfileForm.addEventListener('submit', function(e) {
-                const newPwd = document.getElementById('newPassword').value;
-                const confirmPwd = document.getElementById('confirmPassword').value;
-
-                if (newPwd || confirmPwd) {
-                    if (newPwd !== confirmPwd) {
-                        e.preventDefault();
-                        alert('New password and confirm password do not match!');
-                        return false;
-                    }
+        function setFormReadOnly(isReadOnly) {
+            editableInputs.forEach(input => {
+                if (isReadOnly) {
+                    input.setAttribute('readonly', 'readonly');
+                } else {
+                    input.removeAttribute('readonly');
                 }
             });
+
+            btnEditProfile.style.display = isReadOnly ? 'inline-flex' : 'none';
+            btnCancelEdit.style.display = isReadOnly ? 'none' : 'inline-flex';
+            btnSaveEdit.style.display = isReadOnly ? 'none' : 'inline-flex';
         }
 
-        // Cancel Button Handler
-        const btnCancelProfile = document.getElementById('btnCancelProfile');
-        if (btnCancelProfile) {
-            btnCancelProfile.addEventListener('click', function() {
-                window.location.reload();
+        captureFormState();
+
+        btnEditProfile.addEventListener('click', () => {
+            captureFormState();
+            setFormReadOnly(false);
+            document.getElementById('adminFullName').focus();
+        });
+
+        btnCancelEdit.addEventListener('click', () => {
+            editableInputs.forEach(input => {
+                if (Object.prototype.hasOwnProperty.call(initialFormState, input.name)) {
+                    input.value = initialFormState[input.name];
+                }
+            });
+            setFormReadOnly(true);
+        });
+
+        personalInfoForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            // Enter in a read-only field must not save anything.
+            if (btnSaveEdit.style.display === 'none') return;
+
+            const fullNameInput = document.getElementById('adminFullName');
+            const emailInput = document.getElementById('adminEmail');
+            const employeeIdInput = document.getElementById('adminEmployeeId');
+            const fullName = fullNameInput.value.trim();
+            const email = emailInput.value.trim();
+            const employeeId = employeeIdInput.value.trim();
+
+            if (!fullName) { fullNameInput.focus(); return showToast('Please enter your full name.', 'error'); }
+            if (!email || !emailInput.checkValidity()) { emailInput.focus(); return showToast('Please enter a valid email address.', 'error'); }
+
+            const formData = new FormData();
+            formData.append('_token', CSRF_TOKEN);
+            formData.append('admin_full_name', fullName);
+            formData.append('admin_email', email);
+            formData.append('admin_employee_id', employeeId);
+
+            btnSaveEdit.disabled = true;
+            btnSaveEdit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+            fetch(URL_UPDATE, { method: 'POST', headers: { 'Accept': 'application/json' }, body: formData })
+                .then(readJson)
+                .then(({ status, body }) => {
+                    if (status === 429) throw new Error('Too many attempts. Please wait a minute and try again.');
+                    if (status >= 400 || !body.success) throw new Error(firstError(body, 'Failed to update profile.'));
+
+                    fullNameInput.value = fullName;
+                    emailInput.value = email;
+                    // A cleared Employee ID keeps the saved one (server rule).
+                    const savedEmployeeId = employeeId || initialFormState['admin_employee_id'] || '';
+                    employeeIdInput.value = savedEmployeeId;
+                    captureFormState();
+                    setFormReadOnly(true);
+
+                    document.getElementById('cardProfileName').textContent = fullName;
+                    const emailEl = document.getElementById('cardProfileEmail');
+                    emailEl.textContent = '';
+                    email.split('@').forEach((part, i) => {
+                        if (i > 0) emailEl.append('@', document.createElement('wbr'));
+                        emailEl.append(part);
+                    });
+                    const empEl = document.getElementById('cardEmployeeId');
+                    empEl.textContent = savedEmployeeId || 'Not set';
+                    empEl.classList.toggle('is-empty', !savedEmployeeId);
+
+                    showToast(body.message || 'Profile information updated successfully!');
+                })
+                .catch(err => showToast(err.message || 'Error updating profile information.', 'error'))
+                .finally(() => {
+                    btnSaveEdit.disabled = false;
+                    btnSaveEdit.textContent = 'Save Changes';
+                });
+        });
+
+        // Change Password: live checklist, show/hide toggles, and the request.
+        const passwordForm = document.getElementById('changePasswordForm');
+        const currentPasswordInput = document.getElementById('currentPassword');
+        const newPasswordInput = document.getElementById('newPassword');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const passwordMessage = document.getElementById('passwordMessage');
+        const btnUpdatePassword = document.getElementById('btnUpdatePassword');
+        const checklist = document.getElementById('passwordChecklist');
+
+        // Same policy as the server (Password::defaults in AppServiceProvider).
+        const PASSWORD_RULES = {
+            length: (pw) => pw.length >= 8,
+            letter: (pw) => /[A-Za-z]/.test(pw),
+            number: (pw) => /\d/.test(pw),
+            match: (pw, confirm) => pw !== '' && pw === confirm,
+        };
+
+        function updateChecklist() {
+            const pw = newPasswordInput.value;
+            const confirm = confirmPasswordInput.value;
+            checklist.querySelectorAll('li').forEach(li => {
+                li.classList.toggle('is-met', PASSWORD_RULES[li.dataset.rule](pw, confirm));
             });
         }
+
+        function showPasswordMessage(text, type) {
+            passwordMessage.textContent = text;
+            passwordMessage.className = 'password-message is-' + type;
+            passwordMessage.hidden = !text;
+        }
+
+        passwordForm.querySelectorAll('.btn-toggle-password').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = document.getElementById(btn.dataset.target);
+                const show = input.type === 'password';
+                input.type = show ? 'text' : 'password';
+                btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+                btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+                btn.querySelector('i').className = show ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+            });
+        });
+
+        [newPasswordInput, confirmPasswordInput].forEach(input => input.addEventListener('input', () => {
+            updateChecklist();
+            if (!passwordMessage.hidden) showPasswordMessage('', 'error');
+        }));
+
+        document.getElementById('btnClearPassword').addEventListener('click', () => {
+            passwordForm.reset();
+            updateChecklist();
+            showPasswordMessage('', 'error');
+        });
+
+        passwordForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const pw = newPasswordInput.value;
+
+            if (!currentPasswordInput.value) { currentPasswordInput.focus(); return showPasswordMessage('Enter your current password.', 'error'); }
+            if (!PASSWORD_RULES.length(pw) || !PASSWORD_RULES.letter(pw) || !PASSWORD_RULES.number(pw)) {
+                newPasswordInput.focus();
+                return showPasswordMessage('Your new password must be at least 8 characters and include a letter and a number.', 'error');
+            }
+            if (!PASSWORD_RULES.match(pw, confirmPasswordInput.value)) { confirmPasswordInput.focus(); return showPasswordMessage('New password and confirm password do not match.', 'error'); }
+
+            const formData = new FormData(passwordForm);
+            formData.append('_token', CSRF_TOKEN);
+            btnUpdatePassword.disabled = true;
+            btnUpdatePassword.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+            fetch(URL_PASSWORD, { method: 'POST', headers: { 'Accept': 'application/json' }, body: formData })
+                .then(readJson)
+                .then(({ status, body }) => {
+                    if (status === 429) throw new Error('Too many attempts. Please wait a minute and try again.');
+                    if (status >= 400 || !body.success) throw new Error(firstError(body, 'Your password could not be updated.'));
+                    passwordForm.reset();
+                    updateChecklist();
+                    showPasswordMessage(body.message, 'success');
+                    showToast('Password updated successfully!');
+                })
+                .catch(err => showPasswordMessage(err.message, 'error'))
+                .finally(() => {
+                    btnUpdatePassword.disabled = false;
+                    btnUpdatePassword.innerHTML = '<i class="fa-solid fa-key"></i> Save Password';
+                });
+        });
+
+        document.getElementById('profileLogoutBtn').addEventListener('click', () => {
+            document.getElementById('logoutForm').submit();
+        });
     });
 </script>
 @endpush

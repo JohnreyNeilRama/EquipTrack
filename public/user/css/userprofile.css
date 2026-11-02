@@ -90,6 +90,8 @@
     align-items: center;
     padding: 25px 35px 35px;
     flex: 1;
+    /* Lets the name heading shrink to the card's width */
+    min-width: 0;
 }
 
 .profile-name {
@@ -99,6 +101,13 @@
     margin-bottom: 6px;
     letter-spacing: -0.3px;
     line-height: 1.35;
+    /* Long names wrap inside the card instead of running past its edges:
+       between words first, and inside a word only when one word alone is
+       wider than the card. The full name always stays visible. */
+    max-width: 100%;
+    text-align: center;
+    overflow-wrap: anywhere;
+    word-break: normal;
 }
 
 .profile-role {

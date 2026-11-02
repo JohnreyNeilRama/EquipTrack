@@ -548,44 +548,162 @@
     font-weight: 600;
 }
 
-/* Report-style section card (mirrors the Reports page .white-card):
-   heading + table grouped in one bordered, padded card. */
-.dash-card {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-    padding: 24px;
-    position: relative;
-    width: 100%;
+/* --------------------------------------------------------------------------
+   Admin Dashboard tables (Recent Requests, Overdue Alerts): the User
+   Dashboard design (user/css/userdashboard.css). A heading row on the page
+   background (title, count pill, View All) directly above a standalone table
+   card. Scoped to .dash-table-section because this stylesheet is shared by
+   other Admin and Department pages.
+   -------------------------------------------------------------------------- */
+.dash-table-section {
+    display: flex;
+    flex-direction: column;
     min-width: 0;
 }
 
-.dash-card-header {
+.dash-table-section .panel-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border-color);
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 0 12px;
 }
 
-.dash-card-title {
+.dash-table-section .panel-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.dash-table-section .section-title {
+    margin: 0;
     font-size: var(--fs-card-title);
     font-weight: 600;
-    color: var(--text-main);
-    display: flex;
-    align-items: center;
-    gap: 8px;
     line-height: 1.4;
+    letter-spacing: -0.1px;
+    color: var(--section-title-color);
+    /* One line on narrow screens, so the count stays next to the title */
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-/* The table sits inside the card in a bordered wrapper (no card-in-card shadow). */
-.dash-card .admin-table-card {
-    margin-top: 8px;
-    border: 1px solid var(--table-border, #718096) !important;
-    border-radius: 12px !important;
-    box-shadow: none !important;
+/* Number of rows shown, next to the title. It sits on the page background,
+   so it keeps its contrast with a card-coloured fill. */
+.dash-table-section .panel-count {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 22px;
+    padding: 0 8px;
+    font-size: var(--fs-small);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--primary-color);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+}
+
+.dash-table-section .panel-count.is-alert {
+    color: var(--danger-color);
+    background: color-mix(in srgb, var(--danger-color) 12%, transparent);
+    border-color: transparent;
+}
+
+.dash-table-section .view-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 6px 10px;
+    margin-right: -10px;
+    font-size: var(--fs-label);
+    font-weight: 600;
+    color: var(--primary-color);
+    text-decoration: none;
+    white-space: nowrap;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.dash-table-section .view-all i {
+    font-size: var(--fs-badge);
+}
+
+.dash-table-section .view-all:hover {
+    background: var(--primary-light);
+}
+
+.dash-table-section .view-all:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 1px;
+}
+
+/* Column headings stay on one line, and rows highlight on hover as in the
+   User Dashboard tables. */
+.dash-table-section .admin-table-card th {
+    white-space: nowrap;
+}
+
+.dash-table-section .admin-table-card tbody tr:hover td {
+    background-color: rgba(56, 85, 133, 0.03) !important;
+}
+
+.dark-theme .dash-table-section .admin-table-card tbody tr:hover td {
+    background-color: rgba(96, 165, 250, 0.05) !important;
+}
+
+/* The dashboard's other subheadings (Quick Stats, Low Stock, System Summary)
+   use the same type as the table titles, so every heading matches. */
+.admin-section-heading.dash-subheading {
+    margin-bottom: 12px;
+    font-size: var(--fs-card-title);
+    line-height: 1.4;
+    letter-spacing: -0.1px;
+}
+
+/* Empty state inside a table */
+.dash-table-section td.table-empty {
+    padding: 0 !important;
+}
+
+.dash-table-section .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 40px 24px;
+    font-size: var(--fs-body);
+    font-weight: 500;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.dash-table-section .empty-state i {
+    font-size: 24px;
+    opacity: 0.5;
+}
+
+/* The Requests script renders its own empty cell; give it the same look */
+.dash-table-section td.no-requests-message {
+    padding: 40px 24px !important;
+    font-size: var(--fs-body) !important;
+    font-weight: 500;
+    text-align: center;
+    color: var(--text-muted) !important;
+}
+
+.dash-table-section td.no-requests-message i {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 24px;
+    color: var(--text-muted);
+    opacity: 0.5;
 }
 
 /* Bottom Grid for Low Stock and System Summary */
@@ -921,15 +1039,6 @@
         min-width: 500px;
     }
 
-    .dash-card {
-        padding: 16px;
-    }
-
-    .dash-card-header {
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-    
     .stats-scroll-container {
         padding-bottom: 15px;
     }

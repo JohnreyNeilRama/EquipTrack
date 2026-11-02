@@ -9,6 +9,7 @@ use App\Models\BorrowTransaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class UserReturnsController extends Controller
@@ -47,7 +48,9 @@ class UserReturnsController extends Controller
     {
         $data = $request->validate([
             'request_id' => ['required', 'integer', 'min:1'],
-            'condition' => ['required', 'in:Good,Damaged,Lost'],
+            // The same conditions Lab Personnel record on inspection
+            // (Good, Damaged, Incomplete, Lost).
+            'condition' => ['required', Rule::in(BorrowTransaction::INSPECTED_CONDITIONS)],
             'remarks' => ['nullable', 'string', 'max:1000'],
         ]);
 

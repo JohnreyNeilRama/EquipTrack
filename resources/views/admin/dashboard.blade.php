@@ -3,7 +3,7 @@
 @section('title', 'EquipTrack')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
+<link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}?v={{ filemtime(public_path('admin/css/admindashboard.css')) }}">
 {{-- Recent Requests: same table, badges, buttons and details modal as the Requests page --}}
 <link rel="stylesheet" href="{{ asset('admin/css/adminequipment.css') }}">
 <link rel="stylesheet" href="{{ asset('admin/css/adminrequests.css') }}?v={{ filemtime(public_path('admin/css/adminrequests.css')) }}">
@@ -23,7 +23,7 @@
 
         <!-- Quick Stats Section -->
         <div class="admin-section">
-            <h4 class="admin-section-heading">Quick Stats</h4>
+            <h4 class="admin-section-heading dash-subheading">Quick Stats</h4>
             <div class="stats-scroll-container">
                 <!-- Card 1 – Total Users -->
                 <div class="quick-stat-card">
@@ -92,68 +92,69 @@
             </div>
         </div>
 
-        <!-- Recent Requests Section -->
-        <div class="admin-section">
-            <div class="dash-card">
-                <div class="dash-card-header">
-                    <div class="dash-card-title">
-                        <i class="fa-solid fa-clipboard-list" style="color: var(--primary-color);"></i> Recent Requests
-                    </div>
+        <!-- Recent Requests: heading row (title, count, View All) above the table,
+             the same layout as the User Dashboard tables -->
+        <section class="admin-section dash-table-section" aria-labelledby="recentRequestsTitle">
+            <header class="panel-header">
+                <div class="panel-heading">
+                    <h3 class="section-title" id="recentRequestsTitle">Recent Requests</h3>
+                    <span class="panel-count" id="recentRequestsCount">0</span>
                 </div>
-                {{-- Same compact table as the Requests page (Request ID, user with role
-                     underneath); rendered, reviewed and kept current by the shared
-                     Requests script below. --}}
-                <div class="table-container admin-table-card">
-                    <table class="requests-table-compact admin-requests-table admin-requests-page-table" style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>Request ID</th>
-                                <th class="col-user">User</th>
-                                <th>Equipment</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th class="action-column" style="text-align: center;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="requestsTableBody">
-                            <!-- Loaded dynamically via JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
+                <a href="{{ route('admin.requests') }}" class="view-all">View All <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            </header>
+            {{-- Same compact table as the Requests page (Request ID, user with role
+                 underneath); rendered, reviewed and kept current by the shared
+                 Requests script below. --}}
+            <div class="table-container admin-table-card">
+                <table class="requests-table-compact admin-requests-table admin-requests-page-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Request ID</th>
+                            <th class="col-user">User</th>
+                            <th>Equipment</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th class="action-column" style="text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requestsTableBody">
+                        <!-- Loaded dynamically via JavaScript -->
+                    </tbody>
+                </table>
             </div>
-        </div>
+        </section>
 
-        <!-- Overdue Alerts Section -->
-        <div class="admin-section">
-            <div class="dash-card">
-                <div class="dash-card-header">
-                    <div class="dash-card-title">
-                        <i class="fa-solid fa-triangle-exclamation warning-icon" style="color: #fbbf24;"></i> Overdue Alerts
-                    </div>
+        <!-- Overdue Alerts -->
+        <section class="admin-section dash-table-section" aria-labelledby="overdueAlertsTitle">
+            <header class="panel-header">
+                <div class="panel-heading">
+                    <h3 class="section-title" id="overdueAlertsTitle">Overdue Alerts</h3>
+                    <span class="panel-count" id="overdueAlertsCount">0</span>
                 </div>
-                <div class="table-container admin-table-card">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>User</th>
-                                <th>Equipment</th>
-                                <th>Due Date</th>
-                                <th>Days Late</th>
-                            </tr>
-                        </thead>
-                        <tbody id="overdueTableBody">
-                            <!-- Loaded dynamically via JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
+                <a href="{{ route('admin.monitoring') }}" class="view-all">View All <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            </header>
+            <div class="table-container admin-table-card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Equipment</th>
+                            <th>Due Date</th>
+                            <th>Days Late</th>
+                        </tr>
+                    </thead>
+                    <tbody id="overdueTableBody">
+                        <!-- Loaded dynamically via JavaScript -->
+                    </tbody>
+                </table>
             </div>
-        </div>
+        </section>
 
         <!-- Two Column Bottom Section: Low Stock & System Summary -->
         <div class="bottom-grid">
             <!-- Left Column: Low Stock -->
             <div class="admin-section flex-section">
-                <h4 class="admin-section-heading">Low Stock</h4>
+                <h4 class="admin-section-heading dash-subheading">Low Stock</h4>
                 <div class="low-stock-card card flex-table" id="lowStockCard">
                     <div style="text-align: center; color: var(--text-muted); padding: 24px 16px;">
                         <i class="fa-solid fa-box-open" style="color: var(--text-muted); font-size: 20px; margin-bottom: 8px; display: block;"></i>
@@ -164,7 +165,7 @@
 
             <!-- Right Column: System Summary -->
             <div class="admin-section flex-section">
-                <h4 class="admin-section-heading">System Summary</h4>
+                <h4 class="admin-section-heading dash-subheading">System Summary</h4>
                 <div class="system-summary-card card">
                     <div class="summary-hero">
                         <div class="summary-hero-meta">
@@ -320,12 +321,20 @@
 
             tableBody.innerHTML = '';
 
+            const count = document.getElementById('overdueAlertsCount');
+            if (count) {
+                count.textContent = rows.length;
+                count.classList.toggle('is-alert', rows.length > 0);
+            }
+
             if (!rows.length) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">
-                            <i class="fa-solid fa-check-circle" style="color: #10b981; font-size: 20px; margin-bottom: 8px; display: block;"></i>
-                            No overdue items recorded.
+                        <td colspan="4" class="table-empty">
+                            <div class="empty-state">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>No overdue items recorded.</span>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -391,6 +400,13 @@
                 }[tag] || tag)
             );
         }
+
+        // Recent Requests count: the rows the compact table shows (newest N).
+        const RECENT_LIMIT = @json($recentRequestsLimit);
+        document.addEventListener('requests:updated', event => {
+            const shown = Math.min((event.detail.requests || []).length, RECENT_LIMIT || Infinity);
+            setText('recentRequestsCount', shown);
+        });
 
         // First paint from the server payload, then stay live: poll in the
         // background and refresh whenever the tab regains focus.

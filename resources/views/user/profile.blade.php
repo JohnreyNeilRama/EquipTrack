@@ -154,7 +154,7 @@
 
                 <div class="form-actions password-actions">
                     <button type="button" class="btn-cancel" id="btnClearPassword">Clear</button>
-                    <button type="submit" class="btn-save" id="btnUpdatePassword"><i class="fa-solid fa-key"></i> Update Password</button>
+                    <button type="submit" class="btn-save" id="btnUpdatePassword"><i class="fa-solid fa-key"></i> Save Password</button>
                 </div>
             </form>
         </div>
@@ -376,7 +376,7 @@
             const formData = new FormData(passwordForm);
             formData.append('_token', CSRF_TOKEN);
             btnUpdatePassword.disabled = true;
-            btnUpdatePassword.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating...';
+            btnUpdatePassword.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
 
             fetch(URL_PASSWORD, { method: 'POST', headers: { 'Accept': 'application/json' }, body: formData })
                 .then(res => res.json().catch(() => ({})).then(body => ({ status: res.status, body })))
@@ -394,7 +394,7 @@
                 .catch(err => showPasswordMessage(err.message, 'error'))
                 .finally(() => {
                     btnUpdatePassword.disabled = false;
-                    btnUpdatePassword.innerHTML = '<i class="fa-solid fa-key"></i> Update Password';
+                    btnUpdatePassword.innerHTML = '<i class="fa-solid fa-key"></i> Save Password';
                 });
         });
 

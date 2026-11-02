@@ -3,7 +3,7 @@
 @section('title', 'EquipTrack')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
+<link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}?v={{ filemtime(public_path('admin/css/admindashboard.css')) }}">
 {{-- Recent Borrow Requests: same table, badges, buttons and details modal as the Borrow Requests page --}}
 <link rel="stylesheet" href="{{ asset('admin/css/adminequipment.css') }}">
 <link rel="stylesheet" href="{{ asset('admin/css/adminrequests.css') }}?v={{ filemtime(public_path('admin/css/adminrequests.css')) }}">
@@ -126,7 +126,7 @@
 
         <!-- Quick Stats Section -->
         <div class="admin-section">
-            <h4 class="admin-section-heading">Quick Stats</h4>
+            <h4 class="admin-section-heading dash-subheading">Quick Stats</h4>
             <div class="stats-scroll-container">
                 <!-- Total Equipment -->
                 <div class="quick-stat-card">
@@ -200,16 +200,20 @@
             </div>
         </div>
 
-        <!-- Recent Borrow Requests Section -->
-        <div class="admin-section">
-            <h4 class="admin-section-heading">
-                Recent Borrow Requests
-                <a href="{{ route('department.requests') }}" class="view-all" style="margin-left: auto; font-size: 13px; font-weight: 600; color: var(--primary-color);">View All Requests &rarr;</a>
-            </h4>
+        <!-- Recent Borrow Requests: heading row (title, count, View All) above the
+             table, the same layout as the User and Admin Dashboard tables -->
+        <section class="admin-section dash-table-section" aria-labelledby="recentRequestsTitle">
+            <header class="panel-header">
+                <div class="panel-heading">
+                    <h3 class="section-title" id="recentRequestsTitle">Recent Borrow Requests</h3>
+                    <span class="panel-count" id="recentRequestsCount">0</span>
+                </div>
+                <a href="{{ route('department.requests') }}" class="view-all">View All <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            </header>
             {{-- Same columns as the Borrow Requests table, plus Request ID, with the
                  role under the user's name (Return Confirmation style); rendered,
                  reviewed and kept current by the shared Requests script below. --}}
-            <div class="table-container card admin-table-card">
+            <div class="table-container admin-table-card">
                 <table class="recent-requests-table" style="width: 100%;">
                     <thead>
                         <tr>
@@ -226,15 +230,18 @@
                     </tbody>
                 </table>
             </div>
-        </div>
+        </section>
 
-        <!-- Overdue Alerts Section -->
-        <div class="admin-section">
-            <h4 class="admin-section-heading">
-                <i class="fa-solid fa-triangle-exclamation warning-icon" style="color: #ef4444;"></i> Overdue Alerts
-                <a href="{{ route('department.monitoring') }}" class="view-all" style="margin-left: auto; font-size: 13px; font-weight: 600; color: #ef4444;">View Monitoring &rarr;</a>
-            </h4>
-            <div class="table-container card admin-table-card">
+        <!-- Overdue Alerts -->
+        <section class="admin-section dash-table-section" aria-labelledby="overdueAlertsTitle">
+            <header class="panel-header">
+                <div class="panel-heading">
+                    <h3 class="section-title" id="overdueAlertsTitle">Overdue Alerts</h3>
+                    <span class="panel-count {{ count($dashboard['overdue'] ?? []) ? 'is-alert' : '' }}" id="overdueAlertsCount">{{ count($dashboard['overdue'] ?? []) }}</span>
+                </div>
+                <a href="{{ route('department.monitoring') }}" class="view-all">View All <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            </header>
+            <div class="table-container admin-table-card">
                 <table>
                     <thead>
                         <tr>
@@ -254,23 +261,29 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" style="text-align: center; color: var(--text-muted, #64748b); padding: 32px;">
-                                    No overdue items.
+                                <td colspan="4" class="table-empty">
+                                    <div class="empty-state">
+                                        <i class="fa-solid fa-circle-check"></i>
+                                        <span>No overdue items.</span>
+                                    </div>
                                 </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-        </div>
+        </section>
 
-        <!-- Upcoming Returns Section -->
-        <div class="admin-section">
-            <h4 class="admin-section-heading">
-                Upcoming Returns
-                <a href="{{ route('department.monitoring') }}" class="view-all" style="margin-left: auto; font-size: 13px; font-weight: 600; color: var(--success-color);">View Equipment Monitoring &rarr;</a>
-            </h4>
-            <div class="table-container card admin-table-card">
+        <!-- Upcoming Returns -->
+        <section class="admin-section dash-table-section" aria-labelledby="upcomingReturnsTitle">
+            <header class="panel-header">
+                <div class="panel-heading">
+                    <h3 class="section-title" id="upcomingReturnsTitle">Upcoming Returns</h3>
+                    <span class="panel-count" id="upcomingReturnsCount">{{ count($dashboard['upcoming'] ?? []) }}</span>
+                </div>
+                <a href="{{ route('department.monitoring') }}" class="view-all">View All <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            </header>
+            <div class="table-container admin-table-card">
                 <table>
                     <thead>
                         <tr>
@@ -298,15 +311,18 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" style="text-align: center; color: var(--text-muted, #64748b); padding: 32px;">
-                                    No upcoming returns scheduled.
+                                <td colspan="4" class="table-empty">
+                                    <div class="empty-state">
+                                        <i class="fa-solid fa-calendar-check"></i>
+                                        <span>No upcoming returns scheduled.</span>
+                                    </div>
                                 </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-        </div>
+        </section>
 <!-- Interactivity -->
 
     {{-- Details / Reject modals shared with the Borrow Requests page --}}
@@ -371,17 +387,30 @@
         }
     }
 
+    // Number of rows shown, in the pill next to a table title.
+    function setCount(id, value, alert = false) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = value;
+        el.classList.toggle('is-alert', alert && value > 0);
+    }
+
     function renderOverdue(rows) {
         const tableBody = document.getElementById('overdueTableBody');
         if (!tableBody) return;
+
+        setCount('overdueAlertsCount', rows.length, true);
 
         tableBody.innerHTML = '';
 
         if (!rows.length) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="4" style="text-align: center; color: var(--text-muted, #64748b); padding: 32px;">
-                        No overdue items.
+                    <td colspan="4" class="table-empty">
+                        <div class="empty-state">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span>No overdue items.</span>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -405,13 +434,18 @@
         const tableBody = document.getElementById('upcomingTableBody');
         if (!tableBody) return;
 
+        setCount('upcomingReturnsCount', rows.length);
+
         tableBody.innerHTML = '';
 
         if (!rows.length) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="4" style="text-align: center; color: var(--text-muted, #64748b); padding: 32px;">
-                        No upcoming returns scheduled.
+                    <td colspan="4" class="table-empty">
+                        <div class="empty-state">
+                            <i class="fa-solid fa-calendar-check"></i>
+                            <span>No upcoming returns scheduled.</span>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -460,6 +494,12 @@
             })
             .catch(err => console.error('Error loading department dashboard data:', err));
     }
+
+    // Recent Borrow Requests count: the rows the compact table shows (newest N).
+    const RECENT_LIMIT = @json($recentRequestsLimit);
+    document.addEventListener('requests:updated', event => {
+        setCount('recentRequestsCount', Math.min((event.detail.requests || []).length, RECENT_LIMIT || Infinity));
+    });
 
     // First paint from server payload, then poll in background and on visibility change
     applyDashboard(dashboard);

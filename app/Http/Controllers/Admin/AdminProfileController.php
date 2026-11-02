@@ -23,14 +23,20 @@ class AdminProfileController extends Controller
         return view('admin.profile', [
             'admin_name' => $admin->name,
             'admin_email' => $admin->email ?: $admin->username,
-            'admin_employee_id' => $admin->employee_id ?: 'ADM-0001',
+            // Empty when not set (the page shows "Not set"); a made-up ID here
+            // would be saved as the admin's own the next time they save.
+            'admin_employee_id' => $admin->employee_id ?? '',
             'admin_profile_image' => $admin->profile_image,
             'success_msg' => session('success_msg'),
             'error_msg' => session('error_msg'),
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    /**
+     * Saves the Personal Information form. The profile page sends it by AJAX
+     * and gets JSON back; a plain form post is redirected back to the page.
+     */
+    public function update(Request $request): RedirectResponse|JsonResponse
     {
         $admin = auth('admin')->user();
 
@@ -58,6 +64,14 @@ class AdminProfileController extends Controller
             ->where('admin_id', '!=', $admin->admin_id)
             ->exists();
         if ($usernameTaken) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Another admin already uses that email/username.',
+                    'errors' => ['admin_email' => ['Another admin already uses that email/username.']],
+                ], 422);
+            }
+
             return redirect()->route('admin.profile')
                 ->with('error_msg', 'Another admin already uses that email/username.')
                 ->withInput();
@@ -80,7 +94,25 @@ class AdminProfileController extends Controller
             AccountPassword::change($admin, 'admin', $data['new_password'], $entity, $request);
         }
 
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Profile information updated successfully!']);
+        }
+
         return redirect()->route('admin.profile')->with('success_msg', 'Profile changes saved successfully!');
+    }
+
+    /** Change Password section of the profile page (same as the User account's). */
+    public function password(Request $request): JsonResponse
+    {
+        $data = $request->validate(AccountPassword::rules('admin'), AccountPassword::messages());
+
+        $admin = auth('admin')->user();
+        AccountPassword::change($admin, 'admin', $data['new_password'], 'admin:' . $admin->admin_id, $request);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Your password has been updated. Other devices signed in to your account have been signed out.',
+        ]);
     }
 
     public function avatar(Request $request): JsonResponse
