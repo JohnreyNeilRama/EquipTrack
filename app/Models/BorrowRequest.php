@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\EquipmentAvailability;
+use App\Support\LoanTime;
 use Illuminate\Database\Eloquent\Model;
 
 class BorrowRequest extends Model
@@ -40,15 +42,28 @@ class BorrowRequest extends Model
         'cancelled_at',
     ];
 
+    // Borrow and due dates (Philippine wall-clock time, see App\Support\LoanTime).
     protected $casts = [
-        'date_needed' => 'date',
-        'return_date' => 'date',
-        'due_date' => 'date',
-        'borrow_date' => 'date',
+        'date_needed' => 'datetime',
+        'return_date' => 'datetime',
+        'due_date' => 'datetime',
+        'borrow_date' => 'datetime',
         'admin_reviewed_at' => 'datetime',
         'dept_reviewed_at' => 'datetime',
         'cancelled_at' => 'datetime',
     ];
+
+    /** Due dates are stored at the return deadline of that day. */
+    public function setDueDateAttribute($value): void
+    {
+        $this->attributes['due_date'] = $value === null ? null : $this->fromDateTime(LoanTime::dueValue($value));
+    }
+
+    /** The planned return, like the due date: at the return deadline of that day. */
+    public function setReturnDateAttribute($value): void
+    {
+        $this->attributes['return_date'] = $value === null ? null : $this->fromDateTime(LoanTime::dueValue($value));
+    }
 
     public function user()
     {
@@ -149,17 +164,18 @@ class BorrowRequest extends Model
     }
 
     /**
-     * Activates the loan for an approved request exactly once: the equipment's
-     * available quantity is decreased by the requested quantity (never below
-     * zero), the equipment is flagged Unavailable when its stock runs out, and
-     * the borrow_transaction is created as Ready for Pickup: the unit is held
-     * for the borrower, and the loan only becomes Active when Lab Personnel
+     * Reserves the equipment for an approved request exactly once: the
+     * borrow_transaction is created as Ready for Pickup, which blocks the
+     * requested dates for everyone else (EquipmentAvailability). Stock is not
+     * touched here: the unit leaves the available quantity when Lab Personnel
      * release it at the counter (DepartmentReleasesController).
+     *
+     * Approval is refused when every lendable unit is already reserved during
+     * on one of the requested dates.
      *
      * Both the admin and the department approval workflows call this, so it is
      * idempotent: when a transaction already exists (the other approver already
-     * approved), the stock is left untouched and no second transaction is made.
-     * Total quantity is never modified — it is the number of units owned.
+     * approved), nothing is checked or created again.
      *
      * Call this inside a DB transaction while this request row is locked.
      *
@@ -171,6 +187,7 @@ class BorrowRequest extends Model
             return ['code' => 200];
         }
 
+        // Locked so two approvals for the same item are checked one at a time.
         $equipment = Equipment::where('equipment_id', $this->equipment_id)
             ->lockForUpdate()
             ->first();
@@ -179,29 +196,44 @@ class BorrowRequest extends Model
             return ['code' => 404, 'message' => 'The equipment for this request was not found.'];
         }
 
+        // Borrow date and due date (at the return deadline).
+        $from = ($this->borrow_date ?: $this->date_needed)->copy();
+        $to = ($this->due_date ?: $this->return_date ?: $from)->copy();
         $quantity = max(1, (int) $this->quantity);
-        $available = (int) $equipment->available_qty;
+        $availability = EquipmentAvailability::for($equipment, (int) $this->request_id);
 
-        if ($available < $quantity) {
-            return ['code' => 400, 'message' => 'Cannot approve: this equipment has no available stock left.'];
+        if (!$availability->isFree($from, $to, $quantity)) {
+            return ['code' => 400, 'message' => $this->conflictMessage($equipment, $availability, $from, $to)];
         }
-
-        // Available quantity stays within [0, total_qty].
-        $equipment->available_qty = max(0, $available - $quantity);
-
-        if ((int) $equipment->available_qty === 0) {
-            $equipment->status = 'Unavailable';
-        }
-
-        $equipment->save();
 
         BorrowTransaction::create([
             'request_id' => $this->request_id,
-            'borrow_date' => $this->borrow_date ?: $this->date_needed,
-            'due_date' => $this->due_date ?: $this->return_date,
+            'borrow_date' => $from->format('Y-m-d H:i:s'),
+            'due_date' => $to->format('Y-m-d H:i:s'),
             'status' => BorrowTransaction::STATUS_READY,
         ]);
 
         return ['code' => 200];
+    }
+
+    /** Why the requested dates can't be approved, naming the clashing reservation when there is one unit. */
+    private function conflictMessage(Equipment $equipment, EquipmentAvailability $availability, $from, $to): string
+    {
+        $lendable = $availability->lendableUnits();
+
+        if ($lendable < 1) {
+            return 'Cannot approve: ' . $equipment->name . ' has no units that can be lent right now.';
+        }
+
+        $conflicts = $availability->conflicts($from, $to);
+        $first = $conflicts->first();
+        // A booking's 'to' is the start of the day after its last day.
+        $period = $first ? EquipmentAvailability::label($first['from'], $first['to']->copy()->subDay()) : EquipmentAvailability::label($from, $to);
+
+        $subject = $lendable === 1
+            ? 'the only unit is already reserved ' . $period . ($first ? ' (request #' . $first['request_id'] . ')' : '')
+            : 'all ' . $lendable . ' units of ' . $equipment->name . ' are reserved on some of these dates';
+
+        return 'Cannot approve: ' . $subject . '. Reject this request or ask the borrower for other dates.';
     }
 }

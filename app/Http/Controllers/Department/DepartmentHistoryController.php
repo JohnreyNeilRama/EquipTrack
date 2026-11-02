@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Department;
 use App\Http\Controllers\Controller;
 use App\Models\BorrowTransaction;
 use App\Models\EquipmentCategory;
+use App\Support\LoanTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -50,7 +51,7 @@ class DepartmentHistoryController extends Controller
             return [];
         }
 
-        $fmt = fn ($value) => $value ? Carbon::parse($value)->format('M d, Y') : '—';
+        $fmt = fn ($value) => LoanTime::format($value);
 
         $transactions = BorrowTransaction::with([
             'request.user.student',
@@ -123,8 +124,8 @@ class DepartmentHistoryController extends Controller
             return 'Lost';
         }
 
-        if ($transaction->return_date && $transaction->due_date
-            && $transaction->return_date->toDateString() > $transaction->due_date->toDateString()) {
+        // Handed in after the exact due date and time.
+        if ($transaction->daysLate() > 0) {
             return 'Returned Late';
         }
 

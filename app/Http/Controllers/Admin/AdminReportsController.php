@@ -9,6 +9,7 @@ use App\Models\BorrowTransaction;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
 use App\Models\Penalty;
+use App\Support\LoanTime;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -303,10 +304,8 @@ class AdminReportsController extends Controller
         $due = $transaction?->due_date ?? $request->due_date ?? $request->return_date;
         $returnedOn = $returned ? $transaction->return_date : null;
 
-        $overdue = $active && (
-            ($due && $due->copy()->startOfDay()->lt($today))
-            || $transaction->status === 'Overdue'
-        );
+        // Overdue once the exact due date and time have passed.
+        $overdue = $active && (LoanTime::isOverdue($due) || $transaction->status === 'Overdue');
 
         if ($overall === 'Rejected' || $overall === BorrowRequest::STATUS_CANCELLED) {
             $lifecycle = $overall;
@@ -358,9 +357,7 @@ class AdminReportsController extends Controller
             'borrow' => $borrow,
             'due' => $due,
             'returned_on' => $returnedOn,
-            'days_overdue' => $overdue && $due
-                ? max(0, (int) $due->copy()->startOfDay()->diffInDays($today))
-                : 0,
+            'days_overdue' => $overdue && $due ? max(1, LoanTime::daysLate($due)) : 0,
             'condition' => $conditionType,
             'return_status' => $returned ? $this->returnStatus($transaction, $conditionType) : null,
         ];
@@ -382,8 +379,8 @@ class AdminReportsController extends Controller
             return 'Lost';
         }
 
-        if ($transaction->return_date && $transaction->due_date
-            && $transaction->return_date->toDateString() > $transaction->due_date->toDateString()) {
+        // Handed in after the exact due date and time.
+        if ($transaction->daysLate() > 0) {
             return 'Returned Late';
         }
 
@@ -429,7 +426,7 @@ class AdminReportsController extends Controller
 
     private function fmt(?CarbonInterface $date): string
     {
-        return $date ? $date->format('M d, Y') : '—';
+        return LoanTime::format($date);
     }
 
     // ------------------------------------------------------------------

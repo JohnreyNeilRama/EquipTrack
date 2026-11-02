@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\DepartmentAccount;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
+use App\Support\LoanTime;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
@@ -121,8 +122,7 @@ class AdminMonitoringController extends Controller
                     : ($user->facultyMember?->faculty_id_number ?? '');
 
                 $reserved = $transaction->isReadyForPickup();
-                $isOverdue = !$reserved && (($transaction->due_date
-                    && Carbon::parse($transaction->due_date)->startOfDay()->lt(BorrowTransaction::today()))
+                $isOverdue = !$reserved && (LoanTime::isOverdue($transaction->due_date)
                     || $transaction->status === 'Overdue');
 
                 $loanRows[] = [
@@ -135,8 +135,8 @@ class AdminMonitoringController extends Controller
                     // The borrower's department, not the equipment owner's.
                     'department' => $user->department?->department_name ?? '',
                     'status' => $reserved ? 'Reserved' : ($isOverdue ? 'Overdue' : 'Borrowed'),
-                    'borrowDate' => $transaction->borrow_date ? Carbon::parse($transaction->borrow_date)->format('M d, Y') : '—',
-                    'dueDate' => $transaction->due_date ? Carbon::parse($transaction->due_date)->format('M d, Y') : '—',
+                    'borrowDate' => LoanTime::format($transaction->borrow_date),
+                    'dueDate' => LoanTime::format($transaction->due_date),
                     'date' => $request->date_requested ? Carbon::parse($request->date_requested)->format('M d, Y') : '—',
                     'purpose' => $request->purpose ?: 'N/A',
                     'notes' => $request->notes ?: 'None',

@@ -1366,3 +1366,95 @@ html:has(.equipment-container) {
         margin-left: 0;
     }
 }
+
+/* Request form: the Return row is hidden for Within the Day (the row's own
+   display: flex would otherwise win over the hidden attribute) */
+.form-horizontal-group[hidden] {
+    display: none;
+}
+
+/* Request form: Within the Day / Multiple Days toggle and the office-hours
+   note (aligned with the inputs: label width + gap) */
+.duration-chips {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.duration-chip {
+    padding: 5px 12px;
+    font-family: inherit;
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: var(--primary-color);
+    background: var(--primary-light);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.duration-chip:hover,
+.duration-chip.is-active {
+    border-color: var(--primary-color);
+}
+
+.duration-chip.is-active {
+    color: #ffffff;
+    background: var(--primary-color);
+}
+
+.duration-chip:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.lab-hours-note {
+    margin: -4px 0 0 102px;
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+}
+
+/* Request form: dates when no unit is free, under the date fields and
+   aligned with them (label width + gap). Amber when there are bookings. */
+.booked-dates {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: -4px 0 0 102px;
+    font-size: var(--fs-small);
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+.booked-dates i {
+    margin-top: 2px;
+}
+
+.booked-dates.has-bookings {
+    color: #b45309;
+}
+
+.dark-theme .booked-dates.has-bookings {
+    color: #fbbf24;
+}
+
+.booked-dates:empty {
+    display: none;
+}
+
+/* Same breakpoint where the form's labels narrow to 80px */
+@media (max-width: 860px) {
+    .booked-dates,
+    .lab-hours-note {
+        margin-left: 92px;
+    }
+}
+
+@media (max-width: 480px) {
+    .booked-dates,
+    .lab-hours-note {
+        margin-left: 0;
+    }
+}

@@ -3,7 +3,7 @@
 @section('title', 'EquipTrack - Available Equipment')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('user/css/useravailequipment.css') }}">
+<link rel="stylesheet" href="{{ asset('user/css/useravailequipment.css') }}?v={{ filemtime(public_path('user/css/useravailequipment.css')) }}">
 @endpush
 
 @php
@@ -82,7 +82,11 @@
                         $eqStatus = $eq->status ?: 'Available';
                         $imgUrl = $resolveImg($eq->image);
                         $isLowStock = ($eqAvail <= 1);
-                        $isUnavailable = (strtolower($eqStatus) !== 'available' || $eqAvail <= 0);
+                        // Units out on loan can still be booked for other dates, so the
+                        // button only depends on the admin's status and lendable units.
+                        $eqLendable = $availability[$eq->equipment_id]['lendable'] ?? $eqAvail;
+                        $eqFullyBooked = $availability[$eq->equipment_id]['fullyBooked'] ?? [];
+                        $isUnavailable = (strtolower($eqStatus) !== 'available' || $eqLendable <= 0);
                     @endphp
                     <div class="equipment-card"
                          data-id="{{ $eq->equipment_id }}"
@@ -107,7 +111,7 @@
 
                             <div class="eq-stock-row">
                                 <span class="eq-available {{ $isLowStock ? 'low-stock' : '' }}">
-                                    <i class="fa-solid fa-circle-check"></i> Stock: <strong>{{ $eqAvail }} / {{ (int) $eq->total_qty }}</strong>
+                                    <i class="fa-solid fa-circle-check"></i> In the lab now: <strong>{{ $eqAvail }} / {{ (int) $eq->total_qty }}</strong>
                                 </span>
                                 <span class="eq-status-badge {{ strtolower($eqStatus) === 'available' ? 'status-available' : 'status-unavailable' }}">
                                     {{ $eqStatus }}
@@ -120,6 +124,7 @@
                                 data-name="{{ $eq->name }}"
                                 data-category="{{ $eqCategory }}"
                                 data-available="{{ $eqAvail }}"
+                                data-fully-booked="{{ json_encode(array_column($eqFullyBooked, 'label')) }}"
                                 data-img="{{ $imgUrl }}"
                                 @if ($isUnavailable) disabled @endif>
                             {{ $isUnavailable ? 'Not Available' : 'Request Item' }}
@@ -175,14 +180,28 @@
                                 <label class="flat-label">Category:</label>
                                 <input type="text" id="modalEqCategory" class="flat-control" readonly>
                             </div>
+                            {{-- Dates only: Within the Day (returned the same day) or several days --}}
                             <div class="form-horizontal-group">
-                                <label class="flat-label">Borrow Date:</label>
-                                <input type="date" id="borrowDate" class="flat-control" required>
+                                <span class="flat-label" id="borrowTypeLabel">Duration:</span>
+                                <div class="duration-chips" role="radiogroup" aria-labelledby="borrowTypeLabel">
+                                    <button type="button" class="duration-chip is-active" role="radio" aria-checked="true" data-type="within_day">Within the Day</button>
+                                    <button type="button" class="duration-chip" role="radio" aria-checked="false" data-type="multiple_days">Multiple Days</button>
+                                </div>
                             </div>
                             <div class="form-horizontal-group">
-                                <label class="flat-label">Return Date:</label>
-                                <input type="date" id="returnDate" class="flat-control" required>
+                                <label class="flat-label" for="borrowDate">Borrow:</label>
+                                <input type="date" id="borrowDate" class="flat-control" aria-label="Borrow date" required>
                             </div>
+                            <div class="form-horizontal-group" id="returnDateGroup" hidden>
+                                <label class="flat-label" for="returnDate">Return:</label>
+                                <input type="date" id="returnDate" class="flat-control" aria-label="Return date">
+                            </div>
+                            <p class="lab-hours-note">
+                                Pick up any time during office hours ({{ \App\Support\LoanTime::clock(\App\Support\LoanTime::opens()) }} – {{ \App\Support\LoanTime::clock(\App\Support\LoanTime::closes()) }}).
+                                Return by <strong>{{ \App\Support\LoanTime::clock(\App\Support\LoanTime::deadline()) }}</strong> on the <span id="returnByWhen">same day</span>.
+                            </p>
+                            {{-- Periods when no unit is free (filled in when the form opens) --}}
+                            <p class="booked-dates" id="bookedDates" aria-live="polite"></p>
                         </div>
                     </div>
 
@@ -297,37 +316,60 @@
         const borrowForm = document.getElementById('borrowForm');
         const borrowDateInput = document.getElementById('borrowDate');
         const returnDateInput = document.getElementById('returnDate');
+        const returnDateGroup = document.getElementById('returnDateGroup');
+        const returnByWhen = document.getElementById('returnByWhen');
+        const typeChips = document.querySelectorAll('.duration-chip[data-type]');
+
+        // Today's return deadline (config/equiptrack.php); after it, nothing
+        // can be borrowed today. The server checks the same rules.
+        const RETURN_DEADLINE = @json(\App\Support\LoanTime::deadline());
+        const RETURN_DEADLINE_TEXT = @json(\App\Support\LoanTime::clock(\App\Support\LoanTime::deadline()));
 
         // Dates as YYYY-MM-DD in the user's own time zone. toISOString() would
         // give the UTC date, which is still yesterday before 8:00 AM in the
-        // Philippines. The server checks the same rule in Philippine time.
-        const toYmd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        const addDays = (ymd, days) => {
+        // Philippines.
+        const pad = (n) => String(n).padStart(2, '0');
+        const toYmd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const toHm = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        const nextDay = (ymd) => {
             const [y, m, d] = ymd.split('-').map(Number);
-            return toYmd(new Date(y, m - 1, d + days));
+            return toYmd(new Date(y, m - 1, d + 1));
         };
 
-        // Set minimum dates
-        const today = toYmd(new Date());
-        const tomorrowYmd = addDays(today, 1);
-        if (borrowDateInput) {
-            borrowDateInput.min = today;
-            borrowDateInput.value = today;
+        // Today, or tomorrow once today's return deadline has passed.
+        function earliestBorrowDate() {
+            const now = new Date();
+            return toHm(now) >= RETURN_DEADLINE ? nextDay(toYmd(now)) : toYmd(now);
         }
 
-        if (returnDateInput) {
-            returnDateInput.min = tomorrowYmd;
-        }
+        let borrowType = 'within_day';
 
-        if (borrowDateInput && returnDateInput) {
-            borrowDateInput.addEventListener('change', () => {
-                if (!borrowDateInput.value) return;
-                returnDateInput.min = addDays(borrowDateInput.value, 1);
-                if (returnDateInput.value && returnDateInput.value < returnDateInput.min) {
-                    returnDateInput.value = returnDateInput.min;
-                }
+        // Within the Day: no return date (it is the borrow date).
+        // Multiple Days: the return date is after the borrow date.
+        function setBorrowType(type) {
+            borrowType = type;
+            typeChips.forEach(chip => {
+                const on = chip.dataset.type === type;
+                chip.classList.toggle('is-active', on);
+                chip.setAttribute('aria-checked', on ? 'true' : 'false');
             });
+            const multi = type === 'multiple_days';
+            if (returnDateGroup) returnDateGroup.hidden = !multi;
+            if (returnDateInput) returnDateInput.required = multi;
+            if (returnByWhen) returnByWhen.textContent = multi ? 'return date' : 'same day';
+            syncReturnMin();
         }
+
+        function syncReturnMin() {
+            if (!borrowDateInput.value || !returnDateInput) return;
+            returnDateInput.min = nextDay(borrowDateInput.value);
+            if (returnDateInput.value && returnDateInput.value < returnDateInput.min) {
+                returnDateInput.value = returnDateInput.min;
+            }
+        }
+
+        if (borrowDateInput) borrowDateInput.addEventListener('change', syncReturnMin);
+        typeChips.forEach(chip => chip.addEventListener('click', () => setBorrowType(chip.dataset.type)));
 
         // Attach request click event to buttons
         const requestBtns = document.querySelectorAll('.btn-request');
@@ -346,15 +388,28 @@
                 document.getElementById('modalEqCategory').value  = eqCategory;
                 document.getElementById('modalEqAvailable').value = eqAvail;
 
+                // "Fully booked: Nov 5–7, Nov 20": no unit is free on those dates.
+                const bookedLine = document.getElementById('bookedDates');
+                if (bookedLine) {
+                    let booked = [];
+                    try { booked = JSON.parse(btn.getAttribute('data-fully-booked') || '[]'); } catch (err) { booked = []; }
+                    bookedLine.classList.toggle('has-bookings', booked.length > 0);
+                    bookedLine.innerHTML = booked.length
+                        ? '<i class="fa-solid fa-calendar-xmark"></i> <span><strong>Fully booked:</strong> ' + booked.map(b => b.replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]))).join(', ') + '</span>'
+                        : '<i class="fa-solid fa-calendar-check"></i> <span>No bookings yet, any dates are open.</span>';
+                }
+
                 const modalImg = document.getElementById('modalEqImg');
                 modalImg.src = eqImg;
                 modalImg.alt = eqName;
 
-                if (borrowDateInput) borrowDateInput.value = today;
-                if (returnDateInput) {
-                    returnDateInput.value = "";
-                    returnDateInput.min = tomorrowYmd;
+                // Start today (or tomorrow after the deadline), Within the Day.
+                if (borrowDateInput) {
+                    borrowDateInput.min = earliestBorrowDate();
+                    borrowDateInput.value = borrowDateInput.min;
                 }
+                if (returnDateInput) returnDateInput.value = "";
+                setBorrowType('within_day');
 
                 if (modal) modal.classList.add('show');
             });
@@ -396,13 +451,25 @@
                     return;
                 }
 
-                if (!borrowDate || !returnDate) {
-                    alert('Please select both borrow date and return date.');
+                if (!borrowDate) {
+                    alert('Please choose the borrow date.');
                     return;
                 }
 
-                if (returnDate < borrowDate) {
-                    alert('Return date cannot be earlier than borrow date.');
+                if (borrowDate < earliestBorrowDate()) {
+                    alert(borrowDate === toYmd(new Date())
+                        ? "Today's return deadline (" + RETURN_DEADLINE_TEXT + ') has passed. Please choose tomorrow or a later date.'
+                        : 'The borrow date cannot be in the past.');
+                    return;
+                }
+
+                if (borrowType === 'multiple_days' && !returnDate) {
+                    alert('Please choose the return date.');
+                    return;
+                }
+
+                if (borrowType === 'multiple_days' && returnDate <= borrowDate) {
+                    alert('For Multiple Days, the return date must be after the borrow date.');
                     return;
                 }
 
@@ -419,8 +486,9 @@
                 const formData = new FormData();
                 formData.append('_token', CSRF_TOKEN);
                 formData.append('equipment_id', eqId);
+                formData.append('borrow_type', borrowType);
                 formData.append('borrow_date', borrowDate);
-                formData.append('return_date', returnDate);
+                formData.append('return_date', borrowType === 'within_day' ? borrowDate : returnDate);
                 formData.append('purpose', purpose);
                 if (instructorInput) formData.append('instructor_name', instructor);
                 formData.append('notes', notes);

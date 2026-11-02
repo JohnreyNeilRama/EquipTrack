@@ -18,9 +18,10 @@ use Tests\Concerns\CreatesEquipTrackRecords;
 use Tests\TestCase;
 
 /**
- * Release Confirmation: approval holds a unit as Ready for Pickup; the loan
- * only starts when Lab Personnel check the borrower's school ID and release
- * the item, or ends as Not Claimed (unit back in stock) if they never come.
+ * Release Confirmation: approval reserves the dates as Ready for Pickup; the
+ * loan only starts (and the unit leaves stock) when Lab Personnel check the
+ * borrower's school ID and release the item, or ends as Not Claimed (the dates
+ * are freed) if they never come.
  * Until it is released it cannot be returned, is not overdue and sends no
  * reminders.
  */
@@ -108,14 +109,15 @@ class ReleaseEquipmentTest extends TestCase
         ]);
     }
 
-    public function test_approval_holds_a_unit_as_ready_for_pickup(): void
+    public function test_approval_reserves_the_dates_as_ready_for_pickup(): void
     {
         $requestId = $this->approvedRequest();
 
         $loan = $this->loan($requestId);
         $this->assertSame(BorrowTransaction::STATUS_READY, $loan->status);
         $this->assertNull($loan->released_at);
-        $this->assertSame(1, (int) $this->equipment->fresh()->available_qty);
+        // Reserved, not taken out of stock: the unit is still in the lab.
+        $this->assertSame(2, (int) $this->equipment->fresh()->available_qty);
 
         // The borrower is told to pick it up, and cannot return it yet.
         $this->actingAs($this->student, 'user')->get(route('user.returns'))
@@ -183,7 +185,7 @@ class ReleaseEquipmentTest extends TestCase
         $this->assertSame(BorrowTransaction::STATUS_READY, $this->loan($requestId)->status);
     }
 
-    public function test_not_claimed_gives_the_unit_back_and_closes_the_request(): void
+    public function test_not_claimed_frees_the_dates_and_closes_the_request(): void
     {
         $requestId = $this->approvedRequest();
 
@@ -250,10 +252,10 @@ class ReleaseEquipmentTest extends TestCase
 
         $this->assertSame([], $this->actingAs($this->admin, 'admin')->getJson(route('admin.dashboard.data'))->json('overdue'));
 
-        // Once released, the same loan is overdue and reminded.
-        $this->release($requestId)->assertOk();
+        // Past its due date it can no longer be released, only marked Not Claimed.
+        $this->release($requestId)->assertStatus(400);
         Artisan::call('equiptrack:send-loan-reminders');
-        Notification::assertSentTo($this->student, LoanReminderNotification::class);
+        Notification::assertNothingSent();
     }
 
     public function test_lab_personnel_are_alerted_on_the_pickup_day(): void

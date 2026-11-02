@@ -9,6 +9,7 @@ use App\Models\BorrowTransaction;
 use App\Models\Penalty;
 use App\Services\AuditLogger;
 use App\Services\PenaltyService;
+use App\Support\LoanTime;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -75,7 +76,8 @@ class DepartmentReturnsController extends Controller
             $transaction->update([
                 'status' => 'Returned',
                 // The unit came back when the user handed it in, not when it was inspected.
-                'return_date' => ($transaction->return_submitted_at ?? now())->toDateString(),
+                // Its Philippine date (the clock runs in UTC).
+                'return_date' => LoanTime::fromInstant($transaction->return_submitted_at ?? now())->toDateString(),
                 // Same "Condition — remarks" format the history and reports read.
                 'condition_on_return' => mb_substr($data['condition'] . ($remarks !== '' ? ' — ' . $remarks : ''), 0, 150),
                 'inspected_condition' => $data['condition'],
@@ -272,8 +274,8 @@ class DepartmentReturnsController extends Controller
                 'quantity' => max(1, (int) ($borrow->quantity ?? 1)),
                 // Shows the "Expensive" tag in the table (display only).
                 'requiresBothApprovals' => $borrow->requiresDualApproval(),
-                'borrowDate' => $fmtDate($transaction->borrow_date),
-                'dueDate' => $fmtDate($transaction->due_date),
+                'borrowDate' => LoanTime::format($transaction->borrow_date, 'N/A'),
+                'dueDate' => LoanTime::format($transaction->due_date, 'N/A'),
                 'submitted' => $fmtDate($transaction->return_submitted_at),
                 'submittedFull' => $fmtDateTime($transaction->return_submitted_at),
                 'status' => $transaction->return_status,

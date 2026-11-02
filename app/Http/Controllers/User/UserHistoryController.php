@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
+use App\Support\LoanTime;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -40,7 +41,7 @@ class UserHistoryController extends Controller
         $equipment = $request->equipment;
         $transaction = $request->transaction;
 
-        $fmt = fn ($value) => $value ? Carbon::parse($value)->format('M d, Y') : 'N/A';
+        $fmt = fn ($value) => LoanTime::format($value, 'N/A');
 
         $borrowDateRaw = $transaction?->borrow_date ?: $request->borrow_date ?: $request->date_needed;
         $dueDateRaw = $transaction?->due_date ?: $request->due_date ?: $request->return_date;
@@ -94,8 +95,8 @@ class UserHistoryController extends Controller
         }
 
         if ($returnDateRaw) {
-            $wasLate = $dueDateRaw
-                && Carbon::parse($returnDateRaw)->startOfDay()->gt(Carbon::parse($dueDateRaw)->startOfDay());
+            // Handed in after the exact due date and time.
+            $wasLate = ($request->transaction?->daysLate() ?? 0) > 0;
 
             return $wasLate ? 'Late Return' : 'Returned';
         }
@@ -109,8 +110,7 @@ class UserHistoryController extends Controller
         }
 
         if ($isOut) {
-            $isOverdue = $dueDateRaw
-                && Carbon::parse($dueDateRaw)->startOfDay()->lt(BorrowTransaction::today());
+            $isOverdue = $dueDateRaw && LoanTime::isOverdue(Carbon::parse($dueDateRaw));
 
             return $isOverdue ? 'Overdue' : 'Borrowed';
         }

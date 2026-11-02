@@ -396,7 +396,9 @@ class EquipmentClassificationApprovalTest extends TestCase
         $this->deptReview($id)->assertOk()->assertJson(['overallStatus' => 'Approved']);
 
         $this->assertSame('Approved', $this->request($id)->overall_status);
-        $this->assertSame(2, (int) $equipment->fresh()->available_qty);
+        // Reserved, not taken out of stock: that happens at release.
+        $this->assertSame(1, BorrowTransaction::where('request_id', $id)->count());
+        $this->assertSame(3, (int) $equipment->fresh()->available_qty);
     }
 
     public function test_requests_from_before_classification_are_handled_by_the_department(): void
@@ -465,7 +467,7 @@ class EquipmentClassificationApprovalTest extends TestCase
         $this->assertSame('Approved', $request->admin_status);
         $this->assertSame('Approved', $request->dept_status);
         $this->assertSame(1, BorrowTransaction::where('request_id', $id)->count());
-        $this->assertSame(2, (int) $equipment->fresh()->available_qty, 'Stock is deducted exactly once.');
+        $this->assertSame(3, (int) $equipment->fresh()->available_qty, 'Approval reserves the dates; stock moves at release.');
     }
 
     public function test_expensive_department_first_then_admin(): void
@@ -480,7 +482,7 @@ class EquipmentClassificationApprovalTest extends TestCase
         $this->adminReview($id)->assertOk()->assertJson(['overallStatus' => 'Approved']);
 
         $this->assertSame('Approved', $this->request($id)->overall_status);
-        $this->assertSame(2, (int) $equipment->fresh()->available_qty);
+        $this->assertSame(3, (int) $equipment->fresh()->available_qty);
         $this->assertSame(1, BorrowTransaction::where('request_id', $id)->count());
     }
 
@@ -528,7 +530,7 @@ class EquipmentClassificationApprovalTest extends TestCase
         $this->assertNull(BorrowTransaction::where('request_id', $id)->first());
     }
 
-    public function test_expensive_final_approval_is_blocked_when_stock_ran_out(): void
+    public function test_expensive_final_approval_is_blocked_when_the_dates_are_taken(): void
     {
         $equipment = $this->makeEquipment('Expensive', 1, 1);
         $first = $this->submit($equipment);
@@ -540,16 +542,17 @@ class EquipmentClassificationApprovalTest extends TestCase
         $this->assertSame(1, (int) $equipment->fresh()->available_qty);
 
         $this->deptReview($first)->assertOk()->assertJson(['overallStatus' => 'Approved']);
-        $this->assertSame(0, (int) $equipment->fresh()->available_qty);
+        $this->assertSame(1, (int) $equipment->fresh()->available_qty, 'Reserved, still in the lab.');
 
-        // No stock left for the second one: refused, and still not approved.
+        // The only unit is reserved on those dates: refused, and still not approved.
         $this->deptReview($second)->assertStatus(400)->assertJson(['success' => false]);
 
         $request = $this->request($second);
         $this->assertSame('Pending', $request->overall_status);
         $this->assertSame('Pending', $request->dept_status);
         $this->assertSame('Approved', $request->admin_status);
-        $this->assertSame(0, (int) $equipment->fresh()->available_qty, 'Stock never goes negative.');
+        $this->assertSame(1, BorrowTransaction::count(), 'Only the first request is reserved.');
+        $this->assertSame(1, (int) $equipment->fresh()->available_qty, 'Stock never goes negative.');
     }
 
     public function test_reclassifying_equipment_does_not_change_requests_already_submitted(): void

@@ -370,7 +370,8 @@ class DepartmentEquipmentTest extends TestCase
         $row = collect($this->deptEquipment($this->deptAccount))->firstWhere('id', $equipment->equipment_id);
         $this->assertSame(0, $row['available']);
         $this->assertSame(1, $row['total']);
-        $this->assertSame('Unavailable', $row['status']);
+        // The status is set by the admin; running out of units doesn't change it.
+        $this->assertSame('Available', $row['status']);
 
         // Returning the item and the department confirming it restores it,
         // leaving Total untouched.

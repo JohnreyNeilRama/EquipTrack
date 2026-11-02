@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BorrowTransaction;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
+use App\Support\LoanTime;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
@@ -65,7 +66,7 @@ class DepartmentMonitoringController extends Controller
             ->get()
             ->groupBy(fn ($transaction) => $transaction->request?->equipment_id);
 
-        $fmt = fn ($value) => $value ? Carbon::parse($value)->format('M d, Y') : '—';
+        $fmt = fn ($value) => LoanTime::format($value);
 
         $rows = [];
 
@@ -98,14 +99,16 @@ class DepartmentMonitoringController extends Controller
                     : ($user->facultyMember?->faculty_id_number ?? '');
 
                 $reserved = $transaction->isReadyForPickup();
-                $isOverdue = !$reserved && (($transaction->due_date
-                    && Carbon::parse($transaction->due_date)->startOfDay()->lt(BorrowTransaction::today()))
+                $isOverdue = !$reserved && (LoanTime::isOverdue($transaction->due_date)
                     || $transaction->status === 'Overdue');
 
-                // Whole days past the due date (overdue) or left until it (shown
-                // as "Due today" / "Due tomorrow" in the table). Display only.
+                // Days past the exact due time (overdue, any part of a day
+                // counting) or calendar days left until it (shown as "Due
+                // today" / "Due tomorrow" in the table). Display only.
                 $daysFromDue = $transaction->due_date && !$reserved
-                    ? (int) BorrowTransaction::today()->diffInDays(Carbon::parse($transaction->due_date)->startOfDay(), false)
+                    ? ($isOverdue
+                        ? -max(1, LoanTime::daysLate($transaction->due_date))
+                        : (int) BorrowTransaction::today()->diffInDays($transaction->due_date->copy()->startOfDay(), false))
                     : null;
 
                 $loanRows[] = [

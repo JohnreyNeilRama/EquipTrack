@@ -8,6 +8,7 @@ use App\Models\BorrowTransaction;
 use App\Models\Penalty;
 use App\Models\PenaltySubmission;
 use App\Models\UserNotificationRead;
+use App\Support\LoanTime;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -231,8 +232,9 @@ class UserNotificationController extends Controller
                 continue;
             }
 
-            $due = $loan->due_date ? Carbon::parse($loan->due_date)->startOfDay() : null;
-            $pastDue = $due && $due->lt($today);
+            $due = $loan->due_date?->copy()->startOfDay();
+            // Overdue once the due date's return deadline has passed.
+            $pastDue = LoanTime::isOverdue($loan->due_date);
 
             if (!$pastDue && $loan->status !== 'Overdue') {
                 if ($notice = $this->dueSoonNotification($loan, $due, $today)) {
@@ -243,10 +245,10 @@ class UserNotificationController extends Controller
             }
 
             $equipment = $loan->request?->equipment?->name ?? 'The borrowed equipment';
-            $daysLate = $due ? (int) abs($due->diffInDays($today)) : 0;
+            $daysLate = max(1, LoanTime::daysLate($loan->due_date));
 
             $message = $due
-                ? $equipment . ' was due on ' . $due->format('M d, Y')
+                ? $equipment . ' was due on ' . LoanTime::format($loan->due_date)
                     . ($daysLate > 0 ? ' (' . $daysLate . ' ' . Str::plural('day', $daysLate) . ' late)' : '')
                     . '. Please return it as soon as possible.'
                 : $equipment . ' is overdue. Please return it as soon as possible.';
@@ -294,7 +296,7 @@ class UserNotificationController extends Controller
                 1 => 'Tomorrow',
                 default => 'in ' . $daysLeft . ' Days',
             },
-            'message' => $equipment . ' is due ' . $when . ' (' . $due->format('M d, Y') . '). Please return it on time.',
+            'message' => $equipment . ' is due ' . $when . ' (' . LoanTime::dueBy($loan->due_date) . '). Please return it on time.',
             'url' => route('user.returns'),
             'at' => $this->startOfToday(),
         ];

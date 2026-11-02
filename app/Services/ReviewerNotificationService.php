@@ -7,6 +7,7 @@ use App\Models\BorrowTransaction;
 use App\Models\Equipment;
 use App\Models\PenaltySubmission;
 use App\Models\StaffNotificationRead;
+use App\Support\LoanTime;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -195,9 +196,8 @@ class ReviewerNotificationService
             $borrower = $row->user?->fullName() ?: ($row->user?->email ?: 'A user');
             $from = $row->borrow_date ?? $row->date_needed;
             $until = $row->due_date ?? $row->return_date;
-            $dates = $from
-                ? ' for ' . $from->format('M d') . ($until && !$until->isSameDay($from) ? ' to ' . $until->format('M d') : '')
-                : '';
+            $dates = $from ? ' for ' . LoanTime::range($from, $until ?? $from)
+                . (LoanTime::isWithinTheDay($from, $until) ? ' (Within the Day)' : '') : '';
             // Expensive equipment needs both approvals; tell each side who else reviews it.
             $also = $row->requiresDualApproval()
                 ? ($type === self::ADMIN ? ' It also needs Lab Personnel approval.' : ' It also needs the admin\'s approval.')

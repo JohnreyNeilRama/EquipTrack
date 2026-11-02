@@ -7,7 +7,8 @@
 @endpush
 
 @php
-    $fmt = fn ($v) => $v ? \Illuminate\Support\Carbon::parse($v)->format('M d, Y') : 'N/A';
+    // Pickup and due dates with their times (whole-day records show the date alone).
+    $fmt = fn ($v) => \App\Support\LoanTime::format($v, 'N/A');
     $resolveImg = function (?string $raw): string {
         $raw = trim((string) $raw);
         if ($raw === '') return asset('images/EquipTrack_logo.png');
@@ -50,8 +51,8 @@
                             $bDateFormatted = $fmt($item->borrow_date ?: $item->date_needed);
                             $dueDateRaw = $item->transaction?->due_date ?: $item->due_date ?: $item->return_date;
                             $dDateFormatted = $fmt($dueDateRaw);
-                            // Overdue once the due date is strictly before today
-                            $status = ($dueDateRaw && \Illuminate\Support\Carbon::parse($dueDateRaw)->startOfDay()->lt(now()->startOfDay()))
+                            // Overdue once the exact due date and time have passed
+                            $status = ($dueDateRaw && \App\Support\LoanTime::isOverdue(\Illuminate\Support\Carbon::parse($dueDateRaw)))
                                 ? 'Overdue'
                                 : 'Borrowed';
                             // A submitted return stays on this list until the department confirms it.

@@ -223,10 +223,6 @@ class PenaltySubmissionService
         $equipment->total_qty = (int) $equipment->total_qty + $units;
         $equipment->available_qty = min((int) $equipment->total_qty, (int) $equipment->available_qty + $units);
 
-        if ($equipment->status === 'Unavailable' && $equipment->available_qty > 0) {
-            $equipment->status = 'Available';
-        }
-
         $equipment->save();
     }
 }

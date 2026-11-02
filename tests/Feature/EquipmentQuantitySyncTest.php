@@ -11,15 +11,18 @@ use App\Models\Equipment;
 use App\Models\EquipmentCategory;
 use App\Models\Student;
 use App\Models\UserAccount;
+use App\Services\EquipmentAvailability;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 /**
  * Equipment quantity sync: approving a borrow request (from either the admin
- * or the department workflow) decreases the equipment's Available quantity,
+ * or the department workflow) reserves the dates and leaves the stock alone;
+ * releasing the unit to the borrower decreases the Available quantity,
  * returning it increases it again, Total never changes, and Available stays
- * within [0, total_qty].
+ * within [0, total_qty]. The last unit can't be approved twice for the same
+ * dates.
  */
 class EquipmentQuantitySyncTest extends TestCase
 {
@@ -151,7 +154,7 @@ class EquipmentQuantitySyncTest extends TestCase
         ]);
     }
 
-    public function test_final_approval_decreases_available_and_leaves_total_unchanged(): void
+    public function test_approval_reserves_without_touching_stock_and_release_takes_it(): void
     {
         $equipment = $this->makeEquipment(3, 3, 'Expensive');
         $requestId = $this->submitBorrowRequest($equipment);
@@ -159,8 +162,12 @@ class EquipmentQuantitySyncTest extends TestCase
         $this->deptReview($requestId)->assertOk();
         $this->adminApprove($requestId)->assertOk()->assertJson(['success' => true, 'overallStatus' => 'Approved']);
 
+        $this->assertSame(3, (int) $equipment->fresh()->available_qty, 'Approval reserves the dates; the unit is still in the lab.');
+
+        $this->releaseLoan($requestId);
+
         $fresh = $equipment->fresh();
-        $this->assertSame(2, (int) $fresh->available_qty, 'Available quantity must decrease by the borrowed quantity.');
+        $this->assertSame(2, (int) $fresh->available_qty, 'Release takes the unit out of stock.');
         $this->assertSame(3, (int) $fresh->total_qty, 'Total quantity must never change.');
     }
 
@@ -169,6 +176,7 @@ class EquipmentQuantitySyncTest extends TestCase
         $equipment = $this->makeEquipment(2, 2);
         $requestId = $this->submitBorrowRequest($equipment);
         $this->deptReview($requestId)->assertOk();
+        $this->releaseLoan($requestId);
 
         $response = $this->actingAs($this->admin, 'admin')->getJson(route('admin.equipment.data'));
         $response->assertOk()->assertJson(['success' => true]);
@@ -180,14 +188,14 @@ class EquipmentQuantitySyncTest extends TestCase
         $this->assertSame(2, $row['total_qty']);
     }
 
-    public function test_department_approval_decreases_available_quantity(): void
+    public function test_department_approval_reserves_the_dates(): void
     {
         $equipment = $this->makeEquipment(3, 3);
         $requestId = $this->submitBorrowRequest($equipment);
 
         $this->deptReview($requestId, 'Approved')->assertOk()->assertJson(['success' => true]);
 
-        $this->assertSame(2, (int) $equipment->fresh()->available_qty);
+        $this->assertSame(3, (int) $equipment->fresh()->available_qty);
 
         $this->assertDatabaseHas('borrow_request', [
             'request_id' => $requestId,
@@ -196,41 +204,40 @@ class EquipmentQuantitySyncTest extends TestCase
             'dept_acc_id' => $this->deptAccount->dept_acc_id,
         ]);
 
-        // The unit is held for the borrower until Lab Personnel release it.
+        // Reserved for the borrower until Lab Personnel release it.
         $transaction = BorrowTransaction::where('request_id', $requestId)->first();
         $this->assertNotNull($transaction);
         $this->assertSame(BorrowTransaction::STATUS_READY, $transaction->status);
     }
 
-    public function test_admin_then_department_approval_deducts_stock_only_once(): void
+    public function test_admin_then_department_approval_reserves_only_once(): void
     {
         $equipment = $this->makeEquipment(3, 3, 'Expensive');
         $requestId = $this->submitBorrowRequest($equipment);
 
         $this->adminApprove($requestId)->assertOk();
-        $this->assertSame(3, (int) $equipment->fresh()->available_qty, 'One approval of Expensive equipment does not deduct stock.');
+        $this->assertSame(0, BorrowTransaction::where('request_id', $requestId)->count(), 'One approval of Expensive equipment reserves nothing.');
         $this->deptReview($requestId, 'Approved')->assertOk();
 
-        $this->assertSame(2, (int) $equipment->fresh()->available_qty, 'The second approval must not deduct stock again.');
         $this->assertSame(1, BorrowTransaction::where('request_id', $requestId)->count());
-    }
-
-    public function test_department_then_admin_approval_deducts_stock_only_once(): void
-    {
-        $equipment = $this->makeEquipment(3, 3, 'Expensive');
-        $requestId = $this->submitBorrowRequest($equipment);
-
-        $this->deptReview($requestId, 'Approved')->assertOk();
         $this->assertSame(3, (int) $equipment->fresh()->available_qty);
-
-        $this->adminApprove($requestId)->assertOk();
-        $this->assertSame(2, (int) $equipment->fresh()->available_qty);
-
-        $this->assertSame(2, (int) $equipment->fresh()->available_qty, 'The admin approval must not deduct stock again.');
-        $this->assertSame(1, BorrowTransaction::where('request_id', $requestId)->count());
     }
 
-    public function test_approval_is_blocked_when_there_is_no_stock_left(): void
+    public function test_department_then_admin_approval_reserves_only_once(): void
+    {
+        $equipment = $this->makeEquipment(3, 3, 'Expensive');
+        $requestId = $this->submitBorrowRequest($equipment);
+
+        $this->deptReview($requestId, 'Approved')->assertOk();
+        $this->assertSame(0, BorrowTransaction::where('request_id', $requestId)->count());
+
+        $this->adminApprove($requestId)->assertOk();
+
+        $this->assertSame(1, BorrowTransaction::where('request_id', $requestId)->count(), 'The admin approval must not reserve twice.');
+        $this->assertSame(3, (int) $equipment->fresh()->available_qty);
+    }
+
+    public function test_the_last_unit_cannot_be_approved_twice_for_the_same_dates(): void
     {
         $equipment = $this->makeEquipment(1, 1);
 
@@ -239,14 +246,21 @@ class EquipmentQuantitySyncTest extends TestCase
 
         $this->deptReview($firstRequest)->assertOk();
 
-        $this->assertSame(0, (int) $equipment->fresh()->available_qty);
-        $this->assertSame('Unavailable', $equipment->fresh()->status);
+        $this->assertSame(1, (int) $equipment->fresh()->available_qty);
+        $this->assertSame('Available', $equipment->fresh()->status, 'The status is set by the admin; dates decide availability.');
+
+        $period = EquipmentAvailability::label(BorrowTransaction::today(), BorrowTransaction::today()->addDays(3));
 
         $this->deptReview($secondRequest, 'Approved')
             ->assertStatus(400)
-            ->assertJson(['success' => false]);
+            ->assertJson([
+                'success' => false,
+                'message' => 'Cannot approve: the only unit is already reserved ' . $period
+                    . ' (request #' . $firstRequest . '). Reject this request or ask the borrower for other dates.',
+            ]);
 
-        $this->assertSame(0, (int) $equipment->fresh()->available_qty, 'Available quantity must never become negative.');
+        $this->assertSame(1, BorrowTransaction::count());
+        $this->assertSame(1, (int) $equipment->fresh()->available_qty, 'Available quantity must never become negative.');
     }
 
     public function test_available_quantity_returns_to_normal_after_the_item_is_returned(): void
@@ -255,8 +269,9 @@ class EquipmentQuantitySyncTest extends TestCase
         $requestId = $this->submitBorrowRequest($equipment);
 
         $this->deptReview($requestId)->assertOk();
+        $this->releaseLoan($requestId);
         $this->assertSame(0, (int) $equipment->fresh()->available_qty);
-        $this->assertSame('Unavailable', $equipment->fresh()->status);
+        $this->assertSame('Available', $equipment->fresh()->status);
 
         $this->returnItem($requestId)->assertOk()->assertJson(['success' => true]);
 
@@ -272,6 +287,7 @@ class EquipmentQuantitySyncTest extends TestCase
         $requestId = $this->submitBorrowRequest($equipment);
 
         $this->deptReview($requestId)->assertOk();
+        $this->releaseLoan($requestId);
         $this->assertSame(2, (int) $equipment->fresh()->available_qty);
 
         // Simulate the admin correcting stock while the item is out on loan.
@@ -293,7 +309,7 @@ class EquipmentQuantitySyncTest extends TestCase
         $this->adminApprove($requestId, 'Rejected', 'Too late')->assertStatus(403);
 
         $fresh = $equipment->fresh();
-        $this->assertSame(1, (int) $fresh->available_qty);
+        $this->assertSame(2, (int) $fresh->available_qty);
         $this->assertSame(2, (int) $fresh->total_qty);
         $this->assertDatabaseHas('borrow_transaction', [
             'request_id' => $requestId,

@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\BorrowTransaction;
+use App\Support\LoanTime;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Carbon;
@@ -42,7 +43,7 @@ class LoanReminderNotification extends Notification
         $equipment = $this->loan->request?->equipment?->name ?? 'borrowed equipment';
         $due = $this->loan->due_date->copy()->startOfDay();
         $overdue = $this->type === self::OVERDUE;
-        $daysLate = $overdue ? (int) $due->diffInDays($this->today) : 0;
+        $daysLate = $overdue ? max(1, LoanTime::daysLate($this->loan->due_date)) : 0;
         $daysLeft = $overdue ? 0 : (int) $this->today->diffInDays($due, false);
 
         $when = $overdue
@@ -58,8 +59,9 @@ class LoanReminderNotification extends Notification
                 'name' => trim((string) $notifiable->fullName()) ?: 'there',
                 'equipment' => $equipment,
                 'when' => $when,
-                'borrowDate' => $this->loan->borrow_date?->format('M d, Y') ?? 'N/A',
-                'dueDate' => $due->format('M d, Y'),
+                'borrowDate' => LoanTime::format($this->loan->borrow_date, 'N/A'),
+                // Due-soon emails say by what time; overdue ones only the date.
+                'dueDate' => $overdue ? LoanTime::format($this->loan->due_date) : LoanTime::dueBy($this->loan->due_date),
                 'daysLate' => $daysLate,
                 'returnsUrl' => route('user.returns'),
             ]);

@@ -8,6 +8,7 @@ use App\Models\BorrowTransaction;
 use App\Models\Equipment;
 use App\Models\UserAccount;
 use App\Services\RequestTableRows;
+use App\Support\LoanTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -197,14 +198,13 @@ class DepartmentDashboardController extends Controller
 
             $request = $loan->request;
             $user = $request?->user;
-            $dueDate = $loan->due_date ? Carbon::parse($loan->due_date)->startOfDay() : null;
-            $daysLate = $dueDate ? max(0, (int) $dueDate->diffInDays($today)) : 0;
+            $daysLate = max(1, LoanTime::daysLate($loan->due_date));
 
             $rows[] = [
                 'id' => (int) $loan->transaction_id,
                 'user' => $user?->fullName() ?: ($user?->email ?? 'Unknown User'),
                 'equipment' => $request?->equipment?->name ?? 'Unknown Equipment',
-                'dueDate' => $dueDate ? $dueDate->format('M d, Y') : '—',
+                'dueDate' => LoanTime::format($loan->due_date),
                 'daysLate' => $daysLate,
                 'daysLateText' => $daysLate === 1 ? '1 Day' : "{$daysLate} Days",
             ];
@@ -248,7 +248,7 @@ class DepartmentDashboardController extends Controller
                 'id' => (int) $loan->transaction_id,
                 'user' => $user?->fullName() ?: ($user?->email ?? 'Unknown User'),
                 'equipment' => $request?->equipment?->name ?? 'Unknown Equipment',
-                'dueDate' => $dueDate->format('M d, Y'),
+                'dueDate' => LoanTime::format($loan->due_date),
                 'daysRemaining' => $daysRemaining,
                 'daysRemainingText' => $daysRemainingText,
                 'statusType' => $statusType,
@@ -267,11 +267,8 @@ class DepartmentDashboardController extends Controller
             return true;
         }
 
-        if ($loan->due_date && Carbon::parse($loan->due_date)->startOfDay()->lt($today)) {
-            return true;
-        }
-
-        return false;
+        // Overdue once its exact due date and time have passed.
+        return LoanTime::isOverdue($loan->due_date);
     }
 
 }

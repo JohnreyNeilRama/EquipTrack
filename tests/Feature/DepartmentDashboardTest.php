@@ -376,7 +376,7 @@ class DepartmentDashboardTest extends TestCase
         BorrowTransaction::create([
             'request_id' => $overdueReq->request_id,
             'borrow_date' => now()->subDays(6)->toDateString(),
-            'due_date' => now()->subDays(2)->toDateTimeString(),
+            'due_date' => \App\Models\BorrowTransaction::today()->subDays(2)->toDateString(),
             'status' => 'Active',
         ]);
 
@@ -462,15 +462,15 @@ class DepartmentDashboardTest extends TestCase
         ]);
 
         // Same code path the admin/department approval workflow uses: the
-        // units are held as soon as it is approved...
+        // dates are reserved, the units are still in the lab...
         $req->activateLoan();
 
         $held = $this->actingAs($this->deptAccountA, 'dept')
             ->getJson(route('department.dashboard.data'))->json();
-        $this->assertSame(2, $held['stats']['availableUnits']);
+        $this->assertSame(4, $held['stats']['availableUnits']);
         $this->assertSame(0, $held['stats']['borrowedEquipment']);
 
-        // ...and count as borrowed once Lab Personnel hand them over.
+        // ...and leave stock and count as borrowed once Lab Personnel hand them over.
         $this->releaseLoan($req->request_id);
 
         $afterBorrow = $this->actingAs($this->deptAccountA, 'dept')

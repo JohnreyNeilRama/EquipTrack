@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\BorrowTransaction;
 use App\Notifications\LoanReminderNotification;
+use App\Support\LoanTime;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -59,7 +60,7 @@ class SendLoanReminders extends Command
                 $loan->transaction_id,
                 $loan->request?->equipment?->name ?? 'equipment',
                 $user->email,
-                $loan->due_date->format('M d, Y'));
+                LoanTime::format($loan->due_date));
 
             if ($dryRun) {
                 $this->line('[dry run] ' . $line);
@@ -104,7 +105,8 @@ class SendLoanReminders extends Command
 
         $due = $loan->due_date->copy()->startOfDay();
 
-        if ($due->lt($today)) {
+        // Overdue once the due date's return deadline has passed.
+        if (LoanTime::isOverdue($loan->due_date)) {
             $last = $loan->overdue_reminder_sent_at?->copy()->timezone(config('app.display_timezone'))->startOfDay();
 
             return $last === null || $last->diffInDays($today) >= self::OVERDUE_REPEAT_DAYS

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\LoanTime;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
@@ -83,9 +84,11 @@ class BorrowTransaction extends Model
         'overdue_reminder_sent_at',
     ];
 
+    // Borrow and due dates (Philippine wall-clock time, see App\Support\LoanTime);
+    // return_date is the day the unit came back.
     protected $casts = [
-        'borrow_date' => 'date',
-        'due_date' => 'date',
+        'borrow_date' => 'datetime',
+        'due_date' => 'datetime',
         'return_date' => 'date',
         'released_at' => 'datetime',
         'unclaimed_at' => 'datetime',
@@ -99,6 +102,18 @@ class BorrowTransaction extends Model
     public function request()
     {
         return $this->belongsTo(BorrowRequest::class, 'request_id', 'request_id');
+    }
+
+    /** Due dates are stored at the return deadline of that day. */
+    public function setDueDateAttribute($value): void
+    {
+        $this->attributes['due_date'] = $value === null ? null : $this->fromDateTime(LoanTime::dueValue($value));
+    }
+
+    /** Whether the due date's return deadline has passed (still out, not returned). */
+    public function isOverdue(): bool
+    {
+        return $this->isOnLoan() && LoanTime::isOverdue($this->due_date);
     }
 
     /** Department account that confirmed or rejected the return. */
@@ -146,18 +161,19 @@ class BorrowTransaction extends Model
     }
 
     /**
-     * Whole days the item came back after its due date: counted to the return
-     * date, else the day the user submitted the return, else today (still out).
+     * Days the item came back after its due date's return deadline, any part
+     * of a day counting as a day: counted to the moment the user handed it in,
+     * else the return date (a return on the due date is on time), else now.
      */
     public function daysLate(): int
     {
-        if (!$this->due_date) {
-            return 0;
-        }
+        $end = match (true) {
+            $this->return_submitted_at !== null => LoanTime::fromInstant($this->return_submitted_at),
+            $this->return_date !== null => LoanTime::dueOn($this->return_date->toDateString()),
+            default => LoanTime::now(),
+        };
 
-        $end = $this->return_date ?? $this->return_submitted_at ?? now();
-
-        return max(0, (int) $this->due_date->copy()->startOfDay()->diffInDays($end->copy()->startOfDay(), false));
+        return LoanTime::daysLate($this->due_date, $end);
     }
 
     /**
@@ -178,16 +194,38 @@ class BorrowTransaction extends Model
         $equipment->total_qty = max(0, (int) $equipment->total_qty - max(1, (int) $borrow->quantity));
         $equipment->available_qty = min((int) $equipment->available_qty, (int) $equipment->total_qty);
 
-        if ((int) $equipment->available_qty === 0 && $equipment->status === 'Available') {
-            $equipment->status = 'Unavailable';
-        }
-
+        // The status is the admin's to set; running out of units no longer
+        // changes it (dates decide whether the item can be borrowed).
         $equipment->save();
     }
 
     /**
+     * Takes the released units out of the equipment's available stock: they
+     * are now with the borrower. Returns false (nothing changed) when not
+     * enough units are in the lab, e.g. the previous borrower hasn't returned
+     * it yet. Call this inside a DB transaction.
+     */
+    public function takeStock(BorrowRequest $borrow): bool
+    {
+        $equipment = Equipment::where('equipment_id', $borrow->equipment_id)
+            ->lockForUpdate()
+            ->first();
+
+        $units = max(1, (int) $borrow->quantity);
+
+        if (!$equipment || (int) $equipment->available_qty < $units) {
+            return false;
+        }
+
+        $equipment->available_qty = (int) $equipment->available_qty - $units;
+        $equipment->save();
+
+        return true;
+    }
+
+    /**
      * Puts the borrowed units back into the equipment's available stock (never
-     * above the total quantity) and revives stock-driven unavailability. Only
+     * above the total quantity). The status is left as the admin set it. Only
      * the department's return confirmation calls this.
      *
      * Call this inside a DB transaction.
@@ -206,12 +244,6 @@ class BorrowTransaction extends Model
             (int) $equipment->total_qty,
             (int) $equipment->available_qty + max(1, (int) $borrow->quantity)
         );
-
-        // Only revive stock-driven unavailability; never override admin-set
-        // states like On Hold / Under Maintenance.
-        if ($equipment->status === 'Unavailable' && $equipment->available_qty > 0) {
-            $equipment->status = 'Available';
-        }
 
         $equipment->save();
     }

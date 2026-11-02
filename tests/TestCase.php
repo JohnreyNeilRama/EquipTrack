@@ -5,9 +5,29 @@ namespace Tests;
 use App\Models\BorrowTransaction;
 use Illuminate\Contracts\Auth\Authenticatable as UserContract;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Carbon;
 
 abstract class TestCase extends BaseTestCase
 {
+    /**
+     * Tests run at 10:00 AM Philippine time on today's date, so "today" stays
+     * open for Within the Day loans (the return deadline is 7:00 PM) whatever
+     * time the suite runs. Tests that need another moment set their own.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Carbon::setTestNow(Carbon::parse(Carbon::now(config('app.display_timezone'))->toDateString() . ' 10:00', config('app.display_timezone')));
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
+
     /**
      * Each actingAs() is a fresh sign-in, like logging out and in again. The
      * auth.session middleware remembers the signed-in account's password hash
@@ -27,13 +47,22 @@ abstract class TestCase extends BaseTestCase
 
     /**
      * Hands an approved request's equipment to the borrower, as Lab Personnel
-     * do on the Release Equipment page: the Ready for Pickup loan becomes
-     * Active. Tests about borrowing and returning start from a released loan.
+     * do on the Release Equipment page: the unit leaves the available stock and
+     * the Ready for Pickup loan becomes Active. Tests about borrowing and
+     * returning start from a released loan.
      */
     protected function releaseLoan(int $requestId): void
     {
-        BorrowTransaction::where('request_id', $requestId)
+        $transaction = BorrowTransaction::with('request')
+            ->where('request_id', $requestId)
             ->where('status', BorrowTransaction::STATUS_READY)
-            ->update(['status' => BorrowTransaction::STATUS_ACTIVE, 'released_at' => now()]);
+            ->first();
+
+        if (!$transaction) {
+            return;
+        }
+
+        $this->assertTrue($transaction->takeStock($transaction->request), 'No unit in the lab to release.');
+        $transaction->update(['status' => BorrowTransaction::STATUS_ACTIVE, 'released_at' => now()]);
     }
 }

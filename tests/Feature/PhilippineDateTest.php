@@ -56,10 +56,10 @@ class PhilippineDateTest extends TestCase
         $this->assertSame('2026-10-30', now()->toDateString());
     }
 
-    /** 11:30 PM on Oct 30 in the Philippines: the due day itself. */
+    /** 6:30 PM on Oct 30 in the Philippines: the due day itself, before the 7:00 PM return deadline. */
     private function lateOnTheDueDate(): void
     {
-        Carbon::setTestNow(Carbon::parse('2026-10-30 23:30', 'Asia/Manila'));
+        Carbon::setTestNow(Carbon::parse('2026-10-30 18:30', 'Asia/Manila'));
     }
 
     private function overdueReportRows(): array

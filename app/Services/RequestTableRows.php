@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\BorrowRequest;
+use App\Support\LoanTime;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
@@ -57,8 +58,8 @@ class RequestTableRows
             'quantity' => (int) ($row->quantity ?? 1),
             'date' => $fmt($row->date_requested),
             'fullDate' => $row->date_requested ? Carbon::parse($row->date_requested)->format('M d, Y h:i A') : 'N/A',
-            'borrowDate' => $fmt($bDateRaw),
-            'dueDate' => $fmt($dDateRaw),
+            'borrowDate' => LoanTime::format($bDateRaw, 'N/A'),
+            'dueDate' => LoanTime::format($dDateRaw, 'N/A'),
             'purpose' => $row->purpose ?: 'N/A',
             'instructor' => $row->instructor_name ?: 'N/A',
             'notes' => $row->notes ?: 'None',

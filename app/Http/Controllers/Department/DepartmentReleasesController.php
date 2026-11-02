@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditTrail;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
+use App\Support\LoanTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -15,11 +16,13 @@ use Illuminate\View\View;
 /**
  * Release Confirmation: Lab Personnel hand approved equipment to the borrower.
  *
- * Approval holds a unit and creates the loan as Ready for Pickup. When the
- * borrower comes to the lab, Lab Personnel check their school ID and Release
- * the item: the loan becomes Active (released_at / released_by), and only then
- * can it be returned, become overdue or get reminders. A borrower who never
- * comes is marked Not Claimed: the held unit goes back to stock, no penalty.
+ * Approval reserves the dates and creates the loan as Ready for Pickup. When
+ * the borrower comes to the lab, Lab Personnel check their school ID and
+ * Release the item: the unit leaves the available stock and the loan becomes
+ * Active (released_at / released_by), and only then can it be returned, become
+ * overdue or get reminders. A borrower who never comes is marked Not Claimed:
+ * the reserved dates are freed (the unit never left, so stock is unchanged)
+ * and there is no penalty.
  *
  * Every action is limited to equipment owned by the signed-in department.
  */
@@ -50,6 +53,18 @@ class DepartmentReleasesController extends Controller
         ]);
 
         return $this->act($request, (int) $data['transaction_id'], function (BorrowTransaction $transaction, BorrowRequest $borrow, $dept) {
+            // Past the due date's return deadline (e.g. a Within the Day loan
+            // never picked up that day): it can only be marked Not Claimed.
+            if (LoanTime::isOverdue($transaction->due_date)) {
+                return ['error' => 'This loan was due ' . LoanTime::format($transaction->due_date) . ' by '
+                    . LoanTime::clock(LoanTime::deadline()) . ', so it can no longer be released. Mark it Not Claimed; the borrower can submit a new request.'];
+            }
+
+            // The unit must be in the lab: the previous borrower may not have returned it yet.
+            if (!$transaction->takeStock($borrow)) {
+                return ['error' => $this->notInLabMessage($borrow)];
+            }
+
             $transaction->update([
                 'status' => BorrowTransaction::STATUS_ACTIVE,
                 'released_at' => now(),
@@ -59,12 +74,12 @@ class DepartmentReleasesController extends Controller
             return [
                 'action' => 'Released borrow request #' . $borrow->request_id . ' for ' . ($borrow->equipment?->name ?? 'equipment'),
                 'details' => 'Handed to ' . ($borrow->user?->fullName() ?: ($borrow->user?->email ?? 'the borrower')) . ' (school ID checked).',
-                'message' => 'Equipment released. The loan is now active until ' . ($transaction->due_date?->format('M d, Y') ?? 'its due date') . '.',
+                'message' => 'Equipment released. The loan is now active until ' . LoanTime::format($transaction->due_date, 'its due date') . '.',
             ];
         });
     }
 
-    /** The borrower never came: the held unit goes back to stock. */
+    /** The borrower never came: the reserved dates are freed for others. */
     public function notClaimed(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -75,20 +90,16 @@ class DepartmentReleasesController extends Controller
         $note = trim($data['note'] ?? '');
 
         return $this->act($request, (int) $data['transaction_id'], function (BorrowTransaction $transaction, BorrowRequest $borrow) use ($note) {
+            // Stock is untouched: units only leave stock when they are released.
             $transaction->update([
                 'status' => BorrowTransaction::STATUS_NOT_CLAIMED,
                 'unclaimed_at' => now(),
             ]);
 
-            // The unit was deducted on approval; it is free again.
-            if ($transaction->return_restores_stock) {
-                $transaction->restoreStock($borrow);
-            }
-
             return [
                 'action' => 'Marked borrow request #' . $borrow->request_id . ' as Not Claimed',
                 'details' => $note !== '' ? 'Note: ' . $note : null,
-                'message' => 'Marked as Not Claimed. The unit is back in stock.',
+                'message' => 'Marked as Not Claimed. The reserved dates are free again.',
             ];
         });
     }
@@ -120,6 +131,10 @@ class DepartmentReleasesController extends Controller
 
             $borrow = BorrowRequest::with(['equipment', 'user.student', 'user.facultyMember'])->find($transaction->request_id);
             $outcome = $apply($transaction, $borrow, $dept);
+
+            if (isset($outcome['error'])) {
+                return ['code' => 400, 'message' => $outcome['error']];
+            }
 
             AuditTrail::create([
                 'dept_acc_id' => $dept->dept_acc_id,
@@ -181,7 +196,7 @@ class DepartmentReleasesController extends Controller
                 fn ($a, $b) => $a->transaction_id <=> $b->transaction_id,
             ]);
 
-        $fmtDate = fn ($v) => $v ? Carbon::parse($v)->format('M d, Y') : '—';
+        $fmtDate = fn ($v) => LoanTime::format($v);
         $fmtDateTime = fn ($v) => $v ? Carbon::parse($v)->timezone(config('app.display_timezone'))->format('M d, Y h:i A') : '—';
 
         $rows = [];
@@ -241,6 +256,32 @@ class DepartmentReleasesController extends Controller
         }
 
         return $rows;
+    }
+
+    /**
+     * Why the unit can't be released yet: who still has it (earliest due
+     * first), or a hint to check the stock when no loan explains it.
+     */
+    private function notInLabMessage(BorrowRequest $borrow): string
+    {
+        $holder = BorrowTransaction::with('request.user.student', 'request.user.facultyMember')
+            ->onLoan()
+            ->whereHas('request', fn ($query) => $query->where('equipment_id', $borrow->equipment_id))
+            ->orderBy('due_date')
+            ->first();
+
+        if (!$holder) {
+            return 'Cannot release yet: no unit of ' . ($borrow->equipment?->name ?? 'this equipment')
+                . ' is in the lab right now. Check the equipment stock.';
+        }
+
+        $user = $holder->request?->user;
+        $name = $user?->fullName() ?: ($user?->email ?: 'another borrower');
+        $overdue = LoanTime::isOverdue($holder->due_date);
+
+        return 'Cannot release yet: the unit is still out with ' . $name
+            . ' (request #' . $holder->request_id . ', due ' . ($holder->due_date ? LoanTime::short($holder->due_date) : '—')
+            . ($overdue ? ', overdue' : '') . ').';
     }
 
     /** When a finished row was handled, for sorting. */

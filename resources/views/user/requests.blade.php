@@ -59,8 +59,9 @@
                         $eqName = $eq->name ?? 'Unknown equipment';
                         $eqCat = $eq->category?->category_name ?: 'General';
                         $reqDateFormatted = $fmt($req->date_requested);
-                        $bDateFormatted = $fmt($req->borrow_date ?: $req->date_needed);
-                        $dDateFormatted = $fmt($req->due_date ?: $req->return_date);
+                        // Pickup and due with their times (whole-day records show the date alone).
+                        $bDateFormatted = \App\Support\LoanTime::format($req->borrow_date ?: $req->date_needed, 'N/A');
+                        $dDateFormatted = \App\Support\LoanTime::format($req->due_date ?: $req->return_date, 'N/A');
                         $status = $req->overall_status ?: 'Pending';
                         $imgUrl = $resolveImg($eq->image ?? '');
                     @endphp

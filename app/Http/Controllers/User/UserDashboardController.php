@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
 use App\Models\Penalty;
+use App\Support\LoanTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -213,10 +214,11 @@ class UserDashboardController extends Controller
 
         foreach ($loans as $loan) {
             $equipment = $loan['request']->equipment?->name ?? 'Unknown equipment';
-            $due = $loan['dueDate'] ? Carbon::parse($loan['dueDate'])->startOfDay() : null;
+            $dueAt = $loan['dueDate'] ? Carbon::parse($loan['dueDate']) : null;
+            $due = $dueAt?->copy()->startOfDay();
 
             if ($this->isOverdue($loan, $today)) {
-                $daysLate = $due ? max(0, (int) $due->diffInDays($today)) : 0;
+                $daysLate = max(1, LoanTime::daysLate($dueAt));
 
                 $rows[] = [
                     'sort' => [0, $due ? $due->getTimestamp() : 0],
@@ -225,7 +227,7 @@ class UserDashboardController extends Controller
                     'equipment' => $equipment,
                     'title' => 'Overdue: ' . $equipment,
                     'message' => $due
-                        ? 'Was due on ' . $due->format('M d, Y')
+                        ? 'Was due on ' . LoanTime::format($dueAt)
                             . ($daysLate > 0 ? ' (' . $daysLate . ' ' . ($daysLate === 1 ? 'day' : 'days') . ' late)' : '')
                             . '. Please return it as soon as possible.'
                         : 'This item is overdue. Please return it as soon as possible.',
@@ -256,7 +258,7 @@ class UserDashboardController extends Controller
                 'label' => $when,
                 'equipment' => $equipment,
                 'title' => $when . ': ' . $equipment,
-                'message' => 'Return it by ' . $due->format('M d, Y') . '.',
+                'message' => 'Return it on ' . LoanTime::dueBy($dueAt) . '.',
             ];
         }
 
@@ -280,11 +282,12 @@ class UserDashboardController extends Controller
             return true;
         }
 
-        return $loan['dueDate'] && Carbon::parse($loan['dueDate'])->startOfDay()->lt($today);
+        // Overdue once its exact due date and time have passed.
+        return $loan['dueDate'] && LoanTime::isOverdue(Carbon::parse($loan['dueDate']));
     }
 
     private function fmt($value): string
     {
-        return $value ? Carbon::parse($value)->format('M d, Y') : 'N/A';
+        return LoanTime::format($value, 'N/A');
     }
 }

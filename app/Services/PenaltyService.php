@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\BorrowTransaction;
 use App\Models\Penalty;
 use App\Models\PenaltySubmission;
+use App\Support\LoanTime;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -203,7 +204,7 @@ class PenaltyService
                     'amountLabel' => $penalty->amountLabel() ?? 'No amount',
                     'description' => $penalty->description,
                     'status' => $penalty->status,
-                    'dueDate' => $fmt($transaction?->due_date),
+                    'dueDate' => LoanTime::format($transaction?->due_date),
                     'returnDate' => $fmt($transaction?->return_date),
                     'daysLate' => $transaction ? $transaction->daysLate() : 0,
                     'condition' => $transaction?->inspected_condition ?: '—',

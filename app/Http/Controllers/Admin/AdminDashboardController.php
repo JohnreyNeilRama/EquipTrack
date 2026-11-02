@@ -9,6 +9,7 @@ use App\Models\DepartmentAccount;
 use App\Models\Equipment;
 use App\Models\UserAccount;
 use App\Services\RequestTableRows;
+use App\Support\LoanTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
@@ -167,12 +168,8 @@ class AdminDashboardController extends Controller
                 'id' => (int) $loan->transaction_id,
                 'user' => $user?->fullName() ?: ($user?->email ?? 'Unknown User'),
                 'equipment' => $request?->equipment?->name ?? 'Unknown Equipment',
-                'dueDate' => $loan->due_date
-                    ? Carbon::parse($loan->due_date)->format('M d, Y')
-                    : '—',
-                'daysLate' => $loan->due_date
-                    ? max(0, (int) Carbon::parse($loan->due_date)->startOfDay()->diffInDays($today))
-                    : 0,
+                'dueDate' => LoanTime::format($loan->due_date),
+                'daysLate' => LoanTime::daysLate($loan->due_date),
             ];
         }
 
@@ -228,7 +225,8 @@ class AdminDashboardController extends Controller
 
     private function isOverdue(BorrowTransaction $loan, Carbon $today): bool
     {
-        if ($loan->due_date && Carbon::parse($loan->due_date)->startOfDay()->lt($today)) {
+        // Overdue once its exact due date and time have passed.
+        if (LoanTime::isOverdue($loan->due_date)) {
             return true;
         }
 

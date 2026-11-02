@@ -332,7 +332,8 @@ class PenaltyProofTest extends TestCase
 
     public function test_a_lost_item_replacement_needs_inspection_and_restocks_the_unit(): void
     {
-        $this->equipment->update(['total_qty' => 0, 'available_qty' => 0, 'status' => 'Unavailable']);
+        // As the Lost return left it: no units, status unchanged (the admin's to set).
+        $this->equipment->update(['total_qty' => 0, 'available_qty' => 0]);
         $penalty = $this->penalty('Lost', null);
         $this->submit($penalty, ['type' => 'Replacement', 'reference_no' => ''])->assertOk();
 
