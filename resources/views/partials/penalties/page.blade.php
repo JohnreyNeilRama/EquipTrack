@@ -14,10 +14,6 @@
                     @endif
                 </p>
             </div>
-            {{-- Admin: any returned loan. Lab Personnel: their department's, e.g. damage found after Return Confirmation. --}}
-            <button type="button" class="btn-add-penalty" id="addPenaltyBtn">
-                <i class="fa-solid fa-plus"></i> Add Penalty
-            </button>
         </div>
 
         <div class="requests-summary-section">
@@ -58,7 +54,7 @@
         <div class="controls-bar">
             <div class="controls-left penalties-controls">
                 <div class="search-box-wrapper">
-                    <input type="text" id="searchPenalties" placeholder="Search by user, equipment or penalty ID..." aria-label="Search penalties">
+                    <input type="text" id="searchPenalties" placeholder="Search user, equipment or ID..." aria-label="Search penalties">
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </div>
                 <div class="filter-select-wrapper">
@@ -91,6 +87,10 @@
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
                 @endif
+                {{-- Admin: any returned loan. Lab Personnel: their department's, e.g. damage found after Return Confirmation. --}}
+                <button type="button" class="btn-add-penalty" id="addPenaltyBtn">
+                    <i class="fa-solid fa-plus"></i> Add Penalty
+                </button>
             </div>
         </div>
 

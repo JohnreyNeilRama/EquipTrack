@@ -15,42 +15,53 @@
         gap: 16px;
         flex-wrap: wrap;
     }
+    /* In the toolbar after the filters: the same 46px pill as the search box and
+       dropdowns (and the Add Equipment button on Equipment Management). */
     .btn-add-penalty {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 8px;
-        height: 40px;
-        padding: 0 18px;
+        flex: 0 0 auto;
+        height: 46px;
+        padding: 0 24px;
         border: none;
-        border-radius: 10px;
+        border-radius: 23px;
         background-color: #385585;
         color: #ffffff;
         font-family: inherit;
-        font-size: var(--fs-label);
+        font-size: var(--fs-body);
         font-weight: 600;
+        white-space: nowrap;
         cursor: pointer;
-        transition: background-color 0.2s;
+        box-shadow: 0 4px 10px rgba(56, 85, 133, 0.15);
+        transition: background-color 0.2s, transform 0.1s;
     }
-    .btn-add-penalty:hover { background-color: #2f477a; }
+    .btn-add-penalty:hover { background-color: #2f477a; transform: translateY(-1px); }
     .btn-add-penalty:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(56, 85, 133, 0.35); }
 
     .summary-card-icon.icon-orange { background-color: #fef3c7; color: #d97706; }
     .dark-theme .summary-card-icon.icon-orange { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; }
 
-    /* Search + up to three filters on one line: search takes the free space
-       (never narrower than 240px), filters keep their width, and the bar
-       wraps instead of squeezing on narrow screens. */
+    /* Search + up to three filters + Add Penalty on one line: search takes the
+       free space (never narrower than 200px), filters and the button keep
+       their width, and the bar wraps instead of squeezing on narrow screens. */
     .controls-left.penalties-controls {
         max-width: none;
+        /* The shared 280px minimum is wider than a phone's content area */
+        min-width: 0;
+        width: 100%;
         flex-wrap: wrap;
         gap: 12px;
     }
-    .penalties-controls .search-box-wrapper { flex: 1 1 240px; }
-    .penalties-controls .filter-select-wrapper { flex: 0 0 160px; }
-    .penalties-controls .filter-select-wrapper:has(#filterDepartment) { flex-basis: 220px; }
+    .penalties-controls .search-box-wrapper { flex: 1 1 200px; }
+    .penalties-controls .filter-select-wrapper { flex: 0 0 150px; }
+    .penalties-controls .filter-select-wrapper:has(#filterDepartment) { flex-basis: 190px; }
     @media (max-width: 576px) {
         .penalties-controls .filter-select-wrapper,
         .penalties-controls .filter-select-wrapper:has(#filterDepartment) { flex: 1 1 140px; }
+        /* Phones: the button gets its own full-width row under the filters */
+        .penalties-controls .btn-add-penalty { flex: 1 1 100%; }
     }
 
     /* Table layout: User and Equipment share the free width and shorten with
