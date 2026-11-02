@@ -10,7 +10,7 @@
     <title>@yield('title', 'EquipTrack')</title>
     <link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}?v={{ filemtime(public_path('images/favicon.png')) }}">
     <link rel="apple-touch-icon" href="{{ asset('images/favicon.png') }}?v={{ filemtime(public_path('images/favicon.png')) }}">
-    <link rel="stylesheet" href="{{ asset('ccs/global.css') }}">
+    <link rel="stylesheet" href="{{ asset('ccs/global.css') }}?v={{ filemtime(public_path('ccs/global.css')) }}">
     <link rel="stylesheet" href="{{ asset('user/css/usernotifications.css') }}">
     @stack('css')
     <style>

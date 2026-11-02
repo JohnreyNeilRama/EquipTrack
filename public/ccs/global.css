@@ -211,6 +211,45 @@ td {
     gap: 6px;
     flex: 1;
     overflow-y: auto;
+    /* Menu items never cause sideways scrolling (the hover nudge included),
+       and reaching the end of the menu doesn't scroll the page behind it. */
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    /* Slim scrollbar in the sidebar's own colours: a faint thumb on a clear
+       track, a little brighter while the menu is hovered or focused. */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.sidebar-nav:hover,
+.sidebar-nav:focus-within {
+    scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+}
+
+/* Same look in browsers that only support the -webkit- scrollbar styles
+   (older Safari); browsers that understand scrollbar-color use the above. */
+@supports not (scrollbar-color: auto) {
+    .sidebar-nav::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .sidebar-nav::-webkit-scrollbar-track {
+        background: transparent;
+        margin: 8px 0;
+    }
+
+    .sidebar-nav::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.18);
+        border-radius: 999px;
+    }
+
+    .sidebar-nav:hover::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.32);
+    }
+
+    .sidebar-nav::-webkit-scrollbar-button {
+        display: none;
+    }
 }
 
 /* Sidebar Section Headers */
@@ -934,6 +973,14 @@ tbody tr:hover td {
     }
     .sidebar-section-label {
         display: none;
+    }
+    /* Icon-only menu: fills the 90px sidebar and centres the icons, with
+       room for the slim scrollbar so nothing pokes past the sidebar edge. */
+    .sidebar-nav {
+        width: 100%;
+        align-items: center;
+        padding-left: 8px;
+        padding-right: 8px;
     }
     .nav-item span {
         display: none;
