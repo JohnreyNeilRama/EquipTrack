@@ -62,4 +62,18 @@ return [
 
     'max_advance_days' => (int) env('MAX_ADVANCE_DAYS', 30),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Units per request
+    |--------------------------------------------------------------------------
+    |
+    | Expensive equipment (equipment.classification, set by the admin) is lent
+    | one unit per request. Other equipment may be requested in several units,
+    | up to what the lab can lend; max_units_per_request caps that further
+    | (0 = no cap beyond stock).
+    |
+    */
+
+    'max_units_per_request' => (int) env('MAX_UNITS_PER_REQUEST', 0),
+
 ];

@@ -87,6 +87,8 @@
                         $eqLendable = $availability[$eq->equipment_id]['lendable'] ?? $eqAvail;
                         $eqFullyBooked = $availability[$eq->equipment_id]['fullyBooked'] ?? [];
                         $isUnavailable = (strtolower($eqStatus) !== 'available' || $eqLendable <= 0);
+                        // Units one request may ask for (1 for Expensive equipment); the server checks it again.
+                        $eqMaxUnits = $eq->maxUnitsPerRequest((int) $eqLendable);
                     @endphp
                     <div class="equipment-card"
                          data-id="{{ $eq->equipment_id }}"
@@ -124,6 +126,8 @@
                                 data-name="{{ $eq->name }}"
                                 data-category="{{ $eqCategory }}"
                                 data-available="{{ $eqAvail }}"
+                                data-max-units="{{ $eqMaxUnits }}"
+                                data-expensive="{{ $eq->isExpensive() ? '1' : '0' }}"
                                 data-fully-booked="{{ json_encode(array_column($eqFullyBooked, 'label')) }}"
                                 data-img="{{ $imgUrl }}"
                                 @if ($isUnavailable) disabled @endif>
@@ -180,6 +184,12 @@
                                 <label class="flat-label">Category:</label>
                                 <input type="text" id="modalEqCategory" class="flat-control" readonly>
                             </div>
+                            {{-- Units: 1 for high-value equipment, otherwise up to what the lab can lend --}}
+                            <div class="form-horizontal-group">
+                                <label class="flat-label" for="borrowQuantity">Quantity:</label>
+                                <input type="number" id="borrowQuantity" class="flat-control" min="1" max="1" step="1" value="1" inputmode="numeric" required>
+                            </div>
+                            <p class="lab-hours-note" id="quantityNote"></p>
                             {{-- Dates only: Within the Day (returned the same day) or several days --}}
                             <div class="form-horizontal-group">
                                 <span class="flat-label" id="borrowTypeLabel">Duration:</span>
@@ -417,11 +427,23 @@
                 const eqCategory = btn.getAttribute('data-category');
                 const eqAvail    = btn.getAttribute('data-available');
                 const eqImg      = btn.getAttribute('data-img');
+                const maxUnits   = Math.max(1, parseInt(btn.getAttribute('data-max-units'), 10) || 1);
+                const expensive  = btn.getAttribute('data-expensive') === '1';
 
                 document.getElementById('modalEqId').value        = eqId;
                 document.getElementById('modalEqName').value      = eqName;
                 document.getElementById('modalEqCategory').value  = eqCategory;
                 document.getElementById('modalEqAvailable').value = eqAvail;
+
+                // Quantity: fixed at 1 for high-value equipment, else 1 up to the limit.
+                const qtyInput = document.getElementById('borrowQuantity');
+                const qtyNote = document.getElementById('quantityNote');
+                qtyInput.value = 1;
+                qtyInput.max = maxUnits;
+                qtyInput.readOnly = expensive || maxUnits === 1;
+                qtyNote.textContent = expensive
+                    ? 'High-value equipment: 1 unit per request.'
+                    : (maxUnits > 1 ? 'You can request up to ' + maxUnits + ' units.' : 'Only 1 unit can be lent right now.');
 
                 // "Fully booked: Nov 5–7, Nov 20": no unit is free on those dates.
                 const bookedLine = document.getElementById('bookedDates');
@@ -524,6 +546,18 @@
                     return;
                 }
 
+                const qtyInput = document.getElementById('borrowQuantity');
+                const quantity = Number(qtyInput.value);
+                const maxQty = Number(qtyInput.max) || 1;
+                if (!Number.isInteger(quantity) || quantity < 1) {
+                    alert('Please enter the number of units as a whole number (at least 1).');
+                    return;
+                }
+                if (quantity > maxQty) {
+                    alert(maxQty === 1 ? 'You can request 1 unit of this equipment.' : 'You can request up to ' + maxQty + ' units of this equipment.');
+                    return;
+                }
+
                 if (!purpose) {
                     alert('Please select a purpose for borrowing.');
                     return;
@@ -538,6 +572,7 @@
                 formData.append('_token', CSRF_TOKEN);
                 formData.append('equipment_id', eqId);
                 formData.append('borrow_type', borrowType);
+                formData.append('quantity', quantity);
                 formData.append('borrow_date', borrowDate);
                 formData.append('return_date', borrowType === 'within_day' ? borrowDate : returnDate);
                 formData.append('purpose', purpose);

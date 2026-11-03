@@ -236,14 +236,18 @@ class ReviewerNotificationService
                 $borrower = $user?->fullName() ?: ($user?->email ?: 'A user');
                 $equipment = $transaction->request?->equipment?->name ?? 'equipment';
                 $passed = $transaction->borrow_date->lt($today);
+                // Past the due date's return deadline it can no longer be released.
+                $expired = LoanTime::isOverdue($transaction->due_date);
 
                 return [
                     'key' => 'pickup-' . $transaction->transaction_id,
                     'type' => 'pickup',
-                    'title' => $passed ? 'Pickup Date Passed' : 'Pickup Today',
-                    'message' => $passed
-                        ? $borrower . ' has not picked up ' . $equipment . ' (pickup date ' . $transaction->borrow_date->format('M d') . '). Release it or mark it Not Claimed.'
-                        : $borrower . ' is picking up ' . $equipment . ' today. Check their school ID, then release it.',
+                    'title' => $passed || $expired ? 'Pickup Date Passed' : 'Pickup Today',
+                    'message' => match (true) {
+                        $expired => $borrower . ' never picked up ' . $equipment . ' and its return date has passed. Mark it Not Claimed.',
+                        $passed => $borrower . ' has not picked up ' . $equipment . ' (pickup date ' . $transaction->borrow_date->format('M d') . '). Release it or mark it Not Claimed.',
+                        default => $borrower . ' is picking up ' . $equipment . ' today. Check their school ID, then release it.',
+                    },
                     'url' => route('department.releases'),
                     // Arrives at the start of the pickup day (Philippine time).
                     'at' => Carbon::parse($transaction->borrow_date->toDateString(), $tz),

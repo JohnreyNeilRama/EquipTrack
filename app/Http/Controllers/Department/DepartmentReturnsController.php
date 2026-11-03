@@ -25,10 +25,11 @@ use Illuminate\View\View;
  *
  *  - Confirm: the loan is settled (transaction Returned, return date = the day
  *    the user submitted the return), the inspected condition and remarks are
- *    recorded, and the units go back into available stock only when the
- *    equipment is in Good condition. Damaged / Incomplete units stay out of
- *    the available stock until the admin updates it in Equipment Management.
- *    Lost units also leave the total quantity. A penalty (Damage & Penalty
+ *    recorded, and Good units go back into available stock. For a loan of
+ *    several units, Lab Personnel say how many are Damaged / Incomplete / Lost
+ *    (affected_qty); the rest count as Good. Damaged / Incomplete units stay
+ *    out of the available stock until the admin updates it in Equipment
+ *    Management. Lost units also leave the total quantity. A penalty (Damage & Penalty
  *    Recording) can be recorded in the same step; see PenaltyService.
  *  - Reject: the loan stays open (Active / Overdue) and the user can submit the
  *    return again.
@@ -54,6 +55,8 @@ class DepartmentReturnsController extends Controller
             'transaction_id' => ['required', 'integer', 'min:1'],
             'condition' => ['required', Rule::in(BorrowTransaction::INSPECTED_CONDITIONS)],
             'remarks' => ['nullable', 'string', 'max:1000'],
+            // Damaged / Incomplete / Lost: how many of the loan's units (default: all).
+            'affected_units' => ['nullable', 'integer', 'min:1', 'max:999'],
             // Optional penalty recorded together with the return.
             'penalty_type' => ['nullable', Rule::in(Penalty::TYPES)],
             'penalty_amount' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
@@ -73,14 +76,27 @@ class DepartmentReturnsController extends Controller
         }
 
         return $this->review($request, (int) $data['transaction_id'], function (BorrowTransaction $transaction, BorrowRequest $borrow, $dept) use ($data, $remarks) {
+            $quantity = max(1, (int) $borrow->quantity);
+            $good = $data['condition'] === 'Good';
+            $affected = $good ? 0 : (int) ($data['affected_units'] ?? $quantity);
+
+            if (!$good && $affected > $quantity) {
+                return ['error' => 'This loan has ' . $quantity . ' ' . ($quantity === 1 ? 'unit' : 'units')
+                    . ', so at most ' . $quantity . ' can be ' . strtolower($data['condition']) . '.', 'code' => 422];
+            }
+
+            $unitsNote = !$good && $quantity > 1 ? $affected . ' of ' . $quantity . ' units' : '';
+            $remarksText = trim($unitsNote . ($unitsNote !== '' && $remarks !== '' ? '. ' : '') . $remarks);
+
             $transaction->update([
                 'status' => 'Returned',
                 // The unit came back when the user handed it in, not when it was inspected.
                 // Its Philippine date (the clock runs in UTC).
                 'return_date' => LoanTime::fromInstant($transaction->return_submitted_at ?? now())->toDateString(),
                 // Same "Condition — remarks" format the history and reports read.
-                'condition_on_return' => mb_substr($data['condition'] . ($remarks !== '' ? ' — ' . $remarks : ''), 0, 150),
+                'condition_on_return' => mb_substr($data['condition'] . ($remarksText !== '' ? ' — ' . $remarksText : ''), 0, 150),
                 'inspected_condition' => $data['condition'],
+                'affected_qty' => $good ? null : $affected,
                 'inspection_remarks' => $remarks !== '' ? $remarks : null,
                 'return_status' => BorrowTransaction::RETURN_CONFIRMED,
                 'return_reviewed_by' => $dept->dept_acc_id,
@@ -88,14 +104,16 @@ class DepartmentReturnsController extends Controller
                 'return_reject_reason' => null,
             ]);
 
-            // Legacy loans never deducted stock, so they never add it back.
-            if ($data['condition'] === 'Good' && $transaction->return_restores_stock) {
-                $transaction->restoreStock($borrow);
+            // Good units go back to stock. Legacy loans never deducted stock,
+            // so they never add it back.
+            $goodUnits = $quantity - $affected;
+            if ($goodUnits > 0 && $transaction->return_restores_stock) {
+                $transaction->restoreStock($borrow, $goodUnits);
             }
 
             // A lost unit no longer exists, so it leaves the total quantity too.
             if ($data['condition'] === 'Lost') {
-                $transaction->removeLostUnits($borrow);
+                $transaction->removeLostUnits($borrow, $affected);
             }
 
             $penalty = null;
@@ -112,16 +130,22 @@ class DepartmentReturnsController extends Controller
                 }
             }
 
-            $message = match ($data['condition']) {
-                'Good' => 'Return confirmed. The equipment is back in stock.',
-                'Lost' => 'Return confirmed as Lost. The unit was removed from the equipment\'s total quantity.',
-                default => 'Return confirmed as ' . $data['condition'] . '. The unit stays out of the available stock until the admin updates it.',
+            $units = fn (int $n) => $n . ' ' . ($n === 1 ? 'unit' : 'units');
+            $message = match (true) {
+                $good => 'Return confirmed. The equipment is back in stock.',
+                $quantity === 1 && $data['condition'] === 'Lost' => 'Return confirmed as Lost. The unit was removed from the equipment\'s total quantity.',
+                $quantity === 1 => 'Return confirmed as ' . $data['condition'] . '. The unit stays out of the available stock until the admin updates it.',
+                $data['condition'] === 'Lost' => 'Return confirmed: ' . $units($affected) . ' lost (removed from the total quantity)'
+                    . ($goodUnits > 0 ? ', ' . $units($goodUnits) . ' back in stock.' : '.'),
+                default => 'Return confirmed: ' . $units($affected) . ' ' . strtolower($data['condition'])
+                    . ' (kept out of the available stock until the admin updates it)'
+                    . ($goodUnits > 0 ? ', ' . $units($goodUnits) . ' back in stock.' : '.'),
             };
 
             return [
                 'action' => 'Department confirmed return of borrow request #' . $borrow->request_id
                     . ' for ' . ($borrow->equipment?->name ?? 'equipment') . ' (' . $data['condition'] . ')',
-                'details' => $remarks !== '' ? 'Remarks: ' . $remarks : null,
+                'details' => $remarksText !== '' ? 'Remarks: ' . $remarksText : null,
                 'message' => $message . ($penalty ? ' A ' . $penalty->type . ' penalty was recorded.' : ''),
             ];
         });
@@ -199,6 +223,11 @@ class DepartmentReturnsController extends Controller
 
             $borrow = BorrowRequest::with('equipment')->find($transaction->request_id);
             $outcome = $apply($transaction, $borrow, $dept);
+
+            // Refused before anything changed (e.g. more units affected than the loan has).
+            if (isset($outcome['error'])) {
+                return ['code' => $outcome['code'] ?? 400, 'message' => $outcome['error']];
+            }
 
             AuditTrail::create([
                 'dept_acc_id' => $dept->dept_acc_id,
@@ -287,6 +316,8 @@ class DepartmentReturnsController extends Controller
                     : ($transaction->inspected_condition ?: $this->splitCondition($transaction->condition_on_return)[0]),
                 'conditionSource' => $pending || $transaction->return_status === BorrowTransaction::RETURN_REJECTED ? 'reported' : 'inspected',
                 'inspectionRemarks' => $transaction->inspection_remarks ?? '',
+                // Units in the inspected condition (0 for Good); the rest came back Good.
+                'affectedUnits' => $transaction->affectedUnits(),
                 'rejectReason' => $transaction->return_reject_reason ?? '',
                 'reviewedBy' => $transaction->returnReviewer?->full_name ?: ($transaction->return_reviewed_by ? 'Department staff' : '—'),
                 'reviewedAt' => $transaction->return_reviewed_at ? $fmtDateTime($transaction->return_reviewed_at) : '—',

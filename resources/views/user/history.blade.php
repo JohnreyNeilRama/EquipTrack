@@ -33,7 +33,9 @@
                         <option value="Pending">Pending</option>
                         <option value="Rejected">Rejected</option>
                         <option value="Cancelled">Cancelled</option>
+                        <option value="Expired">Expired</option>
                         <option value="Not Claimed">Not Claimed</option>
+                        <option value="Reservation Cancelled">Reservation Cancelled</option>
                     </select>
                 </div>
                 <div class="filter-wrapper">
@@ -81,7 +83,7 @@
                                     <img src="{{ $item['img'] }}" alt="{{ $item['equipment'] }}" class="eq-thumb" style="width: 42px; height: 42px; border-radius: 8px; object-fit: cover; background: #fff;" onerror="this.onerror=null; this.src='{{ asset('images/EquipTrack_logo.png') }}';">
                                     <div class="eq-info" style="display: flex; flex-direction: column;">
                                         <span class="eq-title" style="font-weight: 600; color: var(--text-main);" title="{{ $item['equipment'] }}">{{ $item['equipment'] }}</span>
-                                        <span class="eq-sub" style="font-size: 12px; color: var(--text-muted);">{{ $item['category'] }}</span>
+                                        <span class="eq-sub" style="font-size: 12px; color: var(--text-muted);">{{ $item['category'] }}{{ $item['quantity'] > 1 ? ' · ' . $item['quantity'] . ' units' : '' }}</span>
                                     </div>
                                 </div>
                             </td>

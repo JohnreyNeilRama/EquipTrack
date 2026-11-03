@@ -84,6 +84,14 @@ class AdminRequestsController extends Controller
             ], 400);
         }
 
+        // Its dates are over: neither approval nor rejection applies any more.
+        if ($borrow->expireIfStale()) {
+            return response()->json([
+                'success' => false,
+                'message' => $borrow->expiredMessage(),
+            ], 400);
+        }
+
         $admin = auth('admin')->user();
         $now = now();
         $reason = $data['status'] === 'Rejected' ? trim($data['reject_reason']) : null;
@@ -93,6 +101,9 @@ class AdminRequestsController extends Controller
             $locked = BorrowRequest::where('request_id', $borrow->request_id)->lockForUpdate()->first();
             if ($locked?->overall_status === BorrowRequest::STATUS_CANCELLED) {
                 return ['code' => 400, 'message' => 'The borrower cancelled this request.'];
+            }
+            if ($locked?->expireIfStale()) {
+                return ['code' => 400, 'message' => $locked->expiredMessage()];
             }
             if (!$locked || $locked->admin_status !== 'Pending' || $locked->overall_status === 'Rejected') {
                 return ['code' => 400, 'message' => 'This request has already been reviewed.'];

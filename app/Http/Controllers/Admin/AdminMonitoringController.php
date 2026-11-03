@@ -132,6 +132,8 @@ class AdminMonitoringController extends Controller
                     'id_number' => $idNumber,
                     'equipment' => $equipment->name,
                     'category' => $equipment->category?->category_name ?: 'General',
+                    // Units this borrower has (or has reserved) on this loan.
+                    'quantity' => max(1, (int) ($request->quantity ?? 1)),
                     // The borrower's department, not the equipment owner's.
                     'department' => $user->department?->department_name ?? '',
                     'status' => $reserved ? 'Reserved' : ($isOverdue ? 'Overdue' : 'Borrowed'),

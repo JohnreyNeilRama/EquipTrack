@@ -743,7 +743,7 @@
                             <td>
                                 <div class="eq-name-cell">
                                     <strong class="eq-name-text" title="${escapeHTML(req.equipment)}">${escapeHTML(req.equipment)}</strong>
-                                    <span class="eq-category-text">${escapeHTML(req.category)}</span>
+                                    <span class="eq-category-text">${escapeHTML(req.category)}${hasBorrower && Number(req.quantity) > 1 ? ' · ' + escapeHTML(req.quantity) + ' units' : ''}</span>
                                 </div>
                             </td>
                             <td>

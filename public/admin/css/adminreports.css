@@ -789,14 +789,18 @@ body {
 }
 
 .status-pill.not-claimed,
-.status-pill.cancelled {
+.status-pill.cancelled,
+.status-pill.expired,
+.status-pill.reservation-cancelled {
     background-color: rgba(71, 85, 105, 0.1);
     color: #475569;
 }
 
 .status-pill.ready-for-pickup::before,
 .status-pill.not-claimed::before,
-.status-pill.cancelled::before {
+.status-pill.cancelled::before,
+.status-pill.expired::before,
+.status-pill.reservation-cancelled::before {
     content: "";
     width: 6px;
     height: 6px;
@@ -810,7 +814,9 @@ body {
 }
 
 .dark-theme .status-pill.not-claimed,
-.dark-theme .status-pill.cancelled {
+.dark-theme .status-pill.cancelled,
+.dark-theme .status-pill.expired,
+.dark-theme .status-pill.reservation-cancelled {
     background-color: rgba(226, 232, 240, 0.1);
     color: #cbd5e1;
 }

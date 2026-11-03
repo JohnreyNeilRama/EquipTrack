@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'active' => \App\Http\Middleware\EnsureAccountActive::class,
+            'expire.requests' => \App\Http\Middleware\ExpireStaleRequests::class,
         ]);
         // Unauthenticated hits on protected routes go to our login page.
         $middleware->redirectGuestsTo(fn () => route('login'));

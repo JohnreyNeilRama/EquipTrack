@@ -54,7 +54,7 @@ class AdminReportsController extends Controller
 
     /** Status filter values available for each report type (empty = no status filter). */
     private const STATUSES = [
-        'borrowing' => ['Pending', 'Approved', 'Rejected', 'Cancelled', 'Ready for Pickup', 'Not Claimed', 'Borrowed', 'Overdue', 'Returned'],
+        'borrowing' => ['Pending', 'Approved', 'Rejected', 'Cancelled', 'Expired', 'Ready for Pickup', 'Not Claimed', 'Reservation Cancelled', 'Borrowed', 'Overdue', 'Returned'],
         'return' => ['Returned', 'Returned Late', 'Damaged', 'Incomplete', 'Lost'],
         'inventory' => ['Available', 'Unavailable', 'On Hold', 'Under Maintenance'],
         'overdue' => [],
@@ -289,10 +289,11 @@ class AdminReportsController extends Controller
 
         // A loan only exists for an approved request whose equipment was handed
         // over (the same population the Dashboard and Monitoring pages use).
-        // Ready for Pickup and Not Claimed requests never reached the borrower.
+        // Ready for Pickup, Not Claimed and cancelled reservations never reached the borrower.
         $readyForPickup = $overall === 'Approved' && $transaction?->isReadyForPickup();
         $notClaimed = $overall === 'Approved' && $transaction?->isNotClaimed();
-        $isLoan = $overall === 'Approved' && $transaction !== null && !$readyForPickup && !$notClaimed;
+        $reservationCancelled = $overall === 'Approved' && $transaction?->isCancelled();
+        $isLoan = $overall === 'Approved' && $transaction !== null && !$readyForPickup && !$notClaimed && !$reservationCancelled;
         $returned = $isLoan && $transaction->status === 'Returned';
         $active = $isLoan && !$returned;
 
@@ -307,7 +308,7 @@ class AdminReportsController extends Controller
         // Overdue once the exact due date and time have passed.
         $overdue = $active && (LoanTime::isOverdue($due) || $transaction->status === 'Overdue');
 
-        if ($overall === 'Rejected' || $overall === BorrowRequest::STATUS_CANCELLED) {
+        if (in_array($overall, ['Rejected', BorrowRequest::STATUS_CANCELLED, BorrowRequest::STATUS_EXPIRED], true)) {
             $lifecycle = $overall;
         } elseif ($overall !== 'Approved') {
             $lifecycle = 'Pending';
@@ -315,6 +316,8 @@ class AdminReportsController extends Controller
             $lifecycle = 'Ready for Pickup';
         } elseif ($notClaimed) {
             $lifecycle = 'Not Claimed';
+        } elseif ($reservationCancelled) {
+            $lifecycle = 'Reservation Cancelled';
         } elseif ($returned) {
             $lifecycle = 'Returned';
         } elseif ($overdue) {
@@ -640,13 +643,13 @@ class AdminReportsController extends Controller
         ], $rows);
     }
 
-    /** Every borrow request (pending, approved, rejected, cancelled) with where it currently stands. */
+    /** Every borrow request (pending, approved, rejected, cancelled, expired) with where it currently stands. */
     private function borrowingReport(array $filters, Collection $all): array
     {
         $rows = $this->scope($all, $filters)
             ->filter(fn (array $row) => match ($filters['status']) {
                 '' => true,
-                'Pending', 'Approved', 'Rejected', 'Cancelled' => $row['overall'] === $filters['status'],
+                'Pending', 'Approved', 'Rejected', 'Cancelled', 'Expired' => $row['overall'] === $filters['status'],
                 default => $row['lifecycle'] === $filters['status'],
             })
             ->sort(fn (array $a, array $b) => [$this->stamp($b['borrow']), $b['request_id']] <=> [$this->stamp($a['borrow']), $a['request_id']])

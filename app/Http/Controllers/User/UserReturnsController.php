@@ -29,10 +29,10 @@ class UserReturnsController extends Controller
             ->where('overall_status', 'Approved')
             ->orderByDesc('request_id')
             ->get()
-            // Returned and Not Claimed loans are closed; Ready for Pickup ones
-            // stay listed (with pickup details instead of a Return button).
+            // Returned, Not Claimed and Cancelled loans are closed; Ready for
+            // Pickup ones stay listed (with pickup details instead of a Return button).
             ->reject(fn ($request) => $request->transaction
-                && in_array($request->transaction->status, [BorrowTransaction::STATUS_RETURNED, BorrowTransaction::STATUS_NOT_CLAIMED], true))
+                && in_array($request->transaction->status, [BorrowTransaction::STATUS_RETURNED, ...BorrowTransaction::NEVER_RELEASED], true))
             ->values();
 
         return view('user.returns', compact('returnItems'));
@@ -87,7 +87,7 @@ class UserReturnsController extends Controller
                 return ['code' => 400, 'message' => 'This item has not been released to you yet. Pick it up at the lab first.'];
             }
 
-            if ($transaction && $transaction->isNotClaimed()) {
+            if ($transaction && $transaction->wasNeverReleased()) {
                 return ['code' => 400, 'message' => 'This item was never picked up, so there is nothing to return.'];
             }
 

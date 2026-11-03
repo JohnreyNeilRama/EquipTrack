@@ -57,7 +57,7 @@ Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('p
 // stays signed in.
 
 // Admin
-Route::middleware(['auth:admin', 'auth.session', 'active'])->prefix('admin')->name('admin.')->group(function () use ($catNames) {
+Route::middleware(['auth:admin', 'auth.session', 'active', 'expire.requests'])->prefix('admin')->name('admin.')->group(function () use ($catNames) {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [AdminDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [AdminProfileController::class, 'show'])->name('profile');
@@ -103,7 +103,7 @@ Route::middleware(['auth:admin', 'auth.session', 'active'])->prefix('admin')->na
 });
 
 // Department
-Route::middleware(['auth:dept', 'auth.session', 'active'])->prefix('department')->name('department.')->group(function () use ($catNames) {
+Route::middleware(['auth:dept', 'auth.session', 'active', 'expire.requests'])->prefix('department')->name('department.')->group(function () use ($catNames) {
     Route::get('/dashboard', [DepartmentDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [DepartmentDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [DepartmentProfileController::class, 'show'])->name('profile');
@@ -118,11 +118,12 @@ Route::middleware(['auth:dept', 'auth.session', 'active'])->prefix('department')
     Route::get('/requests', [DepartmentRequestsController::class, 'index'])->name('requests');
     Route::get('/requests/data', [DepartmentRequestsController::class, 'data'])->name('requests.data');
     Route::post('/requests/update-status', [DepartmentRequestsController::class, 'updateStatus'])->name('requests.update');
-    // Release Confirmation: hand approved equipment to the borrower (or mark it Not Claimed).
+    // Release Confirmation: hand approved equipment to the borrower (or mark it Not Claimed, or cancel the reservation).
     Route::get('/releases', [DepartmentReleasesController::class, 'index'])->name('releases');
     Route::get('/releases/data', [DepartmentReleasesController::class, 'data'])->name('releases.data');
     Route::post('/releases/release', [DepartmentReleasesController::class, 'release'])->name('releases.release');
     Route::post('/releases/not-claimed', [DepartmentReleasesController::class, 'notClaimed'])->name('releases.not-claimed');
+    Route::post('/releases/cancel', [DepartmentReleasesController::class, 'cancel'])->name('releases.cancel');
     Route::get('/returns', [DepartmentReturnsController::class, 'index'])->name('returns');
     Route::get('/returns/data', [DepartmentReturnsController::class, 'data'])->name('returns.data');
     Route::post('/returns/confirm', [DepartmentReturnsController::class, 'confirm'])->name('returns.confirm');
@@ -150,7 +151,7 @@ Route::middleware(['auth:dept', 'auth.session', 'active'])->prefix('department')
 });
 
 // User (Student / Faculty)
-Route::middleware(['auth:user', 'auth.session', 'active'])->prefix('user')->name('user.')->group(function () {
+Route::middleware(['auth:user', 'auth.session', 'active', 'expire.requests'])->prefix('user')->name('user.')->group(function () {
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [UserDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [UserProfileController::class, 'show'])->name('profile');

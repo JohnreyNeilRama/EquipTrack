@@ -17,6 +17,7 @@
                         <option value="approved">Approved</option>
                         <option value="rejected">Rejected</option>
                     <option value="cancelled">Cancelled</option>
+                    <option value="expired">Expired</option>
                     </select>
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>

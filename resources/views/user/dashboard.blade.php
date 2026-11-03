@@ -327,7 +327,8 @@
                 + ' onerror="this.onerror=null; this.src=\'' + escapeHTML(FALLBACK_IMG) + '\';">'
                 + '<div class="eq-info" style="display: flex; flex-direction: column;">'
                 + '<span class="eq-title" style="font-weight: 600; color: var(--text-main);" title="' + escapeHTML(row.equipment) + '">' + escapeHTML(row.equipment) + '</span>'
-                + '<span class="eq-sub" style="font-size: 12px; color: var(--text-muted);">' + escapeHTML(row.category || 'General') + '</span>'
+                + '<span class="eq-sub" style="font-size: 12px; color: var(--text-muted);">' + escapeHTML(row.category || 'General')
+                + (Number(row.quantity) > 1 ? ' · ' + escapeHTML(row.quantity) + ' units' : '') + '</span>'
                 + '</div></div></td>';
         }
 

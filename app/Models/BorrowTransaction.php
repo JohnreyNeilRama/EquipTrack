@@ -21,6 +21,12 @@ class BorrowTransaction extends Model
     /** The borrower never picked it up; the held unit went back to stock. */
     public const STATUS_NOT_CLAIMED = 'Not Claimed';
 
+    /** Lab Personnel cancelled the reservation before it was handed over (cancel_reason says why). */
+    public const STATUS_CANCELLED = 'Cancelled';
+
+    /** Closed without ever reaching the borrower: nothing to return, the dates are free. */
+    public const NEVER_RELEASED = [self::STATUS_NOT_CLAIMED, self::STATUS_CANCELLED];
+
     /** Statuses of a loan the borrower actually has (released, not returned yet). */
     public const ON_LOAN = [self::STATUS_ACTIVE, self::STATUS_OVERDUE];
 
@@ -71,10 +77,14 @@ class BorrowTransaction extends Model
         'released_at',
         'released_by',
         'unclaimed_at',
+        'cancelled_at',
+        'cancelled_by',
+        'cancel_reason',
         'return_status',
         'return_submitted_at',
         'reported_condition',
         'inspected_condition',
+        'affected_qty',
         'inspection_remarks',
         'return_reviewed_by',
         'return_reviewed_at',
@@ -92,6 +102,7 @@ class BorrowTransaction extends Model
         'return_date' => 'date',
         'released_at' => 'datetime',
         'unclaimed_at' => 'datetime',
+        'cancelled_at' => 'datetime',
         'return_submitted_at' => 'datetime',
         'return_reviewed_at' => 'datetime',
         'return_restores_stock' => 'boolean',
@@ -128,6 +139,12 @@ class BorrowTransaction extends Model
         return $this->belongsTo(DepartmentAccount::class, 'released_by', 'dept_acc_id');
     }
 
+    /** Lab Personnel account that cancelled the reservation. */
+    public function canceller()
+    {
+        return $this->belongsTo(DepartmentAccount::class, 'cancelled_by', 'dept_acc_id');
+    }
+
     /** Loans the borrower actually has: released and not returned yet. */
     public function scopeOnLoan($query)
     {
@@ -142,6 +159,33 @@ class BorrowTransaction extends Model
     public function isNotClaimed(): bool
     {
         return $this->status === self::STATUS_NOT_CLAIMED;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === self::STATUS_CANCELLED;
+    }
+
+    /**
+     * Units in the inspected condition when the return was Damaged, Incomplete
+     * or Lost: affected_qty, or every unit of the loan for older records.
+     * 0 for Good returns.
+     */
+    public function affectedUnits(): int
+    {
+        if (!$this->inspected_condition || $this->inspected_condition === 'Good') {
+            return 0;
+        }
+
+        $quantity = max(1, (int) ($this->request?->quantity ?? 1));
+
+        return $this->affected_qty !== null ? min($quantity, max(1, (int) $this->affected_qty)) : $quantity;
+    }
+
+    /** Not Claimed or Cancelled: closed before it was handed over. */
+    public function wasNeverReleased(): bool
+    {
+        return in_array($this->status, self::NEVER_RELEASED, true);
     }
 
     /** Released to the borrower and not returned yet. */
@@ -181,7 +225,7 @@ class BorrowTransaction extends Model
      * exist. Their stock was never restored, so the available quantity is only
      * kept within the new total. Call this inside a DB transaction.
      */
-    public function removeLostUnits(BorrowRequest $borrow): void
+    public function removeLostUnits(BorrowRequest $borrow, ?int $units = null): void
     {
         $equipment = Equipment::where('equipment_id', $borrow->equipment_id)
             ->lockForUpdate()
@@ -191,7 +235,7 @@ class BorrowTransaction extends Model
             return;
         }
 
-        $equipment->total_qty = max(0, (int) $equipment->total_qty - max(1, (int) $borrow->quantity));
+        $equipment->total_qty = max(0, (int) $equipment->total_qty - ($units ?? max(1, (int) $borrow->quantity)));
         $equipment->available_qty = min((int) $equipment->available_qty, (int) $equipment->total_qty);
 
         // The status is the admin's to set; running out of units no longer
@@ -225,12 +269,13 @@ class BorrowTransaction extends Model
 
     /**
      * Puts the borrowed units back into the equipment's available stock (never
-     * above the total quantity). The status is left as the admin set it. Only
-     * the department's return confirmation calls this.
+     * above the total quantity): all of them, or $units when only some came
+     * back Good. The status is left as the admin set it. Only the
+     * department's return confirmation calls this.
      *
      * Call this inside a DB transaction.
      */
-    public function restoreStock(BorrowRequest $borrow): void
+    public function restoreStock(BorrowRequest $borrow, ?int $units = null): void
     {
         $equipment = Equipment::where('equipment_id', $borrow->equipment_id)
             ->lockForUpdate()
@@ -242,7 +287,7 @@ class BorrowTransaction extends Model
 
         $equipment->available_qty = min(
             (int) $equipment->total_qty,
-            (int) $equipment->available_qty + max(1, (int) $borrow->quantity)
+            (int) $equipment->available_qty + ($units ?? max(1, (int) $borrow->quantity))
         );
 
         $equipment->save();

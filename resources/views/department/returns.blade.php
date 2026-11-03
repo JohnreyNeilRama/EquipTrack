@@ -922,6 +922,15 @@
                             </label>
                         </fieldset>
 
+                        {{-- Loans of several units: how many are Damaged / Incomplete / Lost; the rest count as Good --}}
+                        <div class="review-field" id="affectedUnitsField" hidden>
+                            <label class="review-field-label" for="affectedUnits">
+                                Units affected <span class="req">*</span>
+                            </label>
+                            <input type="number" id="affectedUnits" class="detail-form-control" min="1" step="1" inputmode="numeric">
+                            <p class="review-hint" id="affectedUnitsHint"></p>
+                        </div>
+
                         <div class="review-field">
                             <div class="review-field-head">
                                 <label class="review-field-label" for="inspectRemarks">
@@ -1226,8 +1235,35 @@
             });
             document.getElementById('remarksRequired').style.display = condition !== 'Good' ? 'inline' : 'none';
             if (condition === 'Good') inspectRemarks.classList.remove('is-invalid');
+            syncAffectedUnits();
             syncPenaltySuggestion();
         }
+
+        // Units affected: only for loans of several units with a condition other than Good.
+        const affectedField = document.getElementById('affectedUnitsField');
+        const affectedInput = document.getElementById('affectedUnits');
+        const affectedHint = document.getElementById('affectedUnitsHint');
+
+        function loanUnits() {
+            return reviewing ? Math.max(1, Number(reviewing.quantity) || 1) : 1;
+        }
+
+        function syncAffectedUnits() {
+            const condition = selectedCondition();
+            const units = loanUnits();
+            const show = condition !== 'Good' && units > 1;
+            affectedField.hidden = !show;
+            if (!show) return;
+            affectedInput.max = units;
+            if (!affectedInput.value || Number(affectedInput.value) > units) affectedInput.value = units;
+            const affected = Number(affectedInput.value) || units;
+            const good = Math.max(0, units - affected);
+            affectedHint.textContent = `${affected} of ${units} units ${condition.toLowerCase()}`
+                + (condition === 'Lost' ? ' (removed from the total)' : ' (kept out of stock)')
+                + (good > 0 ? `; ${good} back in stock as Good.` : '.');
+        }
+
+        affectedInput.addEventListener('input', syncAffectedUnits);
 
         // ------------------------------------------------------------------
         // Penalty step: suggested from the inspected condition and lateness
@@ -1393,6 +1429,7 @@
                 penaltyAmount.value = '';
                 penaltyDescription.value = '';
                 penaltyDescription.classList.remove('is-invalid');
+                affectedInput.value = '';
                 // Start from what the user reported when it is one of the inspection options.
                 setCondition(['Good', 'Damaged', 'Incomplete', 'Lost'].includes(r.reportedCondition) ? r.reportedCondition : 'Good');
                 inspectRemarks.value = '';
@@ -1413,7 +1450,7 @@
                 document.getElementById('resultReasonGroup').style.display = confirmed ? 'none' : 'block';
 
                 const result = document.getElementById('resultCondition');
-                result.textContent = r.condition;
+                result.textContent = r.condition + (r.affectedUnits > 0 && Number(r.quantity) > 1 ? ` · ${r.affectedUnits} of ${r.quantity} units` : '');
                 result.className = 'condition-tag ' + conditionClass(r.condition);
                 document.getElementById('resultRemarks').textContent = r.inspectionRemarks || 'None';
                 document.getElementById('resultReason').textContent = r.rejectReason || 'No reason provided.';
@@ -1478,6 +1515,16 @@
             }
 
             const payload = { transaction_id: id, condition, remarks };
+
+            if (condition !== 'Good' && loanUnits() > 1) {
+                const affected = Number(affectedInput.value);
+                if (!Number.isInteger(affected) || affected < 1 || affected > loanUnits()) {
+                    affectedInput.focus();
+                    showNotification('Units Affected', `Enter how many of the ${loanUnits()} units are ${condition.toLowerCase()} (1 to ${loanUnits()}).`, 'error');
+                    return;
+                }
+                payload.affected_units = affected;
+            }
 
             if (penaltyEnabled.checked) {
                 const description = penaltyDescription.value.trim();

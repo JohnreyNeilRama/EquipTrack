@@ -83,7 +83,7 @@
                                     <img src="{{ $imgUrl }}" alt="{{ $eqName }}" class="eq-thumb" style="width: 42px; height: 42px; border-radius: 8px; object-fit: cover; background: #fff;" onerror="this.onerror=null; this.src='{{ asset('images/EquipTrack_logo.png') }}';">
                                     <div class="eq-info" style="display: flex; flex-direction: column;">
                                         <span class="eq-title" style="font-weight: 600; color: var(--text-main);" title="{{ $eqName }}">{{ $eqName }}</span>
-                                        <span class="eq-sub" style="font-size: 12px; color: var(--text-muted);">{{ $eqCat }}</span>
+                                        <span class="eq-sub" style="font-size: 12px; color: var(--text-muted);">{{ $eqCat }}{{ (int) $item->quantity > 1 ? ' · ' . (int) $item->quantity . ' units' : '' }}</span>
                                     </div>
                                 </div>
                             </td>

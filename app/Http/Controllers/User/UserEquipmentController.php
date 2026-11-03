@@ -89,11 +89,15 @@ class UserEquipmentController extends Controller
             'borrow_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:' . $today],
             'return_date' => ['required', 'date_format:Y-m-d',
                 $type === self::MULTIPLE_DAYS ? 'after:borrow_date' : 'after_or_equal:borrow_date'],
+            // Units requested (1 when not sent); the equipment's own limits are checked below.
+            'quantity' => ['nullable', 'integer', 'min:1', 'max:999'],
             'purpose' => ['required', 'string', 'max:255'],
             'instructor_name' => [$askInstructor ? 'required' : 'nullable', 'string', 'max:150'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ], [
             'borrow_type.in' => 'Please choose Within the Day or Multiple Days.',
+            'quantity.integer' => 'Please enter the number of units as a whole number.',
+            'quantity.min' => 'Please request at least 1 unit.',
             'borrow_date.after_or_equal' => 'The borrow date cannot be in the past.',
             'return_date.required' => 'Please choose the return date.',
             'return_date.after_or_equal' => 'Return date cannot be earlier than borrow date.',
@@ -140,7 +144,9 @@ class UserEquipmentController extends Controller
             return response()->json(['success' => false, 'message' => $blocking->borrowBlockMessage()], 403);
         }
 
-        $result = DB::transaction(function () use ($request, $data, $userId, $instructorName, $from, $to) {
+        $quantity = (int) ($data['quantity'] ?? 1);
+
+        $result = DB::transaction(function () use ($request, $data, $userId, $instructorName, $from, $to, $quantity) {
             $equipment = Equipment::where('equipment_id', $data['equipment_id'])
                 ->lockForUpdate()
                 ->first();
@@ -157,12 +163,26 @@ class UserEquipmentController extends Controller
 
             $availability = EquipmentAvailability::for($equipment);
 
-            if ($availability->lendableUnits() < 1) {
+            $lendable = $availability->lendableUnits();
+
+            if ($lendable < 1) {
                 return ['code' => 400, 'message' => 'Sorry, ' . $equipment->name . ' has no units that can be lent right now.'];
             }
 
-            if (!$availability->isFree($from, $to)) {
-                return ['code' => 400, 'message' => $this->fullyBookedMessage($equipment, $availability, $from, $to)];
+            // Units per request, decided by the equipment record itself (its
+            // classification and stock), never by what the form sent.
+            if ($quantity > 1 && $equipment->isExpensive()) {
+                return ['code' => 422, 'message' => $equipment->name . ' is high-value equipment: you can borrow 1 unit per request.'];
+            }
+
+            $maxUnits = $equipment->maxUnitsPerRequest($lendable);
+            if ($quantity > $maxUnits) {
+                return ['code' => 422, 'message' => 'You can request up to ' . $maxUnits . ' ' . ($maxUnits === 1 ? 'unit' : 'units')
+                    . ' of ' . $equipment->name . ' at a time.'];
+            }
+
+            if (!$availability->isFree($from, $to, $quantity)) {
+                return ['code' => 400, 'message' => $this->notEnoughUnitsMessage($equipment, $availability, $from, $to, $quantity)];
             }
 
             $classification = $equipment->classificationLabel();
@@ -170,7 +190,7 @@ class UserEquipmentController extends Controller
             $borrow = BorrowRequest::create([
                 'user_id' => $userId,
                 'equipment_id' => $equipment->equipment_id,
-                'quantity' => 1,
+                'quantity' => $quantity,
                 // Read from the locked equipment row: this decides whether the
                 // request needs one approval or both the admin's and the department's.
                 'equipment_classification' => $classification,
@@ -204,7 +224,7 @@ class UserEquipmentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => $result['message'],
-            ], $result['code'] === 404 ? 404 : 400);
+            ], in_array($result['code'], [404, 422], true) ? $result['code'] : 400);
         }
 
         return response()->json([
@@ -226,6 +246,23 @@ class UserEquipmentController extends Controller
     private function period(array $input): array
     {
         return [Carbon::parse($input['borrow_date']), LoanTime::dueOn($input['return_date'])];
+    }
+
+    /**
+     * Why the units asked for aren't free on those dates: some are, but fewer
+     * than requested ("Only 2 of 5 units ... are free on Nov 5–7"), or none.
+     */
+    private function notEnoughUnitsMessage(Equipment $equipment, EquipmentAvailability $availability, Carbon $from, Carbon $to, int $quantity): string
+    {
+        $free = $availability->freeUnits($from, $to);
+
+        if ($free > 0 && $quantity > 1) {
+            return 'Only ' . $free . ' of ' . $availability->lendableUnits() . ' units of ' . $equipment->name
+                . ' are free on ' . EquipmentAvailability::label($from, $to) . '. Request ' . $free
+                . ' or fewer, or choose other dates.';
+        }
+
+        return $this->fullyBookedMessage($equipment, $availability, $from, $to);
     }
 
     /** "Epson Projector is fully booked on Nov 5–7. Please choose other dates." */

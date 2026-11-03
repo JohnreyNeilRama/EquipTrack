@@ -67,14 +67,6 @@
         color: #ef4444;
         font-weight: 600;
     }
-    .releases-table .action-buttons {
-        justify-content: center;
-    }
-    .releases-table .btn-approve,
-    .releases-table .btn-reject {
-        white-space: nowrap;
-    }
-
     /* Release statuses, in the shared badge design */
     .status-badge.status-ready {
         background-color: rgba(245, 158, 11, 0.12);
@@ -145,6 +137,90 @@
         cursor: not-allowed;
         transform: none;
     }
+    /* Action column (this page only): at most two buttons, the main action
+       (Release, or a muted chip saying when it can be released) and View,
+       which holds the details and the rarer Not Claimed / Cancel reservation. */
+    .releases-table .rel-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        flex-wrap: nowrap;
+    }
+    .releases-table .rel-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 32px;
+        padding: 0 12px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: var(--fs-label);
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    }
+    .releases-table .rel-btn i { font-size: 0.9em; }
+    .releases-table .rel-btn:focus-visible { outline: 2px solid #385585; outline-offset: 2px; }
+    .releases-table .rel-btn--primary { background-color: #385585; color: #ffffff; }
+    .releases-table .rel-btn--primary:hover { background-color: #2f477a; }
+    .releases-table .rel-btn--wait { background-color: #f1f5f9; color: #64748b; border-color: #e2e8f0; cursor: help; font-weight: 500; }
+    .releases-table .rel-btn--view { background-color: #ffffff; color: #385585; border-color: #cbd5e1; }
+    .releases-table .rel-btn--view:hover { background-color: #f1f5f9; border-color: #385585; }
+    .dark-theme .releases-table .rel-btn--primary { background-color: #3b82f6; }
+    .dark-theme .releases-table .rel-btn--primary:hover { background-color: #2563eb; }
+    .dark-theme .releases-table .rel-btn--view { background-color: transparent; color: #93c5fd; border-color: rgba(148, 163, 184, 0.35); }
+    .dark-theme .releases-table .rel-btn--view:hover { background-color: rgba(148, 163, 184, 0.12); border-color: #93c5fd; }
+
+    /* View window: the loan's details, then its actions in the footer */
+    .view-section + .view-section { margin-top: 16px; }
+    .view-section-title {
+        margin: 0 0 8px;
+        font-size: var(--fs-small);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+    .view-footer {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border-color);
+    }
+    .view-footer .view-footer-end { display: flex; gap: 10px; margin-left: auto; }
+    .view-footer .view-note { font-size: var(--fs-label); color: var(--text-muted); }
+    .view-footer button {
+        height: 38px;
+        padding: 0 16px;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: var(--fs-label);
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid transparent;
+    }
+    .view-footer .view-btn-primary { background-color: #385585; color: #ffffff; }
+    .view-footer .view-btn-primary:hover { background-color: #2f477a; }
+    .view-footer .view-btn-outline { background-color: transparent; color: #dc2626; border-color: #fca5a5; }
+    .view-footer .view-btn-outline:hover { background-color: #fef2f2; border-color: #dc2626; }
+    .view-footer .view-btn-text { padding: 0 4px; background: none; color: #dc2626; text-decoration: underline; text-underline-offset: 3px; font-weight: 500; }
+    .view-footer .view-btn-text:hover { color: #b91c1c; }
+    .view-footer .view-btn-close { background-color: transparent; color: var(--text-main); border-color: var(--border-color); }
+    .dark-theme .view-footer .view-btn-primary { background-color: #3b82f6; }
+    .dark-theme .view-footer .view-btn-outline,
+    .dark-theme .view-footer .view-btn-text { color: #f87171; }
+    @media (max-width: 576px) {
+        .view-footer { flex-wrap: wrap; }
+        .view-footer .view-footer-end { width: 100%; margin-left: 0; }
+        .view-footer .view-footer-end button { flex: 1; }
+    }
+    .dark-theme .releases-table .rel-btn--wait { background-color: rgba(148, 163, 184, 0.12); color: #94a3b8; border-color: rgba(148, 163, 184, 0.25); }
 </style>
 @endpush
 
@@ -152,7 +228,7 @@
     <div class="requests-container">
         <div class="equipment-header-section">
             <h2>Release Equipment</h2>
-            <p>Hand approved equipment to borrowers when they come to the lab. Check their school ID, then release the item, or mark it Not Claimed if they never came.</p>
+            <p>Hand approved equipment to borrowers when they come to the lab. Check their school ID, then release the item. Open View for the full details, to mark it Not Claimed if they never came, or to cancel the reservation (with a reason the borrower will see).</p>
         </div>
 
         <!-- Summary Cards -->
@@ -184,7 +260,7 @@
                             <i class="fa-solid fa-user-xmark"></i>
                         </div>
                     </div>
-                    <span class="summary-card-label">Not Claimed (last 30 days)</span>
+                    <span class="summary-card-label">Not Claimed / Cancelled (last 30 days)</span>
                 </div>
             </div>
         </div>
@@ -202,6 +278,7 @@
                         <option value="Ready for Pickup" selected>Ready for Pickup</option>
                         <option value="Released">Released</option>
                         <option value="Not Claimed">Not Claimed</option>
+                        <option value="Cancelled">Cancelled</option>
                     </select>
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
@@ -225,6 +302,60 @@
                     {{-- Rendered by the script below --}}
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    {{-- View window: the loan's details, and its actions in the footer --}}
+    <div class="modal-overlay" id="viewModal">
+        <div class="modal-card eq-modal-card" style="max-width: 560px;">
+            <div class="modal-outer-header">
+                <p class="modal-subtitle-top" id="viewSubtitle">Reservation details</p>
+            </div>
+            <div class="modal-inner-card">
+                <button class="modal-close" id="closeViewBtn" aria-label="Close">&times;</button>
+                <h3 class="modal-title-center" style="margin-bottom: 20px;" id="viewTitle">Request #—</h3>
+
+                <section class="view-section">
+                    <h4 class="view-section-title">Borrower</h4>
+                    <dl class="release-summary">
+                        <dt>Name</dt><dd id="viewUser">—</dd>
+                        <dt>ID Number</dt><dd id="viewIdNumber">—</dd>
+                        <dt>Department</dt><dd id="viewDepartment">—</dd>
+                    </dl>
+                </section>
+
+                <section class="view-section">
+                    <h4 class="view-section-title">Equipment</h4>
+                    <dl class="release-summary">
+                        <dt>Item</dt><dd id="viewEquipment">—</dd>
+                        <dt>Serial No.</dt><dd id="viewSerial">—</dd>
+                        <dt>Quantity</dt><dd id="viewQuantity">—</dd>
+                    </dl>
+                </section>
+
+                <section class="view-section">
+                    <h4 class="view-section-title">Reservation</h4>
+                    <dl class="release-summary">
+                        <dt>Pickup Date</dt><dd id="viewPickup">—</dd>
+                        <dt>Due Date</dt><dd id="viewDue">—</dd>
+                        <dt>Purpose</dt><dd id="viewPurpose">—</dd>
+                        <dt>Instructor</dt><dd id="viewInstructor">—</dd>
+                        <dt>Notes</dt><dd id="viewNotes">—</dd>
+                        <dt>Requested</dt><dd id="viewRequested">—</dd>
+                        <dt>Approved by</dt><dd id="viewApproval">—</dd>
+                    </dl>
+                </section>
+
+                <section class="view-section">
+                    <h4 class="view-section-title">Status</h4>
+                    <dl class="release-summary">
+                        <dt>Status</dt><dd id="viewStatus">—</dd>
+                        <dt id="viewHistoryLabel">Details</dt><dd id="viewHistory">—</dd>
+                    </dl>
+                </section>
+
+                <div class="view-footer" id="viewFooter"></div>
+            </div>
         </div>
     </div>
 
@@ -260,6 +391,16 @@
                         </div>
                     </div>
 
+                    {{-- Cancel Reservation --}}
+                    <div id="cancelFields" style="display: none;">
+                        <p class="release-help">The reservation is closed and the dates are free again. The borrower is not penalized, sees your reason and can request the item again.</p>
+                        <label class="detail-form-label" for="relCancelReason" style="text-align: left;">Reason (shown to the borrower)</label>
+                        <textarea id="relCancelReason" class="detail-form-control textarea-control" rows="3" maxlength="255" placeholder="e.g. The projector is being repaired. Please request another unit."></textarea>
+                        <div class="form-submit-container" style="margin-top: 20px;">
+                            <button type="submit" class="btn-submit-reject" id="relSubmitCancel" disabled>Cancel Reservation</button>
+                        </div>
+                    </div>
+
                     {{-- Not Claimed --}}
                     <div id="notClaimedFields" style="display: none;">
                         <p class="release-help">The held unit goes back to stock. The borrower is not penalized and can request the item again.</p>
@@ -292,6 +433,7 @@
         const URL_DATA = @json(route('department.releases.data'));
         const URL_RELEASE = @json(route('department.releases.release'));
         const URL_NOT_CLAIMED = @json(route('department.releases.not-claimed'));
+        const URL_CANCEL = @json(route('department.releases.cancel'));
         const REFRESH_MS = 15000;
 
         let releases = @json($releases);
@@ -301,9 +443,12 @@
         const searchInput = document.getElementById('searchReleases');
         const filterSelect = document.getElementById('filterStatus');
         const modal = document.getElementById('releaseModal');
+        const viewModal = document.getElementById('viewModal');
         const form = document.getElementById('releaseForm');
         const idCheck = document.getElementById('relIdVerified');
         const releaseBtn = document.getElementById('relSubmitRelease');
+        const cancelReason = document.getElementById('relCancelReason');
+        const cancelBtn = document.getElementById('relSubmitCancel');
 
         function escapeHTML(value) {
             if (value === null || value === undefined) return '';
@@ -316,19 +461,38 @@
             'Ready for Pickup': 'status-ready',
             'Released': 'status-released',
             'Not Claimed': 'status-not-claimed',
+            'Cancelled': 'status-not-claimed',
         }[status] || 'status-pending');
 
         function renderSummary() {
             document.getElementById('sumReady').textContent = releases.filter(r => r.status === 'Ready for Pickup').length;
             document.getElementById('sumReleased').textContent = releases.filter(r => r.status === 'Released').length;
-            document.getElementById('sumNotClaimed').textContent = releases.filter(r => r.status === 'Not Claimed').length;
+            document.getElementById('sumNotClaimed').textContent = releases.filter(r => r.status === 'Not Claimed' || r.status === 'Cancelled').length;
         }
 
         // Second line of the Status / date cells: when it was handled, or how soon pickup is.
         function statusDetail(r) {
             if (r.status === 'Released') return `${escapeHTML(r.releasedAt)}<br>by ${escapeHTML(r.releasedBy)}`;
             if (r.status === 'Not Claimed') return escapeHTML(r.unclaimedAt);
+            if (r.status === 'Cancelled') return `${escapeHTML(r.cancelledAt)}<br>by ${escapeHTML(r.cancelledBy)}`;
             return '';
+        }
+
+        // Action column, at most two buttons: Release (or, when it can't be
+        // released yet, a muted chip saying why, with the full reason on
+        // hover), and View, which holds the details and the rarer actions.
+        function actionButtons(r) {
+            const view = `<button type="button" class="rel-btn rel-btn--view" data-view="${r.id}"><i class="fa-regular fa-eye" aria-hidden="true"></i>View</button>`;
+
+            if (!r.canAct) {
+                return `<div class="rel-actions">${view}</div>`;
+            }
+
+            const release = r.releaseBlocked
+                ? `<span class="rel-btn rel-btn--wait" tabindex="0" title="${escapeHTML(r.releaseBlocked)}" aria-label="${escapeHTML(r.releaseBlocked)}"><i class="fa-regular fa-clock" aria-hidden="true"></i>${escapeHTML(r.releaseBlockedLabel || 'Not yet')}</span>`
+                : `<button type="button" class="rel-btn rel-btn--primary" data-release="${r.id}">Release</button>`;
+
+            return `<div class="rel-actions">${release}${view}</div>`;
         }
 
         function renderTable() {
@@ -372,11 +536,7 @@
                         ${statusDetail(r) ? `<span class="cell-sub">${statusDetail(r)}</span>` : ''}
                     </td>
                     <td class="action-cell">
-                        ${r.canAct ? `
-                            <div class="action-buttons">
-                                <button type="button" class="btn-approve" data-release="${r.id}">Release</button>
-                                <button type="button" class="btn-reject" data-not-claimed="${r.id}">Not Claimed</button>
-                            </div>` : '<span class="cell-sub" style="text-align: center;">—</span>'}
+                        ${actionButtons(r)}
                     </td>
                 </tr>`).join('');
         }
@@ -385,6 +545,79 @@
             renderSummary();
             renderTable();
         }
+
+        // ------------------------------------------------------------------
+        // View window: details, and the actions this loan allows right now.
+        // Its buttons open the same confirmation windows as before.
+        // ------------------------------------------------------------------
+        const setText = (id, value) => { document.getElementById(id).textContent = value || '—'; };
+
+        function openView(id) {
+            const r = releases.find(item => item.id === id);
+            if (!r) return;
+
+            setText('viewTitle', 'Request #' + r.requestId);
+            setText('viewSubtitle', r.status === 'Ready for Pickup' ? 'Reservation details' : 'Loan details');
+            setText('viewUser', `${r.user} (${r.role})`);
+            setText('viewIdNumber', r.idNumber);
+            setText('viewDepartment', r.department);
+            setText('viewEquipment', `${r.equipment} · ${r.category}${r.requiresBothApprovals ? ' · Expensive' : ''}`);
+            setText('viewSerial', r.serial);
+            setText('viewQuantity', r.quantity > 1 ? r.quantity + ' units' : '1 unit');
+            setText('viewPickup', r.pickupDate + (r.pickupNote ? ` (${r.pickupNote})` : ''));
+            setText('viewDue', r.dueDate);
+            setText('viewPurpose', r.purpose);
+            setText('viewInstructor', r.instructor);
+            setText('viewNotes', r.notes);
+            setText('viewRequested', r.requestedAt);
+            setText('viewApproval', [r.deptApproval !== '—' ? 'Lab Personnel: ' + r.deptApproval : '', r.adminApproval ? 'Admin: ' + r.adminApproval : ''].filter(Boolean).join(' / '));
+            setText('viewStatus', r.status);
+
+            const history = {
+                'Released': ['Released', `${r.releasedAt} by ${r.releasedBy}`],
+                'Not Claimed': ['Marked', r.unclaimedAt],
+                'Cancelled': ['Cancelled', `${r.cancelledAt} by ${r.cancelledBy}${r.cancelReason ? ' · Reason: ' + r.cancelReason : ''}`],
+            }[r.status] || ['Release', r.releaseBlocked || 'Can be released now, after the school ID check.'];
+            setText('viewHistoryLabel', history[0]);
+            setText('viewHistory', history[1]);
+
+            // Footer: Cancel reservation (quiet, on the left); Not Claimed and
+            // Release on the right, each only when its rules allow it.
+            const footer = document.getElementById('viewFooter');
+            if (!r.canAct) {
+                footer.innerHTML = `<div class="view-footer-end"><button type="button" class="view-btn-close" data-view-close>Close</button></div>`;
+            } else {
+                const right = [];
+                if (!r.notClaimedBlocked) right.push(`<button type="button" class="view-btn-outline" data-view-action="not-claimed">Not Claimed</button>`);
+                if (!r.releaseBlocked) right.push(`<button type="button" class="view-btn-primary" data-view-action="release">Release</button>`);
+                if (!right.length) right.push(`<button type="button" class="view-btn-close" data-view-close>Close</button>`);
+                footer.innerHTML = `<button type="button" class="view-btn-text" data-view-action="cancel">Cancel reservation</button>`
+                    + `<div class="view-footer-end">${right.join('')}</div>`;
+            }
+            footer.dataset.id = r.id;
+
+            viewModal.classList.add('show');
+        }
+
+        function closeView() {
+            viewModal.classList.remove('show');
+        }
+
+        document.getElementById('viewFooter').addEventListener('click', event => {
+            const footer = event.currentTarget;
+            if (event.target.closest('[data-view-close]')) {
+                closeView();
+                return;
+            }
+            const action = event.target.closest('[data-view-action]');
+            if (!action) return;
+            closeView();
+            openModal(parseInt(footer.dataset.id, 10), action.dataset.viewAction);
+        });
+        document.getElementById('closeViewBtn').addEventListener('click', closeView);
+        viewModal.addEventListener('click', event => {
+            if (event.target === viewModal) closeView();
+        });
 
         function openModal(id, nextMode) {
             const r = releases.find(item => item.id === id);
@@ -399,14 +632,20 @@
             document.getElementById('relEquipment').textContent = `${r.equipment} · ${r.serial}${r.quantity > 1 ? ' · ×' + r.quantity : ''}`;
             document.getElementById('relPickup').textContent = r.pickupDate + (r.pickupNote ? ` (${r.pickupNote})` : '');
             document.getElementById('relDue').textContent = r.dueDate;
-            document.getElementById('releaseModalTitle').textContent = releasing ? 'Release Equipment' : 'Mark as Not Claimed';
+            const cancelling = mode === 'cancel';
+            document.getElementById('releaseModalTitle').textContent = releasing
+                ? 'Release Equipment'
+                : (cancelling ? 'Cancel Reservation' : 'Mark as Not Claimed');
             document.getElementById('releaseModalSubtitle').textContent = releasing
                 ? 'Hand the equipment to the borrower'
-                : 'The borrower did not pick up the equipment';
+                : (cancelling ? 'The reservation can\'t go ahead' : 'The borrower did not pick up the equipment');
             document.getElementById('releaseFields').style.display = releasing ? 'block' : 'none';
-            document.getElementById('notClaimedFields').style.display = releasing ? 'none' : 'block';
+            document.getElementById('cancelFields').style.display = cancelling ? 'block' : 'none';
+            document.getElementById('notClaimedFields').style.display = mode === 'not-claimed' ? 'block' : 'none';
             idCheck.checked = false;
             releaseBtn.disabled = true;
+            cancelReason.value = '';
+            cancelBtn.disabled = true;
             document.getElementById('relNote').value = '';
 
             modal.classList.add('show');
@@ -418,13 +657,18 @@
 
         tableBody.addEventListener('click', event => {
             const release = event.target.closest('[data-release]');
-            const notClaimed = event.target.closest('[data-not-claimed]');
+            const view = event.target.closest('[data-view]');
             if (release) openModal(parseInt(release.dataset.release, 10), 'release');
-            if (notClaimed) openModal(parseInt(notClaimed.dataset.notClaimed, 10), 'not-claimed');
+            if (view) openView(parseInt(view.dataset.view, 10));
         });
 
         idCheck.addEventListener('change', () => {
             releaseBtn.disabled = !idCheck.checked;
+        });
+
+        // A reason is required: the borrower sees it.
+        cancelReason.addEventListener('input', () => {
+            cancelBtn.disabled = cancelReason.value.trim() === '';
         });
 
         form.addEventListener('submit', event => {
@@ -437,11 +681,17 @@
             if (mode === 'release') {
                 if (!idCheck.checked) return;
                 formData.append('id_verified', '1');
+            } else if (mode === 'cancel') {
+                if (cancelReason.value.trim() === '') return;
+                formData.append('reason', cancelReason.value.trim());
             } else {
                 formData.append('note', document.getElementById('relNote').value.trim());
             }
 
-            fetch(mode === 'release' ? URL_RELEASE : URL_NOT_CLAIMED, {
+            const url = { release: URL_RELEASE, cancel: URL_CANCEL }[mode] || URL_NOT_CLAIMED;
+            const doneTitle = { release: 'Equipment Released', cancel: 'Reservation Cancelled' }[mode] || 'Marked Not Claimed';
+
+            fetch(url, {
                 method: 'POST',
                 headers: { 'Accept': 'application/json' },
                 body: formData,
@@ -449,7 +699,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        showNotification(mode === 'release' ? 'Equipment Released' : 'Marked Not Claimed', data.message, mode === 'release' ? 'success' : 'error');
+                        showNotification(doneTitle, data.message, mode === 'release' ? 'success' : 'error');
                         releases = data.releases || releases;
                         closeModal();
                         render();
@@ -484,7 +734,7 @@
         render();
         setInterval(() => {
             // Don't redraw the table under an open window.
-            if (!modal.classList.contains('show')) refresh();
+            if (!modal.classList.contains('show') && !viewModal.classList.contains('show')) refresh();
         }, REFRESH_MS);
     })();
 </script>

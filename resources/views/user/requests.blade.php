@@ -34,6 +34,7 @@
                 <option value="Approved">Approved</option>
                 <option value="Rejected">Rejected</option>
                 <option value="Cancelled">Cancelled</option>
+                <option value="Expired">Expired</option>
             </select>
         </div>
     </div>
@@ -78,6 +79,7 @@
                         data-notes="{{ $req->notes ?: 'None' }}"
                         data-img="{{ $imgUrl }}"
                         data-reject-reason="{{ $req->reject_reason }}"
+                        data-expired-note="{{ $status === \App\Models\BorrowRequest::STATUS_EXPIRED ? 'Not reviewed before ' . \App\Support\LoanTime::dueBy($req->due_date ?: $req->return_date) . '. You can submit a new request.' : '' }}"
                         data-dual="{{ $req->requiresDualApproval() ? '1' : '0' }}"
                         data-admin-status="{{ $req->admin_status ?: 'Pending' }}"
                         data-dept-status="{{ $req->dept_status ?: 'Pending' }}"
@@ -88,7 +90,7 @@
                                 <img src="{{ $imgUrl }}" alt="{{ $eqName }}" class="eq-thumb" style="width: 42px; height: 42px; border-radius: 8px; object-fit: cover; background: #fff;" onerror="this.onerror=null; this.src='{{ asset('images/EquipTrack_logo.png') }}';">
                                 <div class="eq-info" style="display: flex; flex-direction: column;">
                                     <span class="eq-title" style="font-weight: 600; color: var(--text-main);" title="{{ $eqName }}">{{ $eqName }}</span>
-                                    <span class="eq-sub" style="font-size: 12px; color: var(--text-muted);">{{ $eqCat }}</span>
+                                    <span class="eq-sub" style="font-size: 12px; color: var(--text-muted);">{{ $eqCat }}{{ (int) $req->quantity > 1 ? ' · ' . (int) $req->quantity . ' units' : '' }}</span>
                                 </div>
                             </div>
                         </td>
@@ -198,7 +200,7 @@
                         <textarea id="detailNotes" class="detail-form-control textarea-control" readonly rows="2"></textarea>
                     </div>
                     <div class="detail-form-group" id="detailReasonGroup" style="display: none;">
-                        <label class="detail-form-label text-danger">Reason for Rejection</label>
+                        <label class="detail-form-label text-danger" id="detailReasonLabel">Reason for Rejection</label>
                         <textarea id="detailReason" class="detail-form-control textarea-control text-danger-control" readonly rows="2"></textarea>
                     </div>
                     <div class="detail-form-group" id="detailCancelledGroup" style="display: none;">
@@ -381,9 +383,20 @@
         badge.className = 'detail-status-badge';
         badge.classList.add('status-' + status.toLowerCase());
 
+        // Rejected: the reviewer's reason. Expired: why it can no longer be approved.
         const reasonGroup = document.getElementById('detailReasonGroup');
+        const reasonLabel = document.getElementById('detailReasonLabel');
+        const reasonBox = document.getElementById('detailReason');
+        const expiredNote = row.getAttribute('data-expired-note');
+        const expired = status === 'Expired' && expiredNote;
+        reasonLabel.textContent = expired ? 'Expired' : 'Reason for Rejection';
+        reasonLabel.classList.toggle('text-danger', !expired);
+        reasonBox.classList.toggle('text-danger-control', !expired);
         if (status === 'Rejected' && rejectReason) {
-            document.getElementById('detailReason').value = rejectReason;
+            reasonBox.value = rejectReason;
+            reasonGroup.style.display = 'block';
+        } else if (expired) {
+            reasonBox.value = expiredNote;
             reasonGroup.style.display = 'block';
         } else {
             reasonGroup.style.display = 'none';
@@ -397,7 +410,7 @@
         document.getElementById('detailCancelRow').style.display = status === 'Pending' ? 'flex' : 'none';
 
         const approvalsGroup = document.getElementById('detailApprovalsGroup');
-        if (row.getAttribute('data-dual') === '1' && status !== 'Cancelled') {
+        if (row.getAttribute('data-dual') === '1' && status !== 'Cancelled' && status !== 'Expired') {
             const paint = (id, value) => {
                 const el = document.getElementById(id);
                 el.textContent = value;

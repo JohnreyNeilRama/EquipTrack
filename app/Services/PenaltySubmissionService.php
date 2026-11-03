@@ -219,7 +219,8 @@ class PenaltySubmissionService
             return;
         }
 
-        $units = max(1, (int) $borrow->quantity);
+        // Only the units that were lost (all of the loan's for older records).
+        $units = max(1, $penalty->transaction->affectedUnits() ?: (int) $borrow->quantity);
         $equipment->total_qty = (int) $equipment->total_qty + $units;
         $equipment->available_qty = min((int) $equipment->total_qty, (int) $equipment->available_qty + $units);
 

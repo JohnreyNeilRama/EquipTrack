@@ -115,6 +115,8 @@ class DepartmentMonitoringController extends Controller
                     'equipment' => $equipment->name,
                     'category' => $category,
                     'serial' => $equipment->serial_number ?: '',
+                    // Units this borrower has (or has reserved) on this loan.
+                    'quantity' => max(1, (int) ($request->quantity ?? 1)),
                     'borrower' => $user->fullName() ?: $user->email,
                     'id_number' => $idNumber,
                     'role' => ucfirst($user->role),

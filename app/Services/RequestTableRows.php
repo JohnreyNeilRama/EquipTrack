@@ -70,6 +70,8 @@ class RequestTableRows
             'requiresBothApprovals' => $row->requiresDualApproval(),
             'canReview' => $canReview,
             'rejectReason' => $row->reject_reason ?? '',
+            // Its return deadline ("Nov 05, 2026 by 7:00 PM"): Pending requests expire after it.
+            'expiresAt' => LoanTime::dueBy($dDateRaw, 'N/A'),
             'cancelledAt' => $row->cancelled_at
                 ? $row->cancelled_at->copy()->timezone(config('app.display_timezone'))->format('M d, Y h:i A')
                 : '',

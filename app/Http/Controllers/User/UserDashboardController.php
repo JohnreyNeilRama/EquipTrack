@@ -80,7 +80,7 @@ class UserDashboardController extends Controller
             ->where('overall_status', 'Approved')
             ->get()
             ->reject(fn (BorrowRequest $request) => $request->transaction
-                && in_array($request->transaction->status, [BorrowTransaction::STATUS_RETURNED, BorrowTransaction::STATUS_NOT_CLAIMED], true))
+                && in_array($request->transaction->status, [BorrowTransaction::STATUS_RETURNED, ...BorrowTransaction::NEVER_RELEASED], true))
             ->map(function (BorrowRequest $request) {
                 $transaction = $request->transaction;
 
@@ -134,6 +134,7 @@ class UserDashboardController extends Controller
             ->map(fn (array $loan) => [
                 'id' => (int) $loan['request']->request_id,
                 'equipment' => $loan['request']->equipment?->name ?? 'Unknown equipment',
+                'quantity' => $loan['quantity'],
                 ...$this->equipmentVisual($loan['request']),
                 'borrowDate' => $this->fmt($loan['borrowDate']),
                 'dueDate' => $this->fmt($loan['dueDate']),
@@ -172,6 +173,7 @@ class UserDashboardController extends Controller
             ->map(fn (BorrowRequest $request) => [
                 'id' => (int) $request->request_id,
                 'equipment' => $request->equipment?->name ?? 'Unknown equipment',
+                'quantity' => max(1, (int) $request->quantity),
                 ...$this->equipmentVisual($request),
                 'date' => $this->fmt($request->date_requested),
                 'status' => $request->overall_status ?: 'Pending',

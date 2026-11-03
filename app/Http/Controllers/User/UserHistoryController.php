@@ -55,6 +55,7 @@ class UserHistoryController extends Controller
         return [
             'equipment' => $equipment?->name ?? 'Unknown equipment',
             'category' => $equipment?->category?->category_name ?: 'General',
+            'quantity' => max(1, (int) ($request->quantity ?? 1)),
             'img' => $this->resolveImage($equipment?->image),
             'borrow_date' => $fmt($borrowDateRaw),
             'return_date' => $returnDateRaw ? $fmt($returnDateRaw) : '—',
@@ -81,8 +82,8 @@ class UserHistoryController extends Controller
      * Returned / Late Return for settled transactions, Pending Confirmation for
      * returns the department has not verified yet, Borrowed / Overdue for items
      * still out, Ready for Pickup / Not Claimed for approved items that were
-     * not handed over, and Pending / Rejected / Cancelled for requests not yet
-     * loaned.
+     * not handed over, and Pending / Rejected / Cancelled / Expired for requests
+     * not yet loaned.
      */
     private function resolveStatus(BorrowRequest $request, $dueDateRaw, $returnDateRaw): string
     {
@@ -92,6 +93,10 @@ class UserHistoryController extends Controller
 
         if ($request->transaction?->isNotClaimed()) {
             return BorrowTransaction::STATUS_NOT_CLAIMED;
+        }
+
+        if ($request->transaction?->isCancelled()) {
+            return 'Reservation Cancelled';
         }
 
         if ($returnDateRaw) {
@@ -118,6 +123,7 @@ class UserHistoryController extends Controller
         return match ($request->overall_status) {
             'Rejected' => 'Rejected',
             BorrowRequest::STATUS_CANCELLED => 'Cancelled',
+            BorrowRequest::STATUS_EXPIRED => 'Expired',
             default => 'Pending',
         };
     }
@@ -134,6 +140,8 @@ class UserHistoryController extends Controller
             $remarks = trim(explode('—', $condition, 2)[1]);
         } elseif ($request->overall_status === 'Rejected' && !empty($request->reject_reason)) {
             $remarks = trim((string) $request->reject_reason);
+        } elseif ($request->transaction?->isCancelled() && filled($request->transaction->cancel_reason)) {
+            $remarks = 'Cancelled by the lab: ' . trim((string) $request->transaction->cancel_reason);
         } else {
             $remarks = trim((string) ($request->notes ?? ''));
         }
@@ -153,7 +161,7 @@ class UserHistoryController extends Controller
             'Returned' => 'approved',
             'Borrowed', BorrowTransaction::STATUS_READY => 'borrowed',
             'Pending', 'Pending Confirmation' => 'pending',
-            'Cancelled', BorrowTransaction::STATUS_NOT_CLAIMED => 'cancelled',
+            'Cancelled', 'Expired', 'Reservation Cancelled', BorrowTransaction::STATUS_NOT_CLAIMED => 'cancelled',
             default => 'rejected',
         };
     }

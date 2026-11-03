@@ -139,18 +139,26 @@ class UserNotificationController extends Controller
             ->all();
     }
 
-    /** One notice per request that the admin or department approved / rejected. */
+    /** One notice per request that the admin or department approved / rejected, or that expired unreviewed. */
     private function statusNotifications(int $userId): array
     {
         $since = now()->subDays(self::STATUS_WINDOW_DAYS);
         $rows = BorrowRequest::with(['equipment', 'transaction'])
             ->where('user_id', $userId)
-            ->whereIn('overall_status', ['Approved', 'Rejected'])
+            ->whereIn('overall_status', ['Approved', 'Rejected', BorrowRequest::STATUS_EXPIRED])
             ->get();
 
         $notifications = [];
 
         foreach ($rows as $row) {
+            if ($row->overall_status === BorrowRequest::STATUS_EXPIRED) {
+                if ($notice = $this->expiredNotification($row, $since)) {
+                    $notifications[] = $notice;
+                }
+
+                continue;
+            }
+
             // overall_status follows whichever approver acted last.
             $at = $this->latest($row->admin_reviewed_at, $row->dept_reviewed_at);
 
@@ -159,6 +167,10 @@ class UserNotificationController extends Controller
             }
 
             $equipment = $row->equipment?->name ?? 'the equipment';
+            // "3 units of Arduino Kit" when the request was for several units.
+            if ((int) $row->quantity > 1) {
+                $equipment = (int) $row->quantity . ' units of ' . $equipment;
+            }
 
             if ($row->overall_status === 'Approved') {
                 // Approval holds the unit; the borrower picks it up at the lab.
@@ -187,6 +199,21 @@ class UserNotificationController extends Controller
                     ];
                 }
 
+                // The lab cancelled the reservation before handing it over.
+                $cancelledAt = $row->transaction?->isCancelled() ? $row->transaction->cancelled_at : null;
+                if ($cancelledAt && $cancelledAt->gte($since)) {
+                    $reason = trim((string) $row->transaction->cancel_reason);
+                    $notifications[] = [
+                        'key' => 'request-' . $row->request_id . '-reservation-cancelled',
+                        'type' => 'rejected',
+                        'title' => 'Reservation Cancelled',
+                        'message' => 'The lab cancelled your reservation for ' . $equipment . '.'
+                            . ($reason !== '' ? ' Reason: ' . Str::limit($reason, 120) : '') . ' You can request it again.',
+                        'url' => route('user.history'),
+                        'at' => $cancelledAt,
+                    ];
+                }
+
                 continue;
             }
 
@@ -204,6 +231,27 @@ class UserNotificationController extends Controller
         }
 
         return $notifications;
+    }
+
+    /** "Request Expired", dated at the return deadline it missed (Philippine time). */
+    private function expiredNotification(BorrowRequest $row, Carbon $since): ?array
+    {
+        $due = $row->due_date ?? $row->return_date;
+        $at = $due ? Carbon::parse($due->format('Y-m-d H:i:s'), config('app.display_timezone')) : null;
+
+        if (!$at || $at->lt($since)) {
+            return null;
+        }
+
+        return [
+            'key' => 'request-' . $row->request_id . '-expired',
+            'type' => 'rejected',
+            'title' => 'Request Expired',
+            'message' => 'Your request to borrow ' . ($row->equipment?->name ?? 'the equipment')
+                . ' expired: it was not reviewed before ' . LoanTime::dueBy($due) . '. You can submit a new request.',
+            'url' => route('user.requests'),
+            'at' => $at,
+        ];
     }
 
     /**

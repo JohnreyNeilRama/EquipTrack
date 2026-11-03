@@ -57,6 +57,31 @@ class Equipment extends Model
             : self::CLASS_NOT_EXPENSIVE;
     }
 
+    /** High-value equipment: lent one unit per request (config: the Expensive classification). */
+    public function isExpensive(): bool
+    {
+        return $this->classificationLabel() === self::CLASS_EXPENSIVE;
+    }
+
+    /**
+     * Most units one request may ask for: 1 for Expensive equipment, otherwise
+     * the units the lab can lend, within config equiptrack.max_units_per_request
+     * (0 = no limit beyond stock).
+     */
+    public function maxUnitsPerRequest(int $lendable): int
+    {
+        if ($lendable < 1) {
+            return 0;
+        }
+        if ($this->isExpensive()) {
+            return 1;
+        }
+
+        $cap = (int) config('equiptrack.max_units_per_request', 0);
+
+        return $cap > 0 ? min($lendable, $cap) : $lendable;
+    }
+
     public function category()
     {
         return $this->belongsTo(EquipmentCategory::class, 'category_id', 'category_id');

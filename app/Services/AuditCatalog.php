@@ -39,6 +39,11 @@ class AuditCatalog
         ]],
         ['label' => 'Cancelled Request', 'module' => 'Requests', 'prefixes' => ['Cancelled borrow request' => 'Borrow request']],
 
+        // Release step (Lab Personnel at the counter)
+        ['label' => 'Released Equipment', 'module' => 'Releases', 'prefixes' => ['Released borrow request' => 'Borrow request']],
+        ['label' => 'Marked Not Claimed', 'module' => 'Releases', 'prefixes' => ['Marked borrow request' => 'Borrow request']],
+        ['label' => 'Cancelled Reservation', 'module' => 'Releases', 'prefixes' => ['Cancelled reservation for borrow request' => 'Reservation for borrow request']],
+
         // Returns
         ['label' => 'Returned Equipment', 'module' => 'Returns', 'prefixes' => [
             // Written before Return Confirmation, when a return settled the loan at once.

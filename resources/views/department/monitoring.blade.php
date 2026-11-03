@@ -402,7 +402,8 @@
             // Equipment: name (one line, "…" when long) with category and
             // serial number underneath.
             function equipmentCell(item) {
-                const sub = [item.category, item.serial].filter(Boolean).join(' · ');
+                const units = Number(item.quantity) > 1 ? item.quantity + ' units' : '';
+                const sub = [item.category, item.serial, units].filter(Boolean).join(' · ');
                 return `<span class="equipment-name-text" title="${escapeHTML(item.equipment)}">${escapeHTML(item.equipment)}</span>`
                     + (sub ? `<span class="cell-sub" title="${escapeHTML(sub)}">${escapeHTML(sub)}</span>` : '');
             }

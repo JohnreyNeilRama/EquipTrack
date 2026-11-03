@@ -20,15 +20,17 @@ use Illuminate\View\View;
  * the borrower comes to the lab, Lab Personnel check their school ID and
  * Release the item: the unit leaves the available stock and the loan becomes
  * Active (released_at / released_by), and only then can it be returned, become
- * overdue or get reminders. A borrower who never comes is marked Not Claimed:
- * the reserved dates are freed (the unit never left, so stock is unchanged)
- * and there is no penalty.
+ * overdue or get reminders. A borrower who never comes is marked Not Claimed
+ * (only from the pickup date on). Before the item is handed over, Lab
+ * Personnel can also Cancel the reservation with a reason the borrower sees.
+ * Either way the reserved dates are freed (the unit never left, so stock is
+ * unchanged) and there is no penalty.
  *
  * Every action is limited to equipment owned by the signed-in department.
  */
 class DepartmentReleasesController extends Controller
 {
-    /** Released / Not Claimed loans stay listed this long, below the ones to release. */
+    /** Released / Not Claimed / Cancelled loans stay listed this long, below the ones to release. */
     private const HISTORY_DAYS = 30;
 
     public function index(): View
@@ -53,11 +55,9 @@ class DepartmentReleasesController extends Controller
         ]);
 
         return $this->act($request, (int) $data['transaction_id'], function (BorrowTransaction $transaction, BorrowRequest $borrow, $dept) {
-            // Past the due date's return deadline (e.g. a Within the Day loan
-            // never picked up that day): it can only be marked Not Claimed.
-            if (LoanTime::isOverdue($transaction->due_date)) {
-                return ['error' => 'This loan was due ' . LoanTime::format($transaction->due_date) . ' by '
-                    . LoanTime::clock(LoanTime::deadline()) . ', so it can no longer be released. Mark it Not Claimed; the borrower can submit a new request.'];
+            // Releases follow the office schedule and the reserved dates.
+            if ($reason = $this->releaseBlockedReason($transaction)) {
+                return ['error' => $reason];
             }
 
             // The unit must be in the lab: the previous borrower may not have returned it yet.
@@ -90,6 +90,12 @@ class DepartmentReleasesController extends Controller
         $note = trim($data['note'] ?? '');
 
         return $this->act($request, (int) $data['transaction_id'], function (BorrowTransaction $transaction, BorrowRequest $borrow) use ($note) {
+            // The borrower can only fail to come once the pickup date is here;
+            // before that, the reservation is cancelled instead (with a reason).
+            if ($reason = $this->notClaimedBlockedReason($transaction)) {
+                return ['error' => $reason];
+            }
+
             // Stock is untouched: units only leave stock when they are released.
             $transaction->update([
                 'status' => BorrowTransaction::STATUS_NOT_CLAIMED,
@@ -105,7 +111,40 @@ class DepartmentReleasesController extends Controller
     }
 
     /**
-     * Shared checks for release / not claimed: the loan must belong to this
+     * Cancels a reservation before it is handed over, e.g. the borrower no
+     * longer needs it or the equipment broke. The reason is required and is
+     * shown to the borrower; the dates are freed and there is no penalty.
+     */
+    public function cancel(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'transaction_id' => ['required', 'integer', 'min:1'],
+            'reason' => ['required', 'string', 'max:255'],
+        ], [
+            'reason.required' => 'Please give the reason for cancelling this reservation. The borrower will see it.',
+        ]);
+
+        $reason = trim($data['reason']);
+
+        return $this->act($request, (int) $data['transaction_id'], function (BorrowTransaction $transaction, BorrowRequest $borrow, $dept) use ($reason) {
+            // Stock is untouched: units only leave stock when they are released.
+            $transaction->update([
+                'status' => BorrowTransaction::STATUS_CANCELLED,
+                'cancelled_at' => now(),
+                'cancelled_by' => $dept->dept_acc_id,
+                'cancel_reason' => $reason,
+            ]);
+
+            return [
+                'action' => 'Cancelled reservation for borrow request #' . $borrow->request_id . ' (' . ($borrow->equipment?->name ?? 'equipment') . ')',
+                'details' => 'Reason: ' . $reason,
+                'message' => 'Reservation cancelled. The borrower has been notified and the reserved dates are free again.',
+            ];
+        });
+    }
+
+    /**
+     * Shared checks for release / not claimed / cancel: the loan must belong to this
      * department's equipment and still be Ready for Pickup. The row is locked
      * so two staff members cannot act on the same loan twice.
      */
@@ -124,9 +163,11 @@ class DepartmentReleasesController extends Controller
             }
 
             if (!$transaction->isReadyForPickup()) {
-                return ['code' => 400, 'message' => $transaction->isNotClaimed()
-                    ? 'This loan was already marked as Not Claimed.'
-                    : 'This equipment has already been released.'];
+                return ['code' => 400, 'message' => match (true) {
+                    $transaction->isNotClaimed() => 'This loan was already marked as Not Claimed.',
+                    $transaction->isCancelled() => 'This reservation was already cancelled.',
+                    default => 'This equipment has already been released.',
+                }];
             }
 
             $borrow = BorrowRequest::with(['equipment', 'user.student', 'user.facultyMember'])->find($transaction->request_id);
@@ -176,8 +217,12 @@ class DepartmentReleasesController extends Controller
         $transactions = BorrowTransaction::with([
             'request.user.student',
             'request.user.facultyMember',
+            'request.user.department',
             'request.equipment.category',
+            'request.admin',
+            'request.departmentAccount',
             'releaser',
+            'canceller',
         ])
             ->whereHas('request', fn ($query) => $query
                 ->where('overall_status', 'Approved')
@@ -185,7 +230,8 @@ class DepartmentReleasesController extends Controller
             ->where(fn ($query) => $query
                 ->where('status', BorrowTransaction::STATUS_READY)
                 ->orWhere(fn ($q) => $q->whereNotNull('released_by')->where('released_at', '>=', $since))
-                ->orWhere(fn ($q) => $q->where('status', BorrowTransaction::STATUS_NOT_CLAIMED)->where('unclaimed_at', '>=', $since)))
+                ->orWhere(fn ($q) => $q->where('status', BorrowTransaction::STATUS_NOT_CLAIMED)->where('unclaimed_at', '>=', $since))
+                ->orWhere(fn ($q) => $q->where('status', BorrowTransaction::STATUS_CANCELLED)->where('cancelled_at', '>=', $since)))
             ->get()
             ->sortBy([
                 fn ($a, $b) => (int) !$a->isReadyForPickup() <=> (int) !$b->isReadyForPickup(),
@@ -214,6 +260,7 @@ class DepartmentReleasesController extends Controller
             $status = match (true) {
                 $ready => BorrowTransaction::STATUS_READY,
                 $transaction->isNotClaimed() => BorrowTransaction::STATUS_NOT_CLAIMED,
+                $transaction->isCancelled() => BorrowTransaction::STATUS_CANCELLED,
                 default => 'Released',
             };
 
@@ -238,6 +285,18 @@ class DepartmentReleasesController extends Controller
                 'quantity' => max(1, (int) ($borrow->quantity ?? 1)),
                 'requiresBothApprovals' => $borrow->requiresDualApproval(),
                 'purpose' => $borrow->purpose ?: '—',
+                // Shown in the View window.
+                'department' => $user?->department?->department_name ?: '—',
+                'instructor' => $borrow->instructor_name ?: '—',
+                'notes' => $borrow->notes ?: '—',
+                // Stored in Philippine time already (as the Requests pages read it).
+                'requestedAt' => $borrow->date_requested ? Carbon::parse($borrow->date_requested)->format('M d, Y h:i A') : '—',
+                'deptApproval' => $borrow->dept_status === 'Approved'
+                    ? trim(($borrow->departmentAccount?->full_name ?: 'Lab Personnel') . ' · ' . $fmtDateTime($borrow->dept_reviewed_at))
+                    : '—',
+                'adminApproval' => $borrow->requiresDualApproval() && $borrow->admin_status === 'Approved'
+                    ? trim(($borrow->admin?->name ?: 'Admin') . ' · ' . $fmtDateTime($borrow->admin_reviewed_at))
+                    : null,
                 'pickupDate' => $fmtDate($transaction->borrow_date),
                 'dueDate' => $fmtDate($transaction->due_date),
                 'pickupNote' => $ready && $daysToPickup !== null ? match (true) {
@@ -251,11 +310,75 @@ class DepartmentReleasesController extends Controller
                 'releasedAt' => $fmtDateTime($transaction->released_at),
                 'releasedBy' => $transaction->releaser?->full_name ?: '—',
                 'unclaimedAt' => $fmtDateTime($transaction->unclaimed_at),
+                'cancelledAt' => $fmtDateTime($transaction->cancelled_at),
+                'cancelledBy' => $transaction->canceller?->full_name ?: '—',
+                'cancelReason' => $transaction->cancel_reason ?: '',
                 'canAct' => $ready,
+                // Release only from the pickup date, on office days, before the deadline.
+                'releaseBlocked' => $ready ? $this->releaseBlockedReason($transaction) : null,
+                'releaseBlockedLabel' => $ready ? $this->releaseBlockedLabel($transaction) : null,
+                // Not Claimed only from the pickup date; before it, Cancel Reservation.
+                'notClaimedBlocked' => $ready ? $this->notClaimedBlockedReason($transaction) : null,
             ];
         }
 
         return $rows;
+    }
+
+    /**
+     * Why a Ready for Pickup loan can't be marked Not Claimed yet, or null when
+     * it can: before the pickup date the borrower hasn't missed it, so the
+     * reservation is cancelled instead (with a reason).
+     */
+    private function notClaimedBlockedReason(BorrowTransaction $transaction): ?string
+    {
+        if ($transaction->borrow_date && $transaction->borrow_date->toDateString() > LoanTime::now()->toDateString()) {
+            return 'The pickup date is ' . $transaction->borrow_date->format('D, M d, Y')
+                . ', so the borrower has not missed it yet. To free the dates now, cancel the reservation instead.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Why a Ready for Pickup loan can't be released right now, or null when it
+     * can: the office is closed today (e.g. Sunday), the pickup date hasn't
+     * come yet (the unit may be reserved for someone else until then), or the
+     * due date's return deadline has passed (it can only be marked Not Claimed).
+     */
+    private function releaseBlockedReason(BorrowTransaction $transaction): ?string
+    {
+        $today = LoanTime::now();
+
+        if (!LoanTime::isOfficeDay($today)) {
+            return 'The equipment office is closed on ' . LoanTime::dayName($today) . 's, so equipment can\'t be released today.';
+        }
+
+        if ($transaction->borrow_date && $transaction->borrow_date->toDateString() > $today->toDateString()) {
+            return 'This equipment is reserved from ' . $transaction->borrow_date->format('D, M d, Y')
+                . '. It can be released from that date.';
+        }
+
+        if (LoanTime::isOverdue($transaction->due_date)) {
+            return 'This loan was due ' . LoanTime::format($transaction->due_date) . ' by '
+                . LoanTime::clock(LoanTime::deadline()) . ', so it can no longer be released. Mark it Not Claimed; the borrower can submit a new request.';
+        }
+
+        return null;
+    }
+
+    /** The same cases as releaseBlockedReason, in a few words for the greyed-out Release button. */
+    private function releaseBlockedLabel(BorrowTransaction $transaction): ?string
+    {
+        $today = LoanTime::now();
+
+        return match (true) {
+            !LoanTime::isOfficeDay($today) => 'Office closed',
+            $transaction->borrow_date && $transaction->borrow_date->toDateString() > $today->toDateString()
+                => 'From ' . LoanTime::short($transaction->borrow_date),
+            LoanTime::isOverdue($transaction->due_date) => 'Past due date',
+            default => null,
+        };
     }
 
     /**
@@ -269,6 +392,14 @@ class DepartmentReleasesController extends Controller
             ->whereHas('request', fn ($query) => $query->where('equipment_id', $borrow->equipment_id))
             ->orderBy('due_date')
             ->first();
+
+        // Several units: say how many are in the lab now.
+        $quantity = max(1, (int) $borrow->quantity);
+        $inLab = (int) ($borrow->equipment?->fresh()?->available_qty ?? 0);
+        if ($quantity > 1 && $inLab > 0) {
+            return 'Cannot release yet: this loan is for ' . $quantity . ' units of ' . ($borrow->equipment?->name ?? 'this equipment')
+                . ', but only ' . $inLab . ' ' . ($inLab === 1 ? 'is' : 'are') . ' in the lab right now. All units are released together.';
+        }
 
         if (!$holder) {
             return 'Cannot release yet: no unit of ' . ($borrow->equipment?->name ?? 'this equipment')
@@ -287,6 +418,10 @@ class DepartmentReleasesController extends Controller
     /** When a finished row was handled, for sorting. */
     private function doneAt(BorrowTransaction $transaction): ?Carbon
     {
-        return $transaction->isNotClaimed() ? $transaction->unclaimed_at : $transaction->released_at;
+        return match (true) {
+            $transaction->isNotClaimed() => $transaction->unclaimed_at,
+            $transaction->isCancelled() => $transaction->cancelled_at,
+            default => $transaction->released_at,
+        };
     }
 }

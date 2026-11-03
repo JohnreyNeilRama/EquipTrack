@@ -15,6 +15,9 @@ class BorrowRequest extends Model
     /** overall_status of a request its borrower withdrew while it was Pending. */
     public const STATUS_CANCELLED = 'Cancelled';
 
+    /** overall_status of a Pending request whose due date's return deadline passed before it was approved. */
+    public const STATUS_EXPIRED = 'Expired';
+
     protected $table = 'borrow_request';
     protected $primaryKey = 'request_id';
     public $timestamps = false;
@@ -90,10 +93,56 @@ class BorrowRequest extends Model
         return $this->hasOne(BorrowTransaction::class, 'request_id', 'request_id');
     }
 
-    /** Rejected or Cancelled: no one can approve or reject it any more. */
+    /** Rejected, Cancelled or Expired: no one can approve or reject it any more. */
     public function isClosed(): bool
     {
-        return in_array($this->overall_status, ['Rejected', self::STATUS_CANCELLED], true);
+        return in_array($this->overall_status, ['Rejected', self::STATUS_CANCELLED, self::STATUS_EXPIRED], true);
+    }
+
+    /**
+     * Pending requests with no loan yet whose due date's return deadline has
+     * passed: the dates are over, so they can no longer be approved.
+     */
+    public function scopeStale($query)
+    {
+        $now = LoanTime::now()->format('Y-m-d H:i:s');
+
+        return $query->where('overall_status', 'Pending')
+            ->whereDoesntHave('transaction')
+            ->where(fn ($q) => $q->where('due_date', '<', $now)
+                ->orWhere(fn ($q) => $q->whereNull('due_date')->where('return_date', '<', $now)));
+    }
+
+    /** Marks every stale request Expired; returns how many changed. */
+    public static function expireStale(): int
+    {
+        return static::stale()->update(['overall_status' => self::STATUS_EXPIRED]);
+    }
+
+    /**
+     * Whether this request is Expired, marking it so first when it went stale
+     * (for review actions that may run before expireStale() did).
+     */
+    public function expireIfStale(): bool
+    {
+        if ($this->overall_status === self::STATUS_EXPIRED) {
+            return true;
+        }
+
+        if (!static::stale()->whereKey($this->getKey())->exists()) {
+            return false;
+        }
+
+        $this->update(['overall_status' => self::STATUS_EXPIRED]);
+
+        return true;
+    }
+
+    /** "This request expired on Nov 02, 2026 by 7:00 PM, before it was approved..." for refused review actions. */
+    public function expiredMessage(): string
+    {
+        return 'This request expired: its return date (' . LoanTime::dueBy($this->due_date ?? $this->return_date)
+            . ') passed before it was approved. The borrower can submit a new request.';
     }
 
     /**
@@ -200,6 +249,13 @@ class BorrowRequest extends Model
         $from = ($this->borrow_date ?: $this->date_needed)->copy();
         $to = ($this->due_date ?: $this->return_date ?: $from)->copy();
         $quantity = max(1, (int) $this->quantity);
+
+        // High-value equipment is lent one unit per request, whichever way the
+        // request reached the database.
+        if ($quantity > 1 && ($this->requiresDualApproval() || $equipment->isExpensive())) {
+            return ['code' => 400, 'message' => 'Cannot approve: ' . $equipment->name . ' is high-value equipment, lent 1 unit per request, and this request asks for ' . $quantity . '. Reject it so the borrower can request 1 unit.'];
+        }
+
         $availability = EquipmentAvailability::for($equipment, (int) $this->request_id);
 
         if (!$availability->isFree($from, $to, $quantity)) {
@@ -229,6 +285,14 @@ class BorrowRequest extends Model
         $first = $conflicts->first();
         // A booking's 'to' is the start of the day after its last day.
         $period = $first ? EquipmentAvailability::label($first['from'], $first['to']->copy()->subDay()) : EquipmentAvailability::label($from, $to);
+
+        // Several units asked for and only some free: say how many are.
+        $quantity = max(1, (int) $this->quantity);
+        $free = $availability->freeUnits($from, $to);
+        if ($quantity > 1 && $free > 0) {
+            return 'Cannot approve: this request asks for ' . $quantity . ' units of ' . $equipment->name
+                . ', but only ' . $free . ' of ' . $lendable . ' are free on these dates. Reject it so the borrower can request fewer units or other dates.';
+        }
 
         $subject = $lendable === 1
             ? 'the only unit is already reserved ' . $period . ($first ? ' (request #' . $first['request_id'] . ')' : '')

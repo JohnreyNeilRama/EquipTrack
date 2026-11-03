@@ -1190,19 +1190,29 @@ tbody tr:hover td {
 
 
 
-/* Cancelled borrow requests (withdrawn by the borrower): muted grey on every page */
-.detail-status-badge.status-cancelled {
+/* Cancelled (withdrawn by the borrower) and Expired (not reviewed before its
+   return date) borrow requests: muted grey on every page */
+.detail-status-badge.status-cancelled,
+.detail-status-badge.status-expired,
+.detail-status-badge.status-reservation-cancelled {
     background-color: #f1f5f9;
     color: #94a3b8;
 }
 .status-text.status-cancelled,
-.status-cancelled {
+.status-cancelled,
+.status-text.status-expired,
+.status-expired,
+.status-reservation-cancelled {
     color: #94a3b8;
 }
-.dark-theme .detail-status-badge.status-cancelled {
+.dark-theme .detail-status-badge.status-cancelled,
+.dark-theme .detail-status-badge.status-expired,
+.dark-theme .detail-status-badge.status-reservation-cancelled {
     background-color: rgba(148, 163, 184, 0.12) !important;
     color: #94a3b8 !important;
 }
-.dark-theme .status-cancelled {
+.dark-theme .status-cancelled,
+.dark-theme .status-expired,
+.dark-theme .status-reservation-cancelled {
     color: #94a3b8 !important;
 }

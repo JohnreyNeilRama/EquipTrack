@@ -443,13 +443,15 @@ td.col-alert-equipment {
     flex-wrap: nowrap;
 }
 
-/* Cancelled by the borrower before it was reviewed */
-.status-badge.status-cancelled {
+/* Cancelled by the borrower, or Expired, before it was reviewed */
+.status-badge.status-cancelled,
+.status-badge.status-expired {
     background-color: rgba(148, 163, 184, 0.12);
     color: #64748b;
 }
 
-.dark-theme .status-badge.status-cancelled {
+.dark-theme .status-badge.status-cancelled,
+.dark-theme .status-badge.status-expired {
     background-color: rgba(148, 163, 184, 0.12);
     color: #94a3b8;
 }
