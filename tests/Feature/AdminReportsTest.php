@@ -352,7 +352,8 @@ class AdminReportsTest extends TestCase
         $payload = $this->report(['type' => 'overdue']);
 
         $this->assertSame(1, $payload['report']['total']);
-        $this->assertSame(4, $payload['report']['rows'][0]['days_overdue']);
+        // Due Fri Oct 30; Sunday Nov 1 (office closed) is not counted.
+        $this->assertSame(3, $payload['report']['rows'][0]['days_overdue']);
         $this->assertSame('Juan Dela Cruz', $payload['report']['rows'][0]['borrower']);
         $this->assertSame($payload['summary']['overdue'], $payload['report']['total']);
 

@@ -292,7 +292,8 @@ class AdminDashboardTest extends TestCase
         $this->assertCount(1, $payload['overdue']);
         $this->assertSame('Juan Dela Cruz', $payload['overdue'][0]['user']);
         $this->assertSame($equipment->name, $payload['overdue'][0]['equipment']);
-        $this->assertSame(4, $payload['overdue'][0]['daysLate']);
+        // Due Fri Oct 30; Sunday Nov 1 (office closed) is not counted.
+        $this->assertSame(3, $payload['overdue'][0]['daysLate']);
     }
 
     public function test_loans_within_their_due_date_are_not_listed_as_overdue(): void

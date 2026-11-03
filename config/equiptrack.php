@@ -44,4 +44,22 @@ return [
 
     'return_deadline' => env('RETURN_DEADLINE', env('LAB_CLOSES', '19:00')),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Office days and booking window
+    |--------------------------------------------------------------------------
+    |
+    | office_days: the days the equipment office is open (comma-separated,
+    | Mon … Sun). Borrow and return dates must fall on them, late days count
+    | only them, and reminder emails are sent only on them. Requests can still
+    | be submitted any day; staff review them on the next office day.
+    |
+    | max_advance_days: how many days ahead a borrow date may be chosen.
+    |
+    */
+
+    'office_days' => env('OFFICE_DAYS', 'Mon,Tue,Wed,Thu,Fri,Sat'),
+
+    'max_advance_days' => (int) env('MAX_ADVANCE_DAYS', 30),
+
 ];

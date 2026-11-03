@@ -197,6 +197,7 @@
                                 <input type="date" id="returnDate" class="flat-control" aria-label="Return date">
                             </div>
                             <p class="lab-hours-note">
+                                Office days: {{ \App\Support\LoanTime::officeDaysLabel() }}.
                                 Pick up any time during office hours ({{ \App\Support\LoanTime::clock(\App\Support\LoanTime::opens()) }} – {{ \App\Support\LoanTime::clock(\App\Support\LoanTime::closes()) }}).
                                 Return by <strong>{{ \App\Support\LoanTime::clock(\App\Support\LoanTime::deadline()) }}</strong> on the <span id="returnByWhen">same day</span>.
                             </p>
@@ -320,10 +321,16 @@
         const returnByWhen = document.getElementById('returnByWhen');
         const typeChips = document.querySelectorAll('.duration-chip[data-type]');
 
-        // Today's return deadline (config/equiptrack.php); after it, nothing
-        // can be borrowed today. The server checks the same rules.
+        // Today's return deadline, the office days and the booking window
+        // (config/equiptrack.php). After the deadline nothing can be borrowed
+        // today; borrow and return dates must be office days. The server
+        // checks the same rules.
         const RETURN_DEADLINE = @json(\App\Support\LoanTime::deadline());
         const RETURN_DEADLINE_TEXT = @json(\App\Support\LoanTime::clock(\App\Support\LoanTime::deadline()));
+        const OFFICE_DAYS = @json(\App\Support\LoanTime::officeDays());
+        const OFFICE_DAYS_TEXT = @json(\App\Support\LoanTime::officeDaysLabel());
+        const MAX_ADVANCE_DAYS = @json((int) config('equiptrack.max_advance_days', 30));
+        const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
         // Dates as YYYY-MM-DD in the user's own time zone. toISOString() would
         // give the UTC date, which is still yesterday before 8:00 AM in the
@@ -331,15 +338,42 @@
         const pad = (n) => String(n).padStart(2, '0');
         const toYmd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
         const toHm = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-        const nextDay = (ymd) => {
+        const parseYmd = (ymd) => {
             const [y, m, d] = ymd.split('-').map(Number);
-            return toYmd(new Date(y, m - 1, d + 1));
+            return new Date(y, m - 1, d);
         };
+        const addDays = (ymd, days) => {
+            const d = parseYmd(ymd);
+            return toYmd(new Date(d.getFullYear(), d.getMonth(), d.getDate() + days));
+        };
+        const nextDay = (ymd) => addDays(ymd, 1);
+        // OFFICE_DAYS uses ISO weekdays (1 = Monday ... 7 = Sunday).
+        const isOfficeDay = (ymd) => OFFICE_DAYS.includes(parseYmd(ymd).getDay() || 7);
+        const nextOfficeDay = (ymd) => {
+            let day = ymd;
+            for (let i = 0; i < 7 && !isOfficeDay(day); i++) day = nextDay(day);
+            return day;
+        };
+        const closedMessage = (ymd, which) => 'The equipment office is closed on ' + DAY_NAMES[parseYmd(ymd).getDay()]
+            + 's. Please choose a ' + which + ' date from ' + OFFICE_DAYS_TEXT + '.';
 
-        // Today, or tomorrow once today's return deadline has passed.
+        // Today while the office is open and before the return deadline,
+        // otherwise the next office day.
         function earliestBorrowDate() {
             const now = new Date();
-            return toHm(now) >= RETURN_DEADLINE ? nextDay(toYmd(now)) : toYmd(now);
+            const today = toYmd(now);
+            return isOfficeDay(today) && toHm(now) < RETURN_DEADLINE ? today : nextOfficeDay(nextDay(today));
+        }
+
+        const latestBorrowDate = () => addDays(toYmd(new Date()), MAX_ADVANCE_DAYS);
+
+        // A closed day picked in the calendar moves to the next office day,
+        // with a note why (the browser's date picker can't grey out weekdays).
+        function keepOfficeDay(input, which) {
+            if (!input.value || isOfficeDay(input.value)) return;
+            const picked = input.value;
+            input.value = nextOfficeDay(picked);
+            alert(closedMessage(picked, which) + ' It was moved to the next office day.');
         }
 
         let borrowType = 'within_day';
@@ -362,13 +396,14 @@
 
         function syncReturnMin() {
             if (!borrowDateInput.value || !returnDateInput) return;
-            returnDateInput.min = nextDay(borrowDateInput.value);
+            returnDateInput.min = nextOfficeDay(nextDay(borrowDateInput.value));
             if (returnDateInput.value && returnDateInput.value < returnDateInput.min) {
                 returnDateInput.value = returnDateInput.min;
             }
         }
 
-        if (borrowDateInput) borrowDateInput.addEventListener('change', syncReturnMin);
+        if (borrowDateInput) borrowDateInput.addEventListener('change', () => { keepOfficeDay(borrowDateInput, 'borrow'); syncReturnMin(); });
+        if (returnDateInput) returnDateInput.addEventListener('change', () => keepOfficeDay(returnDateInput, 'return'));
         typeChips.forEach(chip => chip.addEventListener('click', () => setBorrowType(chip.dataset.type)));
 
         // Attach request click event to buttons
@@ -403,9 +438,10 @@
                 modalImg.src = eqImg;
                 modalImg.alt = eqName;
 
-                // Start today (or tomorrow after the deadline), Within the Day.
+                // Start on the earliest office day, Within the Day.
                 if (borrowDateInput) {
                     borrowDateInput.min = earliestBorrowDate();
+                    borrowDateInput.max = latestBorrowDate();
                     borrowDateInput.value = borrowDateInput.min;
                 }
                 if (returnDateInput) returnDateInput.value = "";
@@ -456,10 +492,20 @@
                     return;
                 }
 
+                if (!isOfficeDay(borrowDate)) {
+                    alert(closedMessage(borrowDate, 'borrow'));
+                    return;
+                }
+
                 if (borrowDate < earliestBorrowDate()) {
                     alert(borrowDate === toYmd(new Date())
-                        ? "Today's return deadline (" + RETURN_DEADLINE_TEXT + ') has passed. Please choose tomorrow or a later date.'
+                        ? "Today's return deadline (" + RETURN_DEADLINE_TEXT + ') has passed. Please choose a later date.'
                         : 'The borrow date cannot be in the past.');
+                    return;
+                }
+
+                if (borrowDate > latestBorrowDate()) {
+                    alert('You can request up to ' + MAX_ADVANCE_DAYS + ' days ahead.');
                     return;
                 }
 
@@ -470,6 +516,11 @@
 
                 if (borrowType === 'multiple_days' && returnDate <= borrowDate) {
                     alert('For Multiple Days, the return date must be after the borrow date.');
+                    return;
+                }
+
+                if (borrowType === 'multiple_days' && !isOfficeDay(returnDate)) {
+                    alert(closedMessage(returnDate, 'return'));
                     return;
                 }
 

@@ -315,8 +315,9 @@ class DepartmentDashboardTest extends TestCase
         $this->assertSame(1, $data['stats']['overdueItems']);
         $this->assertCount(1, $data['overdue']);
         $this->assertSame('Alice Smith', $data['overdue'][0]['user']);
-        $this->assertSame(3, $data['overdue'][0]['daysLate']);
-        $this->assertSame('3 Days', $data['overdue'][0]['daysLateText']);
+        // Due Sat Oct 31; Sunday Nov 1 (office closed) is not counted.
+        $this->assertSame(2, $data['overdue'][0]['daysLate']);
+        $this->assertSame('2 Days', $data['overdue'][0]['daysLateText']);
         $this->assertCount(0, $data['upcoming']);
     }
 

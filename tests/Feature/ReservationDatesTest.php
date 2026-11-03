@@ -86,7 +86,7 @@ class ReservationDatesTest extends TestCase
 
     public function test_a_later_booking_does_not_block_today(): void
     {
-        $this->booked($this->ana, '2026-11-20', '2026-11-22');
+        $this->booked($this->ana, '2026-11-20', '2026-11-21');
 
         // The projector sits in the lab until Nov 20, so Ben can have it now.
         $this->booked($this->ben, '2026-11-02', '2026-11-04');
@@ -97,9 +97,10 @@ class ReservationDatesTest extends TestCase
 
     public function test_whole_day_bookings_on_consecutive_days_are_allowed(): void
     {
-        $this->booked($this->ana, '2026-11-05', '2026-11-07');
+        $this->booked($this->ana, '2026-11-05', '2026-11-06');
 
-        $this->booked($this->ben, '2026-11-08', '2026-11-10');
+        // Starts the next day; it may run over Sunday (closed) to Monday.
+        $this->booked($this->ben, '2026-11-07', '2026-11-09');
         $this->assertSame(2, BorrowTransaction::count());
     }
 
@@ -122,7 +123,7 @@ class ReservationDatesTest extends TestCase
     {
         // Both submitted while the dates were still free...
         $first = (int) $this->submit($this->ana, '2026-11-05', '2026-11-07')->assertOk()->json('request_id');
-        $second = (int) $this->submit($this->ben, '2026-11-06', '2026-11-08')->assertOk()->json('request_id');
+        $second = (int) $this->submit($this->ben, '2026-11-06', '2026-11-09')->assertOk()->json('request_id');
 
         // ...but only the first can be approved.
         $this->approve($first)->assertOk();
@@ -153,6 +154,8 @@ class ReservationDatesTest extends TestCase
         $first = $this->booked($this->ana, '2026-11-05', '2026-11-07');
         $this->submit($this->ben, '2026-11-05', '2026-11-07')->assertStatus(400);
 
+        // Ana doesn't come on the pickup day.
+        Carbon::setTestNow(Carbon::parse('2026-11-05 09:00', 'Asia/Manila'));
         $this->actingAs($this->lab, 'dept')->postJson(route('department.releases.not-claimed'), [
             'transaction_id' => BorrowTransaction::where('request_id', $first)->value('transaction_id'),
         ])->assertOk();
@@ -184,7 +187,7 @@ class ReservationDatesTest extends TestCase
     public function test_the_request_form_lists_the_fully_booked_dates(): void
     {
         $this->booked($this->ana, '2026-11-05', '2026-11-07');
-        $this->booked($this->ben, '2026-11-20', '2026-11-22');
+        $this->booked($this->ben, '2026-11-20', '2026-11-21');
         $free = $this->makeEquipment($this->ccs, ['name' => 'Canon Camera']);
 
         $html = $this->actingAs($this->ana, 'user')->get(route('user.equipment'))->assertOk()->getContent();
@@ -192,7 +195,7 @@ class ReservationDatesTest extends TestCase
         preg_match('/data-id="' . $this->projector->equipment_id . '"[^>]*data-fully-booked="([^"]*)"/', $html, $projector);
         preg_match('/data-id="' . $free->equipment_id . '"[^>]*data-fully-booked="([^"]*)"/', $html, $camera);
 
-        $this->assertSame(['Nov 5–7', 'Nov 20–22'], json_decode(html_entity_decode($projector[1]), true));
+        $this->assertSame(['Nov 5–7', 'Nov 20–21'], json_decode(html_entity_decode($projector[1]), true));
         $this->assertSame([], json_decode(html_entity_decode($camera[1]), true));
         $this->assertStringContainsString('id="bookedDates"', $html);
         $this->assertStringContainsString('In the lab now:', $html);

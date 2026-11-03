@@ -85,15 +85,88 @@ class LoanTime
         return self::dueOn(self::now()->toDateString())->lte(self::now());
     }
 
+    /** ISO weekdays (1 = Monday … 7 = Sunday) the equipment office is open (config equiptrack.office_days). */
+    public static function officeDays(): array
+    {
+        $names = ['mon' => 1, 'tue' => 2, 'wed' => 3, 'thu' => 4, 'fri' => 5, 'sat' => 6, 'sun' => 7];
+        $setting = config('equiptrack.office_days', 'Mon,Tue,Wed,Thu,Fri,Sat');
+
+        $days = collect(is_array($setting) ? $setting : explode(',', (string) $setting))
+            ->map(fn ($day) => $names[strtolower(substr(trim((string) $day), 0, 3))] ?? null)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        return $days ?: [1, 2, 3, 4, 5, 6];
+    }
+
+    /** Whether the equipment office is open on that date. */
+    public static function isOfficeDay(CarbonInterface|string $date): bool
+    {
+        $date = $date instanceof CarbonInterface ? $date : Carbon::parse($date);
+
+        return in_array($date->dayOfWeekIso, self::officeDays(), true);
+    }
+
+    /** The first office day on or after $date (the date only). */
+    public static function nextOfficeDay(CarbonInterface $date): Carbon
+    {
+        $day = Carbon::parse($date->format('Y-m-d'));
+
+        for ($i = 0; $i < 7 && !self::isOfficeDay($day); $i++) {
+            $day->addDay();
+        }
+
+        return $day;
+    }
+
+    /** The earliest borrow date: today while the office is open and before the deadline, else the next office day. */
+    public static function earliestBorrowDate(): Carbon
+    {
+        $today = Carbon::parse(self::now()->toDateString());
+
+        return self::isOfficeDay($today) && !self::deadlinePassedToday()
+            ? $today
+            : self::nextOfficeDay($today->copy()->addDay());
+    }
+
+    /** The latest borrow date that can be chosen (config equiptrack.max_advance_days). */
+    public static function latestBorrowDate(): Carbon
+    {
+        return Carbon::parse(self::now()->toDateString())->addDays(max(0, (int) config('equiptrack.max_advance_days', 30)));
+    }
+
+    /** "Monday–Saturday", or "Monday, Wednesday, Friday" when the days aren't in a row. */
+    public static function officeDaysLabel(): string
+    {
+        $days = self::officeDays();
+        $name = fn (int $iso) => Carbon::create(2024, 1, $iso)->format('l'); // Jan 1, 2024 was a Monday
+
+        if (count($days) > 2 && end($days) - $days[0] === count($days) - 1) {
+            return $name($days[0]) . '–' . $name(end($days));
+        }
+
+        return implode(', ', array_map($name, $days));
+    }
+
+    /** "Sunday" / "Sundays" for messages about a closed date. */
+    public static function dayName(CarbonInterface|string $date): string
+    {
+        return ($date instanceof CarbonInterface ? $date : Carbon::parse($date))->format('l');
+    }
+
     public static function isOverdue(?CarbonInterface $due, ?CarbonInterface $now = null): bool
     {
         return $due !== null && $due->lt($now ?? self::now());
     }
 
     /**
-     * Days late, counted in dates: 0 when on time, 1 once the due date's
+     * Days late, counted in office days: 0 when on time, 1 once the due date's
      * deadline has passed (even later that same day), then the number of
-     * dates after the due date.
+     * office days after the due date. Days the office is closed don't count:
+     * the item couldn't have been returned then.
      */
     public static function daysLate(?CarbonInterface $due, ?CarbonInterface $end = null): int
     {
@@ -103,7 +176,14 @@ class LoanTime
             return 0;
         }
 
-        $days = (int) Carbon::parse($due->format('Y-m-d'))->diffInDays(Carbon::parse($end->format('Y-m-d')));
+        $last = Carbon::parse($end->format('Y-m-d'));
+        $days = 0;
+
+        for ($day = Carbon::parse($due->format('Y-m-d'))->addDay(); $day->lte($last); $day->addDay()) {
+            if (self::isOfficeDay($day)) {
+                $days++;
+            }
+        }
 
         return max(1, $days);
     }

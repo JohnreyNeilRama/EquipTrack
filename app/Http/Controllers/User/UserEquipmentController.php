@@ -102,12 +102,29 @@ class UserEquipmentController extends Controller
             'instructor_name.max' => "The instructor's name may not be longer than 150 characters.",
         ]);
 
-        // Once today's return deadline has passed the office is closed for
-        // the day, so nothing can be borrowed today any more.
+        // Borrow and return dates must be office days, within the booking
+        // window. Once today's return deadline has passed the office is
+        // closed for the day, so nothing can be borrowed today any more.
         $validator->after(function ($validator) use ($request, $today) {
-            if ($validator->errors()->isEmpty() && $request->input('borrow_date') === $today && LoanTime::deadlinePassedToday()) {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            $from = $request->input('borrow_date');
+            $to = $request->input('return_date');
+            $closed = fn (string $date, string $which) => 'The equipment office is closed on ' . LoanTime::dayName($date) . 's. '
+                . 'Please choose a ' . $which . ' date from ' . LoanTime::officeDaysLabel() . '.';
+
+            if (!LoanTime::isOfficeDay($from)) {
+                $validator->errors()->add('borrow_date', $closed($from, 'borrow'));
+            } elseif ($from === $today && LoanTime::deadlinePassedToday()) {
                 $validator->errors()->add('borrow_date', "Today's return deadline (" . LoanTime::clock(LoanTime::deadline())
-                    . ') has passed. Please choose tomorrow or a later date.');
+                    . ') has passed. Please choose ' . LoanTime::format(LoanTime::earliestBorrowDate()) . ' or a later date.');
+            } elseif ($from > LoanTime::latestBorrowDate()->toDateString()) {
+                $validator->errors()->add('borrow_date', 'You can request up to ' . config('equiptrack.max_advance_days', 30)
+                    . ' days ahead (until ' . LoanTime::format(LoanTime::latestBorrowDate()) . ').');
+            } elseif (!LoanTime::isOfficeDay($to)) {
+                $validator->errors()->add('return_date', $closed($to, 'return'));
             }
         });
 

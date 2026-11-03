@@ -220,8 +220,9 @@ class PenaltyRecordingTest extends TestCase
         $this->borrowAndReturn('Good', 3);
 
         $row = collect($this->actingAs($this->lab, 'dept')->getJson(route('department.returns.data'))->json('returns'))->first();
-        $this->assertSame(3, $row['daysLate']);
-        $this->assertEquals(75, $row['suggestedLateFee']);
+        // Due Sat Oct 31, returned Tue Nov 3: Sunday (office closed) is not counted.
+        $this->assertSame(2, $row['daysLate']);
+        $this->assertEquals(50, $row['suggestedLateFee']);
 
         config(['equiptrack.penalty_late_per_day' => 0]);
         $row = collect($this->actingAs($this->lab, 'dept')->getJson(route('department.returns.data'))->json('returns'))->first();

@@ -228,7 +228,7 @@ class UserNotificationTest extends TestCase
         $this->assertSame('overdue-' . $loan->transaction_id . '-' . now()->toDateString(), $item['key']);
         $this->assertSame('overdue', $item['type']);
         $this->assertStringContainsString('Projector Epson', $item['message']);
-        $this->assertStringContainsString('4 days late', $item['message']);
+        $this->assertStringContainsString('3 days late', $item['message']);
 
         // The other user never sees it.
         $this->assertSame([], $this->feed($this->otherUser)['notifications']);

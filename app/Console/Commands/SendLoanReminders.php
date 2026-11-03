@@ -22,7 +22,8 @@ use Throwable;
  * on the loan (due_reminder_sent_at / overdue_reminder_sent_at), so running
  * the command again the same day sends nothing new.
  *
- * Scheduled daily in routes/console.php.
+ * Scheduled daily in routes/console.php; does nothing on days the equipment
+ * office is closed (config equiptrack.office_days).
  */
 class SendLoanReminders extends Command
 {
@@ -36,6 +37,15 @@ class SendLoanReminders extends Command
     public function handle(): int
     {
         $today = BorrowTransaction::today();
+
+        // The office is closed (e.g. Sunday): nothing can be returned today,
+        // so reminders wait for the next office day.
+        if (!LoanTime::isOfficeDay($today)) {
+            $this->info('The equipment office is closed on ' . LoanTime::dayName($today) . 's; no reminders sent.');
+
+            return self::SUCCESS;
+        }
+
         $dryRun = (bool) $this->option('dry-run');
         $sent = ['due' => 0, 'overdue' => 0];
         $failed = 0;

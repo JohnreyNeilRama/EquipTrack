@@ -10,15 +10,19 @@ use Illuminate\Support\Carbon;
 abstract class TestCase extends BaseTestCase
 {
     /**
-     * Tests run at 10:00 AM Philippine time on today's date, so "today" stays
-     * open for Within the Day loans (the return deadline is 7:00 PM) whatever
-     * time the suite runs. Tests that need another moment set their own.
+     * Tests run at a fixed moment: Tuesday, Nov 3, 2026, 10:00 AM Philippine
+     * time, an office day before the 7:00 PM return deadline. Results then
+     * don't depend on the real date (late days skip Sundays, the booking
+     * window moves) or on running on a day the office is closed. Tests that
+     * need another moment set their own.
      */
+    public const TEST_NOW = '2026-11-03 10:00';
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        Carbon::setTestNow(Carbon::parse(Carbon::now(config('app.display_timezone'))->toDateString() . ' 10:00', config('app.display_timezone')));
+        Carbon::setTestNow(Carbon::parse(self::TEST_NOW, config('app.display_timezone')));
     }
 
     protected function tearDown(): void

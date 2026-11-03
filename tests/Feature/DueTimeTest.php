@@ -130,7 +130,7 @@ class DueTimeTest extends TestCase
 
         $this->submit($this->ana, 'within_day', '2026-11-02')
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['borrow_date' => "Today's return deadline (7:00 PM) has passed. Please choose tomorrow or a later date."]);
+            ->assertJsonValidationErrors(['borrow_date' => "Today's return deadline (7:00 PM) has passed. Please choose Nov 03, 2026 or a later date."]);
 
         $this->submit($this->ana, 'within_day', '2026-11-01')
             ->assertStatus(422)
