@@ -8,7 +8,17 @@
 
 @section('content')
     <div class="login-container">
-        <div class="login-panel">
+        @include('partials.auth-hero')
+
+        <main class="login-panel">
+            <div class="login-topbar">
+                <a href="{{ route('login') }}" class="back-link">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back to Login</span>
+                </a>
+            </div>
+
+            <div class="login-card">
             @if (!$linkValid || session('link_invalid'))
                 {{-- Expired, already used or wrong link --}}
                 <div class="login-header">
@@ -81,7 +91,8 @@
                     </div>
                 </form>
             @endif
-        </div>
+            </div>
+        </main>
     </div>
 @endsection
 

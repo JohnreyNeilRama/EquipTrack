@@ -8,68 +8,89 @@
 
 @section('content')
     <div class="login-container">
-        <div class="login-panel">
-            <div class="login-header">
-                <h1>Welcome back!</h1>
-                <p>Please login to your account.</p>
+        @include('partials.auth-hero')
+
+        <main class="login-panel">
+            <div class="login-topbar">
+                <a href="{{ route('landing') }}" class="back-link" id="backToLanding">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back to Home</span>
+                </a>
             </div>
 
-            @if ($registered)
-                <div style="color: #065f46; background: #d1fae5; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 15px; border: 1px solid #6ee7b7; display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-circle-check" style="color: #059669;"></i> Account created successfully! Please log in below.
-                </div>
-            @endif
-
-            @if (session('status'))
-                <div class="auth-alert is-success" role="status">
-                    <i class="fa-solid fa-circle-check"></i>
-                    <span>{{ session('status') }}</span>
-                </div>
-            @endif
-
-            @if ($deactivated)
-                <div style="color: #ef4444; background: #fee2e2; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 15px; border: 1px solid #fca5a5;">
-                    <i class="fa-solid fa-circle-exclamation"></i> Your account has been deactivated by the Administrator. Please contact support.
-                </div>
-            @endif
-
-            @error('email')
-                <div style="color: #ef4444; background: #fee2e2; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 15px; border: 1px solid #fca5a5;">
-                    <i class="fa-solid fa-circle-exclamation"></i> {{ $message }}
-                </div>
-            @enderror
-
-            <form action="/login" method="POST" class="login-form">
-                @csrf
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="text" id="email" name="email" value="{{ old('email') }}" required>
+            <div class="login-card">
+                <div class="login-header">
+                    <h1>Welcome back!</h1>
+                    <p>Log in to your EquipTrack account to continue.</p>
                 </div>
 
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <div class="password-input-container">
-                        <input type="password" id="password" name="password" required>
-                        <i class="fa-regular fa-eye toggle-password" id="togglePassword"></i>
+                @if ($registered)
+                    <div class="auth-alert is-success" role="status">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Account created successfully! Please log in below.</span>
                     </div>
-                </div>
+                @endif
 
-                <div class="form-options">
-                    <label class="remember-me">
-                        <input type="checkbox" name="remember" value="1" checked>
-                        <span class="checkmark"></span>
-                        Remember Me
-                    </label>
-                    <a href="{{ route('password.request') }}" class="forgot-password" id="forgotLink">Forgot password?</a>
-                </div>
+                @if (session('status'))
+                    <div class="auth-alert is-success" role="status">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>{{ session('status') }}</span>
+                    </div>
+                @endif
 
-                <button type="submit" class="login-btn">Login</button>
+                @if ($deactivated)
+                    <div class="auth-alert is-error" role="alert">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span>Your account has been deactivated by the Administrator. Please contact support.</span>
+                    </div>
+                @endif
 
-                <div class="signup-link">
-                    Don't have an account? <a href="/register" id="registerLink">Sign up here</a>
-                </div>
-            </form>
-        </div>
+                @error('email')
+                    <div class="auth-alert is-error" role="alert">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span>{{ $message }}</span>
+                    </div>
+                @enderror
+
+                <form action="/login" method="POST" class="login-form">
+                    @csrf
+                    <div class="form-group">
+                        <label for="email">Email or Username</label>
+                        <div class="input-icon">
+                            <i class="fa-regular fa-envelope field-icon"></i>
+                            <input type="text" id="email" name="email" value="{{ old('email') }}" placeholder="you@example.com" autocomplete="username" required autofocus>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-icon password-input-container">
+                            <i class="fa-solid fa-lock field-icon"></i>
+                            <input type="password" id="password" name="password" placeholder="Enter your password" autocomplete="current-password" required>
+                            <i class="fa-regular fa-eye toggle-password" id="togglePassword" role="button" tabindex="0" aria-label="Show password"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-options">
+                        <label class="remember-me">
+                            <input type="checkbox" name="remember" value="1" checked>
+                            <span class="checkmark"></span>
+                            Remember me
+                        </label>
+                        <a href="{{ route('password.request') }}" class="forgot-password" id="forgotLink">Forgot password?</a>
+                    </div>
+
+                    <button type="submit" class="login-btn" id="loginBtn">
+                        <span>Log In</span>
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                    </button>
+
+                    <div class="signup-link">
+                        Don't have an account? <a href="/register" id="registerLink">Sign up here</a>
+                    </div>
+                </form>
+            </div>
+        </main>
     </div>
 @endsection
 
@@ -79,17 +100,36 @@
     const password = document.querySelector('#password');
 
     if (togglePassword && password) {
-        togglePassword.addEventListener('click', function (e) {
+        const toggle = function () {
             // toggle the type attribute
-            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
-            password.setAttribute('type', type);
+            const show = password.getAttribute('type') === 'password';
+            password.setAttribute('type', show ? 'text' : 'password');
             // toggle the eye / eye-slash icon
-            this.classList.toggle('fa-eye-slash');
+            togglePassword.classList.toggle('fa-eye-slash', show);
+            togglePassword.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        };
+
+        togglePassword.addEventListener('click', toggle);
+        togglePassword.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggle();
+            }
         });
     }
 
-    // Smooth transition to the Registration and Forgot Password pages
-    ['registerLink', 'forgotLink'].map(id => document.getElementById(id)).filter(Boolean).forEach(link => {
+    // Show progress and block double submits while signing in
+    const loginForm = document.querySelector('.login-form');
+    const loginBtn = document.querySelector('#loginBtn');
+    if (loginForm && loginBtn) {
+        loginForm.addEventListener('submit', function () {
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Logging in...</span>';
+        });
+    }
+
+    // Smooth transition to the Landing, Registration and Forgot Password pages
+    ['backToLanding', 'registerLink', 'forgotLink'].map(id => document.getElementById(id)).filter(Boolean).forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const panel = document.querySelector('.login-panel');
@@ -103,12 +143,16 @@
         });
     });
 
-    // Fix missing panel when using browser back button (bfcache restore)
+    // Fix missing panel and stuck button when using browser back button (bfcache restore)
     window.addEventListener('pageshow', function (event) {
         if (event.persisted) {
             const panel = document.querySelector('.login-panel');
             if (panel) {
                 panel.style.animation = ''; // Reset to default CSS entrance animation
+            }
+            if (loginBtn) {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<span>Log In</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>';
             }
         }
     });

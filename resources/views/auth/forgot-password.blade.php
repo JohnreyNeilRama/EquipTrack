@@ -8,7 +8,17 @@
 
 @section('content')
     <div class="login-container">
-        <div class="login-panel">
+        @include('partials.auth-hero')
+
+        <main class="login-panel">
+            <div class="login-topbar">
+                <a href="{{ route('login') }}" class="back-link">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back to Login</span>
+                </a>
+            </div>
+
+            <div class="login-card">
             <div class="login-header">
                 <h1>Forgot password?</h1>
                 <p>Enter the email address for your EquipTrack account and we'll email you a link to reset your password.</p>
@@ -42,7 +52,8 @@
                     Remembered your password? <a href="{{ route('login') }}">Back to Login</a>
                 </div>
             </form>
-        </div>
+            </div>
+        </main>
     </div>
 @endsection
 

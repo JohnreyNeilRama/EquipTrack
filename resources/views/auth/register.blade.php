@@ -3,126 +3,194 @@
 @section('title', 'EquipTrack - Register')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('ccs/register.css') }}?v=2.3">
+<link rel="stylesheet" href="{{ asset('ccs/login.css') }}?v={{ filemtime(public_path('ccs/login.css')) }}">
+<link rel="stylesheet" href="{{ asset('ccs/register.css') }}?v={{ filemtime(public_path('ccs/register.css')) }}">
 @endpush
 
 @section('content')
     @php $showForm = $errors->any(); @endphp
-    <div class="register-container">
-        {{-- Choose a Role Container --}}
-        <div class="role-selection-container {{ $showForm ? 'hidden' : '' }}" id="roleSelectionContainer">
-            <div class="role-selection-card">
-                <a href="/" class="role-close-btn" id="roleCloseBtn" aria-label="Close role selection">
-                    <i class="fa-solid fa-xmark"></i>
-                </a>
-                <h2 class="role-title">What are you?</h2>
-                <div class="roles-grid">
-                    <div class="role-option" id="roleStudent" role="button" tabindex="0"><span class="role-label">Student</span><div class="role-circle"><img src="{{ asset('images/login_student.jpg') }}" alt="Student"></div></div>
-                    <div class="role-option" id="roleTeacher" role="button" tabindex="0"><span class="role-label">Teacher</span><div class="role-circle"><img src="{{ asset('images/login_teacher.jpg') }}" alt="Teacher"></div></div>
-                </div>
-            </div>
-        </div>
+    <div class="login-container">
+        @include('partials.auth-hero')
 
-        {{-- Registration Form Panel --}}
-        <div class="register-panel {{ $showForm ? 'active' : '' }}" id="registerPanel">
-            <a href="#" class="back-link" id="backToRole">
-                <i class="fa-solid fa-arrow-left"></i> Back
-            </a>
-
-            <div class="register-header">
-                <h1 id="registerTitle">Register</h1>
-                <p id="registerSubtitle">Enter your credentials to register.</p>
-            </div>
-
-            @if ($errors->any())
-                <div style="color: #ef4444; background: #fee2e2; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 15px; border: 1px solid #fca5a5;">
-                    <i class="fa-solid fa-circle-exclamation"></i> {{ $errors->first() }}
-                </div>
-            @endif
-
-            <form action="/register" method="POST" class="register-form">
-                @csrf
-                <input type="hidden" id="selected_role" name="role" value="{{ old('role', '') }}">
-
-                <div class="form-row">
-                    <div class="form-group half-width">
-                        <label for="first_name">First Name</label>
-                        <input type="text" id="first_name" name="first_name" value="{{ old('first_name') }}" required>
-                    </div>
-                    <div class="form-group half-width">
-                        <label for="last_name">Last Name</label>
-                        <input type="text" id="last_name" name="last_name" value="{{ old('last_name') }}" required>
-                    </div>
+        <main class="login-panel">
+            {{-- Step 1: Choose a role --}}
+            <section class="register-step {{ $showForm ? '' : 'is-active' }}" id="roleSelectionContainer" @if ($showForm) hidden @endif>
+                <div class="login-topbar">
+                    <a href="{{ route('landing') }}" class="back-link" id="roleCloseBtn">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span>Back to Home</span>
+                    </a>
+                    <span class="step-badge">Step 1 of 2</span>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group half-width" id="idNumberGroup">
-                        <label for="id_number" id="idNumberLabel">ID Number</label>
-                        <input type="text" id="id_number" name="id_number" value="{{ old('id_number') }}" required>
+                <div class="login-card register-card role-card">
+                    <div class="login-header role-header">
+                        <h1 class="role-title">What are you?</h1>
+                        <p>Choose your role to start creating your account.</p>
                     </div>
-                    <div class="form-group half-width" id="yearLevelGroup">
-                        <label for="year_level">Year &amp; Level</label>
-                        <div class="select-wrapper">
-                            <select id="year_level" name="year_level" required>
-                                <option value="" disabled {{ old('year_level') ? '' : 'selected' }}>Select Year Level</option>
-                                @foreach (['1' => '1st Year', '2' => '2nd Year', '3' => '3rd Year', '4' => '4th Year'] as $val => $label)
-                                    <option value="{{ $val }}" @selected(old('year_level') == $val)>{{ $label }}</option>
-                                @endforeach
-                            </select>
-                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+
+                    <div class="roles-grid">
+                        <button type="button" class="role-option" id="roleStudent">
+                            <span class="role-label">Student</span>
+                            <span class="role-circle"><img src="{{ asset('images/login_student.jpg') }}" alt=""></span>
+                        </button>
+                        <button type="button" class="role-option" id="roleTeacher">
+                            <span class="role-label">Teacher</span>
+                            <span class="role-circle"><img src="{{ asset('images/login_teacher.jpg') }}" alt=""></span>
+                        </button>
+                    </div>
+
+                    <div class="signup-link">
+                        Already have an account? <a href="{{ route('login') }}" class="to-login">Log in</a>
+                    </div>
+                </div>
+            </section>
+
+            {{-- Step 2: Registration form --}}
+            <section class="register-step {{ $showForm ? 'is-active' : '' }}" id="registerPanel" @unless ($showForm) hidden @endunless>
+                <div class="login-topbar">
+                    <a href="#" class="back-link" id="backToRole">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span>Change Role</span>
+                    </a>
+                    <span class="step-badge">Step 2 of 2</span>
+                </div>
+
+                <div class="login-card register-card">
+                    <div class="login-header">
+                        <h1 id="registerTitle">Register</h1>
+                        <p id="registerSubtitle">Enter your credentials to register.</p>
+                    </div>
+
+                    @if ($errors->any())
+                        <div class="auth-alert is-error" role="alert">
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                            <span>{{ $errors->first() }}</span>
                         </div>
-                    </div>
-                </div>
+                    @endif
 
-                <div class="form-group">
-                    <label for="department_id">Department</label>
-                    <div class="select-wrapper">
-                        <select id="department_id" name="department_id" required>
-                            <option value="" disabled {{ old('department_id') ? '' : 'selected' }}>Select Department</option>
-                            @foreach ($departments as $department)
-                                <option value="{{ $department->department_id }}" @selected(old('department_id') == $department->department_id)>
-                                    {{ $department->department_name }}{{ $department->department_code ? ' (' . $department->department_code . ')' : '' }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
-                    </div>
-                </div>
+                    <form action="/register" method="POST" class="register-form login-form" novalidate>
+                        @csrf
+                        <input type="hidden" id="selected_role" name="role" value="{{ old('role', '') }}">
 
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" value="{{ old('email') }}" required>
-                </div>
+                        <fieldset class="form-section">
+                            <legend>Personal information</legend>
 
-                <div class="form-group">
-                    <label for="address">Address</label>
-                    <input type="text" id="address" name="address" value="{{ old('address') }}" required>
-                </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="first_name">First Name</label>
+                                    <div class="input-icon">
+                                        <i class="fa-regular fa-user field-icon"></i>
+                                        <input type="text" id="first_name" name="first_name" value="{{ old('first_name') }}" placeholder="Juan" autocomplete="given-name" maxlength="50" required @class(['is-invalid' => $errors->has('first_name')])>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="last_name">Last Name</label>
+                                    <div class="input-icon">
+                                        <i class="fa-regular fa-user field-icon"></i>
+                                        <input type="text" id="last_name" name="last_name" value="{{ old('last_name') }}" placeholder="Dela Cruz" autocomplete="family-name" maxlength="50" required @class(['is-invalid' => $errors->has('last_name')])>
+                                    </div>
+                                </div>
+                            </div>
 
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <div class="password-input-container">
-                        <input type="password" id="password" name="password" required minlength="8" title="At least 8 characters, with letters and numbers.">
-                        <i class="fa-regular fa-eye toggle-password" id="togglePassword"></i>
-                    </div>
-                </div>
+                            <div class="form-row">
+                                <div class="form-group" id="idNumberGroup">
+                                    <label for="id_number" id="idNumberLabel">ID Number</label>
+                                    <div class="input-icon">
+                                        <i class="fa-regular fa-id-card field-icon"></i>
+                                        <input type="text" id="id_number" name="id_number" value="{{ old('id_number') }}" required @class(['is-invalid' => $errors->has('id_number')])>
+                                    </div>
+                                </div>
+                                <div class="form-group" id="yearLevelGroup">
+                                    <label for="year_level">Year &amp; Level</label>
+                                    <div class="input-icon select-wrapper">
+                                        <i class="fa-solid fa-graduation-cap field-icon"></i>
+                                        <select id="year_level" name="year_level" required @class(['is-invalid' => $errors->has('year_level')])>
+                                            <option value="" disabled {{ old('year_level') ? '' : 'selected' }}>Select year</option>
+                                            @foreach (['1' => '1st Year', '2' => '2nd Year', '3' => '3rd Year', '4' => '4th Year'] as $val => $label)
+                                                <option value="{{ $val }}" @selected(old('year_level') == $val)>{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+                                        <i class="fa-solid fa-chevron-down select-arrow" aria-hidden="true"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </fieldset>
 
-                <button type="submit" class="register-btn" id="registerBtn">
-                    <span class="btn-text">Register</span>
-                    <div class="spinner"></div>
-                </button>
+                        <fieldset class="form-section">
+                            <legend>School &amp; contact</legend>
 
-                <div class="login-link">
-                    Already have an account? <a href="/login" id="loginLink">Login</a>
+                            <div class="form-group">
+                                <label for="department_id">Department</label>
+                                <div class="input-icon select-wrapper">
+                                    <i class="fa-solid fa-building-columns field-icon"></i>
+                                    <select id="department_id" name="department_id" required @class(['is-invalid' => $errors->has('department_id')])>
+                                        <option value="" disabled {{ old('department_id') ? '' : 'selected' }}>Select your department</option>
+                                        @foreach ($departments as $department)
+                                            <option value="{{ $department->department_id }}" @selected(old('department_id') == $department->department_id)>
+                                                {{ $department->department_name }}{{ $department->department_code ? ' (' . $department->department_code . ')' : '' }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <i class="fa-solid fa-chevron-down select-arrow" aria-hidden="true"></i>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <div class="input-icon">
+                                    <i class="fa-regular fa-envelope field-icon"></i>
+                                    <input type="email" id="email" name="email" value="{{ old('email') }}" placeholder="you@example.com" autocomplete="email" maxlength="100" required @class(['is-invalid' => $errors->has('email')])>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="address">Address</label>
+                                <div class="input-icon">
+                                    <i class="fa-solid fa-location-dot field-icon"></i>
+                                    <input type="text" id="address" name="address" value="{{ old('address') }}" placeholder="Street, barangay, city" autocomplete="street-address" maxlength="150" required @class(['is-invalid' => $errors->has('address')])>
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <fieldset class="form-section">
+                            <legend>Security</legend>
+
+                            <div class="form-group">
+                                <label for="password">Password</label>
+                                <div class="input-icon password-input-container">
+                                    <i class="fa-solid fa-lock field-icon"></i>
+                                    <input type="password" id="password" name="password" placeholder="Create a password" autocomplete="new-password" required minlength="8" title="At least 8 characters, with letters and numbers." @class(['is-invalid' => $errors->has('password')])>
+                                    <i class="fa-regular fa-eye toggle-password" id="togglePassword" role="button" tabindex="0" aria-label="Show password"></i>
+                                </div>
+                            </div>
+
+                            <ul class="password-rules" id="passwordRules" aria-live="polite">
+                                <li data-rule="length"><i class="fa-solid fa-circle-check"></i> At least 8 characters</li>
+                                <li data-rule="letter"><i class="fa-solid fa-circle-check"></i> Includes a letter</li>
+                                <li data-rule="number"><i class="fa-solid fa-circle-check"></i> Includes a number</li>
+                            </ul>
+                        </fieldset>
+
+                        <p class="auth-alert is-error" id="clientError" role="alert" hidden></p>
+
+                        <button type="submit" class="login-btn register-btn" id="registerBtn">
+                            <span>Create Account</span>
+                            <i class="fa-solid fa-user-plus"></i>
+                        </button>
+
+                        <div class="signup-link">
+                            Already have an account? <a href="{{ route('login') }}" class="to-login" id="loginLink">Log in</a>
+                        </div>
+                    </form>
                 </div>
-            </form>
-        </div>
+            </section>
+        </main>
     </div>
 @endsection
 
 @push('scripts')
 <script>
-    // DOM Elements
     const togglePassword = document.querySelector('#togglePassword');
     const password = document.querySelector('#password');
     const roleSelectionContainer = document.getElementById('roleSelectionContainer');
@@ -133,50 +201,84 @@
     const yearLevelGroup = document.getElementById('yearLevelGroup');
     const yearLevelSelect = document.getElementById('year_level');
     const idNumberLabel = document.getElementById('idNumberLabel');
+    const idInput = document.getElementById('id_number');
     const backToRole = document.getElementById('backToRole');
     const roleStudentBtn = document.getElementById('roleStudent');
     const roleTeacherBtn = document.getElementById('roleTeacher');
-    const loginLink = document.getElementById('loginLink');
     const registerForm = document.querySelector('.register-form');
     const registerBtn = document.getElementById('registerBtn');
-    const roleCloseBtn = document.getElementById('roleCloseBtn');
+    const clientError = document.getElementById('clientError');
+    const panel = document.querySelector('.login-panel');
+    const buttonLabel = registerBtn ? registerBtn.innerHTML : '';
+
+    // Show one step (role choice or form) with a short fade
+    function showStep(step) {
+        [roleSelectionContainer, registerPanel].forEach(section => {
+            const active = section === step;
+            section.hidden = !active;
+            section.classList.toggle('is-active', active);
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     // Toggle Password Visibility
     if (togglePassword && password) {
-        togglePassword.addEventListener('click', function (e) {
-            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
-            password.setAttribute('type', type);
-            this.classList.toggle('fa-eye-slash');
+        const toggle = function () {
+            const show = password.getAttribute('type') === 'password';
+            password.setAttribute('type', show ? 'text' : 'password');
+            togglePassword.classList.toggle('fa-eye-slash', show);
+            togglePassword.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        };
+        togglePassword.addEventListener('click', toggle);
+        togglePassword.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggle();
+            }
         });
     }
 
+    // Live password checklist (same rules as the server: 8+ characters, a letter and a number)
+    const rules = {
+        length: value => value.length >= 8,
+        letter: value => /[A-Za-z]/.test(value),
+        number: value => /\d/.test(value),
+    };
+    function updateRules() {
+        const value = password ? password.value : '';
+        document.querySelectorAll('#passwordRules li').forEach(item => {
+            item.classList.toggle('is-met', rules[item.dataset.rule](value));
+        });
+    }
+    if (password) {
+        password.addEventListener('input', updateRules);
+        updateRules();
+    }
+
     // Role Selection Logic
-    function selectRole(role) {
+    function selectRole(role, animate = true) {
         if (selectedRoleInput) {
             selectedRoleInput.value = role;
         }
 
-        const idInput = document.getElementById('id_number');
-
         if (role === 'student') {
             if (registerTitle) registerTitle.textContent = 'Register as a Student';
-            if (registerSubtitle) registerSubtitle.textContent = 'Enter your student credentials to register.';
-            if (idNumberLabel) idNumberLabel.textContent = 'ID Number';
-            if (yearLevelGroup) yearLevelGroup.style.display = 'block';
-            if (yearLevelSelect) {
-                yearLevelSelect.setAttribute('required', 'required');
-            }
+            if (registerSubtitle) registerSubtitle.textContent = 'Fill in your student details to create your account.';
+            if (idNumberLabel) idNumberLabel.textContent = 'Student ID Number';
+            if (yearLevelGroup) yearLevelGroup.hidden = false;
+            if (yearLevelSelect) yearLevelSelect.setAttribute('required', 'required');
             if (idInput) {
                 idInput.placeholder = 'e.g., 20230123';
                 idInput.pattern = '\\d{8}';
                 idInput.title = 'Student ID must be exactly 8 digits.';
                 idInput.maxLength = 8;
+                idInput.inputMode = 'numeric';
             }
         } else if (role === 'teacher') {
             if (registerTitle) registerTitle.textContent = 'Register as a Teacher';
-            if (registerSubtitle) registerSubtitle.textContent = 'Enter your teacher credentials to register.';
-            if (idNumberLabel) idNumberLabel.textContent = 'ID Number';
-            if (yearLevelGroup) yearLevelGroup.style.display = 'none';
+            if (registerSubtitle) registerSubtitle.textContent = 'Fill in your faculty details to create your account.';
+            if (idNumberLabel) idNumberLabel.textContent = 'Faculty ID Number';
+            if (yearLevelGroup) yearLevelGroup.hidden = true;
             if (yearLevelSelect) {
                 yearLevelSelect.removeAttribute('required');
                 yearLevelSelect.value = '';
@@ -186,89 +288,89 @@
                 idInput.removeAttribute('pattern');
                 idInput.removeAttribute('title');
                 idInput.removeAttribute('maxlength');
+                idInput.inputMode = 'text';
             }
         }
 
-        // Animate transition
-        if (roleSelectionContainer) roleSelectionContainer.classList.add('hidden');
-        setTimeout(() => {
-            if (registerPanel) registerPanel.classList.add('active');
-        }, 100);
+        if (animate) {
+            showStep(registerPanel);
+            const first = document.getElementById('first_name');
+            if (first) setTimeout(() => first.focus({ preventScroll: true }), 150);
+        }
     }
 
     // Re-apply saved role after a validation error (form is already shown)
     const restoredRole = @json(old('role'));
-    if (restoredRole) selectRole(restoredRole);
+    if (restoredRole) selectRole(restoredRole, false);
 
-    // Event listeners for role choice buttons
-    const handleRoleKeydown = (e, role) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            selectRole(role);
-        }
-    };
+    if (roleStudentBtn) roleStudentBtn.addEventListener('click', () => selectRole('student'));
+    if (roleTeacherBtn) roleTeacherBtn.addEventListener('click', () => selectRole('teacher'));
 
-    if (roleStudentBtn) {
-        roleStudentBtn.addEventListener('click', () => selectRole('student'));
-        roleStudentBtn.addEventListener('keydown', (e) => handleRoleKeydown(e, 'student'));
-    }
-
-    if (roleTeacherBtn) {
-        roleTeacherBtn.addEventListener('click', () => selectRole('teacher'));
-        roleTeacherBtn.addEventListener('keydown', (e) => handleRoleKeydown(e, 'teacher'));
-    }
-
-    // Back button navigation
+    // Back to the role choice
     if (backToRole) {
-        backToRole.addEventListener('click', function(e) {
+        backToRole.addEventListener('click', function (e) {
             e.preventDefault();
-            if (registerPanel) registerPanel.classList.remove('active');
-            setTimeout(() => {
-                if (roleSelectionContainer) roleSelectionContainer.classList.remove('hidden');
-            }, 300);
+            if (clientError) clientError.hidden = true;
+            showStep(roleSelectionContainer);
         });
     }
 
-    // Smooth transition to Login page
-    if (loginLink) {
-        loginLink.addEventListener('click', function(e) {
+    // Smooth transition to the Login and Landing pages
+    document.querySelectorAll('.to-login, #roleCloseBtn').forEach(link => {
+        link.addEventListener('click', function (e) {
             e.preventDefault();
-            if (registerPanel) registerPanel.classList.remove('active');
+            if (panel) panel.style.animation = 'slideOutRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards';
             setTimeout(() => {
                 window.location.href = this.href;
             }, 400);
         });
-    }
+    });
 
-    // Fix missing panel when using browser back button (bfcache restore)
+    // Fix missing panel and stuck button when using browser back button (bfcache restore)
     window.addEventListener('pageshow', function (event) {
         if (event.persisted) {
-            if (registerPanel) registerPanel.classList.remove('active');
-            if (roleSelectionContainer) roleSelectionContainer.classList.remove('hidden');
-            if (registerBtn) registerBtn.classList.remove('submitting');
-            if (registerForm) registerForm.classList.remove('form-submitting');
+            if (panel) panel.style.animation = '';
+            showStep(roleSelectionContainer);
+            if (registerBtn) {
+                registerBtn.disabled = false;
+                registerBtn.innerHTML = buttonLabel;
+            }
         }
     });
 
-    // Form submission loading state
+    // Check the form before sending it; show the first problem above the button
     if (registerForm && registerBtn) {
-        registerForm.addEventListener('submit', function () {
-            if (registerForm.checkValidity()) {
-                registerBtn.classList.add('submitting');
-                registerForm.classList.add('form-submitting');
-            }
-        });
-    }
+        registerForm.addEventListener('submit', function (e) {
+            registerForm.querySelectorAll('.is-invalid').forEach(field => field.classList.remove('is-invalid'));
 
-    // Close button redirect animation
-    if (roleCloseBtn) {
-        roleCloseBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            if (roleSelectionContainer) roleSelectionContainer.classList.add('hidden');
-            setTimeout(() => {
-                window.location.href = this.href;
-            }, 500);
+            const invalid = Array.from(registerForm.elements).find(field =>
+                field.willValidate && !field.closest('[hidden]') && !field.checkValidity());
+
+            if (invalid) {
+                e.preventDefault();
+                invalid.classList.add('is-invalid');
+                const label = registerForm.querySelector('label[for="' + invalid.id + '"]');
+                const name = label ? label.textContent.trim() : 'This field';
+                const message = invalid.validity.valueMissing
+                    ? name + ' is required.'
+                    : (invalid.title || invalid.validationMessage);
+                if (clientError) {
+                    clientError.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> <span></span>';
+                    clientError.querySelector('span').textContent = message;
+                    clientError.hidden = false;
+                }
+                invalid.focus();
+                return;
+            }
+
+            if (clientError) clientError.hidden = true;
+            registerBtn.disabled = true;
+            registerBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Creating account...</span>';
         });
+
+        // Clear a field's error highlight once it is edited
+        registerForm.addEventListener('input', e => e.target.classList.remove('is-invalid'));
+        registerForm.addEventListener('change', e => e.target.classList.remove('is-invalid'));
     }
 </script>
 @endpush

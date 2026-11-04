@@ -1,575 +1,301 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Inter', sans-serif;
+/* Registration page. Loaded after login.css, which provides the page shell
+   (photo panel, frosted form panel), fields, buttons and alerts. */
+
+[hidden] {
+    display: none !important;
 }
 
-body {
-    background-image: url('../images/uc_bg.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    height: 100vh;
-    display: flex;
-    justify-content: flex-start;
-    /* Aligns panel to the left */
-}
-
-.register-container {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: flex-start;
-    position: relative;
-    overflow: hidden;
-}
-
-.register-panel {
-    background: rgba(235, 240, 245, 0.93);
-    backdrop-filter: blur(8px);
-    width: 45%;
-    max-width: 550px;
-    height: 100%;
-    border-top-right-radius: 40px;
-    border-bottom-right-radius: 40px;
-    padding: 40px 80px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
-    overflow-y: auto;
-
-    /* Transition states instead of auto animation */
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease, visibility 0.6s;
-    transform: translateX(-100%);
-    opacity: 0;
-    visibility: hidden;
-}
-
-.register-panel.active {
-    transform: translateX(0);
-    opacity: 1;
-    visibility: visible;
-}
-
-
-/* Custom scrollbar to keep it clean */
-.register-panel::-webkit-scrollbar {
-    width: 6px;
-}
-
-.register-panel::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 10px;
-}
-
-@media (max-width: 992px) {
-    .register-panel {
-        width: 60%;
-        padding: 40px 50px;
+/* The form is taller than the screen: keep the photo panel in place while it scrolls. */
+@media (min-width: 901px) {
+    .auth-hero {
+        position: sticky;
+        top: 0;
+        height: 100vh;
     }
 }
 
-@media (max-width: 768px) {
-    .register-panel {
-        width: 100%;
-        border-radius: 0;
-        padding: 40px;
-    }
-}
-
-.register-header {
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-.register-header h1 {
-    font-size: 30px;
-    color: #1a1a1a;
-    font-weight: 700;
-    margin-bottom: 8px;
-}
-
-.register-header p {
-    color: #333;
-    font-size: 16px;
-}
-
-.register-form {
+.register-step {
     display: flex;
     flex-direction: column;
-}
-
-.form-row {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 15px;
-}
-
-.half-width {
     flex: 1;
-    margin-bottom: 0 !important;
-    /* Overrides the default margin for form-group */
 }
 
-.form-group {
-    margin-bottom: 15px;
+.register-step.is-active {
+    animation: stepIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.form-group label {
-    display: block;
-    font-size: 13px;
-    color: #333;
-    margin-bottom: 6px;
-    font-weight: 500;
+@keyframes stepIn {
+    from { transform: translateY(10px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
 }
 
-.form-group input[type="text"],
-.form-group input[type="email"],
-.form-group input[type="password"],
-.form-group select {
-    width: 100%;
-    padding: 10px 15px;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 14px;
-    background: #fff;
-    outline: none;
-    transition: border-color 0.3s;
-}
-
-.form-group select {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    padding-right: 40px;
-    color: #333;
-    cursor: pointer;
-}
-
-.form-group select::-ms-expand {
-    display: none;
-}
-
-/* The empty "Select …" option is showing: grey it like a placeholder. */
-.form-group select:invalid {
-    color: #9ca3af;
-}
-
-.form-group select option {
-    color: #333;
-}
-
-/* Dropdown arrow, positioned like the password eye icon. */
-.select-wrapper {
-    position: relative;
-}
-
-.select-wrapper i {
-    position: absolute;
-    right: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #6b7280;
-    font-size: 12px;
-    pointer-events: none;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-    border-color: #5C74A8;
-}
-
-.password-input-container {
-    position: relative;
-}
-
-.password-input-container i {
-    position: absolute;
-    right: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #1a1a1a;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-.register-btn {
-    position: relative;
-    background-color: #5C74A8;
-    color: white;
-    padding: 12px;
-    border: none;
-    border-radius: 6px;
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.3s, transform 0.1s, opacity 0.3s ease;
-    margin-top: 15px;
-    margin-bottom: 15px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-}
-
-.register-btn:hover {
-    background-color: #4b6192;
-}
-
-.register-btn:active {
-    transform: scale(0.98);
-}
-
-/* Submitting Loading State Animation */
-.register-btn .btn-text {
-    display: inline-block;
-    transition: opacity 0.2s ease, transform 0.2s ease;
-    will-change: transform, opacity;
-}
-
-.register-btn .spinner {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    border-top-color: #ffffff;
-    opacity: 0;
-    transform: scale(0.5);
-    transition: opacity 0.2s ease, transform 0.2s ease;
-    animation: btn-spin 0.8s linear infinite;
-    pointer-events: none;
-    will-change: transform, opacity;
-}
-
-@keyframes btn-spin {
-    to {
-        transform: rotate(360deg);
+@media (prefers-reduced-motion: reduce) {
+    .register-step.is-active {
+        animation: none;
     }
 }
 
-.register-btn.submitting {
-    background-color: #43547a !important;
-    cursor: not-allowed;
-    pointer-events: none;
+.login-topbar {
+    justify-content: space-between;
+    gap: 12px;
 }
 
-.register-btn.submitting .btn-text {
-    opacity: 0;
-    transform: translateY(-20px);
-}
-
-.register-btn.submitting .spinner {
-    position: static;
-    opacity: 1;
-    transform: scale(1);
-}
-
-.form-submitting {
-    pointer-events: none;
-}
-
-.form-submitting input,
-.form-submitting select {
-    opacity: 0.75;
-    transition: opacity 0.3s ease;
-}
-
-.login-link {
-    text-align: center;
+.step-badge {
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--primary-light);
+    color: var(--primary);
     font-size: 12px;
-    color: #333;
-}
-
-.login-link a {
-    color: #38b6ff;
-    text-decoration: none;
     font-weight: 600;
+    white-space: nowrap;
 }
 
-.login-link a:hover {
-    text-decoration: underline;
+.register-card {
+    max-width: 520px;
 }
 
-/* --- Choose a Role Screen Styles --- */
-.role-selection-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 10;
-    background: rgba(15, 32, 54, 0.2);
-    /* Soft overlay to improve contrast */
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease, visibility 0.6s;
-    opacity: 1;
-    visibility: visible;
-    
-    /* Overlay fade-in animation on first load */
-    animation: overlayFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.role-selection-container.hidden {
-    transform: scale(0.95);
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-}
-
-.role-selection-card {
-    position: relative; /* Context for absolute positioning of close button */
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 32px;
-    padding: 60px 80px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.15);
-    max-width: 90%;
-    width: auto;
-
-    /* Hardware acceleration to prevent backdrop-filter redraw flickering on card animations */
-    will-change: backdrop-filter, transform, opacity;
-    transform: translate3d(0, 0, 0);
-    
-    /* Slide-up and fade-in entrance animation on first load */
-    animation: roleCardEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Exit/Close Button Style */
-.role-close-btn {
-    position: absolute;
-    top: 24px;
-    left: 24px;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: #94a3b8; /* Slate grey color */
-    text-decoration: none;
-    font-size: 16px;
-    transition: background 0.3s ease, color 0.3s ease, transform 0.2s ease;
-    cursor: pointer;
-    z-index: 20;
-}
-
-.role-close-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #cbd5e1; /* Lighter grey */
-    transform: scale(1.05);
-}
-
-.role-close-btn:active {
-    transform: scale(0.95);
-}
-
-/* Entrance Animations Keyframes */
-@keyframes overlayFadeIn {
-    0% {
-        background: rgba(15, 32, 54, 0);
-    }
-    100% {
-        background: rgba(15, 32, 54, 0.2);
-    }
-}
-
-@keyframes roleCardEntrance {
-    0% {
-        opacity: 0;
-        transform: translate3d(0, 40px, 0) scale(0.96);
-    }
-    100% {
-        opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1);
-    }
-}
-
-.role-title {
-    font-size: 36px;
-    font-weight: 700;
-    color: #ffffff;
-    margin-bottom: 40px;
+/* ---------- Step 1: role choice ("What are you?") ----------
+   The original design (centered title, two large photo circles with the
+   label above, lift and blue ring on hover), set on the form's frosted panel. */
+.role-card {
     text-align: center;
-    text-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.role-header {
+    margin-bottom: 36px;
+}
+
+.role-header .role-title {
+    font-size: 34px;
     letter-spacing: -0.5px;
 }
 
 .roles-grid {
     display: flex;
-    gap: 80px;
     justify-content: center;
-    align-items: center;
-    width: 100%;
-}
-
-.role-option,
-.role-option * {
-    text-decoration: none !important;
-    outline: none !important;
+    align-items: flex-start;
+    gap: 56px;
+    margin-bottom: 28px;
 }
 
 .role-option {
     display: flex;
     flex-direction: column;
     align-items: center;
-    cursor: pointer;
+    gap: 16px;
+    padding: 8px;
+    border: none;
+    border-radius: 24px;
     background: none;
-    border: none !important;
-    outline: none !important;
-    box-shadow: none !important;
-
-    /* Hardware acceleration & anti-flicker properties */
-    will-change: transform;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    transform-style: preserve-3d;
-    transform: translate3d(0, 0, 0);
-
-    /* Synchronized ease transition for perfect animation tracking */
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
     transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-.role-option:hover,
-.role-option:focus,
-.role-option:active {
-    outline: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    text-decoration: none !important;
-}
-
-.role-option::-moz-focus-inner {
-    border: 0 !important;
-}
-
 .role-option:hover {
-    transform: translate3d(0, -10px, 0);
+    transform: translateY(-8px);
+}
+
+.role-option:focus-visible {
+    outline: none;
 }
 
 .role-label {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 600;
-    color: #ffffff;
-    margin-bottom: 20px;
-    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    text-decoration: none !important;
-    transition: color 0.3s ease, text-shadow 0.3s ease;
+    color: var(--text-main);
+    transition: color 0.3s ease;
 }
 
-.role-option:hover .role-label {
-    color: #38b6ff;
-    text-shadow: 0 4px 20px rgba(56, 182, 255, 0.6);
-    text-decoration: none !important;
+.role-option:hover .role-label,
+.role-option:focus-visible .role-label {
+    color: var(--primary);
 }
 
 .role-circle {
-    width: 200px;
-    height: 200px;
+    width: 170px;
+    height: 170px;
     border-radius: 50%;
-    background-color: #ffffff;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-    border: 4px solid #ffffff;
     overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    /* Rounded clipping mask fix for Webkit/Blink browser layout engines */
+    background: #ffffff;
+    border: 4px solid #ffffff;
+    box-shadow: 0 0 0 1px var(--border-color), 0 12px 30px rgba(42, 63, 99, 0.16);
+    /* Keeps the image clipped to the circle while it scales */
     isolation: isolate;
-    -webkit-mask-image: -webkit-radial-gradient(white, black);
-    mask-image: radial-gradient(white, black);
-
-    /* Hardware acceleration properties to prevent antialiasing border lines */
-    will-change: border-color, box-shadow, transform;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    transform: translate3d(0, 0, 0);
-
-    /* Synchronized transition curve and timing */
-    transition: border-color 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: border-color 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .role-circle img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    will-change: transform;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    transform: translate3d(0, 0, 0);
-    
-    /* Synchronized image scale transition curve and timing */
+    display: block;
     transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .role-option:hover .role-circle {
-    border-color: #38b6ff;
-    box-shadow: 0 15px 40px rgba(56, 182, 255, 0.5);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 16px 36px rgba(56, 182, 255, 0.35);
+}
+
+.role-option:focus-visible .role-circle {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), var(--focus-ring), 0 16px 36px rgba(56, 182, 255, 0.35);
 }
 
 .role-option:hover .role-circle img {
-    transform: scale(1.08) translate3d(0, 0, 0);
+    transform: scale(1.08);
 }
 
-/* Back Link Style */
-.back-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: #5C74A8;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 25px;
-    align-self: flex-start;
-    transition: color 0.3s ease, transform 0.2s ease;
+/* ---------- Step 2: form ---------- */
+.form-section {
+    border: none;
+    margin-bottom: 8px;
+    min-width: 0;
 }
 
-.back-link:hover {
-    color: #38b6ff;
-    transform: translateX(-4px);
+.form-section legend {
+    display: block;
+    width: 100%;
+    margin-bottom: 14px;
+    padding: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--primary);
 }
 
-.back-link i {
-    font-size: 16px;
+/* The divider sits on the legend: a fieldset's own padding would go below its legend */
+.form-section + .form-section {
+    margin-top: 6px;
 }
 
-/* Mobile Responsiveness for Choose a Role */
-@media (max-width: 768px) {
-    .role-selection-card {
-        padding: 40px 30px;
-        border-radius: 20px;
-    }
+.form-section + .form-section legend {
+    padding-top: 18px;
+    border-top: 1px solid rgba(56, 85, 133, 0.12);
+}
 
+/* Two columns that become one when a field is hidden (Teacher has no year level) */
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    column-gap: 14px;
+}
+
+/* Selects styled like the inputs */
+.form-group select {
+    width: 100%;
+    height: 48px;
+    padding: 0 40px 0 44px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 15px;
+    color: var(--text-main);
+    background: #fbfcfe;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.form-group select:hover {
+    border-color: #c5d3e8;
+}
+
+.form-group select:focus {
+    border-color: var(--primary);
+    background: var(--surface);
+    box-shadow: var(--focus-ring);
+}
+
+/* Placeholder option */
+.form-group select:has(option[value=""]:checked) {
+    color: #9aa7b8;
+}
+
+.form-group select option {
+    color: var(--text-main);
+}
+
+.select-arrow {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 12px;
+    pointer-events: none;
+}
+
+/* Fields the server or the browser rejected */
+.form-group input.is-invalid,
+.form-group select.is-invalid {
+    border-color: #f87171;
+    background: #fffafa;
+}
+
+.form-group input.is-invalid:focus,
+.form-group select.is-invalid:focus {
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+}
+
+.input-icon:has(.is-invalid) .field-icon {
+    color: #ef4444;
+}
+
+.password-rules {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    margin: -4px 0 18px;
+}
+
+.password-rules li {
+    white-space: nowrap;
+}
+
+.register-btn {
+    margin-top: 6px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1100px) {
     .roles-grid {
-        flex-direction: column;
-        gap: 40px;
-    }
-
-    .role-title {
-        font-size: 28px;
-        margin-bottom: 30px;
+        gap: 36px;
     }
 
     .role-circle {
-        width: 160px;
-        height: 160px;
+        width: 150px;
+        height: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .role-header .role-title {
+        font-size: 28px;
+    }
+
+    .roles-grid {
+        gap: 20px;
+    }
+
+    .role-option {
+        gap: 12px;
     }
 
     .role-label {
-        font-size: 22px;
-        margin-bottom: 12px;
+        font-size: 20px;
+    }
+
+    .role-circle {
+        width: 128px;
+        height: 128px;
+    }
+
+    .password-rules {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
