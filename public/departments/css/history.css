@@ -1022,39 +1022,34 @@
     }
 }
 
-/* Empty State */
-.empty-state-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    text-align: center;
-    background: var(--card-bg, #ffffff);
-    border-radius: 20px;
-    border: 1px dashed var(--border-color, #e2e8f0);
-    width: 100%;
+/* Empty table: one message row under the header, same as the Release
+   Equipment table (centered 14px text, 32px icon in EquipTrack blue at 70%,
+   no row line; the pagination bar is hidden). Not clickable. */
+.history-table tbody tr.table-empty-row {
+    cursor: default;
 }
 
-.empty-state-icon {
-    font-size: 48px;
-    color: var(--text-muted, #94a3b8);
-    opacity: 0.5;
-    margin-bottom: 16px;
+.history-table tbody tr.table-empty-row:hover {
+    background-color: transparent;
 }
 
-.empty-state-container h4 {
-    font-size: var(--fs-card-title);
-    font-weight: 600;
-    color: var(--text-main, #334155);
-    margin: 0 0 8px 0;
-    line-height: 1.4;
-}
-
-.empty-state-container p {
+.history-table td.table-empty-cell {
+    padding: 16px 12px 16px 20px;
     font-size: var(--fs-body);
-    color: var(--text-muted, #64748b);
-    margin: 0;
+    font-weight: 500;
+    line-height: 1.45;
+    color: var(--text-main, #333333);
+    text-align: center;
+    white-space: normal;
+    border-bottom: none;
+}
+
+.history-table td.table-empty-cell i {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 32px;
+    color: var(--primary-color, #385585);
+    opacity: 0.7;
 }
 
 @media (max-width: 992px) {

@@ -101,11 +101,10 @@
             <!-- Dynamic rendering via JS -->
         </div>
 
-        <!-- Empty State Container -->
-        <div class="empty-state-container" id="emptyStateContainer" style="display: none; margin-top: 20px;">
-            <i class="fa-solid fa-boxes-stacked empty-state-icon" id="emptyStateIcon"></i>
-            <h4 id="emptyStateTitle">No equipment found</h4>
-            <p id="emptyStateDesc">No inventory items match your current search query or category filter.</p>
+        <!-- Empty state: same message design as the empty Release Equipment table -->
+        <div class="dept-empty-card" id="emptyStateContainer" style="display: none;">
+            <i class="fa-solid fa-box" aria-hidden="true"></i>
+            <span id="emptyStateText">No equipment matches your search or filters.</span>
         </div>
 <!-- Equipment Modal (Add / Edit) -->
     <div class="modal-overlay" id="equipmentModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalSubtitle">
@@ -743,12 +742,10 @@
                 if (visibleCount === 0) {
                     // Different message when nothing is assigned vs. nothing matches
                     const noneAssigned = equipment.length === 0;
-                    document.getElementById('emptyStateTitle').textContent = noneAssigned ? 'No equipment assigned yet' : 'No equipment found';
-                    document.getElementById('emptyStateDesc').textContent = noneAssigned
-                        ? 'Equipment assigned to your department will appear here. Use "Add Equipment" to register an item.'
-                        : 'No items match your search or filters. Try a different keyword or clear the filters.';
-                    document.getElementById('emptyStateIcon').className = 'fa-solid ' + (noneAssigned ? 'fa-boxes-stacked' : 'fa-magnifying-glass') + ' empty-state-icon';
-                    emptyStateContainer.style.display = 'flex';
+                    document.getElementById('emptyStateText').textContent = noneAssigned
+                        ? 'No equipment is assigned to your department yet. Use "Add Equipment" to register an item.'
+                        : 'No equipment matches your search or filters.';
+                    emptyStateContainer.style.display = 'block';
                 } else {
                     emptyStateContainer.style.display = 'none';
                 }

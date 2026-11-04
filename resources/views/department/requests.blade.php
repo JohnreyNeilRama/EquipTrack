@@ -9,6 +9,65 @@
 <link rel="stylesheet" href="{{ asset('admin/css/adminrequests.css') }}?v={{ filemtime(public_path('admin/css/adminrequests.css')) }}">
 @include('partials.requests.styles')
 <link rel="stylesheet" href="{{ asset('departments/css/requests.css') }}?v={{ filemtime(public_path('departments/css/requests.css')) }}">
+<style>
+    /* Fixed column widths (same approach as the Release Equipment, Return
+       Confirmation and Penalties tables): the columns keep the same size
+       whatever the rows hold, even when the table is empty. The short,
+       predictable columns have set widths (Status fits the badge and the
+       "Admin: … / Department: …" lines, Action fits Approve + Reject side by
+       side); User and Equipment share the rest equally. Text that doesn't fit
+       ends in "…" (full value on hover and in the details window). Below the
+       minimum width the table scrolls sideways inside its card.
+       .admin-table-card in the selector beats the shared phone rule
+       ".admin-table-card table { min-width: 500px }". */
+    .admin-table-card .dept-requests-table {
+        table-layout: fixed;
+        min-width: 1000px;
+    }
+    .dept-requests-table th:nth-child(1) { width: 115px; }   /* Request ID */
+    .dept-requests-table th:nth-child(2),
+    .dept-requests-table th:nth-child(3) { width: auto; }    /* User, Equipment */
+    .dept-requests-table th:nth-child(4) { width: 135px; }   /* Date */
+    .dept-requests-table th:nth-child(5) { width: 190px; }   /* Status */
+    .dept-requests-table th:nth-child(6) { width: 200px; }   /* Action */
+    .dept-requests-table th,
+    .dept-requests-table td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+    }
+    .dept-requests-table td.col-user,
+    .dept-requests-table td.col-equipment-truncate,
+    .dept-requests-table td:nth-child(5) {
+        min-width: 0;
+        max-width: none;
+    }
+    .dept-requests-table .status-badge {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+    }
+    /* The empty-table message spans every column and keeps its own layout */
+    .dept-requests-table td.no-requests-message {
+        white-space: normal;
+        overflow: visible;
+    }
+    /* Keyboard focus on a row (Enter opens it, like a click) */
+    .dept-requests-table tr.admin-table-row:focus-visible {
+        outline: 2px solid #385585;
+        outline-offset: -2px;
+    }
+
+    /* Status filter: the arrow (placed inside the box) never sits on the
+       text; a longer option ends in "…" before the arrow. */
+    .controls-bar .filter-select-wrapper:has(#filterStatus) select {
+        padding-right: 44px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+</style>
 @endpush
 
 @section('content')
@@ -115,4 +174,31 @@
     'stackEquipmentTag' => true,
     'truncateEquipment' => true,
 ])
+<script>
+    // Rows, as on the other Department tables: a click anywhere opens the
+    // request (the shared script handles that); selecting text in a row does
+    // not, and Enter on a focused row does.
+    (() => {
+        const tableBody = document.getElementById('requestsTableBody');
+        if (!tableBody) return;
+
+        const makeFocusable = () => tableBody.querySelectorAll('tr.admin-table-row').forEach(tr => {
+            if (tr.tabIndex !== 0) tr.tabIndex = 0;
+        });
+        new MutationObserver(makeFocusable).observe(tableBody, { childList: true });
+        makeFocusable();
+
+        // Runs before the row's own click handler, and stops it while text is selected.
+        tableBody.addEventListener('click', (e) => {
+            if (e.target.closest('button')) return;
+            if (window.getSelection && String(window.getSelection()).trim() !== '') e.stopPropagation();
+        }, true);
+
+        tableBody.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' || !e.target.matches('tr.admin-table-row')) return;
+            e.preventDefault();
+            e.target.click();
+        });
+    })();
+</script>
 @endpush

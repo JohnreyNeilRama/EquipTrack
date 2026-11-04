@@ -3,7 +3,7 @@
 @section('title', 'EquipTrack')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('departments/css/history.css') }}">
+<link rel="stylesheet" href="{{ asset('departments/css/history.css') }}?v={{ filemtime(public_path('departments/css/history.css')) }}">
 @endpush
 
 @section('content')
@@ -122,7 +122,7 @@
             </table>
 
             <!-- Table Footer Pagination -->
-            <div class="table-footer-pagination">
+            <div class="table-footer-pagination" id="paginationFooter">
                 <span class="pagination-info" id="paginationInfo">Showing 0 of 0 transactions</span>
                 <div class="pagination-controls" id="paginationControls">
                     <button type="button" class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></button>
@@ -130,13 +130,6 @@
                     <button type="button" class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
             </div>
-        </div>
-
-        <!-- Empty State Container -->
-        <div class="empty-state-container" id="emptyStateContainer" style="display: none; margin-top: 20px;">
-            <i class="fa-solid fa-clock-rotate-left empty-state-icon"></i>
-            <h4 id="emptyStateTitle">No records found</h4>
-            <p id="emptyStateText">No borrowing history transactions match your search or filter parameters.</p>
         </div>
 <!-- Transaction Details Modal -->
     <div class="modal-overlay" id="txnDetailsModal" role="dialog" aria-modal="true" aria-labelledby="txnModalTitle">
@@ -230,9 +223,7 @@
             const filterRoleSelect = document.getElementById('filterRole');
             const filterStatusSelect = document.getElementById('filterStatus');
             const filterCategorySelect = document.getElementById('filterCategory');
-            const emptyStateContainer = document.getElementById('emptyStateContainer');
-            const emptyStateTitle = document.getElementById('emptyStateTitle');
-            const emptyStateText = document.getElementById('emptyStateText');
+            const paginationFooter = document.getElementById('paginationFooter');
             const paginationInfo = document.getElementById('paginationInfo');
             const paginationControls = document.getElementById('paginationControls');
 
@@ -394,18 +385,21 @@
                         : 'Showing 0 of 0 transactions';
                 }
 
+                // No rows: a message row inside the table (same as the Release
+                // Equipment table), and no pagination bar.
                 if (totalEntries === 0) {
-                    if (historyData.length === 0) {
-                        emptyStateTitle.textContent = 'No borrowing history yet';
-                        emptyStateText.textContent = 'Returned equipment from your department will appear here once borrowers return their items.';
-                    } else {
-                        emptyStateTitle.textContent = 'No records found';
-                        emptyStateText.textContent = 'No borrowing history transactions match your search or filter parameters.';
-                    }
-                    emptyStateContainer.style.display = 'flex';
-                } else {
-                    emptyStateContainer.style.display = 'none';
+                    const message = historyData.length === 0
+                        ? 'No borrowing history yet. Returned equipment will appear here.'
+                        : 'No records match your search or filters.';
+                    tableBody.innerHTML = `
+                        <tr class="table-empty-row">
+                            <td colspan="7" class="table-empty-cell">
+                                <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+                                ${message}
+                            </td>
+                        </tr>`;
                 }
+                if (paginationFooter) paginationFooter.style.display = totalEntries === 0 ? 'none' : '';
             }
 
             window.openDrawer = function(txnid) {

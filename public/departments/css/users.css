@@ -525,19 +525,22 @@
     outline-color: #60a5fa;
 }
 
-/* Table Footer & Pagination Matching Screenshot */
+/* Table footer & pagination: same look as the other Department tables
+   (Borrow Requests, Release Equipment, Return Confirmation, Penalties):
+   16px × 24px footer, light top line, 14px "Showing …" text, 34 × 30
+   page buttons with 6px corners, EquipTrack blue for the current page. */
 .table-footer-pagination {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: 16px 24px;
     background-color: var(--card-bg, #ffffff);
-    border-top: 1px solid var(--table-border, #718096);
+    border-top: 1px solid var(--border-color, #e2e8f0);
 }
 
 .pagination-info {
-    font-size: var(--fs-label);
-    font-weight: 500;
+    font-size: var(--fs-body);
+    font-weight: 400;
     color: var(--text-muted, #64748b);
 }
 
@@ -548,27 +551,29 @@
 }
 
 .page-btn {
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
+    min-width: 34px;
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 6px;
     border: 1px solid var(--border-color, #e2e8f0);
     background-color: var(--card-bg, #ffffff);
     color: var(--text-main, #334155);
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: inherit;
     font-size: var(--fs-label);
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Hover applies to inactive pages only, so it can never wash out the active page
    (the old hover rule outranked .active and turned it light with white text). */
 .page-btn:hover:not(.disabled):not(.active) {
-    background-color: rgba(43, 66, 111, 0.08);
-    border-color: #2b426f;
-    color: #2b426f;
+    background-color: rgba(56, 85, 133, 0.08);
+    border-color: #385585;
+    color: #385585;
 }
 
 .page-btn:focus {
@@ -576,24 +581,25 @@
 }
 
 .page-btn:focus-visible {
-    box-shadow: 0 0 0 3px rgba(43, 66, 111, 0.3);
+    box-shadow: 0 0 0 3px rgba(56, 85, 133, 0.3);
 }
 
 .page-btn.active {
-    background-color: #2b426f;
+    background-color: #385585;
     color: #ffffff;
-    border-color: #2b426f;
+    border-color: #385585;
+    font-weight: 600;
     cursor: default;
 }
 
 .page-btn.active:hover {
-    background-color: #1f3254;
-    border-color: #1f3254;
+    background-color: #2A3F63;
+    border-color: #2A3F63;
     color: #ffffff;
 }
 
 .page-btn.disabled {
-    opacity: 0.4;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
@@ -717,45 +723,99 @@
     color: var(--text-main, #1e293b);
 }
 
-/* Empty State */
-.empty-state-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    text-align: center;
-    background: var(--card-bg, #ffffff);
-    border-radius: 20px;
-    border: 1px dashed var(--border-color, #e2e8f0);
-    width: 100%;
+/* Empty table: one message row under the header, same as the Release
+   Equipment table (centered 14px text, 32px icon in EquipTrack blue at 70%,
+   no row line; the pagination bar is hidden). Not clickable. */
+.users-table tbody tr.users-empty-row {
+    cursor: default;
 }
 
-.empty-state-icon {
-    font-size: 48px;
-    color: var(--text-muted, #94a3b8);
-    opacity: 0.5;
-    margin-bottom: 16px;
+.users-table tbody tr.users-empty-row:hover td {
+    background-color: transparent;
 }
 
-.empty-state-container h4 {
-    font-size: var(--fs-card-title);
-    font-weight: 600;
-    color: var(--text-main, #334155);
-    margin: 0 0 8px 0;
-    line-height: 1.4;
-}
-
-.empty-state-container p {
+.users-table td.users-empty-cell {
+    padding: 16px 12px 16px 20px;
     font-size: var(--fs-body);
-    color: var(--text-muted, #64748b);
-    margin: 0;
+    font-weight: 500;
+    line-height: 1.45;
+    color: var(--text-main, #333333);
+    text-align: center;
+    white-space: normal;
+    overflow: visible;
+    border-bottom: none;
+}
+
+.users-table td.users-empty-cell i {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 32px;
+    color: var(--primary-color, #385585);
+    opacity: 0.7;
+}
+
+/* --------------------------------------------------------------------------
+   Fixed column widths (same approach as the other Department tables): the
+   columns keep the same size whatever the rows hold, even when the table is
+   empty or filtered. The short, predictable columns have set widths (User
+   Type fits "Faculty Member"); Full Name and Year Level / Attainment share
+   the rest equally. Text that doesn't fit ends in "…" (the full value is in
+   the tooltip and in View Details). Below the minimum width the table
+   scrolls sideways inside its card.
+   -------------------------------------------------------------------------- */
+.users-table-container .users-table {
+    table-layout: fixed;
+    min-width: 900px;
+}
+
+.users-table th:nth-child(1),
+.users-table th:nth-child(4) { width: auto; }     /* Full Name, Year Level / Attainment */
+.users-table th:nth-child(2) { width: 150px; }    /* ID Number */
+.users-table th:nth-child(3) { width: 170px; }    /* User Type */
+.users-table th:nth-child(5) { width: 125px; }    /* Status */
+.users-table th:nth-child(6) { width: 120px; }    /* Action */
+
+.users-table th,
+.users-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.users-table td.col-fullname {
+    max-width: none;
+    min-width: 0;
+}
+
+.users-table .user-type-badge,
+.users-table .status-badge {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* Keyboard focus on a row (Enter opens it, like a click) */
+.users-table tbody tr:focus-visible {
+    outline: 2px solid #385585;
+    outline-offset: -2px;
+}
+
+/* Filters: wide enough for "Faculty Member", so the arrow (placed inside
+   the box) never sits on the text; anything longer ends in "…". */
+.filter-select-item:has(#filterRole) {
+    min-width: 190px;
+}
+
+.filter-select-item select {
+    padding-right: 44px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 @media (max-width: 992px) {
-    .users-table {
-        min-width: 760px;
-    }
     .users-table-container {
         overflow-x: auto;
     }

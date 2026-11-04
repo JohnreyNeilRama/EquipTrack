@@ -122,19 +122,12 @@
             </table>
 
             <!-- Table Footer Pagination Matching Reference Image -->
-            <div class="table-footer-pagination">
+            <div class="table-footer-pagination" id="paginationFooter">
                 <span class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 entries</span>
                 <div class="pagination-controls" id="paginationControls">
                     <!-- Buttons added dynamically -->
                 </div>
             </div>
-        </div>
-
-        <!-- Empty State Container -->
-        <div class="empty-state-container" id="emptyStateContainer" style="display: none; margin-top: 20px;">
-            <i class="fa-solid fa-desktop empty-state-icon"></i>
-            <h4>No records found</h4>
-            <p>No monitoring records match your search or filter parameters.</p>
         </div>
 <!-- View Details Modal: same layout as the Department Equipment details window -->
     <div class="modal-overlay" id="viewMonitoringModal" role="dialog" aria-modal="true" aria-labelledby="viewModalTitle">
@@ -252,7 +245,7 @@
             const filterRoleSelect = document.getElementById('filterRole');
             const filterStatusSelect = document.getElementById('filterStatus');
             const filterCategorySelect = document.getElementById('filterCategory');
-            const emptyStateContainer = document.getElementById('emptyStateContainer');
+            const paginationFooter = document.getElementById('paginationFooter');
             const paginationInfo = document.getElementById('paginationInfo');
             const paginationControls = document.getElementById('paginationControls');
 
@@ -364,7 +357,21 @@
                 }
                 renderPaginationButtons(totalPages);
 
-                emptyStateContainer.style.display = totalEntries === 0 ? 'flex' : 'none';
+                // No rows: a message row inside the table (same as the Release
+                // Equipment table), and no pagination bar.
+                if (totalEntries === 0) {
+                    const message = monitoringData.length === 0
+                        ? 'No equipment is assigned to your department yet.'
+                        : 'No records match your search or filters.';
+                    tableBody.innerHTML = `
+                        <tr class="table-empty-row">
+                            <td colspan="6" class="table-empty-cell">
+                                <i class="fa-solid fa-desktop" aria-hidden="true"></i>
+                                ${message}
+                            </td>
+                        </tr>`;
+                }
+                if (paginationFooter) paginationFooter.style.display = totalEntries === 0 ? 'none' : '';
             }
 
             // Render pagination buttons dynamically (keeps the existing page-btn design)

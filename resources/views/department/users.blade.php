@@ -3,7 +3,7 @@
 @section('title', 'EquipTrack')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('departments/css/users.css') }}">
+<link rel="stylesheet" href="{{ asset('departments/css/users.css') }}?v={{ filemtime(public_path('departments/css/users.css')) }}">
 <link rel="stylesheet" href="{{ asset('departments/css/user-details-modal.css') }}">
 <link rel="stylesheet" href="{{ asset('departments/css/user-forms.css') }}?v={{ filemtime(public_path('departments/css/user-forms.css')) }}">
 @endpush
@@ -105,12 +105,13 @@
             <table class="users-table">
                 <thead>
                     <tr>
-                        <th style="width: 20%;">Full Name</th>
-                        <th style="width: 15%;">ID Number</th>
-                        <th style="width: 15%;">User Type</th>
-                        <th style="width: 18%;">Year Level / Attainment</th>
-                        <th style="width: 12%;">Status</th>
-                        <th style="width: 8%;">Action</th>
+                        {{-- Column widths are set in departments/css/users.css --}}
+                        <th>Full Name</th>
+                        <th>ID Number</th>
+                        <th>User Type</th>
+                        <th>Year Level / Attainment</th>
+                        <th>Status</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="usersTableBody">
@@ -119,7 +120,7 @@
             </table>
 
             <!-- Table Footer Pagination Matching Reference Image -->
-            <div class="table-footer-pagination">
+            <div class="table-footer-pagination" id="paginationFooter">
                 <span class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 entries</span>
                 <div class="pagination-controls" id="paginationControls">
                     <button type="button" class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></button>
@@ -127,13 +128,6 @@
                     <button type="button" class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
             </div>
-        </div>
-
-        <!-- Empty State Container -->
-        <div class="empty-state-container" id="emptyStateContainer" style="display: none; margin-top: 20px;">
-            <i class="fa-solid fa-users-slash empty-state-icon"></i>
-            <h4>No users found</h4>
-            <p>No department user records match your search or filter parameters.</p>
         </div>
 <!-- View User Details Modal -->
     <div class="modal-overlay" id="viewUserModal">
@@ -334,7 +328,7 @@
             const searchInput = document.getElementById('searchUsers');
             const filterRoleSelect = document.getElementById('filterRole');
             const filterStatusSelect = document.getElementById('filterStatus');
-            const emptyStateContainer = document.getElementById('emptyStateContainer');
+            const paginationFooter = document.getElementById('paginationFooter');
             const paginationInfo = document.getElementById('paginationInfo');
             const paginationControls = document.getElementById('paginationControls');
 
@@ -382,9 +376,9 @@
 
                     tr.innerHTML = `
                         <td class="col-fullname"><span class="fullname-text" title="${escapeHTML(user.fullName)}">${escapeHTML(user.fullName)}</span></td>
-                        <td class="col-id">${escapeHTML(user.idNumber)}</td>
+                        <td class="col-id" title="${escapeHTML(user.idNumber)}">${escapeHTML(user.idNumber)}</td>
                         <td><span class="user-type-badge ${badgeClass}">${escapeHTML(user.userType)}</span></td>
-                        <td class="col-attainment">${escapeHTML(user.attainment)}</td>
+                        <td class="col-attainment" title="${escapeHTML(user.attainment)}">${escapeHTML(user.attainment)}</td>
                         <td><span class="status-badge ${statusClass}">${escapeHTML(user.status)}</span></td>
                         <td>
                             <button type="button" class="btn-action-view" onclick="openViewUserModal(${Number(user.id)})">
@@ -393,9 +387,19 @@
                         </td>
                     `;
 
-                    // Clicking the row (outside its button) is a shortcut to View
+                    // Clicking the row (outside its button) is a shortcut to View;
+                    // selecting text in it is not. Enter on a focused row opens it too.
+                    tr.tabIndex = 0;
+                    tr.setAttribute('aria-label', `View ${user.fullName}`);
                     tr.addEventListener('click', (e) => {
-                        if (!e.target.closest('button, a, input, select')) openViewUserModal(Number(user.id));
+                        if (e.target.closest('button, a, input, select')) return;
+                        if (window.getSelection && String(window.getSelection()).trim() !== '') return;
+                        openViewUserModal(Number(user.id));
+                    });
+                    tr.addEventListener('keydown', (e) => {
+                        if (e.key !== 'Enter' || e.target !== tr) return;
+                        e.preventDefault();
+                        openViewUserModal(Number(user.id));
                     });
 
                     tableBody.appendChild(tr);
@@ -668,7 +672,8 @@
                 const selectedRole = filterRoleSelect.value.toLowerCase();
                 const selectedStatus = filterStatusSelect.value.toLowerCase();
 
-                const rows = Array.from(tableBody.querySelectorAll('tr'));
+                // User rows only (not the empty-table message row)
+                const rows = Array.from(tableBody.querySelectorAll('tr[data-search]'));
 
                 const matched = rows.filter(row => {
                     const searchData = row.getAttribute('data-search');
@@ -709,11 +714,24 @@
                 }
                 renderPaginationButtons(totalPages);
 
+                // No rows: a message row inside the table (same as the Release
+                // Equipment table), and no pagination bar.
+                const emptyRow = tableBody.querySelector('tr.users-empty-row');
+                if (emptyRow) emptyRow.remove();
                 if (visibleCount === 0) {
-                    emptyStateContainer.style.display = 'flex';
-                } else {
-                    emptyStateContainer.style.display = 'none';
+                    const message = users.length === 0
+                        ? 'No users are registered under your department yet.'
+                        : 'No users match your search or filters.';
+                    const tr = document.createElement('tr');
+                    tr.className = 'users-empty-row';
+                    tr.innerHTML = `
+                        <td colspan="6" class="users-empty-cell">
+                            <i class="fa-solid fa-users" aria-hidden="true"></i>
+                            ${message}
+                        </td>`;
+                    tableBody.appendChild(tr);
                 }
+                if (paginationFooter) paginationFooter.style.display = visibleCount === 0 ? 'none' : '';
             }
 
             // Render pagination buttons dynamically (keeps the existing page-btn design)
