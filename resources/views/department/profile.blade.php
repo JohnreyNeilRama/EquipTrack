@@ -35,12 +35,18 @@
                 <div class="profile-divider"></div>
                 <ul class="profile-stats">
                     <li>
-                        <span class="stat-label">Department</span>
-                        <span class="stat-value">{{ $dept_assigned }}</span>
+                        <span class="stat-icon" aria-hidden="true"><i class="fa-solid fa-building-columns"></i></span>
+                        <span class="stat-text">
+                            <span class="stat-label">Department</span>
+                            <span class="stat-value">{{ $dept_assigned }}</span>
+                        </span>
                     </li>
                     <li>
-                        <span class="stat-label">Employee ID</span>
-                        <span class="stat-value {{ $dept_employee_id ? '' : 'is-empty' }}" id="displayEmployeeId">{{ $dept_employee_id ?: 'Not set' }}</span>
+                        <span class="stat-icon" aria-hidden="true"><i class="fa-solid fa-id-badge"></i></span>
+                        <span class="stat-text">
+                            <span class="stat-label">Employee ID</span>
+                            <span class="stat-value {{ $dept_employee_id ? '' : 'is-empty' }}" id="displayEmployeeId">{{ $dept_employee_id ?: 'Not set' }}</span>
+                        </span>
                     </li>
                 </ul>
                 <button type="button" class="btn-logout" id="profileLogoutBtn"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>

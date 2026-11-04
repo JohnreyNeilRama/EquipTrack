@@ -34,13 +34,19 @@
                 <div class="profile-divider"></div>
                 <ul class="profile-stats">
                     <li>
-                        <span class="stat-label">Email</span>
-                        {{-- <wbr> after the @: a long address wraps there, not mid-word --}}
-                        <span class="stat-value" id="cardProfileEmail">{!! str_replace('@', '@<wbr>', e($admin_email)) !!}</span>
+                        <span class="stat-icon" aria-hidden="true"><i class="fa-regular fa-envelope"></i></span>
+                        <span class="stat-text">
+                            <span class="stat-label">Email</span>
+                            {{-- <wbr> after the @: a long address wraps there, not mid-word --}}
+                            <span class="stat-value" id="cardProfileEmail">{!! str_replace('@', '@<wbr>', e($admin_email)) !!}</span>
+                        </span>
                     </li>
                     <li>
-                        <span class="stat-label">Employee ID</span>
-                        <span class="stat-value {{ $admin_employee_id ? '' : 'is-empty' }}" id="cardEmployeeId">{{ $admin_employee_id ?: 'Not set' }}</span>
+                        <span class="stat-icon" aria-hidden="true"><i class="fa-solid fa-id-badge"></i></span>
+                        <span class="stat-text">
+                            <span class="stat-label">Employee ID</span>
+                            <span class="stat-value {{ $admin_employee_id ? '' : 'is-empty' }}" id="cardEmployeeId">{{ $admin_employee_id ?: 'Not set' }}</span>
+                        </span>
                     </li>
                 </ul>
                 <button type="button" class="btn-logout" id="profileLogoutBtn"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
