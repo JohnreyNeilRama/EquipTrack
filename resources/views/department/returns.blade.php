@@ -54,25 +54,67 @@
        row or squeeze the Status / Condition / Action columns. Each cell keeps
        its full text in a hover tooltip, and the review modal shows it in full. */
 
-    /* User and Equipment share the table's width (max-width: 0 lets their
-       text shorten instead of widening the table), with a floor so names stay
-       readable when the table itself scrolls on small screens. */
-    .returns-table .col-user {
-        width: 22%;
-        min-width: 120px;
-        max-width: 0;
+    /* Fixed column widths (set in the <colgroup>, same approach as the Release
+       Equipment table): the columns keep the same size whatever the rows hold,
+       even when the table is empty. The short, predictable columns have set
+       widths (Status fits "Pending Confirmation", Condition fits its tag and
+       source line, Action fits Review); User and Equipment share the rest
+       equally. Below the minimum width the table scrolls sideways inside its
+       card. */
+    /* .admin-table-card in the selector: it must beat the shared phone rule
+       ".admin-table-card table { min-width: 500px }", which would otherwise
+       squeeze User and Equipment to nothing on small screens. */
+    .admin-table-card .returns-table {
+        table-layout: fixed;
+        min-width: 1040px;
     }
-    .returns-table .col-equipment {
-        width: 30%;
-        min-width: 140px;
-        max-width: 0;
+    .returns-table col.col-w-id { width: 120px; }
+    .returns-table col.col-w-submitted { width: 135px; }
+    .returns-table col.col-w-status { width: 200px; }
+    .returns-table col.col-w-condition { width: 150px; }
+    .returns-table col.col-w-action { width: 140px; }
+    .returns-table th,
+    .returns-table td {
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
-    /* Return ID and Submitted hold short, one-line values, so they shrink to
-       fit (same column widths as the Borrow Requests table). Status,
-       Condition and Action keep their natural widths. */
-    .returns-table th:nth-child(1),
-    .returns-table th:nth-child(4) {
-        width: 1%;
+    .returns-table td {
+        vertical-align: middle;
+    }
+    .returns-table .status-badge,
+    .returns-table .condition-tag {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+    }
+    .returns-table .condition-source {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    /* The empty-table message spans every column and keeps its own layout */
+    .returns-table td.no-requests-message {
+        white-space: normal;
+        overflow: visible;
+    }
+    /* Keyboard focus on a row (Enter opens it, like a click) */
+    .returns-table tr.admin-table-row:focus-visible {
+        outline: 2px solid #385585;
+        outline-offset: -2px;
+    }
+
+    /* Status filter: the box itself is wide enough for "Pending
+       Confirmation", so the arrow (placed inside the box) never sits on the
+       text; a longer option ends in "…" before the arrow. */
+    .filter-select-wrapper.ret-filter {
+        width: 230px;
+    }
+    .filter-select-wrapper.ret-filter select {
+        padding-right: 44px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     /* Borrower name: one line */
@@ -139,11 +181,11 @@
         white-space: nowrap;
     }
 
-    /* View button (reviewed returns). The shared dark style is a faint indigo
-       tint with no border, which nearly disappears on the dark table; here it
-       gets a solid slate fill, a visible border and EquipTrack blue text. Light
-       mode gets the same treatment in the light palette. Same size and shape
-       as the Review button. */
+    /* View button: the bordered style of the Department Dashboard and the
+       other Department tables (Release Equipment, Penalties). The shared dark
+       style is a faint indigo tint with no border, which nearly disappears on
+       the dark table; here it gets a solid slate fill, a visible border and
+       EquipTrack blue text. Same size and shape as the Review button. */
     .returns-table .btn-view-only {
         background-color: rgba(56, 85, 133, 0.08);
         border: 1px solid rgba(56, 85, 133, 0.35);
@@ -154,6 +196,7 @@
         border-color: #385585;
         color: #ffffff;
     }
+    .returns-table .btn-approve:focus-visible,
     .returns-table .btn-view-only:focus-visible {
         outline: 2px solid #385585;
         outline-offset: 2px;
@@ -747,8 +790,8 @@
                     <input type="text" id="searchReturns" placeholder="Search by user, equipment or return ID...">
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </div>
-                <div class="filter-select-wrapper">
-                    <select id="filterStatus">
+                <div class="filter-select-wrapper ret-filter">
+                    <select id="filterStatus" aria-label="Filter by status">
                         <option value="all">All Status</option>
                         <option value="pending confirmation">Pending Confirmation</option>
                         <option value="confirmed">Confirmed</option>
@@ -762,6 +805,15 @@
         {{-- Returns Table Card --}}
         <div class="table-container card admin-table-card">
             <table class="returns-table" style="width: 100%;">
+                <colgroup>
+                    <col class="col-w-id">
+                    <col class="col-w-user">
+                    <col class="col-w-equipment">
+                    <col class="col-w-submitted">
+                    <col class="col-w-status">
+                    <col class="col-w-condition">
+                    <col class="col-w-action">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>Return ID</th>
@@ -1151,8 +1203,19 @@
             filtered.slice(startIndex, endIndex).forEach(r => {
                 const tr = document.createElement('tr');
                 tr.className = 'admin-table-row';
+                tr.tabIndex = 0;
+                tr.setAttribute('aria-label', `Open return ${r.returnId}`);
+                // A click anywhere on the row opens the return (the Review /
+                // View buttons open it themselves); selecting text does not.
                 tr.addEventListener('click', (e) => {
-                    if (!e.target.closest('button')) openReviewModal(r.id);
+                    if (e.target.closest('button')) return;
+                    if (window.getSelection && String(window.getSelection()).trim() !== '') return;
+                    openReviewModal(r.id);
+                });
+                tr.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Enter' || e.target !== tr) return;
+                    e.preventDefault();
+                    openReviewModal(r.id);
                 });
 
                 const actionHtml = r.canReview

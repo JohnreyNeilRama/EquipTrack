@@ -26,12 +26,45 @@
     .admin-table-card .releases-table td:first-child {
         padding-left: 20px !important;
     }
-    /* Borrower and Equipment share the remaining width; their text ends in "…" */
-    .releases-table .col-user,
-    .releases-table .col-equipment {
-        width: 24%;
-        max-width: 0;
-        min-width: 120px;
+    /* Fixed column widths (set in the <colgroup>): the columns keep the same
+       size whatever the rows hold, even when the table is empty. The short,
+       predictable columns have set widths (Status fits "Ready for Pickup",
+       Action fits Release + View side by side); Borrower and Equipment share
+       the rest equally. Text that doesn't fit ends in "…" (the full value is
+       in the tooltip and in View). Below the minimum width the table scrolls
+       sideways inside its card. */
+    /* .admin-table-card in the selector: it must beat the shared phone rule
+       ".admin-table-card table { min-width: 500px }", which would otherwise
+       squeeze Borrower and Equipment to nothing on small screens. */
+    .admin-table-card .releases-table {
+        table-layout: fixed;
+        min-width: 1060px;
+    }
+    .releases-table col.col-w-id { width: 115px; }
+    .releases-table col.col-w-pickup { width: 135px; }
+    .releases-table col.col-w-due { width: 125px; }
+    .releases-table col.col-w-status { width: 185px; }
+    .releases-table col.col-w-action { width: 240px; }
+    .releases-table th,
+    .releases-table td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .releases-table td {
+        vertical-align: middle;
+    }    .releases-table td.col-date {
+        white-space: nowrap;
+    }
+    .releases-table .status-badge {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+    }
+    /* The empty-table message spans every column and keeps its own layout */
+    .releases-table td.no-requests-message {
+        white-space: normal;
+        overflow: visible;
     }
     /* When / by whom it was handled: wraps under the badge instead of widening the column */
     .releases-table td.col-status .cell-sub {
@@ -39,9 +72,17 @@
         white-space: normal;
         line-height: 1.4;
     }
-    #filterStatus {
-        min-width: 180px;
-        padding-right: 36px;
+    /* Status filter: the box itself is wide enough for "Ready for Pickup", so
+       the arrow (placed inside the box) never sits on the text; a longer
+       option ends in "…" before the arrow. */
+    .filter-select-wrapper.rel-filter {
+        width: 200px;
+    }
+    .filter-select-wrapper.rel-filter select {
+        padding-right: 44px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .releases-table .cell-main {
         display: block;
@@ -137,15 +178,17 @@
         cursor: not-allowed;
         transform: none;
     }
-    /* Action column (this page only): at most two buttons, the main action
-       (Release, or a muted chip saying when it can be released) and View,
-       which holds the details and the rarer Not Claimed / Cancel reservation. */
+    /* Action column: at most two buttons, the main action (Release, or a
+       muted chip saying when it can be released) and View, which holds the
+       details and the rarer Not Claimed / Cancel reservation. Release and View
+       are the shared btn-approve / btn-view-only buttons of the other tables;
+       on a narrow screen the two stack instead of overflowing the column. */
     .releases-table .rel-actions {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        flex-wrap: nowrap;
+        gap: 8px;
+        flex-wrap: wrap;
     }
     .releases-table .rel-btn {
         display: inline-flex;
@@ -165,15 +208,19 @@
     }
     .releases-table .rel-btn i { font-size: 0.9em; }
     .releases-table .rel-btn:focus-visible { outline: 2px solid #385585; outline-offset: 2px; }
-    .releases-table .rel-btn--primary { background-color: #385585; color: #ffffff; }
-    .releases-table .rel-btn--primary:hover { background-color: #2f477a; }
-    .releases-table .rel-btn--wait { background-color: #f1f5f9; color: #64748b; border-color: #e2e8f0; cursor: help; font-weight: 500; }
-    .releases-table .rel-btn--view { background-color: #ffffff; color: #385585; border-color: #cbd5e1; }
-    .releases-table .rel-btn--view:hover { background-color: #f1f5f9; border-color: #385585; }
-    .dark-theme .releases-table .rel-btn--primary { background-color: #3b82f6; }
-    .dark-theme .releases-table .rel-btn--primary:hover { background-color: #2563eb; }
-    .dark-theme .releases-table .rel-btn--view { background-color: transparent; color: #93c5fd; border-color: rgba(148, 163, 184, 0.35); }
-    .dark-theme .releases-table .rel-btn--view:hover { background-color: rgba(148, 163, 184, 0.12); border-color: #93c5fd; }
+    .releases-table .rel-btn--wait { max-width: 100%; overflow: hidden; text-overflow: ellipsis; background-color: #f1f5f9; color: #64748b; border-color: #e2e8f0; cursor: help; font-weight: 500; }
+    .releases-table .btn-approve:focus-visible,
+    .releases-table .btn-view-only:focus-visible { outline: 2px solid #385585; outline-offset: 2px; }
+    /* View button: the bordered style of the Department Dashboard and the
+       other Department tables (Return Confirmation, Penalties), so it stays
+       visible on the dark table too. */
+    .releases-table .btn-view-only { background-color: rgba(56, 85, 133, 0.08); border: 1px solid rgba(56, 85, 133, 0.35); color: #385585; }
+    .releases-table .btn-view-only:hover { background-color: #385585; border-color: #385585; color: #ffffff; }
+    .dark-theme .releases-table .btn-view-only { background-color: #334155; border-color: #475569; color: #93c5fd; }
+    .dark-theme .releases-table .btn-view-only:hover { background-color: #2563eb; border-color: #2563eb; color: #ffffff; }
+    .dark-theme .releases-table .btn-view-only:focus-visible { outline-color: #60a5fa; }
+    /* Keyboard focus on a row (Enter opens it, like a click) */
+    .releases-table tr.admin-table-row:focus-visible { outline: 2px solid #385585; outline-offset: -2px; }
 
     /* View window: the loan's details, then its actions in the footer */
     .view-section + .view-section { margin-top: 16px; }
@@ -272,8 +319,8 @@
                     <input type="text" id="searchReleases" placeholder="Search by user, ID number, equipment or request ID...">
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </div>
-                <div class="filter-select-wrapper">
-                    <select id="filterStatus">
+                <div class="filter-select-wrapper rel-filter">
+                    <select id="filterStatus" aria-label="Filter by status">
                         <option value="all">All Status</option>
                         <option value="Ready for Pickup" selected>Ready for Pickup</option>
                         <option value="Released">Released</option>
@@ -287,6 +334,15 @@
 
         <div class="table-container card admin-table-card">
             <table class="releases-table" style="width: 100%;">
+                <colgroup>
+                    <col class="col-w-id">
+                    <col class="col-w-user">
+                    <col class="col-w-equipment">
+                    <col class="col-w-pickup">
+                    <col class="col-w-due">
+                    <col class="col-w-status">
+                    <col class="col-w-action">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>Request ID</th>
@@ -302,6 +358,14 @@
                     {{-- Rendered by the script below --}}
                 </tbody>
             </table>
+
+            {{-- Pagination Footer (same as the Borrow Requests and Return Confirmation tables) --}}
+            <div class="pagination-container" id="paginationContainer">
+                <span class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 entries</span>
+                <div class="pagination-buttons" id="paginationButtons">
+                    {{-- Buttons added by the script below --}}
+                </div>
+            </div>
         </div>
     </div>
 
@@ -436,10 +500,16 @@
         const URL_CANCEL = @json(route('department.releases.cancel'));
         const REFRESH_MS = 15000;
 
+        const PAGE_SIZE = 10;
+
         let releases = @json($releases);
         let mode = 'release';
+        let currentPage = 1;
 
         const tableBody = document.getElementById('releasesTableBody');
+        const paginationContainer = document.getElementById('paginationContainer');
+        const paginationInfo = document.getElementById('paginationInfo');
+        const paginationButtons = document.getElementById('paginationButtons');
         const searchInput = document.getElementById('searchReleases');
         const filterSelect = document.getElementById('filterStatus');
         const modal = document.getElementById('releaseModal');
@@ -482,7 +552,7 @@
         // released yet, a muted chip saying why, with the full reason on
         // hover), and View, which holds the details and the rarer actions.
         function actionButtons(r) {
-            const view = `<button type="button" class="rel-btn rel-btn--view" data-view="${r.id}"><i class="fa-regular fa-eye" aria-hidden="true"></i>View</button>`;
+            const view = `<button type="button" class="btn-view-only" data-view="${r.id}"><i class="fa-solid fa-eye" aria-hidden="true"></i> View</button>`;
 
             if (!r.canAct) {
                 return `<div class="rel-actions">${view}</div>`;
@@ -490,7 +560,7 @@
 
             const release = r.releaseBlocked
                 ? `<span class="rel-btn rel-btn--wait" tabindex="0" title="${escapeHTML(r.releaseBlocked)}" aria-label="${escapeHTML(r.releaseBlocked)}"><i class="fa-regular fa-clock" aria-hidden="true"></i>${escapeHTML(r.releaseBlockedLabel || 'Not yet')}</span>`
-                : `<button type="button" class="rel-btn rel-btn--primary" data-release="${r.id}">Release</button>`;
+                : `<button type="button" class="btn-approve" data-release="${r.id}">Release</button>`;
 
             return `<div class="rel-actions">${release}${view}</div>`;
         }
@@ -512,11 +582,18 @@
                             ${filter === 'Ready for Pickup' && query === '' ? 'No equipment is waiting for pickup.' : 'No records match your search.'}
                         </td>
                     </tr>`;
+                paginationContainer.style.display = 'none';
                 return;
             }
 
-            tableBody.innerHTML = rows.map(r => `
-                <tr class="admin-table-row">
+            // Pages of PAGE_SIZE rows (same as the other tables)
+            const totalPages = Math.ceil(rows.length / PAGE_SIZE);
+            if (currentPage > totalPages) currentPage = totalPages;
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const end = Math.min(start + PAGE_SIZE, rows.length);
+
+            tableBody.innerHTML = rows.slice(start, end).map(r => `
+                <tr class="admin-table-row" data-row="${r.id}" tabindex="0" aria-label="View request #${r.requestId}">
                     <td style="font-weight: 600;">#${r.requestId}</td>
                     <td class="col-user">
                         <span class="cell-main" title="${escapeHTML(r.user)}">${escapeHTML(r.user)}</span>
@@ -539,6 +616,34 @@
                         ${actionButtons(r)}
                     </td>
                 </tr>`).join('');
+
+            paginationContainer.style.display = 'flex';
+            paginationInfo.textContent = `Showing ${start + 1} to ${end} of ${rows.length} entries`;
+            renderPaginationButtons(totalPages);
+        }
+
+        // Previous, page numbers, Next (same buttons as the other tables)
+        function renderPaginationButtons(totalPages) {
+            paginationButtons.innerHTML = '';
+
+            const addButton = (html, page, disabled, active = false) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = `btn-page ${active ? 'active' : ''}`;
+                button.innerHTML = html;
+                button.disabled = disabled;
+                button.addEventListener('click', () => {
+                    currentPage = page;
+                    renderTable();
+                });
+                paginationButtons.appendChild(button);
+            };
+
+            addButton('<i class="fa-solid fa-angle-left"></i>', currentPage - 1, currentPage === 1);
+            for (let i = 1; i <= totalPages; i++) {
+                addButton(String(i), i, false, i === currentPage);
+            }
+            addButton('<i class="fa-solid fa-angle-right"></i>', currentPage + 1, currentPage === totalPages);
         }
 
         function render() {
@@ -655,11 +760,33 @@
             modal.classList.remove('show');
         }
 
+        // Release and View buttons do their own action. A click anywhere else
+        // on a row opens View (like the other tables); clicks inside the
+        // Action buttons area (e.g. the "not yet" chip) open nothing.
         tableBody.addEventListener('click', event => {
             const release = event.target.closest('[data-release]');
             const view = event.target.closest('[data-view]');
-            if (release) openModal(parseInt(release.dataset.release, 10), 'release');
-            if (view) openView(parseInt(view.dataset.view, 10));
+            if (release) {
+                openModal(parseInt(release.dataset.release, 10), 'release');
+                return;
+            }
+            if (view) {
+                openView(parseInt(view.dataset.view, 10));
+                return;
+            }
+            if (event.target.closest('.rel-actions')) return;
+            // Selecting text in a row is not a click on it
+            if (window.getSelection && String(window.getSelection()).trim() !== '') return;
+
+            const row = event.target.closest('tr[data-row]');
+            if (row) openView(parseInt(row.dataset.row, 10));
+        });
+
+        // Enter on a focused row opens it too
+        tableBody.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' || !event.target.matches('tr[data-row]')) return;
+            event.preventDefault();
+            openView(parseInt(event.target.dataset.row, 10));
         });
 
         idCheck.addEventListener('change', () => {
@@ -716,8 +843,15 @@
         modal.addEventListener('click', event => {
             if (event.target === modal) closeModal();
         });
-        searchInput.addEventListener('input', renderTable);
-        filterSelect.addEventListener('change', renderTable);
+        // A new search or filter starts again from page 1
+        searchInput.addEventListener('input', () => {
+            currentPage = 1;
+            renderTable();
+        });
+        filterSelect.addEventListener('change', () => {
+            currentPage = 1;
+            renderTable();
+        });
 
         function refresh() {
             return fetch(URL_DATA, { headers: { 'Accept': 'application/json' } })
