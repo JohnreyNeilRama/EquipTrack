@@ -46,6 +46,10 @@ return [
 
         'mysql' => [
             'driver' => 'mysql',
+            // MySQL fills some dates itself (date_requested, created_at,
+            // date_created, read_at). Philippine time on every server, so a
+            // UTC host (e.g. Hostinger) stores them as Laragon does.
+            'timezone' => env('DB_TIMEZONE', '+08:00'),
             'url' => env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
@@ -66,6 +70,10 @@ return [
 
         'mariadb' => [
             'driver' => 'mariadb',
+            // MySQL fills some dates itself (date_requested, created_at,
+            // date_created, read_at). Philippine time on every server, so a
+            // UTC host (e.g. Hostinger) stores them as Laragon does.
+            'timezone' => env('DB_TIMEZONE', '+08:00'),
             'url' => env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
