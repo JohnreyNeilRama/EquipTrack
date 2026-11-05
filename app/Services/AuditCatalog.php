@@ -74,6 +74,8 @@ class AuditCatalog
             'Added admin account' => 'Admin account',
             'Added department account' => 'Department account',
         ]],
+        // After "Added User", so "Added department account" stays an account.
+        ['label' => 'Added Department', 'module' => 'Users', 'prefixes' => ['Created department' => 'Department']],
         ['label' => 'Updated User', 'module' => 'Users', 'prefixes' => ['Updated user' => 'User']],
         ['label' => 'Activated User', 'module' => 'Users', 'prefixes' => ['Activated user account' => 'Account']],
         ['label' => 'Deactivated User', 'module' => 'Users', 'prefixes' => ['Deactivated user account' => 'Account']],
@@ -191,6 +193,7 @@ class AuditCatalog
             'admin' => 'Admin account #' . $id,
             'penalty' => 'Penalty #' . $id,
             'department_account' => 'Department account #' . $id,
+            'department' => 'Department #' . $id,
             'report' => 'Report: ' . ucfirst($id),
             'audit' => 'Audit trail',
             'auth' => match ($id) {

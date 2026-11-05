@@ -27,8 +27,6 @@ class UserAccountEditor
 {
     public const YEAR_LEVELS = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
 
-    public const DEPT_ROLES = ['Department Head', 'Department Staff', 'Department Admin'];
-
     private const LABELS = [
         'first_name' => 'First name',
         'last_name' => 'Last name',
@@ -40,7 +38,6 @@ class UserAccountEditor
         'teaching_license_no' => 'Teaching license no.',
         'highest_educational_attainment' => 'Educational attainment',
         'employee_id' => 'Employee ID',
-        'role' => 'Role',
         'department_id' => 'Department',
         'email' => 'Email',
         'address' => 'Address',
@@ -64,9 +61,10 @@ class UserAccountEditor
             return [
                 'full_name' => ['required', 'string', 'max:255'],
                 'employee_id' => ['required', 'string', 'max:100', Rule::unique('department_account', 'employee_id')->ignore($account->dept_acc_id, 'dept_acc_id')],
-                // Keeps an older role value valid if it is not one of today's options.
-                'role' => ['required', Rule::in(array_unique([...self::DEPT_ROLES, (string) $account->role]))],
-                'department_id' => $department,
+                // One Department Account per department: it can't move to a
+                // department that already has one. (Its role is always
+                // Department Head, so there is no role to edit.)
+                'department_id' => [...$department, Rule::unique('department_account', 'department_id')->ignore($account->dept_acc_id, 'dept_acc_id')],
                 'email' => ['required', 'email', 'max:100', Rule::unique('department_account', 'email')->ignore($account->dept_acc_id, 'dept_acc_id'), UniqueAccountEmail::except(UniqueAccountEmail::DEPT, $account->dept_acc_id)],
             ];
         }
@@ -106,6 +104,7 @@ class UserAccountEditor
             'email.unique' => 'Another account already uses this email address.',
             'department_id.required' => 'Select a department.',
             'department_id.exists' => 'Select a valid department.',
+            'department_id.unique' => 'This department already has a Department Account. Each department has only one.',
         ];
     }
 
@@ -124,7 +123,6 @@ class UserAccountEditor
             return [
                 'full_name' => (string) $account->full_name,
                 'employee_id' => (string) $account->employee_id,
-                'role' => (string) $account->role,
                 'department_id' => $account->department_id,
                 'email' => (string) $account->email,
             ];
@@ -188,7 +186,7 @@ class UserAccountEditor
                 $account->update([
                     'full_name' => $after['full_name'],
                     'employee_id' => $after['employee_id'],
-                    'role' => $after['role'],
+                    'role' => DepartmentAccount::ROLE,
                     'department_id' => (int) $after['department_id'],
                     'email' => $after['email'],
                 ]);

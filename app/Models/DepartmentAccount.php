@@ -6,9 +6,18 @@ use App\Notifications\ResetPasswordNotification;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
+/**
+ * The Lab Personnel login of a department. Each department has exactly one
+ * Department Account (unique department_id), and its role is always
+ * Department Head: it manages the department's equipment, users, requests,
+ * releases, returns and penalties.
+ */
 class DepartmentAccount extends Authenticatable
 {
     use Notifiable;
+
+    /** The one role a Department Account has. */
+    public const ROLE = 'Department Head';
 
     protected $table = 'department_account';
     protected $primaryKey = 'dept_acc_id';

@@ -18,6 +18,33 @@
     color: var(--text-muted);
 }
 
+/* Add Department Account: the new department's fields ("+ Add a new department") */
+.new-department-fields {
+    margin: 0 0 16px;
+    padding: 14px 16px 2px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background-color: var(--primary-light);
+}
+
+.new-department-fields[hidden] {
+    display: none;
+}
+
+/* Codes are typed upper-case; the "e.g." hint keeps its normal case */
+.new-department-fields #newDepartmentCode::placeholder {
+    text-transform: none;
+}
+
+.new-department-fields legend {
+    padding: 0 6px;
+    font-size: var(--fs-small);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--primary-color);
+}
+
 .btn-add-student, .btn-add-faculty, .btn-add-admin, .btn-add-department {
     height: 46px;
     padding: 0 24px;

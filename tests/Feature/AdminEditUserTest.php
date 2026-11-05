@@ -134,16 +134,33 @@ class AdminEditUserTest extends TestCase
         $lab = $this->makeLabPersonnel($this->ccs, 'lab@example.com', 'Dr. Christian Ferrer', ['employee_id' => 'EMP-0001']);
         $this->makeLabPersonnel($this->ccj, 'other.lab@example.com', 'Dr. Jemuel Rama', ['employee_id' => 'EMP-0002']);
 
-        $this->edit($lab, ['role' => 'Department Staff', 'full_name' => 'Dr. Christian M. Ferrer']);
-        $this->assertSame('Department Staff', $lab->fresh()->role);
+        $this->edit($lab, ['full_name' => 'Dr. Christian M. Ferrer']);
         $this->assertSame('Dr. Christian M. Ferrer', $lab->fresh()->full_name);
         $this->assertTrue(AuditTrail::where('affected_entity', 'department_account:' . $lab->dept_acc_id)->where('action', 'Updated user account')->exists());
 
         $this->edit($lab, ['employee_id' => 'EMP-0002'])->assertSessionHasErrors();
         $this->assertStringContainsString('already has this employee ID', $this->firstError());
+    }
 
-        $this->edit($lab, ['role' => 'Super Admin'])->assertSessionHasErrors();
-        $this->assertSame('Department Staff', $lab->fresh()->role);
+    public function test_a_department_account_is_always_department_head_and_cannot_move_to_a_department_that_has_one(): void
+    {
+        $lab = $this->makeLabPersonnel($this->ccs, 'lab@example.com', 'Dr. Christian Ferrer', ['employee_id' => 'EMP-0001']);
+        $this->makeLabPersonnel($this->ccj, 'other.lab@example.com', 'Dr. Jemuel Rama', ['employee_id' => 'EMP-0002']);
+
+        // A posted role is ignored: the account stays Department Head.
+        $this->edit($lab, ['role' => 'Department Staff', 'full_name' => 'Dr. Christian M. Ferrer']);
+        $this->assertSame(DepartmentAccount::ROLE, $lab->fresh()->role);
+        $this->assertSame('Dr. Christian M. Ferrer', $lab->fresh()->full_name);
+
+        // CCJ already has its Department Account.
+        $this->edit($lab, ['department_id' => $this->ccj->department_id])->assertSessionHasErrors('department_id');
+        $this->assertStringContainsString('already has a Department Account', $this->firstError());
+        $this->assertSame($this->ccs->department_id, (int) $lab->fresh()->department_id);
+
+        // A department with no account yet is fine.
+        $cba = $this->makeDepartment('College of Business Administration', 'CBA');
+        $this->edit($lab, ['department_id' => $cba->department_id])->assertSessionHasNoErrors();
+        $this->assertSame($cba->department_id, (int) $lab->fresh()->department_id);
     }
 
     public function test_an_account_that_no_longer_exists_gets_a_clear_message(): void

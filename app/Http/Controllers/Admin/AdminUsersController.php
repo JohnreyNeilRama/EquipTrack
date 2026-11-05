@@ -16,6 +16,7 @@ use App\Services\UserAccountEditor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -31,8 +32,12 @@ class AdminUsersController extends Controller
     {
         $dbUsers = $this->fetchDbUsers();
         $departmentsList = Department::orderBy('department_name')->get();
+        // department_id => dept_acc_id: departments that already have their
+        // one Department Account (the account forms can't pick them).
+        $departmentAccountIds = DepartmentAccount::whereNotNull('department_id')
+            ->pluck('dept_acc_id', 'department_id')->all();
 
-        return view('admin.users', compact('dbUsers', 'departmentsList'));
+        return view('admin.users', compact('dbUsers', 'departmentsList', 'departmentAccountIds'));
     }
 
     public function addStudent(Request $request): RedirectResponse
@@ -170,35 +175,89 @@ class AdminUsersController extends Controller
         return null;
     }
 
+    /** Value of the Department field that means "create a new department with this account". */
+    public const NEW_DEPARTMENT = 'new';
+
+    /**
+     * Adds a department's one Department Account (always Department Head),
+     * either for an existing department that has no account yet, or together
+     * with a new department (name, code and college entered on the same form).
+     */
     public function addDepartment(Request $request): RedirectResponse
     {
+        $isNewDepartment = $request->input('department_id') === self::NEW_DEPARTMENT;
+
+        // Codes are stored upper-case and trimmed, so "ce" and "CE" are the same code.
+        if ($isNewDepartment) {
+            $request->merge([
+                'new_department_name' => trim((string) $request->input('new_department_name')),
+                'new_department_code' => strtoupper(trim((string) $request->input('new_department_code'))),
+                'new_department_college' => trim((string) $request->input('new_department_college')),
+            ]);
+        }
+
         $data = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
             'employee_id' => ['required', 'string', 'max:100', Rule::unique('department_account', 'employee_id')],
             'email' => ['required', 'email', 'max:100', Rule::unique('department_account', 'email'), new UniqueAccountEmail()],
-            'role' => ['required', Rule::in(['Department Head', 'Department Staff', 'Department Admin'])],
-            'department_id' => ['required', 'integer', Rule::exists('department', 'department_id')],
             'password' => ['required', 'string', Password::defaults()],
-        ], [
+        ] + ($isNewDepartment ? [
+            'new_department_name' => ['required', 'string', 'max:255', Rule::unique('department', 'department_name')],
+            'new_department_code' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9-]+$/', Rule::unique('department', 'department_code')],
+            'new_department_college' => ['nullable', 'string', 'max:255'],
+        ] : [
+            // One Department Account per department.
+            'department_id' => ['required', 'integer', Rule::exists('department', 'department_id'), Rule::unique('department_account', 'department_id')],
+        ]), [
             'employee_id.unique' => 'A department account with this email or employee ID already exists.',
             'email.unique' => 'A department account with this email or employee ID already exists.',
+            'department_id.required' => 'Select a department, or choose "Add a new department".',
+            'department_id.unique' => 'This department already has a Department Account. Each department has only one; edit that account instead.',
+            'new_department_name.required' => 'Enter the new department\'s name.',
+            'new_department_name.unique' => 'A department with this name already exists.',
+            'new_department_code.required' => 'Enter the new department\'s code (e.g., CE).',
+            'new_department_code.regex' => 'The department code may contain only letters, numbers and hyphens.',
+            'new_department_code.unique' => 'A department with this code already exists.',
         ]);
 
-        $department = Department::find($data['department_id']);
+        [$department, $account] = DB::transaction(function () use ($data, $isNewDepartment) {
+            $department = $isNewDepartment
+                ? Department::create([
+                    'department_name' => $data['new_department_name'],
+                    'department_code' => $data['new_department_code'],
+                    'college' => ($data['new_department_college'] ?? '') ?: null,
+                    // The department's head is the person who holds its account.
+                    'department_head' => $data['full_name'],
+                ])
+                : Department::find($data['department_id']);
 
-        $account = DepartmentAccount::create([
-            'full_name' => $data['full_name'],
-            'email' => $data['email'],
-            'employee_id' => $data['employee_id'],
-            'role' => $data['role'],
-            'department_id' => $department->department_id,
-            'password' => Hash::make($data['password']),
-            // Legacy copied the department's existing image to the new account
-            'profile_image' => $department->profile_image
-                ?? DepartmentAccount::where('department_id', $department->department_id)
-                    ->whereNotNull('profile_image')->where('profile_image', '!=', '')
-                    ->orderBy('dept_acc_id')->value('profile_image'),
-        ]);
+            $account = DepartmentAccount::create([
+                'full_name' => $data['full_name'],
+                'email' => $data['email'],
+                'employee_id' => $data['employee_id'],
+                // Every Department Account is its department's Department Head.
+                'role' => DepartmentAccount::ROLE,
+                'department_id' => $department->department_id,
+                'password' => Hash::make($data['password']),
+                // Legacy copied the department's existing image to the new account
+                'profile_image' => $department->profile_image
+                    ?? DepartmentAccount::where('department_id', $department->department_id)
+                        ->whereNotNull('profile_image')->where('profile_image', '!=', '')
+                        ->orderBy('dept_acc_id')->value('profile_image'),
+            ]);
+
+            return [$department, $account];
+        });
+
+        if ($isNewDepartment) {
+            AuditLogger::log(
+                'Created department ' . $department->department_code,
+                'department:' . $department->department_id,
+                $department->department_name . ($department->college ? ' (' . $department->college . ')' : ''),
+                null,
+                $request,
+            );
+        }
 
         AuditLogger::log(
             'Added department account',
@@ -208,9 +267,13 @@ class AdminUsersController extends Controller
             $request,
         );
 
+        $message = $isNewDepartment
+            ? "Department '{$department->department_name}' and its Department Account for '{$data['full_name']}' created successfully!"
+            : "Department account for '{$data['full_name']}' created successfully!";
+
         return redirect()
             ->route('admin.users')
-            ->with('serverMsg', "Department account for '{$data['full_name']}' created successfully!")
+            ->with('serverMsg', $message)
             ->with('serverMsgType', 'success');
     }
 

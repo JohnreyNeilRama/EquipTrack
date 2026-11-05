@@ -433,15 +433,10 @@
                             <label for="editEmployeeId">Employee ID</label>
                             <input type="text" id="editEmployeeId" name="employee_id" class="form-control-flat" required maxlength="100">
                         </div>
+                        {{-- Every Department Account is its department's Department Head (not editable, not sent) --}}
                         <div class="form-group-flat">
                             <label for="editRole">Role</label>
-                            <div class="flat-select-wrapper" style="width: 100%;">
-                                <select id="editRole" name="role" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
-                                    @foreach (\App\Services\UserAccountEditor::DEPT_ROLES as $deptRole)
-                                        <option value="{{ $deptRole }}">{{ $deptRole }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
+                            <input type="text" id="editRole" class="form-control-flat" value="{{ \App\Models\DepartmentAccount::ROLE }}" readonly aria-readonly="true" style="background-color: var(--bg-color); cursor: default;">
                         </div>
                     </div>
 
@@ -485,50 +480,77 @@
                 <button class="modal-close" id="closeDeptModalBtn">&times;</button>
                 <h3 class="modal-title-center">Add Department Account</h3>
 
+                @php
+                    // Refill this form after a server-side error (not the password).
+                    $deptOld = $errors->hasAny(['full_name', 'employee_id', 'department_id', 'new_department_name', 'new_department_code', 'new_department_college'])
+                        && old('form_type') === null;
+                    $deptNewOld = $deptOld && old('department_id') === \App\Http\Controllers\Admin\AdminUsersController::NEW_DEPARTMENT;
+                @endphp
                 <form id="departmentForm" action="{{ route('admin.users.department') }}" method="POST" class="new-modal-form" style="padding-top: 10px;">
                     @csrf
                     <div class="form-group-flat">
                         <label>Full Name <span style="color: #ef4444;">*</span></label>
-                        <input type="text" id="deptFullName" name="full_name" class="form-control-flat" required placeholder="e.g., Dr. Jane Doe">
+                        <input type="text" id="deptFullName" name="full_name" class="form-control-flat" required placeholder="e.g., Dr. Jane Doe" value="{{ $deptOld ? old('full_name') : '' }}">
                     </div>
 
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group-flat">
                             <label>Employee ID <span style="color: #ef4444;">*</span></label>
-                            <input type="text" id="deptEmployeeId" name="employee_id" class="form-control-flat" required placeholder="e.g., EMP-2026-001">
+                            <input type="text" id="deptEmployeeId" name="employee_id" class="form-control-flat" required placeholder="e.g., EMP-2026-001" value="{{ $deptOld ? old('employee_id') : '' }}">
                         </div>
                         <div class="form-group-flat">
                             <label>Email Address <span style="color: #ef4444;">*</span></label>
-                            <input type="email" id="deptEmail" name="email" class="form-control-flat" required placeholder="e.g., jane.doe@equiptrack.edu">
+                            <input type="email" id="deptEmail" name="email" class="form-control-flat" required placeholder="e.g., jane.doe@equiptrack.edu" value="{{ $deptOld ? old('email') : '' }}">
                         </div>
                     </div>
 
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        {{-- Every Department Account is its department's Department Head --}}
                         <div class="form-group-flat">
-                            <label>Role <span style="color: #ef4444;">*</span></label>
-                            <div class="flat-select-wrapper" style="width: 100%;">
-                                <select id="deptRole" name="role" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
-                                    <option value="Department Head" selected>Department Head</option>
-                                    <option value="Department Staff">Department Staff</option>
-                                    <option value="Department Admin">Department Admin</option>
-                                </select>
-                            </div>
+                            <label for="deptRole">Role</label>
+                            <input type="text" id="deptRole" class="form-control-flat" value="{{ \App\Models\DepartmentAccount::ROLE }}" readonly aria-readonly="true" style="background-color: var(--bg-color); cursor: default;">
                         </div>
 
                         <div class="form-group-flat">
                             <label>Department <span style="color: #ef4444;">*</span></label>
                             <div class="flat-select-wrapper" style="width: 100%;">
                                 <select id="deptDepartmentId" name="department_id" class="form-control-flat" required style="width: 100%; height: 42px; padding: 8px 14px; border-radius: 8px;">
-                                    <option value="" disabled selected>Select Department</option>
+                                    <option value="" disabled @selected(!$deptOld || !old('department_id'))>Select Department</option>
+                                    {{-- One Department Account per department: departments that have one can't be picked --}}
                                     @foreach ($departmentsList as $dItem)
-                                        <option value="{{ $dItem->department_id }}">
-                                            {{ $dItem->department_name }}{{ $dItem->department_code ? ' (' . $dItem->department_code . ')' : '' }}
+                                        @php $hasAccount = isset($departmentAccountIds[$dItem->department_id]); @endphp
+                                        <option value="{{ $dItem->department_id }}" @disabled($hasAccount) @selected($deptOld && !$hasAccount && (string) old('department_id') === (string) $dItem->department_id)>
+                                            {{ $dItem->department_name }}{{ $dItem->department_code ? ' (' . $dItem->department_code . ')' : '' }}{{ $hasAccount ? ' — already has an account' : '' }}
                                         </option>
                                     @endforeach
+                                    <option value="{{ \App\Http\Controllers\Admin\AdminUsersController::NEW_DEPARTMENT }}" @selected($deptNewOld)>+ Add a new department</option>
                                 </select>
                             </div>
                         </div>
                     </div>
+
+                    {{-- New department: created together with its Department Account --}}
+                    <fieldset class="new-department-fields" id="newDepartmentFields" @unless ($deptNewOld) hidden @endunless>
+                        <legend>New department</legend>
+                        <div class="form-group-flat">
+                            <label for="newDepartmentName">Department Name <span style="color: #ef4444;">*</span></label>
+                            <input type="text" id="newDepartmentName" name="new_department_name" class="form-control-flat" maxlength="255" placeholder="e.g., College of Engineering" value="{{ $deptNewOld ? old('new_department_name') : '' }}" @disabled(!$deptNewOld) @required($deptNewOld)>
+                        </div>
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div class="form-group-flat">
+                                <label for="newDepartmentCode">Department Code <span style="color: #ef4444;">*</span></label>
+                                <input type="text" id="newDepartmentCode" name="new_department_code" class="form-control-flat" maxlength="50" pattern="[A-Za-z0-9\-]+" title="Letters, numbers and hyphens only." placeholder="e.g., COE" value="{{ $deptNewOld ? old('new_department_code') : '' }}" @disabled(!$deptNewOld) @required($deptNewOld) style="text-transform: uppercase;">
+                            </div>
+                            <div class="form-group-flat">
+                                <label for="newDepartmentCollege">College <span class="label-optional">(optional)</span></label>
+                                <input type="text" id="newDepartmentCollege" name="new_department_college" class="form-control-flat" maxlength="255" placeholder="e.g., College of Engineering" value="{{ $deptNewOld ? old('new_department_college') : '' }}" @disabled(!$deptNewOld)>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <p style="margin: -6px 0 14px; font-size: var(--fs-label); color: var(--text-muted);">
+                        Each department has one Department Account. To change who manages a department, edit its existing account. For a department that isn't listed yet, choose "+ Add a new department".
+                    </p>
 
                     <div class="form-group-flat">
                         <label>Password <span style="color: #ef4444;">*</span></label>
@@ -641,6 +663,8 @@
         const CSRF_TOKEN = @json(csrf_token());
         const URL_TOGGLE = @json(route('admin.users.toggle'));
         const URL_DELETE = @json(route('admin.users.delete'));
+        // department_id => dept_acc_id of the department's one Department Account
+        const DEPT_ACCOUNT_IDS = @json((object) $departmentAccountIds);
         const URL_IMAGE = @json(route('admin.users.image'));
 
         // Helper: submit a hidden POST form (same full-page-submit UX as legacy)
@@ -729,7 +753,7 @@
         // Re-show validation/operation errors on the relevant modal
         @if ($errors->any())
             @php
-                $isDeptError = $errors->hasAny(['full_name', 'employee_id', 'department_id', 'role']);
+                $isDeptError = $errors->hasAny(['full_name', 'employee_id', 'department_id', 'new_department_name', 'new_department_code', 'new_department_college']);
             @endphp
             @if (old('form_type') === 'edit')
                 openEditUserModal(@json((int) old('user_id')), @json(\Illuminate\Support\Arr::except(old(), ['_token', 'form_type'])));
@@ -951,12 +975,25 @@
             document.getElementById('editUserId').value = user.id;
             document.getElementById('editUserType').value = user.db_type;
 
+            // One Department Account per department: a Department Account can't
+            // be moved to a department that already has another one. Students
+            // and faculty can pick any department.
+            const ownAccountId = type === 'dept' ? user.id - 100000 : null;
+            [...document.getElementById('editDepartment').options].forEach(option => {
+                if (option.value === '') return;
+                const owner = DEPT_ACCOUNT_IDS[option.value];
+                const takenByAnother = type === 'dept' && owner !== undefined && Number(owner) !== ownAccountId;
+                option.disabled = takenByAnother;
+                option.textContent = option.textContent.replace(' — already has an account', '')
+                    + (takenByAnother ? ' — already has an account' : '');
+            });
+
             const values = typedValues || user.edit || {};
             const fields = {
                 first_name: 'editFirstName', last_name: 'editLastName', full_name: 'editFullName',
                 id_number: 'editIdNumber', year_level: 'editYearLevel',
                 faculty_id_number: 'editFacultyId', teaching_license_no: 'editLicense', highest_educational_attainment: 'editEducation',
-                employee_id: type === 'admin' ? 'editAdminEmployeeId' : 'editEmployeeId', role: 'editRole', name: 'editAdminName',
+                employee_id: type === 'admin' ? 'editAdminEmployeeId' : 'editEmployeeId', name: 'editAdminName',
                 department_id: 'editDepartment', email: 'editEmail', address: 'editAddress',
             };
             Object.entries(fields).forEach(([name, elementId]) => {
@@ -1252,6 +1289,26 @@
                 showNotification('Registration Error', 'An account with this email already exists.', 'error');
             }
         });
+
+        // "+ Add a new department": shows the new department's fields, which are
+        // required and sent only while that choice is selected.
+        const deptDepartmentSelect = document.getElementById('deptDepartmentId');
+        const newDepartmentFields = document.getElementById('newDepartmentFields');
+        function syncNewDepartmentFields() {
+            const isNew = deptDepartmentSelect.value === @json(\App\Http\Controllers\Admin\AdminUsersController::NEW_DEPARTMENT);
+            newDepartmentFields.hidden = !isNew;
+            newDepartmentFields.querySelectorAll('input').forEach(input => {
+                input.disabled = !isNew;
+                input.required = isNew && input.id !== 'newDepartmentCollege';
+            });
+        }
+        deptDepartmentSelect.addEventListener('change', () => {
+            syncNewDepartmentFields();
+            if (!newDepartmentFields.hidden) document.getElementById('newDepartmentName').focus();
+        });
+        // reset() changes the select without a change event
+        departmentForm.addEventListener('reset', () => setTimeout(syncNewDepartmentFields, 0));
+        syncNewDepartmentFields();
 
         addDepartmentBtn.addEventListener('click', () => {
             departmentModal.classList.add('show');
