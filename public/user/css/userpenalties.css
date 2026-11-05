@@ -3,6 +3,9 @@
  * and the Submit Proof form. Uses the shared theme tokens from ccs/global.css.
  */
 
+/* The scrollbar is always shown on every Student / Faculty page (layouts/user),
+   so filtering or having no penalties never changes the page width. */
+
 .penalties-page {
     display: flex;
     flex-direction: column;
@@ -18,12 +21,9 @@
     line-height: 1.25;
 }
 
-.pp-subtitle {
-    margin: 8px 0 0;
-    max-width: 760px;
-    font-size: var(--fs-body);
-    line-height: 1.55;
-    color: var(--text-muted);
+/* Title only, like the other user pages: 24px below it (20px gap + 4px) */
+.pp-header {
+    margin-bottom: 4px;
 }
 
 /* Summary */

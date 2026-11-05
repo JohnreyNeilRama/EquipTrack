@@ -14,6 +14,16 @@
     <link rel="stylesheet" href="{{ asset('user/css/usernotifications.css') }}">
     @stack('css')
     <style>
+        /* Every Student / Faculty page always shows the vertical scrollbar, so
+           the page has the same width whatever it holds (a short filter, an
+           empty list, a long table) and the top navbar never moves when the
+           content changes or when moving between pages. Same rule as the
+           Admin and Department pages (ccs/navbar.css). */
+        html {
+            overflow-y: scroll;
+            scrollbar-gutter: stable;
+        }
+
         /* Profile dropdown: long names and emails stay on one line and end in
            "…" (same rule as the Admin and Department navbars in ccs/navbar.css). */
         .top-navbar .dropdown-profile-header {

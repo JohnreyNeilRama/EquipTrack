@@ -10,10 +10,6 @@
     <div class="penalties-page">
         <header class="pp-header">
             <h3 class="pp-title">Track your penalties and submit proof of settlement</h3>
-            <p class="pp-subtitle">
-                Pay, replace or repair outside EquipTrack (for example at the Accounting Office), then upload your receipt or photos here.
-                Staff will verify your proof; borrowing stays on hold until it is approved.
-            </p>
         </header>
 
         <div class="pp-summary" aria-label="Summary">
@@ -309,13 +305,34 @@ document.addEventListener('DOMContentLoaded', () => {
         $('penaltyList').querySelectorAll('[data-lightbox]').forEach(btn => btn.addEventListener('click', () => openLightbox(btn.dataset.lightbox)));
     }
 
+    // Switching filters keeps the page where it is. A filter with few
+    // penalties makes the page shorter; when the reader had scrolled down,
+    // the browser would then jump back up, moving the navbar, the cards and
+    // the filter buttons under the pointer. So the page keeps just enough
+    // room below the list to stay at the same scroll position (reset on the
+    // next switch). All of it happens before the browser draws.
+    const pageEl = document.querySelector('.penalties-page');
     document.querySelectorAll('.pp-tab').forEach(tab => tab.addEventListener('click', () => {
+        const scrollBefore = window.scrollY;
+
         filter = tab.dataset.filter;
         document.querySelectorAll('.pp-tab').forEach(t => {
             t.classList.toggle('is-active', t === tab);
             t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
         });
+
+        pageEl.style.minHeight = '';
         render();
+
+        // The main area already fills the screen, so part of any added room
+        // only fills that; add more until the page is tall enough (a few
+        // passes at most).
+        for (let pass = 0; pass < 4; pass++) {
+            const missing = scrollBefore + window.innerHeight - document.documentElement.scrollHeight;
+            if (missing <= 0) break;
+            pageEl.style.minHeight = (pageEl.offsetHeight + missing) + 'px';
+        }
+        window.scrollTo(0, scrollBefore);
     }));
 
     // ------------------------------------------------------------------
