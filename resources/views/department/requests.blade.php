@@ -59,14 +59,6 @@
         outline-offset: -2px;
     }
 
-    /* Status filter: the arrow (placed inside the box) never sits on the
-       text; a longer option ends in "…" before the arrow. */
-    .controls-bar .filter-select-wrapper:has(#filterStatus) select {
-        padding-right: 44px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
 </style>
 @endpush
 

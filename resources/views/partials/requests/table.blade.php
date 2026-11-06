@@ -2,25 +2,32 @@
      Optional: $showRequestId adds a leading Request ID column (pair it with the
      script's showRequestId); $combineUserRole shows the role under the user's
      name instead of in its own column (pair it with the script's option);
-     $tableClass is a class hook for page styles. --}}
-        {{-- Controls bar (Search & Filters) --}}
-        <div class="controls-bar">
-            <div class="controls-left">
-                <div class="search-box-wrapper">
-                    <input type="text" id="searchRequests" placeholder="Search by user or equipment...">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                </div>
-                <div class="filter-select-wrapper">
-                    <select id="filterStatus">
-                        <option value="all">All Status</option>
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
+     $tableClass is a class hook for page styles. The search and filters
+     (Status, and Student / Faculty Member role) sit in the shared filter card
+     (ccs/filter-card.css). --}}
+        <div class="filter-card-container">
+            <div class="search-box-right-icon">
+                <input type="text" id="searchRequests" placeholder="Search user or equipment..." aria-label="Search requests">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+            <div class="filter-select-item">
+                <select id="filterStatus" aria-label="Filter by status">
+                    <option value="all">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
                     <option value="cancelled">Cancelled</option>
                     <option value="expired">Expired</option>
-                    </select>
-                    <i class="fa-solid fa-chevron-down"></i>
-                </div>
+                </select>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="filter-select-item">
+                <select id="filterRole" aria-label="Filter by role">
+                    <option value="all">All Roles</option>
+                    <option value="student">Student</option>
+                    <option value="faculty">Faculty Member</option>
+                </select>
+                <i class="fa-solid fa-chevron-down"></i>
             </div>
         </div>
 

@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterStatus = $('filterStatus');
     const filterType = $('filterType');
     const filterDepartment = $('filterDepartment');
+    // Student / Faculty Member filter (Lab Personnel page only)
+    const filterRole = $('filterRole');
     const detailModal = $('penaltyModal');
     const formModal = $('penaltyFormModal');
     const form = $('penaltyForm');
@@ -56,13 +58,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const status = filterStatus.value;
         const type = filterType.value;
         const department = filterDepartment ? filterDepartment.value : 'all';
+        const role = filterRole ? filterRole.value : 'all';
 
         const filtered = penalties.filter(p => {
             const haystack = `${p.penaltyId} ${p.user} ${p.email} ${p.equipment} ${p.serial} ${p.department} #${p.requestId}`.toLowerCase();
             return haystack.includes(query)
                 && (status === 'all' || (status === 'review' ? p.awaitingReview : p.status === status))
                 && (type === 'all' || p.type === type)
-                && (department === 'all' || p.department === department);
+                && (department === 'all' || p.department === department)
+                && (role === 'all' || (p.role || '').toLowerCase().includes(role));
         });
 
         tableBody.innerHTML = '';
@@ -536,7 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (detailModal.classList.contains('show')) closeDetails();
     });
 
-    [searchInput, filterStatus, filterType, filterDepartment].filter(Boolean).forEach(el => {
+    [searchInput, filterStatus, filterType, filterDepartment, filterRole].filter(Boolean).forEach(el => {
         el.addEventListener(el === searchInput ? 'input' : 'change', () => { currentPage = 1; renderTable(); });
     });
     form.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', () => el.classList.remove('is-invalid')));

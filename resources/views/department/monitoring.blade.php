@@ -8,7 +8,7 @@
 
 @section('content')
 <!-- Page Header -->
-        <div class="page-title-section" style="margin-top: 10px;">
+        <div class="page-title-section">
             <h2>Equipment Monitoring</h2>
             <p>Monitor borrowed equipment, return requests, and overdue records.</p>
         </div>

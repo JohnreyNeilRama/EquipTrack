@@ -8,7 +8,7 @@
 
 @section('content')
 <!-- Page Header -->
-        <div class="page-title-section" style="margin-top: 10px;">
+        <div class="page-title-section">
             <h2>Department Equipment</h2>
             <p>Manage equipment assigned to your department.</p>
         </div>
@@ -66,7 +66,7 @@
         <!-- Controls Bar (Filter Container Card) -->
         <div class="filter-card-container">
             <div class="search-box-right-icon">
-                <input type="text" id="searchEquipment" placeholder="Search by name, brand, model or serial no..." aria-label="Search equipment">
+                <input type="text" id="searchEquipment" placeholder="Search by name or serial no..." aria-label="Search equipment">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
 

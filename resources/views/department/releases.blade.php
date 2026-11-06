@@ -75,14 +75,8 @@
     /* Status filter: the box itself is wide enough for "Ready for Pickup", so
        the arrow (placed inside the box) never sits on the text; a longer
        option ends in "…" before the arrow. */
-    .filter-select-wrapper.rel-filter {
-        width: 200px;
-    }
-    .filter-select-wrapper.rel-filter select {
-        padding-right: 44px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+    .filter-select-item.rel-filter {
+        min-width: 200px;
     }
     .releases-table .cell-main {
         display: block;
@@ -275,7 +269,7 @@
     <div class="requests-container">
         <div class="equipment-header-section">
             <h2>Release Equipment</h2>
-            <p>Hand approved equipment to borrowers when they come to the lab. Check their school ID, then release the item. Open View for the full details, to mark it Not Claimed if they never came, or to cancel the reservation (with a reason the borrower will see).</p>
+            <p>Release approved equipment to borrowers after checking their school ID.</p>
         </div>
 
         <!-- Summary Cards -->
@@ -313,22 +307,28 @@
         </div>
 
         <!-- Search & filter -->
-        <div class="controls-bar">
-            <div class="controls-left">
-                <div class="search-box-wrapper">
-                    <input type="text" id="searchReleases" placeholder="Search by user, ID number, equipment or request ID...">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                </div>
-                <div class="filter-select-wrapper rel-filter">
-                    <select id="filterStatus" aria-label="Filter by status">
-                        <option value="all">All Status</option>
-                        <option value="Ready for Pickup" selected>Ready for Pickup</option>
-                        <option value="Released">Released</option>
-                        <option value="Not Claimed">Not Claimed</option>
-                        <option value="Cancelled">Cancelled</option>
-                    </select>
-                    <i class="fa-solid fa-chevron-down"></i>
-                </div>
+        <div class="filter-card-container">
+            <div class="search-box-right-icon">
+                <input type="text" id="searchReleases" placeholder="Search user, equipment or ID..." aria-label="Search releases">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+            <div class="filter-select-item rel-filter">
+                <select id="filterStatus" aria-label="Filter by status">
+                    <option value="all">All Status</option>
+                    <option value="Ready for Pickup" selected>Ready for Pickup</option>
+                    <option value="Released">Released</option>
+                    <option value="Not Claimed">Not Claimed</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="filter-select-item">
+                <select id="filterRole" aria-label="Filter by role">
+                    <option value="all">All Roles</option>
+                    <option value="student">Student</option>
+                    <option value="faculty">Faculty Member</option>
+                </select>
+                <i class="fa-solid fa-chevron-down"></i>
             </div>
         </div>
 
@@ -512,6 +512,7 @@
         const paginationButtons = document.getElementById('paginationButtons');
         const searchInput = document.getElementById('searchReleases');
         const filterSelect = document.getElementById('filterStatus');
+        const filterRole = document.getElementById('filterRole');
         const modal = document.getElementById('releaseModal');
         const viewModal = document.getElementById('viewModal');
         const form = document.getElementById('releaseForm');
@@ -568,10 +569,13 @@
         function renderTable() {
             const query = searchInput.value.toLowerCase().trim();
             const filter = filterSelect.value;
+            const role = filterRole.value;
 
             const rows = releases.filter(r => {
                 const text = [r.user, r.idNumber, r.equipment, r.serial, '#' + r.requestId, String(r.requestId)].join(' ').toLowerCase();
-                return (filter === 'all' || r.status === filter) && (query === '' || text.includes(query));
+                return (filter === 'all' || r.status === filter)
+                    && (role === 'all' || (r.role || '').toLowerCase().includes(role))
+                    && (query === '' || text.includes(query));
             });
 
             if (!rows.length) {
@@ -849,6 +853,10 @@
             renderTable();
         });
         filterSelect.addEventListener('change', () => {
+            currentPage = 1;
+            renderTable();
+        });
+        filterRole.addEventListener('change', () => {
             currentPage = 1;
             renderTable();
         });

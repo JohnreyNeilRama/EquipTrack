@@ -13,6 +13,10 @@
     <link rel="stylesheet" href="{{ asset('ccs/global.css') }}?v={{ filemtime(public_path('ccs/global.css')) }}">
     <link rel="stylesheet" href="{{ asset('user/css/usernotifications.css') }}">
     @stack('css')
+    {{-- Page title + subtitle, the same on every Department page --}}
+    <link rel="stylesheet" href="{{ asset('departments/css/page-header.css') }}?v={{ filemtime(public_path('departments/css/page-header.css')) }}">
+    {{-- Search + filters card above every table (shared with Admin) --}}
+    <link rel="stylesheet" href="{{ asset('ccs/filter-card.css') }}?v={{ filemtime(public_path('ccs/filter-card.css')) }}">
     <link rel="stylesheet" href="{{ asset('ccs/navbar.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">

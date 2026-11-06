@@ -1,0 +1,38 @@
+/* ==========================================================================
+   EquipTrack — Department page heading (single source of truth)
+   --------------------------------------------------------------------------
+   Loaded by layouts/department.blade.php after every page stylesheet, so all
+   Department pages show the page title and its subtitle exactly like the
+   Department Equipment page (the design reference): same distance below the
+   navbar, same sizes, weights and colours, same gap to the subtitle and to
+   the content below. Pages use either wrapper class:
+     .page-title-section        (Equipment, Monitoring, History, Users)
+     .equipment-header-section  (Requests, Releases, Returns, Penalties)
+   Only this layout loads the file, so the Admin pages that share the
+   .equipment-header-section markup are not affected.
+   ========================================================================== */
+
+.main-content .page-title-section,
+.main-content .equipment-header-section {
+    margin: 10px 0 24px 0;
+    padding: 0;
+}
+
+.main-content .page-title-section h2,
+.main-content .equipment-header-section h2 {
+    font-size: var(--fs-page-title);
+    font-weight: 700;
+    color: var(--page-title-color);
+    margin: 0 0 6px 0;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+}
+
+.main-content .page-title-section p,
+.main-content .equipment-header-section p {
+    font-size: var(--fs-body);
+    font-weight: 400;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+}

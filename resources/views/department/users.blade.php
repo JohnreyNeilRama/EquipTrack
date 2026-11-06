@@ -10,7 +10,7 @@
 
 @section('content')
 <!-- Page Header -->
-        <div class="page-title-section" style="margin-top: 10px;">
+        <div class="page-title-section">
             <h2>Users Management</h2>
             <p>Students and faculty members registered under your department.</p>
         </div>

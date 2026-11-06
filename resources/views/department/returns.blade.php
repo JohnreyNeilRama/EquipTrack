@@ -107,14 +107,8 @@
     /* Status filter: the box itself is wide enough for "Pending
        Confirmation", so the arrow (placed inside the box) never sits on the
        text; a longer option ends in "…" before the arrow. */
-    .filter-select-wrapper.ret-filter {
-        width: 230px;
-    }
-    .filter-select-wrapper.ret-filter select {
-        padding-right: 44px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+    .filter-select-item.ret-filter {
+        min-width: 230px;
     }
 
     /* Borrower name: one line */
@@ -784,21 +778,27 @@
         </div>
 
         {{-- Controls bar (Search & Filters) --}}
-        <div class="controls-bar">
-            <div class="controls-left">
-                <div class="search-box-wrapper">
-                    <input type="text" id="searchReturns" placeholder="Search by user, equipment or return ID...">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                </div>
-                <div class="filter-select-wrapper ret-filter">
-                    <select id="filterStatus" aria-label="Filter by status">
-                        <option value="all">All Status</option>
-                        <option value="pending confirmation">Pending Confirmation</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="rejected">Rejected</option>
-                    </select>
-                    <i class="fa-solid fa-chevron-down"></i>
-                </div>
+        <div class="filter-card-container">
+            <div class="search-box-right-icon">
+                <input type="text" id="searchReturns" placeholder="Search user, equipment or ID..." aria-label="Search returns">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+            <div class="filter-select-item ret-filter">
+                <select id="filterStatus" aria-label="Filter by status">
+                    <option value="all">All Status</option>
+                    <option value="pending confirmation">Pending Confirmation</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="filter-select-item">
+                <select id="filterRole" aria-label="Filter by role">
+                    <option value="all">All Roles</option>
+                    <option value="student">Student</option>
+                    <option value="faculty">Faculty Member</option>
+                </select>
+                <i class="fa-solid fa-chevron-down"></i>
             </div>
         </div>
 
@@ -1110,6 +1110,7 @@
         const tableBody = document.getElementById('returnsTableBody');
         const searchInput = document.getElementById('searchReturns');
         const filterSelect = document.getElementById('filterStatus');
+        const filterRole = document.getElementById('filterRole');
         const paginationContainer = document.getElementById('paginationContainer');
         const paginationInfo = document.getElementById('paginationInfo');
         const paginationButtons = document.getElementById('paginationButtons');
@@ -1171,12 +1172,15 @@
         function renderTable() {
             const query = searchInput.value.toLowerCase().trim();
             const filter = filterSelect.value;
+            const role = filterRole.value;
             tableBody.innerHTML = '';
             updateSummaryCards();
 
             const filtered = returns.filter(r => {
                 const haystack = `${r.returnId} ${r.user} ${r.equipment} ${r.equipmentId} ${r.department}`.toLowerCase();
-                return haystack.includes(query) && (filter === 'all' || r.status.toLowerCase() === filter);
+                return haystack.includes(query)
+                    && (filter === 'all' || r.status.toLowerCase() === filter)
+                    && (role === 'all' || (r.role || '').toLowerCase().includes(role));
             });
 
             if (filtered.length === 0) {
@@ -1661,6 +1665,7 @@
 
         searchInput.addEventListener('input', () => { currentPage = 1; renderTable(); });
         filterSelect.addEventListener('change', () => { currentPage = 1; renderTable(); });
+        filterRole.addEventListener('change', () => { currentPage = 1; renderTable(); });
 
         renderTable();
     });

@@ -74,25 +74,7 @@
     color: var(--danger-color, #ef4444);
 }
 
-/* Page Title Section */
-.page-title-section {
-    margin-bottom: 24px;
-}
-
-.page-title-section h2 {
-    font-size: var(--fs-page-title);
-    font-weight: 700;
-    color: var(--page-title-color);
-    margin: 0 0 6px 0;
-    letter-spacing: -0.02em;
-    line-height: 1.25;
-}
-
-.page-title-section p {
-    font-size: var(--fs-body);
-    color: var(--text-muted, #64748b);
-    margin: 0;
-}
+/* Page title + subtitle: departments/css/page-header.css */
 
 /* Summary Cards Section */
 .users-summary-section {
@@ -183,85 +165,7 @@
     color: var(--text-muted, #666666);
 }
 
-/* Control Filter Container Card */
-.filter-card-container {
-    background-color: var(--card-bg, #ffffff);
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 16px;
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 24px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-    flex-wrap: wrap;
-}
-
-.search-box-right-icon {
-    position: relative;
-    flex: 1;
-    min-width: 220px;
-}
-
-.search-box-right-icon input {
-    width: 100%;
-    height: 44px;
-    padding: 10px 46px 10px 18px;
-    border-radius: 22px;
-    border: 1px solid var(--border-color, #e2e8f0);
-    background-color: var(--bg-color, #f0f2f5);
-    color: var(--text-main, #333333);
-    font-size: var(--fs-body);
-    font-weight: 500;
-    outline: none;
-    transition: all 0.25s;
-}
-
-.search-box-right-icon input:focus {
-    border-color: var(--primary-color, #385585);
-}
-
-.search-box-right-icon i {
-    position: absolute;
-    right: 18px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted, #666666);
-    font-size: 16px;
-    pointer-events: none;
-}
-
-.filter-select-item {
-    position: relative;
-    min-width: 140px;
-}
-
-.filter-select-item select {
-    width: 100%;
-    height: 44px;
-    padding: 10px 38px 10px 18px;
-    border-radius: 22px;
-    border: 1px solid var(--border-color, #e2e8f0);
-    background-color: var(--bg-color, #f0f2f5);
-    color: var(--text-main, #333333);
-    font-size: var(--fs-body);
-    font-weight: 600;
-    outline: none;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-}
-
-.filter-select-item i {
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted, #666666);
-    font-size: var(--fs-label);
-    pointer-events: none;
-}
+/* Search + filters card: ccs/filter-card.css */
 
 /* Users data table — same look as the admin tables (.admin-table-card):
    theme header colour, --table-border lines, 20px radius, 16px / 20px cells. */
@@ -802,26 +706,9 @@
     outline-offset: -2px;
 }
 
-/* Filters: wide enough for "Faculty Member", so the arrow (placed inside
-   the box) never sits on the text; anything longer ends in "…". */
-.filter-select-item:has(#filterRole) {
-    min-width: 190px;
-}
-
-.filter-select-item select {
-    padding-right: 44px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 @media (max-width: 992px) {
     .users-table-container {
         overflow-x: auto;
-    }
-    .filter-card-container {
-        flex-direction: column;
-        align-items: stretch;
     }
 }
 

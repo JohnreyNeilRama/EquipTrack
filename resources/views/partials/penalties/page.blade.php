@@ -51,13 +51,14 @@
             </div>
         </div>
 
-        <div class="controls-bar">
-            <div class="controls-left penalties-controls">
-                <div class="search-box-wrapper">
+        {{-- Search + filters card (ccs/filter-card.css), the same on both pages.
+             Admin filters by department; Lab Personnel by Student / Faculty Member. --}}
+        <div class="filter-card-container penalties-filter-card">
+                <div class="search-box-right-icon">
                     <input type="text" id="searchPenalties" placeholder="Search user, equipment or ID..." aria-label="Search penalties">
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </div>
-                <div class="filter-select-wrapper">
+                <div class="filter-select-item">
                     <select id="filterStatus" aria-label="Filter by status">
                         <option value="all">All Status</option>
                         <option value="review">Proof under review</option>
@@ -67,7 +68,7 @@
                     </select>
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
-                <div class="filter-select-wrapper">
+                <div class="filter-select-item">
                     <select id="filterType" aria-label="Filter by type">
                         <option value="all">All Types</option>
                         @foreach (\App\Models\Penalty::TYPES as $type)
@@ -77,7 +78,7 @@
                     <i class="fa-solid fa-chevron-down"></i>
                 </div>
                 @if ($isAdmin)
-                    <div class="filter-select-wrapper">
+                    <div class="filter-select-item">
                         <select id="filterDepartment" aria-label="Filter by department">
                             <option value="all">All Departments</option>
                             @foreach ($departments as $department)
@@ -86,12 +87,20 @@
                         </select>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
+                @else
+                    <div class="filter-select-item">
+                        <select id="filterRole" aria-label="Filter by role">
+                            <option value="all">All Roles</option>
+                            <option value="student">Student</option>
+                            <option value="faculty">Faculty Member</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
                 @endif
                 {{-- Admin: any returned loan. Lab Personnel: their department's, e.g. damage found after Return Confirmation. --}}
                 <button type="button" class="btn-add-penalty" id="addPenaltyBtn">
                     <i class="fa-solid fa-plus"></i> Add Penalty
                 </button>
-            </div>
         </div>
 
         <div class="table-container card admin-table-card">

@@ -502,24 +502,23 @@
         </div>
 
         {{-- Controls bar --}}
-        <div class="controls-bar">
-            <div class="controls-left">
-                <div class="search-box-wrapper">
-                    <input type="text" id="searchEquipment" placeholder="Search equipment...">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                </div>
-                <div class="filter-select-wrapper">
-                    <select id="filterCategory">
-                        <option value="all">All Categories</option>
-                        @foreach ($dbCategories as $cat)
-                            <option value="{{ $cat->category_id }}">{{ $cat->category_name }}</option>
-                        @endforeach
-                    </select>
-                    <i class="fa-solid fa-chevron-down"></i>
-                </div>
+        {{-- Search + filters card (ccs/filter-card.css) --}}
+        <div class="filter-card-container">
+            <div class="search-box-right-icon">
+                <input type="text" id="searchEquipment" placeholder="Search equipment..." aria-label="Search equipment">
+                <i class="fa-solid fa-magnifying-glass"></i>
             </div>
-            <div class="controls-right" style="display: flex; gap: 10px; align-items: center;">
-                <button class="btn-add-category" id="addCategoryBtn" style="height: 46px; padding: 0 20px; border-radius: 23px; background-color: var(--card-bg, #ffffff); color: var(--text-main, #0f172a); border: 1px solid var(--border-color, #e2e8f0); font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+            <div class="filter-select-item">
+                <select id="filterCategory" aria-label="Filter by category">
+                    <option value="all">All Categories</option>
+                    @foreach ($dbCategories as $cat)
+                        <option value="{{ $cat->category_id }}">{{ $cat->category_name }}</option>
+                    @endforeach
+                </select>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="filter-card-actions">
+                <button class="btn-add-category" id="addCategoryBtn" style="padding: 0 20px; background-color: var(--card-bg, #ffffff); color: var(--text-main, #0f172a); border: 1px solid var(--border-color, #e2e8f0); font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
                     <i class="fa-solid fa-folder-plus" style="color: #385585;"></i> Add Category
                 </button>
                 <button class="btn-add-equipment" id="addEquipmentBtn">

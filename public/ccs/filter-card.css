@@ -1,0 +1,169 @@
+/* ==========================================================================
+   EquipTrack — search & filter container (single source of truth)
+   --------------------------------------------------------------------------
+   The Department Users design: the search box, the filter dropdowns and the
+   page's action buttons sit together in one white card above the table.
+   Loaded by layouts/department.blade.php and layouts/admin.blade.php after
+   every page stylesheet, so all Department and Admin table pages share
+   exactly the same padding, spacing, heights and radius. (Admin Reports and
+   Audit Trail keep their own toolbars and don't use these classes.)
+
+   Markup:
+     <div class="filter-card-container">
+         <div class="search-box-right-icon"><input …><i …></i></div>
+         <div class="filter-select-item"><select …>…</select><i …></i></div>
+         … more filters …
+         … optional buttons, or <div class="filter-card-actions">buttons</div>
+     </div>
+   ========================================================================== */
+
+.filter-card-container {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 0 0 24px 0;
+    padding: 16px;
+    background-color: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+/* Search: always first, and takes the free width, so its width follows the
+   page's filters. It is never narrower than 272px, enough to show every
+   Department search placeholder in full. */
+.search-box-right-icon {
+    position: relative;
+    flex: 1 1 272px;
+    min-width: 272px;
+}
+
+.search-box-right-icon input {
+    width: 100%;
+    height: 44px;
+    padding: 10px 46px 10px 18px;
+    border-radius: 22px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    background-color: var(--bg-color, #f0f2f5);
+    color: var(--text-main, #333333);
+    font-family: inherit;
+    font-size: var(--fs-body);
+    font-weight: 500;
+    outline: none;
+    transition: all 0.25s;
+    /* On a phone a long placeholder ends in "…" instead of being cut off */
+    text-overflow: ellipsis;
+}
+
+.search-box-right-icon input:focus {
+    border-color: var(--primary-color, #385585);
+}
+
+.search-box-right-icon i {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted, #666666);
+    font-size: 16px;
+    pointer-events: none;
+}
+
+/* Dropdowns: keep their width; the arrow sits inside the box and a longer
+   option ends in "…" before it. */
+.filter-select-item {
+    position: relative;
+    flex: 0 0 auto;
+    min-width: 140px;
+}
+
+.filter-select-item select {
+    width: 100%;
+    height: 44px;
+    padding: 10px 44px 10px 18px;
+    border-radius: 22px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    background-color: var(--bg-color, #f0f2f5);
+    color: var(--text-main, #333333);
+    font-family: inherit;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.filter-select-item select:focus {
+    border-color: var(--primary-color, #385585);
+}
+
+.filter-select-item i {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted, #666666);
+    font-size: var(--fs-label);
+    pointer-events: none;
+}
+
+/* Role filter (All Roles / Student / Faculty Member): wide enough for
+   "Faculty Member" on every page */
+.filter-select-item:has(#filterRole) {
+    min-width: 190px;
+}
+
+/* Buttons inside the card keep their size and sit at the right end; when
+   there is no room left on the filter row they move to their own row,
+   still aligned right. */
+.filter-card-container > button,
+.filter-card-container > .filter-card-actions,
+.filter-card-container > .users-add-actions {
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.filter-card-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* Buttons in the card are as tall as the search box and the dropdowns */
+.filter-card-container > button,
+.filter-card-actions > button {
+    height: 44px;
+    border-radius: 22px;
+}
+
+/* Narrow screens: one control per row, full width */
+@media (max-width: 992px) {
+    .filter-card-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    /* Child selectors so a page's own minimum width (e.g. a wide status
+       filter) can't push a control out of the card on a phone */
+    .filter-card-container > .search-box-right-icon,
+    .filter-card-container > .filter-select-item,
+    .filter-card-container > .filter-select-item:has(#filterRole) {
+        flex: 0 0 auto;
+        min-width: 0;
+    }
+
+    /* Stacked: buttons span the full width like the other controls */
+    .filter-card-container > button,
+    .filter-card-container > .filter-card-actions,
+    .filter-card-container > .users-add-actions {
+        margin-left: 0;
+    }
+}

@@ -5,21 +5,7 @@
 @push('css')
 @include('partials.penalties.styles')
 <style>
-    /* Filters: each box is wide enough for its longest option ("Proof under
-       review", "Late Return"), so the arrow (placed inside the box) never sits
-       on the text; anything longer ends in "…" before the arrow. */
-    .penalties-controls .filter-select-wrapper:has(#filterStatus) { flex: 0 0 200px; }
-    .penalties-controls .filter-select-wrapper:has(#filterType) { flex: 0 0 160px; }
-    .penalties-controls .filter-select-wrapper select {
-        padding-right: 44px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    @media (max-width: 576px) {
-        .penalties-controls .filter-select-wrapper:has(#filterStatus),
-        .penalties-controls .filter-select-wrapper:has(#filterType) { flex: 1 1 140px; }
-    }
+    /* Search + filters card: ccs/filter-card.css; filter widths: partials/penalties/styles */
 
     /* Fixed column widths (same approach as the Release Equipment and Return
        Confirmation tables): the columns keep the same size whatever the rows
@@ -70,37 +56,7 @@
         outline-offset: -2px;
     }
 
-    /* View button: the bordered style of the Department Dashboard and the
-       other Department tables (Release Equipment, Return Confirmation), with
-       the same size and padding as theirs. */
-    .penalties-table .action-cell .btn-view-only {
-        padding: 6px 14px;
-        background-color: rgba(56, 85, 133, 0.08);
-        border: 1px solid rgba(56, 85, 133, 0.35);
-        color: #385585;
-    }
-    .penalties-table .action-cell .btn-view-only:hover {
-        background-color: #385585;
-        border-color: #385585;
-        color: #ffffff;
-    }
-    .penalties-table .action-cell .btn-view-only:focus-visible {
-        outline: 2px solid #385585;
-        outline-offset: 2px;
-    }
-    .dark-theme .penalties-table .action-cell .btn-view-only {
-        background-color: #334155;
-        border-color: #475569;
-        color: #93c5fd;
-    }
-    .dark-theme .penalties-table .action-cell .btn-view-only:hover {
-        background-color: #2563eb;
-        border-color: #2563eb;
-        color: #ffffff;
-    }
-    .dark-theme .penalties-table .action-cell .btn-view-only:focus-visible {
-        outline-color: #60a5fa;
-    }
+    /* View button: partials/penalties/styles.blade.php (shared with Admin) */
 </style>
 @endpush
 

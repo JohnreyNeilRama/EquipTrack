@@ -83,24 +83,23 @@
         </div>
 
         {{-- Controls bar (Search, Filters & Actions) --}}
-        <div class="controls-bar">
-            <div class="controls-left">
-                <div class="search-box-wrapper">
-                    <input type="text" id="searchUsers" placeholder="Search by name, ID or email...">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                </div>
-                <div class="filter-select-wrapper">
-                    <select id="filterRole">
-                        <option value="all">All Roles</option>
-                        <option value="student">Student</option>
-                        <option value="teacher">Faculty Member</option>
-                        <option value="department">Department</option>
-                        <option value="administrator">Administrator</option>
-                    </select>
-                    <i class="fa-solid fa-chevron-down"></i>
-                </div>
+        {{-- Search + filters card (ccs/filter-card.css) --}}
+        <div class="filter-card-container">
+            <div class="search-box-right-icon">
+                <input type="text" id="searchUsers" placeholder="Search by name, ID or email..." aria-label="Search users">
+                <i class="fa-solid fa-magnifying-glass"></i>
             </div>
-            <div class="controls-right-buttons">
+            <div class="filter-select-item">
+                <select id="filterRole" aria-label="Filter by role">
+                    <option value="all">All Roles</option>
+                    <option value="student">Student</option>
+                    <option value="teacher">Faculty Member</option>
+                    <option value="department">Department</option>
+                    <option value="administrator">Administrator</option>
+                </select>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="filter-card-actions">
                 <button class="btn-add-student" id="addStudentBtn">
                     <i class="fa-solid fa-graduation-cap"></i> Add Student
                 </button>

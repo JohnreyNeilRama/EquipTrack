@@ -49,6 +49,8 @@
         const tableBody = document.getElementById('requestsTableBody');
         const searchInput = document.getElementById('searchRequests');
         const filterSelect = document.getElementById('filterStatus');
+        // Student / Faculty Member filter (Admin Requests and Department Borrow Requests)
+        const filterRole = document.getElementById('filterRole');
 
         // Pagination Elements
         const paginationContainer = document.getElementById('paginationContainer');
@@ -117,6 +119,7 @@
         function renderTable() {
             const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
             const filter = filterSelect ? filterSelect.value : 'all';
+            const role = filterRole ? filterRole.value : 'all';
             tableBody.innerHTML = '';
 
             const filtered = requests.filter(req => {
@@ -124,7 +127,8 @@
                                       (req.equipment || '').toLowerCase().includes(query) ||
                                       (req.role || '').toLowerCase().includes(query);
                 const matchesFilter = filter === 'all' || (req.status || '').toLowerCase() === filter;
-                return matchesSearch && matchesFilter;
+                const matchesRole = role === 'all' || (req.role || '').toLowerCase().includes(role);
+                return matchesSearch && matchesFilter && matchesRole;
             });
 
             if (filtered.length === 0) {
@@ -461,6 +465,10 @@
             renderTable();
         });
         if (filterSelect) filterSelect.addEventListener('change', () => {
+            currentPage = 1;
+            renderTable();
+        });
+        if (filterRole) filterRole.addEventListener('change', () => {
             currentPage = 1;
             renderTable();
         });

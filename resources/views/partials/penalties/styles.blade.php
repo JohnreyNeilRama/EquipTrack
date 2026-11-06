@@ -43,25 +43,15 @@
     .summary-card-icon.icon-orange { background-color: #fef3c7; color: #d97706; }
     .dark-theme .summary-card-icon.icon-orange { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; }
 
-    /* Search + up to three filters + Add Penalty on one line: search takes the
-       free space (never narrower than 200px), filters and the button keep
-       their width, and the bar wraps instead of squeezing on narrow screens. */
-    .controls-left.penalties-controls {
-        max-width: none;
-        /* The shared 280px minimum is wider than a phone's content area */
-        min-width: 0;
-        width: 100%;
-        flex-wrap: wrap;
-        gap: 12px;
-    }
-    .penalties-controls .search-box-wrapper { flex: 1 1 200px; }
-    .penalties-controls .filter-select-wrapper { flex: 0 0 150px; }
-    .penalties-controls .filter-select-wrapper:has(#filterDepartment) { flex-basis: 190px; }
-    @media (max-width: 576px) {
-        .penalties-controls .filter-select-wrapper,
-        .penalties-controls .filter-select-wrapper:has(#filterDepartment) { flex: 1 1 140px; }
-        /* Phones: the button gets its own full-width row under the filters */
-        .penalties-controls .btn-add-penalty { flex: 1 1 100%; }
+    /* Filters (the card itself is ccs/filter-card.css): each box is as wide as
+       its longest option needs ("Proof under review", "Late Return", a
+       department name), so the arrow never sits on the text; anything longer
+       ends in "…" before the arrow. Phones stack everything full width. */
+    .penalties-filter-card .filter-select-item:has(#filterStatus) { min-width: 196px; }
+    .penalties-filter-card .filter-select-item:has(#filterType) { min-width: 144px; }
+    .penalties-filter-card .filter-select-item:has(#filterDepartment) { min-width: 210px; }
+    @media (max-width: 992px) {
+        .penalties-filter-card .btn-add-penalty { justify-content: center; }
     }
 
     /* Table layout: User and Equipment share the free width and shorten with

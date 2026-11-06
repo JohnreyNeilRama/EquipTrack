@@ -8,7 +8,7 @@
 
 @section('content')
 <!-- Page Header -->
-        <div class="page-title-section" style="margin-top: 10px;">
+        <div class="page-title-section">
             <h2>Borrowing History</h2>
             <p>View completed borrowing transactions for your department.</p>
         </div>

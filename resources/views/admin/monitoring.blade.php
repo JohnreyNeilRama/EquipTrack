@@ -133,18 +133,17 @@
                 </div>
             </div>
 
-            <!-- Controls bar matching Users page exactly -->
-            <div class="controls-bar" style="display: none;">
-                <div class="controls-left">
+            <!-- Search + filters card (ccs/filter-card.css); shown once a department is picked -->
+            <div class="filter-card-container" id="monitoringControls" style="display: none;">
                     <!-- Search Bar -->
-                    <div class="search-box-wrapper">
-                        <input type="text" id="monitoringSearch" placeholder="Search by equipment, borrower, or ID...">
+                    <div class="search-box-right-icon">
+                        <input type="text" id="monitoringSearch" placeholder="Search by equipment, borrower, or ID..." aria-label="Search monitoring">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </div>
 
                     <!-- Status Filter Dropdown -->
-                    <div class="filter-select-wrapper">
-                        <select id="filterStatus">
+                    <div class="filter-select-item">
+                        <select id="filterStatus" aria-label="Filter by status">
                             <option value="all">All Statuses</option>
                             <option value="Available">Available</option>
                             <option value="Borrowed">Borrowed</option>
@@ -156,8 +155,8 @@
                     </div>
 
                     <!-- Category Filter Dropdown -->
-                    <div class="filter-select-wrapper">
-                        <select id="filterCategory">
+                    <div class="filter-select-item">
+                        <select id="filterCategory" aria-label="Filter by category">
                             <option value="all">All Categories</option>
                             @foreach ($dbCategories as $cat)
                                 <option value="{{ $cat }}">{{ $cat }}</option>
@@ -165,7 +164,6 @@
                         </select>
                         <i class="fa-solid fa-chevron-down"></i>
                     </div>
-                </div>
             </div>
 
             <!-- Table Card matching Users page exactly -->
@@ -353,7 +351,7 @@
             const backToDeptsBtn = document.getElementById('backToDeptsBtn');
             const selectedDeptHeaderCard = document.getElementById('selectedDeptHeaderCard');
             const adminSection = document.querySelector('.admin-section');
-            const controlsBar = document.querySelector('.controls-bar');
+            const controlsBar = document.getElementById('monitoringControls');
             const tableCard = document.querySelector('.admin-table-card');
 
             // Table, filter and pagination elements used by renderTable()
