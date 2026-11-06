@@ -50,11 +50,23 @@
         <!-- Table Container -->
         {{-- The My Requests table component (user/css/usertable.css) --}}
         <div class="table-container card requests-table-card history-table-card">
-            <table class="history-table" @if ($historyItems->isEmpty()) style="display: none;" @endif>
+            {{-- Fixed column widths (same approach as the Department tables): the
+                 columns keep their size and position whatever rows are shown, and
+                 long text ends in "…" instead of widening a column. --}}
+            <table class="history-table">
+                <colgroup>
+                    <col class="w-no">
+                    <col class="w-equipment">
+                    <col class="w-date">
+                    <col class="w-date">
+                    <col class="w-status">
+                    <col class="w-remarks">
+                    <col class="w-action">
+                </colgroup>
                 <thead>
                     <tr>
                         <th class="col-no">No.</th>
-                        <th>Equipment</th>
+                        <th class="col-equipment">Equipment</th>
                         <th class="col-date">Borrow Date</th>
                         <th class="col-date">Return Date</th>
                         <th class="col-status">Status</th>
@@ -87,35 +99,37 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="col-date">{{ $item['borrow_date'] }}</td>
-                            <td class="col-date">{{ $item['return_date'] }}</td>
+                            <td class="col-date" title="{{ $item['borrow_date'] }}">{{ $item['borrow_date'] }}</td>
+                            <td class="col-date" title="{{ $item['return_date'] }}">{{ $item['return_date'] }}</td>
                             <td class="col-status">
-                                <span class="detail-status-badge {{ $item['status_class'] }}">{{ $item['status'] }}</span>
+                                <span class="detail-status-badge {{ $item['status_class'] }}" title="{{ $item['status'] }}">{{ $item['status'] }}</span>
                             </td>
                             {{-- One line ending in "…"; the full text is in the tooltip and the details window --}}
                             <td class="col-remarks">
                                 <span class="remarks-text" @if ($item['remarks'] !== '—') title="{{ $item['remarks'] }}" @endif>{{ $item['remarks'] }}</span>
                             </td>
                             <td class="col-action">
-                                <button type="button" class="btn-view-request" aria-label="View details of {{ $item['equipment'] }}">
-                                    <i class="fa-regular fa-eye"></i> View
+                                <button type="button" class="btn-action-view" aria-label="View details of {{ $item['equipment'] }}">
+                                    <i class="fa-solid fa-eye" aria-hidden="true"></i> View
                                 </button>
                             </td>
                         </tr>
                     @endforeach
+                    {{-- No rows to show: one message row under the header (same as the
+                         Department tables), so the header and columns stay in place. --}}
+                    <tr class="table-empty-row" id="historyEmptyRow" @unless ($historyItems->isEmpty()) style="display: none;" @endunless>
+                        <td colspan="7" class="table-empty-cell">
+                            <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+                            <span id="historyEmptyText">No borrowing history yet. Your past borrowing transactions will appear here.</span>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
-            <!-- Empty state illustration if search yields nothing or no data -->
-            <div id="historyEmptyState" class="empty-state-container" style="display: {{ $historyItems->isEmpty() ? 'flex' : 'none' }};">
-                <i class="fa-solid fa-clock-rotate-left empty-state-icon"></i>
-                <h4>No transaction history</h4>
-                <p>Your past borrowing history and transaction logs will appear here.</p>
-            </div>
 
-            <!-- Pagination Footer -->
-            <div class="pagination-container" id="paginationContainer">
-                <span class="pagination-info" id="paginationInfo">Showing 0 to 0 of 0 entries</span>
-                <div class="pagination-buttons" id="paginationButtons">
+            <!-- Pagination Footer (same design as the Department tables) -->
+            <div class="table-footer-pagination" id="paginationContainer" @if ($historyItems->isEmpty()) style="display: none;" @endif>
+                <span class="pagination-info" id="paginationInfo">Showing 0 of 0 transactions</span>
+                <div class="pagination-controls" id="paginationButtons">
                     <!-- Buttons added dynamically -->
                 </div>
             </div>
@@ -213,46 +227,39 @@
             updateHistoryTable();
         }
 
-        // Render pagination buttons dynamically (same behavior as Admin Users)
+        // Pagination buttons: same design and behavior as the Department tables
+        // (previous / up to 5 page numbers around the current page / next)
         function renderPaginationButtons(totalPages) {
             paginationButtons.innerHTML = '';
 
-            const prevBtn = document.createElement('button');
-            prevBtn.className = 'btn-page';
-            prevBtn.innerHTML = '<i class="fa-solid fa-angle-left"></i>';
-            prevBtn.disabled = currentPage === 1;
-            prevBtn.addEventListener('click', () => {
-                currentPage--;
-                updateHistoryTable();
-            });
-            paginationButtons.appendChild(prevBtn);
+            const makeBtn = (html, page, extraClass, label) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'page-btn' + (extraClass ? ' ' + extraClass : '');
+                btn.innerHTML = html;
+                if (label) btn.setAttribute('aria-label', label);
+                if (extraClass === 'disabled') {
+                    btn.disabled = true;
+                } else if (extraClass !== 'active') {
+                    btn.addEventListener('click', () => {
+                        currentPage = page;
+                        updateHistoryTable(false);
+                    });
+                }
+                paginationButtons.appendChild(btn);
+            };
 
-            for (let i = 1; i <= totalPages; i++) {
-                const pageBtn = document.createElement('button');
-                pageBtn.className = `btn-page ${currentPage === i ? 'active' : ''}`;
-                pageBtn.textContent = i;
-                pageBtn.addEventListener('click', () => {
-                    currentPage = i;
-                    updateHistoryTable();
-                });
-                paginationButtons.appendChild(pageBtn);
+            makeBtn('<i class="fa-solid fa-chevron-left"></i>', currentPage - 1, currentPage <= 1 ? 'disabled' : '', 'Previous page');
+
+            let start = Math.max(1, currentPage - 2);
+            const end = Math.min(totalPages, start + 4);
+            start = Math.max(1, end - 4);
+            for (let i = start; i <= end; i++) {
+                makeBtn(String(i), i, i === currentPage ? 'active' : '');
             }
 
-            const nextBtn = document.createElement('button');
-            nextBtn.className = 'btn-page';
-            nextBtn.innerHTML = '<i class="fa-solid fa-angle-right"></i>';
-            nextBtn.disabled = currentPage === totalPages;
-            nextBtn.addEventListener('click', () => {
-                currentPage++;
-                updateHistoryTable();
-            });
-            paginationButtons.appendChild(nextBtn);
+            makeBtn('<i class="fa-solid fa-chevron-right"></i>', currentPage + 1, currentPage >= totalPages ? 'disabled' : '', 'Next page');
         }
-
-        // Dark Mode Toggle Logic
-
-
-
 
         // Filter and Sort function
         function updateHistoryTable(applySort = true) {
@@ -314,22 +321,18 @@
             }
 
             if (totalEntries > 0) {
-                paginationInfo.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${totalEntries} entries`;
+                paginationInfo.textContent = `Showing ${startIndex + 1}-${endIndex} of ${totalEntries} transactions`;
                 renderPaginationButtons(totalPages);
             }
 
-            // Empty state display
-            const emptyState = document.getElementById('historyEmptyState');
-            const tableElement = document.querySelector('.history-table-card table');
-            if (visibleCount === 0) {
-                emptyState.style.display = 'flex';
-                tableElement.style.display = 'none';
-                paginationContainer.style.display = 'none';
-            } else {
-                emptyState.style.display = 'none';
-                tableElement.style.display = 'table';
-                paginationContainer.style.display = 'flex';
-            }
+            // No rows: the message row inside the table (the header stays), no pagination bar
+            const emptyRow = document.getElementById('historyEmptyRow');
+            document.getElementById('historyEmptyText').textContent = rows.length === 0
+                ? 'No borrowing history yet. Your past borrowing transactions will appear here.'
+                : 'No records match your search or filters.';
+            tableBody.appendChild(emptyRow);
+            emptyRow.style.display = visibleCount === 0 ? '' : 'none';
+            paginationContainer.style.display = visibleCount === 0 ? 'none' : '';
         }
 
         // Attach listeners

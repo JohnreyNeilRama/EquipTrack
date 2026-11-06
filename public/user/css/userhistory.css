@@ -84,91 +84,96 @@
     min-width: 165px;
 }
 
-/* Pagination footer (same design as Admin Users table) */
-.pagination-container {
+/* Pagination footer: same design as the Department tables
+   (departments/css/history.css .table-footer-pagination / .page-btn) */
+.table-footer-pagination {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 24px;
-    border-top: 1px solid var(--border-color);
+    gap: 12px;
+    padding: 16px 20px;
+    background-color: var(--card-bg, #ffffff);
+    border-top: 1px solid var(--table-border, #718096);
 }
 
-.pagination-info {
-    font-size: var(--fs-body);
-    color: var(--text-muted);
-}
-
-.pagination-buttons {
-    display: flex;
-    gap: 8px;
-}
-
-.btn-page {
-    padding: 6px 12px;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-    background-color: var(--card-bg);
-    color: var(--text-main);
+.table-footer-pagination .pagination-info {
     font-size: var(--fs-label);
     font-weight: 500;
+    color: var(--text-muted, #64748b);
+}
+
+.table-footer-pagination .pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.page-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    background-color: var(--card-bg, #ffffff);
+    color: var(--text-main, #334155);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-family: inherit;
-    min-width: 34px;
+    font-size: var(--fs-label);
+    font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    transition: all 0.2s;
 }
 
-/* Hover applies to inactive pages only, so it can never wash out the active page.
-   (The old rule used an undefined --hover-color, which rendered transparent.) */
-.btn-page:hover:not(:disabled):not(.active) {
-    background-color: rgba(56, 85, 133, 0.08);
-    border-color: #385585;
-    color: #385585;
+.page-btn:hover:not(.disabled):not(.active) {
+    background-color: rgba(43, 66, 111, 0.08);
+    border-color: #2b426f;
+    color: #2b426f;
 }
 
-.btn-page:focus {
+.page-btn:focus {
     outline: none;
 }
 
-.btn-page:focus-visible {
-    box-shadow: 0 0 0 3px rgba(56, 85, 133, 0.3);
+.page-btn:focus-visible {
+    box-shadow: 0 0 0 3px rgba(43, 66, 111, 0.3);
 }
 
-.btn-page:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.btn-page.active {
-    background-color: #385585;
+.page-btn.active {
+    background-color: #2b426f;
     color: #ffffff;
-    border-color: #385585;
-    font-weight: 600;
+    border-color: #2b426f;
     cursor: default;
 }
 
-.btn-page.active:hover {
-    background-color: #2A3F63;
-    border-color: #2A3F63;
+.page-btn.active:hover {
+    background-color: #1f3254;
+    border-color: #1f3254;
     color: #ffffff;
 }
 
-.dark-theme .btn-page:hover:not(:disabled):not(.active) {
+.page-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.dark-theme .page-btn:hover:not(.disabled):not(.active) {
     background-color: rgba(59, 130, 246, 0.15);
     border-color: #3b82f6;
     color: #f8fafc;
 }
 
-.dark-theme .btn-page:focus-visible {
+.dark-theme .page-btn:focus-visible {
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
 }
 
-.dark-theme .btn-page.active {
+.dark-theme .page-btn.active {
     background-color: #2563eb;
     border-color: #2563eb;
     color: #ffffff;
 }
 
-.dark-theme .btn-page.active:hover {
+.dark-theme .page-btn.active:hover {
     background-color: #1d4ed8;
     border-color: #1d4ed8;
 }
@@ -481,86 +486,85 @@
 }
 
 /* --------------------------------------------------------------------------
-   Top navbar stability (Borrowing History page, same fix as Dashboard)
+   History table layout (the table design itself is user/css/usertable.css)
    --------------------------------------------------------------------------
-   .navbar-right sizes itself to its content and the bar is right-aligned,
-   so a long name in .user-name used to grow the whole pill and shift its
-   position. Capping the name's width and truncating with an ellipsis keeps
-   the pill's width and position constant no matter how long the name is.
+   Same approach as the Department tables: table-layout: fixed with the column
+   widths set once on the <colgroup>, so the header and every column keep the
+   same width and position whatever rows are shown (filters, search, paging,
+   the empty message). Long text ends in "…" instead of widening a column; the
+   full text is in the tooltip and the details window. Below the minimum width
+   the card scrolls sideways instead of squeezing the columns.
    -------------------------------------------------------------------------- */
-.top-navbar .navbar-right {
-    max-width: 100%;
-}
-
-.top-navbar .user-profile {
-    min-width: 0;
-}
-
-.top-navbar .user-name {
-    display: inline-block;
-    max-width: 160px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    vertical-align: middle;
-}
-
-.top-navbar .dropdown-arrow {
-    flex-shrink: 0;
-}
-
-@media (max-width: 480px) {
-    .top-navbar .user-name {
-        max-width: 96px;
-    }
-}
-
-/* --------------------------------------------------------------------------
-   Top navbar width parity with the Dashboard
-   --------------------------------------------------------------------------
-   The navbar markup/CSS is identical on every User page, but this page's
-   table is tall enough to trigger a vertical scrollbar that the (usually
-   shorter) Dashboard doesn't get. A scrollbar shrinks the usable page width,
-   which narrows and shifts .navbar-right relative to the Dashboard. Always
-   reserving the scrollbar's gutter keeps this page's width constant whether
-   or not the table actually needs to scroll, matching the Dashboard.
-   Scoped to this page only, via its own .history-table-card marker.
-   -------------------------------------------------------------------------- */
-html:has(.history-table-card) {
-    overflow-y: scroll;
-    scrollbar-gutter: stable;
-}
-
-/* History table layout (the table design itself is user/css/usertable.css) */
 .history-table-card {
     margin-bottom: 40px;
 }
 
-/* A click anywhere on a row also opens its details */
-.history-table tbody tr {
-    cursor: pointer;
+.history-table-card .history-table {
+    width: 100%;
+    min-width: 960px;
+    table-layout: fixed;
 }
 
-.history-table .col-no {
-    width: 56px;
+/* Status fits the longest label ("Reservation Cancelled") without cutting it;
+   Equipment and Remarks share what is left. */
+.history-table col.w-no        { width: 56px; }
+.history-table col.w-equipment { width: 21%; }
+.history-table col.w-date      { width: 126px; }
+.history-table col.w-status    { width: 226px; }
+.history-table col.w-remarks   { width: auto; }
+.history-table col.w-action    { width: 120px; }
+
+/* Department spacing: 16px cell padding */
+.history-table-card .history-table th,
+.history-table-card .history-table td {
+    padding: 16px !important;
 }
 
-.history-table td.equipment-col {
-    width: 26%;
-}
-
-/* Dates and the status badge stay on one line */
-.history-table .col-date,
-.history-table .col-status {
+/* Every cell stays on one line and is cut with "…" inside its own column */
+.history-table th,
+.history-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-/* Remarks: one line ending in "…" (full text in the tooltip and the details
-   window), so a long comment can't stretch the row */
-.history-table td.col-remarks {
-    width: 30%;
-    max-width: 0;
-    min-width: 140px;
+/* Status and Action are centered under their headers (same as Department) */
+.history-table th.col-status,
+.history-table td.col-status,
+.history-table th.col-action,
+.history-table td.col-action {
+    text-align: center !important;
+}
+
+.history-table-card .history-table td.col-status {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+}
+
+/* The View button is never cut: the Action column is sized to fit it */
+.history-table td.col-action {
+    overflow: visible;
+    text-overflow: clip;
+}
+
+/* Equipment: the shared rule (usertable.css) sets a % width and min-width
+   meant for automatic layout; here the <colgroup> decides the width. */
+.history-table td.equipment-col {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+}
+
+/* Status badge: one size for every status, cut with "…" if a label is longer
+   than its column */
+.history-table td.col-status .detail-status-badge {
+    min-width: 124px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    box-sizing: border-box;
+    text-align: center;
 }
 
 .history-table .remarks-text {
@@ -571,14 +575,104 @@ html:has(.history-table-card) {
     color: var(--text-muted);
 }
 
-.history-table .col-action {
-    width: 1%;
-    text-align: center !important;
+/* A click anywhere on a row also opens its details */
+.history-table tbody tr.history-row {
+    cursor: pointer;
+}
+
+/* View button: the bordered style of the Department tables
+   (departments/css/history.css .history-table .btn-action-view) */
+.history-table .btn-action-view {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 32px;
+    padding: 6px 14px;
+    border: 1px solid rgba(56, 85, 133, 0.35);
+    border-radius: 6px;
+    background-color: rgba(56, 85, 133, 0.08);
+    color: #385585;
+    font-family: inherit;
+    font-size: var(--fs-label);
+    font-weight: 600;
     white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.history-table .btn-action-view i {
+    font-size: var(--fs-label);
+    color: inherit;
+}
+
+.history-table .btn-action-view:hover {
+    background-color: #385585;
+    border-color: #385585;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.history-table .btn-action-view:focus-visible {
+    outline: 2px solid #385585;
+    outline-offset: 2px;
+}
+
+.dark-theme .history-table .btn-action-view {
+    background-color: #334155;
+    border-color: #475569;
+    color: #93c5fd;
+}
+
+.dark-theme .history-table .btn-action-view:hover {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+.dark-theme .history-table .btn-action-view:focus-visible {
+    outline-color: #60a5fa;
+}
+
+/* Empty table: one message row under the header, same as the Department
+   tables (centered text, 32px icon in EquipTrack blue at 70%, no row line;
+   the pagination bar is hidden). Not clickable. */
+.history-table tbody tr.table-empty-row:hover td {
+    background-color: transparent !important;
+}
+
+.history-table-card .history-table td.table-empty-cell {
+    padding: 16px 12px 16px 20px !important;
+    font-size: var(--fs-body) !important;
+    font-weight: 500;
+    line-height: 1.45;
+    color: var(--text-main, #333333) !important;
+    text-align: center;
+    white-space: normal;
+    border-bottom: none !important;
+}
+
+.history-table td.table-empty-cell i {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 32px;
+    color: var(--primary-color, #385585);
+    opacity: 0.7;
 }
 
 @media (max-width: 768px) {
-    .history-table td.col-remarks {
-        min-width: 160px;
+    .history-table-card .history-table th,
+    .history-table-card .history-table td {
+        padding: 12px 16px !important;
+    }
+
+    .history-table-card .history-table td.col-status {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    .table-footer-pagination {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }
