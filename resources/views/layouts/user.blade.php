@@ -13,31 +13,11 @@
     <link rel="stylesheet" href="{{ asset('ccs/global.css') }}?v={{ filemtime(public_path('ccs/global.css')) }}">
     <link rel="stylesheet" href="{{ asset('user/css/usernotifications.css') }}">
     @stack('css')
-    <style>
-        /* Every Student / Faculty page always shows the vertical scrollbar, so
-           the page has the same width whatever it holds (a short filter, an
-           empty list, a long table) and the top navbar never moves when the
-           content changes or when moving between pages. Same rule as the
-           Admin and Department pages (ccs/navbar.css). */
-        html {
-            overflow-y: scroll;
-            scrollbar-gutter: stable;
-        }
-
-        /* Profile dropdown: long names and emails stay on one line and end in
-           "…" (same rule as the Admin and Department navbars in ccs/navbar.css). */
-        .top-navbar .dropdown-profile-header {
-            min-width: 0;
-        }
-        .top-navbar .dropdown-profile-header .header-name,
-        .top-navbar .dropdown-profile-header .header-email {
-            display: block;
-            max-width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-    </style>
+    {{-- Shared top navbar (same file as the Admin and Department layouts).
+         Loaded after the page stylesheets so every Student / Faculty page gets
+         the exact same bar: fixed height, reserved scrollbar gutter, and a
+         capped name width, whatever the page content is. --}}
+    <link rel="stylesheet" href="{{ asset('ccs/navbar.css') }}?v={{ filemtime(public_path('ccs/navbar.css')) }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
