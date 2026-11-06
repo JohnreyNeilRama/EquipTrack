@@ -180,21 +180,61 @@
     color: #fbbf24;
 }
 
-/* View button in the Action column */
-.btn-view-request {
-    background-color: #4f6b9c;
-    color: #ffffff;
-    border: none;
+/* View button in the Action column: the bordered design of the Department
+   tables (departments/css/history.css .history-table .btn-action-view),
+   used by My Requests and Borrowing History. */
+.requests-table-card .btn-action-view {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 32px;
+    padding: 6px 14px;
+    border: 1px solid rgba(56, 85, 133, 0.35);
     border-radius: 6px;
-    padding: 6px 20px;
+    background-color: rgba(56, 85, 133, 0.08);
+    color: #385585;
+    font-family: inherit;
     font-size: var(--fs-label);
-    font-weight: 500;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    vertical-align: middle;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
 }
 
-.btn-view-request:hover {
-    background-color: #3b537c;
+.requests-table-card .btn-action-view i {
+    font-size: var(--fs-label);
+    color: inherit;
+}
+
+.requests-table-card .btn-action-view:hover {
+    background-color: #385585;
+    border-color: #385585;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.requests-table-card .btn-action-view:focus-visible {
+    outline: 2px solid #385585;
+    outline-offset: 2px;
+}
+
+.dark-theme .requests-table-card .btn-action-view {
+    background-color: #334155;
+    border-color: #475569;
+    color: #93c5fd;
+}
+
+.dark-theme .requests-table-card .btn-action-view:hover {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+.dark-theme .requests-table-card .btn-action-view:focus-visible {
+    outline-color: #60a5fa;
 }
 
 @media (max-width: 768px) {

@@ -1143,14 +1143,12 @@ tbody tr:hover td {
     color: #f87171 !important;
 }
 
-.dark-theme .btn-view-request,
 .dark-theme .btn-return-action {
     background-color: var(--primary-sidebar) !important;
     color: #ffffff !important;
     font-weight: 600 !important;
 }
 
-.dark-theme .btn-view-request:hover,
 .dark-theme .btn-return-action:hover {
     background-color: #2563eb !important;
 }

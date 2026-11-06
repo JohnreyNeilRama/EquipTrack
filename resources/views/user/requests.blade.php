@@ -103,8 +103,8 @@
                             </span>
                         </td>
                         <td style="text-align: center;">
-                            <button type="button" class="btn-view-request" aria-label="View details of {{ $eqName }}">
-                                <i class="fa-regular fa-eye"></i> View
+                            <button type="button" class="btn-action-view" aria-label="View details of {{ $eqName }}">
+                                <i class="fa-solid fa-eye" aria-hidden="true"></i> View
                             </button>
                         </td>
                     </tr>
