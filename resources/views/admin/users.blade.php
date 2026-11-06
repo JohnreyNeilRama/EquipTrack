@@ -22,7 +22,7 @@
         </div>
 
         {{-- Summary Cards Section --}}
-        <div class="admin-section" style="margin-bottom: 8px; min-width: 0; width: 100%; overflow: hidden;">
+        <div class="admin-section" style="min-width: 0; width: 100%; overflow: hidden;">
             <h4 class="admin-section-heading">Summary Cards</h4>
             <div class="stats-scroll-container">
             <div class="stat-card-mini">
@@ -82,9 +82,10 @@
         </div>
         </div>
 
-        {{-- Controls bar (Search, Filters & Actions) --}}
-        {{-- Search + filters card (ccs/filter-card.css) --}}
-        <div class="filter-card-container">
+        {{-- Search + filters card (ccs/filter-card.css). The four "Add" actions
+             share one "Add Account" menu, so search, role and the button fit on
+             one line; each menu item keeps its original id (and click handler). --}}
+        <div class="filter-card-container users-filter-card">
             <div class="search-box-right-icon">
                 <input type="text" id="searchUsers" placeholder="Search by name, ID or email..." aria-label="Search users">
                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -100,18 +101,31 @@
                 <i class="fa-solid fa-chevron-down"></i>
             </div>
             <div class="filter-card-actions">
-                <button class="btn-add-student" id="addStudentBtn">
-                    <i class="fa-solid fa-graduation-cap"></i> Add Student
-                </button>
-                <button class="btn-add-faculty" id="addFacultyBtn">
-                    <i class="fa-solid fa-chalkboard-user"></i> Add Faculty
-                </button>
-                <button class="btn-add-admin" id="addAdminBtn">
-                    <i class="fa-solid fa-user-shield"></i> Add Admin
-                </button>
-                <button class="btn-add-department" id="addDepartmentBtn">
-                    <i class="fa-solid fa-building"></i> Add Department
-                </button>
+                <div class="add-account-menu" id="addAccountMenu">
+                    <button type="button" class="btn-add-account" id="addAccountToggle"
+                            aria-haspopup="menu" aria-expanded="false" aria-controls="addAccountList">
+                        <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Account
+                        <i class="fa-solid fa-chevron-down add-account-caret" aria-hidden="true"></i>
+                    </button>
+                    <div class="add-account-list" id="addAccountList" role="menu" aria-labelledby="addAccountToggle" hidden>
+                        <button type="button" class="add-account-item" id="addStudentBtn" role="menuitem">
+                            <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
+                            <span><strong>Student</strong><small>Student account</small></span>
+                        </button>
+                        <button type="button" class="add-account-item" id="addFacultyBtn" role="menuitem">
+                            <i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i>
+                            <span><strong>Faculty</strong><small>Faculty member account</small></span>
+                        </button>
+                        <button type="button" class="add-account-item" id="addAdminBtn" role="menuitem">
+                            <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+                            <span><strong>Admin</strong><small>Administrator account</small></span>
+                        </button>
+                        <button type="button" class="add-account-item" id="addDepartmentBtn" role="menuitem">
+                            <i class="fa-solid fa-building" aria-hidden="true"></i>
+                            <span><strong>Department</strong><small>New department and its account</small></span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1354,5 +1368,52 @@
         // Initial render
         renderUsersTable();
     });
+</script>
+<script>
+    // "Add Account" menu: opens the Student / Faculty / Admin / Department
+    // choices. Each item is the original Add button (same id), so its own
+    // click handler opens the form; this only shows and hides the menu.
+    (function () {
+        const menu = document.getElementById('addAccountMenu');
+        const toggle = document.getElementById('addAccountToggle');
+        const list = document.getElementById('addAccountList');
+        if (!menu || !toggle || !list) return;
+        const items = () => Array.from(list.querySelectorAll('.add-account-item'));
+
+        function open(focusFirst) {
+            list.hidden = false;
+            toggle.setAttribute('aria-expanded', 'true');
+            if (focusFirst) items()[0]?.focus();
+        }
+        function close(returnFocus) {
+            if (list.hidden) return;
+            list.hidden = true;
+            toggle.setAttribute('aria-expanded', 'false');
+            if (returnFocus) toggle.focus();
+        }
+
+        toggle.addEventListener('click', () => (list.hidden ? open(false) : close(false)));
+        toggle.addEventListener('keydown', e => {
+            if (e.key === 'ArrowDown') { e.preventDefault(); open(true); }
+        });
+        // A choice closes the menu (the item's own handler opens its form)
+        list.addEventListener('click', e => {
+            if (e.target.closest('.add-account-item')) close(false);
+        });
+        list.addEventListener('keydown', e => {
+            const all = items();
+            const i = all.indexOf(document.activeElement);
+            if (e.key === 'ArrowDown') { e.preventDefault(); all[(i + 1) % all.length].focus(); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); all[(i - 1 + all.length) % all.length].focus(); }
+            else if (e.key === 'Escape') { e.preventDefault(); close(true); }
+            else if (e.key === 'Tab') { close(false); }
+        });
+        document.addEventListener('click', e => {
+            if (!menu.contains(e.target)) close(false);
+        });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && !list.hidden) close(true);
+        });
+    })();
 </script>
 @endpush

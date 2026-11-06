@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="{{ asset('user/css/usernotifications.css') }}">
     @stack('css')
     {{-- Page title + subtitle, the same on every Department page --}}
-    <link rel="stylesheet" href="{{ asset('departments/css/page-header.css') }}?v={{ filemtime(public_path('departments/css/page-header.css')) }}">
+    <link rel="stylesheet" href="{{ asset('ccs/page-header.css') }}?v={{ filemtime(public_path('ccs/page-header.css')) }}">
     {{-- Search + filters card above every table (shared with Admin) --}}
     <link rel="stylesheet" href="{{ asset('ccs/filter-card.css') }}?v={{ filemtime(public_path('ccs/filter-card.css')) }}">
     <link rel="stylesheet" href="{{ asset('ccs/navbar.css') }}">

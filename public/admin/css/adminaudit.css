@@ -13,9 +13,17 @@ body {
     background-color: var(--bg-color-audit) !important;
 }
 
-/* Page Header & Subtitle Styling */
+/* Page wrapper: full width of the content area, no padding of its own (the
+   same edges as every other Admin and Department page) */
+.audit-page {
+    width: 100%;
+    min-width: 0;
+}
+
+/* Page Header & Subtitle Styling: the same position as the shared page
+   heading (ccs/page-header.css): 10px below the navbar, 24px to the content */
 .audit-header-section {
-    margin-bottom: 24px;
+    margin: 10px 0 24px 0;
 }
 
 .audit-page-title {
@@ -49,7 +57,7 @@ body {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 20px;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
 }
 
 .audit-stat-card {

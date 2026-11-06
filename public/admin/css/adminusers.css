@@ -1,16 +1,21 @@
 /* Custom CSS for Admin Users Management Page */
 
+/* Page wrapper (Users and Equipment Monitoring): no padding of its own, so the
+   heading, cards and table start at the same left edge as on every other
+   Admin and Department page. The 24px between sections comes only from the
+   gap (the sections' own bottom margins are cleared), the same 24px rhythm as
+   the Department pages. */
 .users-container {
-    padding: 24px;
+    padding: 0;
     display: flex;
     flex-direction: column;
     gap: 24px;
 }
 
-.controls-right-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
+.main-content .users-container > .equipment-header-section,
+.main-content .users-container > .admin-section,
+.main-content .users-container > .filter-card-container {
+    margin-bottom: 0;
 }
 
 .label-optional {
@@ -45,35 +50,158 @@
     color: var(--primary-color);
 }
 
-.btn-add-student, .btn-add-faculty, .btn-add-admin, .btn-add-department {
-    height: 46px;
-    padding: 0 24px;
-    border-radius: 23px;
-    background-color: #385585;
-    color: #ffffff;
-    font-size: var(--fs-body);
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
+/* --------------------------------------------------------------------------
+   "Add Account" menu in the search + filters card
+   --------------------------------------------------------------------------
+   One primary button (same height and shape as the card's search box and
+   dropdowns) opens a small menu with Student / Faculty / Admin / Department.
+   With one button instead of four, search, role and the button share one
+   line on laptop and desktop screens; on phones the button spans the width.
+   -------------------------------------------------------------------------- */
+.add-account-menu {
+    position: relative;
+}
+
+.btn-add-account {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    transition: background-color 0.2s, transform 0.1s;
+    height: 44px;
+    padding: 0 18px 0 22px;
+    border: none;
+    border-radius: 22px;
+    background-color: #385585;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
     box-shadow: 0 4px 10px rgba(56, 85, 133, 0.15);
+    transition: background-color 0.2s, transform 0.1s;
 }
 
-.btn-add-student:hover, .btn-add-faculty:hover, .btn-add-admin:hover, .btn-add-department:hover {
+.btn-add-account:hover {
     background-color: #2f477a;
     transform: translateY(-1px);
 }
 
-.dark-theme .btn-add-student, .dark-theme .btn-add-faculty, .dark-theme .btn-add-admin, .dark-theme .btn-add-department {
-    background-color: var(--primary-sidebar);
-    color: white;
+.btn-add-account:focus-visible {
+    outline: 2px solid #385585;
+    outline-offset: 2px;
 }
 
-.dark-theme .btn-add-student:hover, .dark-theme .btn-add-faculty:hover, .dark-theme .btn-add-admin:hover, .dark-theme .btn-add-department:hover {
+.btn-add-account .add-account-caret {
+    margin-left: 2px;
+    font-size: 11px;
+    transition: transform 0.2s;
+}
+
+.btn-add-account[aria-expanded="true"] .add-account-caret {
+    transform: rotate(180deg);
+}
+
+.add-account-list {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    width: 270px;
+    max-width: calc(100vw - 32px);
+    padding: 6px;
+    background-color: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.add-account-list[hidden] {
+    display: none;
+}
+
+.add-account-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 9px 12px;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: var(--text-main);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.add-account-item i {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background-color: rgba(56, 85, 133, 0.08);
+    color: #385585;
+    font-size: 14px;
+}
+
+.add-account-item span {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.add-account-item strong {
+    font-size: var(--fs-body);
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.add-account-item small {
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+    line-height: 1.3;
+}
+
+.add-account-item:hover,
+.add-account-item:focus-visible {
+    background-color: var(--primary-light, #f1f5f9);
+    outline: none;
+}
+
+.dark-theme .btn-add-account {
+    background-color: var(--primary-sidebar);
+}
+
+.dark-theme .btn-add-account:hover {
     background-color: #2563eb;
+}
+
+.dark-theme .add-account-item i {
+    background-color: rgba(96, 165, 250, 0.12);
+    color: #93c5fd;
+}
+
+/* Phones (the card stacks its controls): the button spans the width */
+@media (max-width: 992px) {
+    .users-filter-card .add-account-menu,
+    .users-filter-card .btn-add-account {
+        width: 100%;
+    }
+    .users-filter-card .btn-add-account {
+        justify-content: center;
+        padding: 0 14px;
+    }
+    .users-filter-card .add-account-list {
+        left: 0;
+        right: 0;
+        width: auto;
+    }
 }
 
 .btn-action-toggle {
@@ -550,9 +678,6 @@
         flex-direction: column;
         align-items: stretch;
         gap: 16px;
-    }
-    .controls-right-buttons {
-        flex-direction: column;
     }
     .detail-main-content {
         flex-direction: column;

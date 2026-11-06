@@ -1,15 +1,17 @@
 /* ==========================================================================
-   EquipTrack — Department page heading (single source of truth)
+   EquipTrack — page heading (single source of truth)
    --------------------------------------------------------------------------
-   Loaded by layouts/department.blade.php after every page stylesheet, so all
-   Department pages show the page title and its subtitle exactly like the
-   Department Equipment page (the design reference): same distance below the
-   navbar, same sizes, weights and colours, same gap to the subtitle and to
-   the content below. Pages use either wrapper class:
-     .page-title-section        (Equipment, Monitoring, History, Users)
-     .equipment-header-section  (Requests, Releases, Returns, Penalties)
-   Only this layout loads the file, so the Admin pages that share the
-   .equipment-header-section markup are not affected.
+   Loaded by layouts/department.blade.php and layouts/admin.blade.php after
+   every page stylesheet, so Department and Admin pages show the page title
+   and its subtitle exactly like the Department Equipment page (the design
+   reference): same distance below the navbar, same sizes, weights and
+   colours, same gap to the subtitle and to the content below. Pages use
+   either wrapper class:
+     .page-title-section        (Department Equipment, Monitoring, History, Users)
+     .equipment-header-section  (Department Requests, Releases, Returns,
+                                 Penalties; Admin Equipment, Requests, Users,
+                                 Equipment Monitoring, Penalties)
+   Admin Reports and Audit Trail use their own heading classes.
    ========================================================================== */
 
 .main-content .page-title-section,

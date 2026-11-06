@@ -22,6 +22,8 @@
     <link rel="stylesheet" href="{{ asset('ccs/global.css') }}?v={{ filemtime(public_path('ccs/global.css')) }}">
     <link rel="stylesheet" href="{{ asset('user/css/usernotifications.css') }}">
     @stack('css')
+    {{-- Page title + subtitle, the same position and sizes as the Department pages --}}
+    <link rel="stylesheet" href="{{ asset('ccs/page-header.css') }}?v={{ filemtime(public_path('ccs/page-header.css')) }}">
     {{-- Search + filters card above every table (same as the Department pages) --}}
     <link rel="stylesheet" href="{{ asset('ccs/filter-card.css') }}?v={{ filemtime(public_path('ccs/filter-card.css')) }}">
     <link rel="stylesheet" href="{{ asset('ccs/navbar.css') }}">

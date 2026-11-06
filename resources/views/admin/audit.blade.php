@@ -5,12 +5,13 @@
 @push('css')
 <link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
 <link rel="stylesheet" href="{{ asset('admin/css/adminequipment.css') }}">
-<link rel="stylesheet" href="{{ asset('admin/css/adminaudit.css') }}">
+<link rel="stylesheet" href="{{ asset('admin/css/adminaudit.css') }}?v={{ filemtime(public_path('admin/css/adminaudit.css')) }}">
 @endpush
 
 @section('content')
-<!-- Main Body Container -->
-        <div style="padding: 30px; max-width: 1400px; margin: 0 auto; width: 100%;">
+{{-- Main body: no padding or max width of its own, so the heading, cards and
+     table start at the same edges as every other Admin and Department page --}}
+        <div class="audit-page">
             <!-- Header Section -->
             <div class="audit-header-section">
                 <h1 class="audit-page-title">Audit Trail</h1>
