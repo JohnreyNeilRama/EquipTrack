@@ -100,8 +100,51 @@
     .penalties-table .action-column,
     .penalties-table .action-cell { text-align: center; }
     /* Same buttons as the other tables, a little narrower so the text columns keep their room */
-    .penalties-table .action-cell .btn-approve,
-    .penalties-table .action-cell .btn-view-only { padding: 6px 12px; }
+    .penalties-table .action-cell .btn-approve { padding: 6px 12px; }
+    /* View button: the bordered design of the Department tables, on both the
+       Admin and the Lab Personnel Penalties page */
+    .penalties-table .action-cell .btn-view-only {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 32px;
+        padding: 6px 14px;
+        border: 1px solid rgba(56, 85, 133, 0.35);
+        border-radius: 6px;
+        background-color: rgba(56, 85, 133, 0.08);
+        color: #385585;
+        font-family: inherit;
+        font-size: var(--fs-label);
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .penalties-table .action-cell .btn-view-only i { color: inherit; }
+    .penalties-table .action-cell .btn-view-only:hover {
+        background-color: #385585;
+        border-color: #385585;
+        color: #ffffff;
+        transform: translateY(-1px);
+    }
+    .penalties-table .action-cell .btn-view-only:focus-visible {
+        outline: 2px solid #385585;
+        outline-offset: 2px;
+    }
+    .dark-theme .penalties-table .action-cell .btn-view-only {
+        background-color: #334155;
+        border-color: #475569;
+        color: #93c5fd;
+    }
+    .dark-theme .penalties-table .action-cell .btn-view-only:hover {
+        background-color: #2563eb;
+        border-color: #2563eb;
+        color: #ffffff;
+    }
+    .dark-theme .penalties-table .action-cell .btn-view-only:focus-visible {
+        outline-color: #60a5fa;
+    }
     .penalties-table .cell-main,
     .penalties-table .cell-sub {
         display: block;

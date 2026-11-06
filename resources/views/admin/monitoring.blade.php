@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
 <link rel="stylesheet" href="{{ asset('admin/css/adminequipment.css') }}">
 <link rel="stylesheet" href="{{ asset('admin/css/adminusers.css') }}">
-<link rel="stylesheet" href="{{ asset('admin/css/adminmonitoring.css') }}">
+<link rel="stylesheet" href="{{ asset('admin/css/adminmonitoring.css') }}?v={{ filemtime(public_path('admin/css/adminmonitoring.css')) }}">
 @endpush
 
 @section('content')

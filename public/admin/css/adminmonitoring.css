@@ -285,8 +285,7 @@
     white-space: normal !important;
 }
 
-/* Action Pill Buttons styling */
-.btn-action-view,
+/* Action Pill Buttons styling (Return / Remind) */
 .btn-action-confirm,
 .btn-action-remind {
     background-color: transparent;
@@ -302,25 +301,58 @@
     border: 1px solid transparent;
 }
 
-/* View Action (Muted Slate / Grey) */
+/* View button: the bordered design of the Department tables
+   (departments/css/history.css .history-table .btn-action-view) */
 .btn-action-view {
-    border-color: var(--border-color);
-    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 32px;
+    padding: 6px 14px;
+    border: 1px solid rgba(56, 85, 133, 0.35);
+    border-radius: 6px;
+    background-color: rgba(56, 85, 133, 0.08);
+    color: #385585;
+    font-family: inherit;
+    font-size: var(--fs-label);
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-action-view i {
+    font-size: var(--fs-label);
+    color: inherit;
 }
 
 .btn-action-view:hover {
-    background-color: var(--primary-light);
-    color: var(--text-main);
-    border-color: var(--primary-color);
+    background-color: #385585;
+    border-color: #385585;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.btn-action-view:focus-visible {
+    outline: 2px solid #385585;
+    outline-offset: 2px;
 }
 
 .dark-theme .btn-action-view {
-    color: #94a3b8;
+    background-color: #334155;
+    border-color: #475569;
+    color: #93c5fd;
 }
 
 .dark-theme .btn-action-view:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #f8fafc;
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+.dark-theme .btn-action-view:focus-visible {
+    outline-color: #60a5fa;
 }
 
 /* Confirm Action (Green theme) */
