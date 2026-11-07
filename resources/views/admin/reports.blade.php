@@ -23,8 +23,8 @@
                 <div class="rp-card-heading">
                     <span class="rp-card-icon" aria-hidden="true"><i class="fa-solid fa-sliders"></i></span>
                     <div>
-                        <h2 class="rp-card-title" id="rpBuilderTitle">Generate Report Filters</h2>
-                        <p class="rp-card-subtitle">Choose a report type and filters, then generate.</p>
+                        <h2 class="rp-card-title" id="rpBuilderTitle">Generate a Report</h2>
+                        <p class="rp-card-subtitle">Choose the report type and filters, then select Generate Report.</p>
                     </div>
                 </div>
             </div>
@@ -65,7 +65,10 @@
                 </div>
 
                 <div class="rp-filter-footer">
-                    <p class="filters-note" id="filterBasisNote"></p>
+                    <p class="filters-note">
+                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                        <span id="filterBasisNote"></span>
+                    </p>
                     <div class="filters-actions">
                         <button type="button" id="btnResetFilters" class="btn btn-secondary">
                             <i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i> Reset Filters
@@ -85,17 +88,18 @@
                     <span class="rp-card-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass-chart"></i></span>
                     <div>
                         <h2 class="rp-card-title" id="rpPreviewTitle">Report Preview</h2>
-                        <p class="rp-card-subtitle">The rows the export and print will contain.</p>
+                        <p class="rp-card-subtitle">These are the rows that Export PDF, Export CSV and Print include.</p>
                     </div>
                 </div>
                 <div class="preview-actions rp-export-group" role="group" aria-label="Export report">
-                    <button type="button" class="btn-export" onclick="triggerExport('pdf')" title="Opens a print-ready page. Choose “Save as PDF” in the print dialog.">
+                    <button type="button" class="btn-export" onclick="triggerExport('pdf')" title="Downloads the report as a PDF file.">
                         <i class="fa-solid fa-file-pdf" style="color: #ef4444;" aria-hidden="true"></i> Export PDF
                     </button>
                     <button type="button" class="btn-export" onclick="triggerExport('csv')" title="Downloads a CSV file that opens in Excel.">
                         <i class="fa-solid fa-file-excel" style="color: #10b981;" aria-hidden="true"></i> Export CSV
                     </button>
-                    <button type="button" class="btn-export" onclick="triggerExport('print')">
+                    <button type="button" class="btn-export" onclick="triggerExport('print')" title="Opens a print-ready copy in a new tab.">
+
                         <i class="fa-solid fa-print" style="color: var(--primary-color);" aria-hidden="true"></i> Print Report
                     </button>
                 </div>
@@ -104,7 +108,10 @@
             <div class="report-meta" id="reportMeta"></div>
 
             <div class="table-container admin-table-card">
-                <table class="admin-report-table">
+                {{-- Fixed column widths (set per report type by the script), so the
+                     columns never move when the filters or the rows change --}}
+                <table class="admin-report-table report-preview-table" id="previewTable">
+                    <colgroup id="previewColgroup"></colgroup>
                     <thead>
                         <tr id="previewTableHead"></tr>
                     </thead>
@@ -130,6 +137,7 @@
                 <p class="reports-scope-note" id="summaryScopeNote">Request, loan and chart figures follow the selected borrow-date range and category. Equipment availability shows current stock.</p>
             </div>
 
+            <h3 class="rp-group-label">Borrowings &amp; Returns</h3>
             <div class="rp-kpi-grid">
                 <div class="rp-kpi">
                     <span class="rp-kpi-icon blue" aria-hidden="true"><i class="fa-solid fa-chart-simple"></i></span>
@@ -163,6 +171,10 @@
                         <span class="rp-kpi-caption">Successfully returned equipment</span>
                     </div>
                 </div>
+            </div>
+
+            <h3 class="rp-group-label">Requests &amp; Equipment</h3>
+            <div class="rp-kpi-grid">
                 <div class="rp-kpi">
                     <span class="rp-kpi-icon blue" aria-hidden="true"><i class="fa-solid fa-clipboard-list"></i></span>
                     <div class="rp-kpi-body">
@@ -197,10 +209,14 @@
                 </div>
             </div>
 
+            <h3 class="rp-group-label">Borrowing Trends</h3>
             <div class="rp-charts">
                 <div class="white-card rp-chart-card rp-chart-wide">
                     <div class="rp-chart-head">
-                        <h3 class="rp-chart-title">Monthly Borrowings <small class="analytics-range" id="monthlyRange"></small></h3>
+                        <div>
+                            <h3 class="rp-chart-title">Monthly Borrowings</h3>
+                            <span class="rp-chart-subtitle" id="monthlyRange"></span>
+                        </div>
                         <i class="fa-solid fa-chart-bar" aria-hidden="true"></i>
                     </div>
                     <div class="chart-container">
@@ -240,29 +256,41 @@
                     <span class="rp-card-icon" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i></span>
                     <div>
                         <h2 class="rp-card-title" id="rpRecentTitle">Recent Generated Reports</h2>
-                        <p class="rp-card-subtitle"><strong id="statReports">0</strong> reports generated this month. Re-run any of them with one click.</p>
+                        <p class="rp-card-subtitle"><strong id="statReports">0</strong> reports generated this month. Select Re-run to generate a report again with its saved filters.</p>
                     </div>
                 </div>
-                <button type="button" class="btn-view-all" id="btnViewAll" hidden>
-                    View All Reports <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-                </button>
             </div>
 
             <div class="table-container admin-table-card">
-                <table class="admin-report-table">
+                <table class="admin-report-table recent-reports-table">
+                    <colgroup>
+                        <col class="w-recent-name">
+                        <col class="w-recent-by">
+                        <col class="w-recent-date">
+                        <col class="w-recent-format">
+                        <col class="w-recent-action">
+                    </colgroup>
                     <thead>
                         <tr>
                             <th>Report Name</th>
                             <th>Generated By</th>
                             <th>Date Generated</th>
                             <th>File Format</th>
-                            <th style="text-align: center;">Action</th>
+                            <th class="col-action">Action</th>
                         </tr>
                     </thead>
                     <tbody id="recentTableBody">
                         <!-- Rendered dynamically -->
                     </tbody>
                 </table>
+
+                <!-- Pagination footer (same layout as the Report Preview and the other Admin tables) -->
+                <div class="pagination-container" id="recentPaginationContainer">
+                    <span class="pagination-info" id="recentPaginationInfo"></span>
+                    <div class="pagination-buttons" id="recentPaginationButtons">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
             </div>
         </section>
     </div>
@@ -302,12 +330,13 @@
     const STATUS_OPTIONS = @json($reportStatuses);
     const DATE_BASIS = @json($reportBasis);
     const PER_PAGE = 10;
-    const RECENT_PREVIEW = 5;
+    // Recent Generated Reports: rows per page (the server keeps the latest 25).
+    const RECENT_PER_PAGE = 10;
     const PALETTE = ['#385585', '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#14b8a6', '#8b5cf6', '#64748b'];
 
     let payload = @json($report);
     let currentPage = 1;
-    let showAllRecent = false;
+    let recentPage = 1;
     let monthlyChart = null;
     let categoryChart = null;
     let toastTimeout;
@@ -486,7 +515,7 @@
         const monthlyEmpty = !charts.monthly.values.some((v) => v > 0);
         const categoryEmpty = charts.category.values.length === 0;
 
-        byId('monthlyRange').textContent = charts.monthly.range ? '(' + charts.monthly.range + ')' : '';
+        byId('monthlyRange').textContent = charts.monthly.range || '';
         byId('monthlyEmpty').hidden = !monthlyEmpty;
         byId('categoryEmpty').hidden = !categoryEmpty;
         // Keep the canvases in the layout (visibility, not display) so Chart.js
@@ -525,12 +554,61 @@
     function renderMeta() {
         const report = payload.report;
         const meta = byId('reportMeta');
+        // Each fact under its own label: Report, Records, Filters, Generated.
+        const item = (label, value, cls) =>
+            '<div class="rm-item' + (cls ? ' ' + cls : '') + '"><span class="rm-label">' + label + '</span>' +
+            '<span class="rm-value" title="' + escapeHTML(value) + '">' + escapeHTML(value) + '</span></div>';
         meta.innerHTML =
-            '<strong>' + escapeHTML(report.title) + '</strong>' +
-            '<span>' + report.total + (report.total === 1 ? ' record' : ' records') + '</span>' +
-            '<span>' + escapeHTML(describeFilters(payload.filters, report.basis)) + '</span>' +
-            '<span>As of ' + escapeHTML(payload.generatedAt) + '</span>' +
-            (report.note ? '<span class="report-note">' + escapeHTML(report.note) + '</span>' : '');
+            item('Report', report.title, 'rm-report') +
+            item('Records', report.total + (report.total === 1 ? ' record' : ' records')) +
+            item('Filters', describeFilters(payload.filters, report.basis), 'rm-filters') +
+            item('Generated', payload.generatedAt) +
+            (report.note ? '<p class="report-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> ' + escapeHTML(report.note) + '</p>' : '');
+    }
+
+    // Fixed column widths for the Report Preview: each column's minimum width
+    // in px, from its content (a date like "Nov 06, 2026", an ID, the report's
+    // longest status badge, a readable name) plus cell padding. A report's
+    // columns get these as percentages of the table, so spare width is shared
+    // in the same proportions; together they are the table's minimum width
+    // (below it the table scrolls sideways, like the Department tables). Set
+    // once per report type, so changing filters or rows never moves a column.
+    // Names, descriptions etc. end in "…" when longer than their column.
+    // (Measured: a date needs 104px of text, the longest header words such as
+    // "Cancelled" or "Utilization" about 76px; cells add 20px of padding.)
+    const COLUMN_WIDTHS = {
+        penalty_id: 105, transaction: 115, borrower: 165, id_number: 100, role: 80,
+        equipment: 130, serial: 130, category: 90, department: 150, type: 110,
+        description: 180, amount: 100, recorded: 125, recorded_by: 150, settled: 125,
+        condition: 105, last_borrowed: 125,
+        // Number columns: wide enough for their header's longest word
+        qty: 55, total: 60, on_loan: 60, loan_days: 60, days_overdue: 85, available: 90,
+        requests: 90, approved: 95, rejected: 88, pending: 85, cancelled: 96, returned: 90,
+        borrowed: 95, overdue: 85, times: 95, units: 95, utilization: 96
+    };
+    const DATE_WIDTH = 125;
+    const NUM_WIDTH = 90;
+    const DEFAULT_WIDTH = 120;
+    // Status column, by report: fits the report's longest badge (e.g. "Under
+    // Maintenance"); Borrowing's rare "Reservation Cancelled" ends in "…" (full text on hover).
+    const STATUS_WIDTHS = { borrowing: 172, return: 156, inventory: 195, utilization: 125, transactions: 156, penalties: 125 };
+    const STATUS_WIDTH = 156;
+
+    function columnWidth(column, type) {
+        if (column.kind === 'status') return STATUS_WIDTHS[type] || STATUS_WIDTH;
+        if (COLUMN_WIDTHS[column.key]) return COLUMN_WIDTHS[column.key];
+        if (/_date$/.test(column.key)) return DATE_WIDTH;
+        if (column.kind === 'num') return NUM_WIDTH;
+        return DEFAULT_WIDTH;
+    }
+
+    function applyColumnWidths(columns, type) {
+        const widths = columns.map((c) => columnWidth(c, type));
+        const total = widths.reduce((sum, w) => sum + w, 0);
+        byId('previewColgroup').innerHTML = widths
+            .map((w) => '<col style="width: ' + (w / total * 100).toFixed(3) + '%">')
+            .join('');
+        byId('previewTable').style.minWidth = total + 'px';
     }
 
     // Column classes shared by the header and the cells: numbers stay compact
@@ -549,10 +627,10 @@
     function renderCell(column, value, index) {
         const text = (value === null || value === undefined || value === '') ? '—' : value;
         if (column.kind === 'status') {
-            return '<td class="col-nowrap"><span class="status-pill ' + slug(text) + '">' + escapeHTML(text) + '</span></td>';
+            return '<td class="col-nowrap col-status"><span class="status-pill ' + slug(text) + '" title="' + escapeHTML(text) + '">' + escapeHTML(text) + '</span></td>';
         }
         if (column.kind === 'num') {
-            return '<td class="col-num">' + escapeHTML(text) + '</td>';
+            return '<td class="col-num" title="' + escapeHTML(text) + '">' + escapeHTML(text) + '</td>';
         }
         // Borrower names stay on one line, ending in "…" (full name on hover).
         // The printed report and CSV export always show the full name.
@@ -566,8 +644,10 @@
             const name = index === 0 ? '<strong>' + escapeHTML(text) + '</strong>' : escapeHTML(text);
             return '<td class="col-equipment-truncate"><span class="report-equipment-name" title="' + escapeHTML(text) + '">' + name + '</span></td>';
         }
+        // Every other cell: one line, ending in "…" when long (full text on hover).
         const cls = columnClass(column);
-        return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + (index === 0 ? '<strong>' + escapeHTML(text) + '</strong>' : escapeHTML(text)) + '</td>';
+        return '<td' + (cls ? ' class="' + cls + '"' : '') + ' title="' + escapeHTML(text) + '">'
+            + (index === 0 ? '<strong>' + escapeHTML(text) + '</strong>' : escapeHTML(text)) + '</td>';
     }
 
     function renderTable() {
@@ -577,10 +657,13 @@
         const info = byId('paginationInfo');
         const buttons = byId('paginationButtons');
 
+        applyColumnWidths(report.columns, payload.filters && payload.filters.type);
         head.innerHTML = report.columns
             .map((c) => {
                 const cls = columnClass(c);
-                return '<th' + (cls ? ' class="' + cls + '"' : '') + '>' + escapeHTML(c.label) + '</th>';
+                // "Student/Faculty ID" may break after the "/" (on screen only; exports keep the label).
+                return '<th' + (cls ? ' class="' + cls + '"' : '') + ' title="' + escapeHTML(c.label) + '">'
+                    + escapeHTML(c.label).replace(/\//g, '/<wbr>') + '</th>';
             })
             .join('');
 
@@ -613,59 +696,69 @@
 
         info.textContent = 'Showing ' + (start + 1) + ' to ' + end + ' of ' + report.rows.length + ' entries';
         byId('paginationContainer').style.display = 'flex';
-        renderPagination(totalPages);
+        renderPagination(byId('paginationButtons'), totalPages, currentPage, (page) => { currentPage = page; renderTable(); });
     }
 
-    function renderPagination(totalPages) {
-        const wrap = byId('paginationButtons');
+    // Pagination buttons (previous, page numbers, next), shared by the Report
+    // Preview and Recent Generated Reports tables.
+    function renderPagination(wrap, totalPages, page, goTo) {
         wrap.innerHTML = '';
 
-        function add(label, page, cls, isHTML) {
+        function add(label, target, cls, isHTML) {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'btn-page' + (cls ? ' ' + cls : '');
             if (cls === 'disabled') btn.disabled = true;
             if (isHTML) btn.innerHTML = label; else btn.textContent = label;
-            if (!cls.includes('disabled') && page !== currentPage) {
-                btn.addEventListener('click', () => { currentPage = page; renderTable(); });
+            if (cls === 'active') btn.setAttribute('aria-current', 'page');
+            if (!cls.includes('disabled') && target !== page) {
+                btn.addEventListener('click', () => goTo(target));
             }
             wrap.appendChild(btn);
         }
 
-        add('<i class="fa-solid fa-angle-left"></i>', currentPage - 1, currentPage === 1 ? 'disabled' : '', true);
-        for (let i = 1; i <= totalPages; i++) add(String(i), i, currentPage === i ? 'active' : '', false);
-        add('<i class="fa-solid fa-angle-right"></i>', currentPage + 1, currentPage === totalPages ? 'disabled' : '', true);
+        add('<i class="fa-solid fa-angle-left" aria-label="Previous page"></i>', page - 1, page === 1 ? 'disabled' : '', true);
+        for (let i = 1; i <= totalPages; i++) add(String(i), i, page === i ? 'active' : '', false);
+        add('<i class="fa-solid fa-angle-right" aria-label="Next page"></i>', page + 1, page === totalPages ? 'disabled' : '', true);
     }
 
     // ----- recent generated reports --------------------------------------
     function renderRecent() {
         const body = byId('recentTableBody');
-        const toggle = byId('btnViewAll');
+        const container = byId('recentPaginationContainer');
         const rows = payload.recent || [];
-
-        toggle.hidden = rows.length <= RECENT_PREVIEW;
-        toggle.innerHTML = showAllRecent
-            ? 'Show Fewer <i class="fa-solid fa-arrow-up"></i>'
-            : 'View All Reports <i class="fa-solid fa-arrow-right"></i>';
 
         if (rows.length === 0) {
             body.innerHTML =
                 '<tr><td colspan="5" class="empty-cell"><i class="fa-solid fa-folder-open"></i>' +
                 'No generated reports found.<span>Reports you generate or export will be listed here.</span></td></tr>';
+            container.style.display = 'none';
             return;
         }
 
-        const visible = showAllRecent ? rows : rows.slice(0, RECENT_PREVIEW);
-        body.innerHTML = visible.map((row, i) =>
+        const totalPages = Math.ceil(rows.length / RECENT_PER_PAGE);
+        if (recentPage > totalPages) recentPage = totalPages;
+        if (recentPage < 1) recentPage = 1;
+
+        const start = (recentPage - 1) * RECENT_PER_PAGE;
+        const end = Math.min(start + RECENT_PER_PAGE, rows.length);
+
+        // data-rerun is the row's position in the full list, so Re-run works on every page.
+        body.innerHTML = rows.slice(start, end).map((row, i) =>
             '<tr>' +
-                '<td><strong>' + escapeHTML(row.name) + '</strong><span class="recent-detail">' + escapeHTML(row.detail) + '</span></td>' +
-                '<td>' + escapeHTML(row.by) + '</td>' +
-                '<td>' + escapeHTML(row.date) + '</td>' +
+                '<td><strong class="recent-name" title="' + escapeHTML(row.name) + '">' + escapeHTML(row.name) + '</strong>' +
+                    '<span class="recent-detail" title="' + escapeHTML(row.detail) + '">' + escapeHTML(row.detail) + '</span></td>' +
+                '<td title="' + escapeHTML(row.by) + '">' + escapeHTML(row.by) + '</td>' +
+                '<td title="' + escapeHTML(row.date) + '">' + escapeHTML(row.date) + '</td>' +
                 '<td><span class="format-tag">' + escapeHTML(row.format) + '</span></td>' +
-                '<td style="text-align: center;"><button type="button" class="btn-action-outline view" data-rerun="' + i + '">' +
+                '<td class="col-action"><button type="button" class="btn-action-outline view" data-rerun="' + (start + i) + '">' +
                     '<i class="fa-solid fa-rotate-right"></i> Re-run</button></td>' +
             '</tr>'
         ).join('');
+
+        byId('recentPaginationInfo').textContent = 'Showing ' + (start + 1) + ' to ' + end + ' of ' + rows.length + ' entries';
+        container.style.display = 'flex';
+        renderPagination(byId('recentPaginationButtons'), totalPages, recentPage, (page) => { recentPage = page; renderRecent(); });
     }
 
     // ----- filters -------------------------------------------------------
@@ -766,7 +859,11 @@
                 })
                 : await request(URLS.data + '?' + queryString(filters), { headers: { 'Accept': 'application/json' } });
             // A newer request supersedes this one; never let a late response overwrite it.
-            if (seq === loadSeq) applyPayload(data);
+            if (seq === loadSeq) {
+                // A generated report is added at the top of Recent Generated Reports: show it.
+                if (log) recentPage = 1;
+                applyPayload(data);
+            }
             return data;
         } finally {
             if (seq === loadSeq) button.disabled = false;
@@ -829,16 +926,11 @@
         if (event.target.closest('[data-clear-filters]')) resetFilters();
     });
 
-    byId('btnViewAll').addEventListener('click', () => {
-        showAllRecent = !showAllRecent;
-        renderRecent();
-    });
-
     byId('recentTableBody').addEventListener('click', async (event) => {
         const button = event.target.closest('[data-rerun]');
         if (!button) return;
 
-        const row = (showAllRecent ? payload.recent : payload.recent.slice(0, RECENT_PREVIEW))[Number(button.dataset.rerun)];
+        const row = (payload.recent || [])[Number(button.dataset.rerun)];
         if (!row) return;
 
         setControls({
@@ -867,18 +959,19 @@
 
         const url = URLS.exportFile + '?' + queryString(payload.filters) + '&format=' + encodeURIComponent(format);
 
-        if (format === 'csv') {
+        if (format === 'csv' || format === 'pdf') {
+            // Files: the server answers with a download, so this page stays as it is.
             window.location.href = url;
-            toast('Export Started', 'Your CSV file is downloading. It opens in Excel.', 'success');
+            toast('Export Started', format === 'pdf'
+                ? 'Your PDF file is downloading.'
+                : 'Your CSV file is downloading. It opens in Excel.', 'success');
         } else {
-            const win = window.open(url, '_blank');
-            if (!win) {
-                toast('Pop-up Blocked', 'Allow pop-ups for this site to open the print view.', 'error');
-                return;
-            }
-            toast(format === 'pdf' ? 'Opening PDF View' : 'Opening Print View',
-                format === 'pdf' ? 'Choose “Save as PDF” as the destination in the print dialog.' : 'The print dialog opens in the new tab.',
-                'info');
+            // Print: the print view opens fully detached from this tab ("noopener"),
+            // so the browser runs it on its own and its print dialog can't freeze
+            // this page. (Opened with a plain window.open, the new tab shared this
+            // tab's process and its automatic print dialog blocked EquipTrack.)
+            window.open(url, '_blank', 'noopener');
+            toast('Opening Print View', 'The print dialog opens in the new tab. You can keep using EquipTrack here.', 'info');
         }
 
         setTimeout(refreshMeta, 1500);

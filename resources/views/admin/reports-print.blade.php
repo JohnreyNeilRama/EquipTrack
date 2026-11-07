@@ -1,4 +1,4 @@
-{{-- Print-ready report. Opened by Export PDF / Print Report; the browser's print dialog can save it as a PDF. --}}
+{{-- Print-ready report, opened in its own tab by Print Report. (Export PDF downloads a PDF file instead: admin/reports-pdf.blade.php.) --}}
 @php
     $columns = $report['columns'];
     $statusColumn = collect($columns)->firstWhere('kind', 'status');
@@ -68,7 +68,21 @@
             margin-bottom: 14px;
         }
 
-        .doc-header img { height: 44px; width: auto; }
+        /* The logo is white (made for the dark sidebar), so it sits on the
+           sidebar's navy, as in the PDF. print-color-adjust keeps the navy when
+           printing (browsers drop backgrounds by default). */
+        .logo-panel {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: #2A3F63;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .logo-panel img { display: block; height: 32px; width: auto; }
 
         .doc-header h1 {
             margin: 0;
@@ -171,19 +185,13 @@
 </head>
 <body>
     <div class="toolbar no-print">
-        <span>
-            @if ($format === 'pdf')
-                To save as a PDF, choose <strong>Save as PDF</strong> as the destination in the print dialog.
-            @else
-                The print dialog opens automatically. You can also print again with the button.
-            @endif
-        </span>
-        <button type="button" onclick="window.print()">Print / Save as PDF</button>
+        <span>The print dialog opens automatically. You can print again with the button, and keep using EquipTrack in its own tab.</span>
+        <button type="button" onclick="window.print()">Print</button>
         <button type="button" class="secondary" onclick="window.close()">Close</button>
     </div>
 
     <header class="doc-header">
-        <img src="{{ asset('images/EquipTrack_logo.png') }}" alt="EquipTrack">
+        <div class="logo-panel"><img src="{{ asset('images/EquipTrack_logo.png') }}" alt="EquipTrack"></div>
         <div>
             <h1>{{ $report['title'] }}</h1>
             <p>Equipment reservation and asset tracking</p>

@@ -10,9 +10,11 @@ use App\Models\Equipment;
 use App\Models\EquipmentCategory;
 use App\Models\Penalty;
 use App\Support\LoanTime;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -107,10 +109,12 @@ class AdminReportsController extends Controller
     }
 
     /**
-     * CSV download, or a print-optimised page for PDF / Print (the browser's
-     * print dialog can save it as a PDF). Uses the same rows as the preview.
+     * Export the report currently previewed (same rows and filters):
+     *  - csv:   CSV file download (opens in Excel)
+     *  - pdf:   PDF file download, generated on the server (DomPDF)
+     *  - print: print-ready page, opened in a new tab by Print Report
      */
-    public function export(Request $request): StreamedResponse|View
+    public function export(Request $request): StreamedResponse|Response|View
     {
         $format = strtolower((string) $request->query('format', 'csv'));
         abort_unless(isset(self::FORMATS[$format]), 404);
@@ -124,7 +128,11 @@ class AdminReportsController extends Controller
 
         $filtersText = $this->describeFilters($filters);
 
-        if ($format !== 'csv') {
+        if ($format === 'pdf') {
+            return $this->pdf($filters, $report, $payload['generatedAt'], $filtersText, $admin->name ?? 'Administrator');
+        }
+
+        if ($format === 'print') {
             return view('admin.reports-print', [
                 'report' => $report,
                 'filtersText' => $filtersText,
@@ -159,6 +167,44 @@ class AdminReportsController extends Controller
 
             fclose($out);
         }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /**
+     * The report as a PDF file download: A4 landscape, the table header
+     * repeated on every page, and "EquipTrack - title" with "Page X of N" at
+     * the foot of each page (admin/reports-pdf.blade.php).
+     */
+    private function pdf(array $filters, array $report, string $generatedAt, string $filtersText, string $generatedBy): Response
+    {
+        $logoPath = public_path('images/EquipTrack_logo.png');
+        $data = [
+            'report' => $report,
+            'filtersText' => $filtersText,
+            'generatedAt' => $generatedAt,
+            'generatedBy' => $generatedBy,
+            'logo' => is_file($logoPath) ? 'data:image/png;base64,' . base64_encode((string) file_get_contents($logoPath)) : null,
+            'totalPages' => null,
+        ];
+
+        $make = fn (array $data) => Pdf::loadView('admin.reports-pdf', $data)
+            ->setPaper('a4', 'landscape')
+            // Embed only the characters used, not the whole font (keeps the file small).
+            ->setOption('isFontSubsettingEnabled', true);
+
+        // DomPDF can't print the total page count from CSS: lay the report out
+        // once to count its pages, then render it with "Page X of N".
+        $draft = $make($data);
+        $draft->render();
+        $data['totalPages'] = $draft->getDomPDF()->getCanvas()->get_page_count();
+
+        $pdf = $make($data);
+
+        $filename = 'equiptrack-' . $filters['type'] . '-report-' . now(self::REPORT_TIMEZONE)->format('Y-m-d') . '.pdf';
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 
     // ------------------------------------------------------------------

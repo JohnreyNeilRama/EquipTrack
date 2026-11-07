@@ -152,7 +152,7 @@ class AdminReportsTest extends TestCase
         $this->actingAs($this->admin, 'admin')
             ->get(route('admin.reports'))
             ->assertOk()
-            ->assertSee('Generate Report Filters')
+            ->assertSee('Generate a Report')
             ->assertSee('Laptop')
             ->assertSee('Camera');
     }
@@ -690,11 +690,38 @@ class AdminReportsTest extends TestCase
             ->assertSee('window.print');
 
         $this->actingAs($this->admin, 'admin')
-            ->get(route('admin.reports.export', ['format' => 'pdf', 'type' => 'overdue']))
+            ->get(route('admin.reports.export', ['format' => 'print', 'type' => 'overdue']))
             ->assertOk()
             ->assertSee('No records match the selected filters.');
 
         $this->assertSame(2, AuditTrail::where('affected_entity', 'like', 'report:%')->count());
+    }
+
+    public function test_pdf_export_downloads_a_pdf_file(): void
+    {
+        $this->makeRequest($this->makeEquipment());
+
+        $response = $this->actingAs($this->admin, 'admin')
+            ->get(route('admin.reports.export', ['format' => 'pdf', 'type' => 'borrowing']))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+
+        // A real PDF file, downloaded (not a page and not the print dialog).
+        $this->assertStringStartsWith('%PDF-', $response->getContent());
+        $this->assertMatchesRegularExpression(
+            '/^attachment; filename="equiptrack-borrowing-report-\d{4}-\d{2}-\d{2}\.pdf"$/',
+            $response->headers->get('Content-Disposition'),
+        );
+
+        // Logged like the other exports.
+        $this->assertTrue(AuditTrail::where('affected_entity', 'like', 'report:%')->exists());
+
+        // An empty report still downloads (with the "no records" message inside).
+        $empty = $this->actingAs($this->admin, 'admin')
+            ->get(route('admin.reports.export', ['format' => 'pdf', 'type' => 'overdue']))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $empty->getContent());
     }
 
     public function test_export_rejects_an_unknown_format(): void
