@@ -7,6 +7,7 @@ use App\Models\BorrowTransaction;
 use App\Models\Equipment;
 use App\Models\PenaltySubmission;
 use App\Models\StaffNotificationRead;
+use App\Support\LoanReminders;
 use App\Support\LoanTime;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
@@ -27,12 +28,20 @@ use Illuminate\Support\Str;
  *   pickup-{transaction_id}                               an item due for pickup today or earlier (Lab Personnel)
  *   return-{transaction_id}-submitted-{time}              a return waiting for confirmation (Lab Personnel)
  *   proof-{submission_id}-submitted                       a penalty proof waiting for verification
+ *   returns-due-{date}                                    loans due back today (Lab Personnel)
+ *   overdue-{transaction_id}-{late|follow-up}             an overdue loan (Lab Personnel)
+ *   overdue-{transaction_id}-escalated                    a loan overdue past the escalation day (Admin)
+ *   waiting-{date}                                        requests / proofs waiting too long (Admin)
  *
  * Scope:
  *  - Admin sees the decisions on every request, and the new Expensive requests
  *    waiting for the admin's review.
  *  - Lab Personnel sees the decisions on, the new requests for, the pickups
- *    and the returns of equipment owned by their own department.
+ *    and the returns of equipment owned by their own department, the loans
+ *    due back today and every overdue loan.
+ *  - Overdue timing follows App\Support\LoanReminders: Lab Personnel from
+ *    the deadline (flagged again on the follow-up day), the admin only once
+ *    a loan is still out on the escalation day.
  *
  * Only the read state is stored (staff_notification_reads).
  */
@@ -161,6 +170,11 @@ class ReviewerNotificationService
         if ($type === self::DEPT) {
             array_push($notifications, ...$this->pickupNotifications($departmentId));
             array_push($notifications, ...$this->pendingReturnNotifications($departmentId));
+            array_push($notifications, ...$this->dueTodayNotifications($departmentId));
+            array_push($notifications, ...$this->departmentOverdueNotifications($departmentId));
+        } else {
+            array_push($notifications, ...$this->escalationNotifications());
+            array_push($notifications, ...$this->waitingTooLongNotifications());
         }
 
         array_push($notifications, ...$this->proofNotifications($type, $departmentId));
@@ -314,6 +328,215 @@ class ReviewerNotificationService
                 'at' => $submission->submitted_at ?? now(),
             ];
         })->all();
+    }
+
+    /**
+     * Loans out on loan (released, return not submitted), with borrower and
+     * equipment, optionally only for one department's equipment.
+     *
+     * @return Collection<int, BorrowTransaction>
+     */
+    private function loansOut(?int $departmentId = null): Collection
+    {
+        $query = BorrowTransaction::with([
+            'request.equipment.department',
+            'request.user.student',
+            'request.user.facultyMember',
+        ])
+            ->onLoan()
+            ->whereHas('request', fn ($q) => $q->where('overall_status', 'Approved'));
+
+        if ($departmentId !== null) {
+            $query->whereHas('request.equipment', fn ($e) => $e->where('department_id', $departmentId));
+        }
+
+        return $query->get()->filter(fn (BorrowTransaction $loan) => LoanReminders::isOut($loan))->values();
+    }
+
+    /**
+     * One summary each due date while the deadline hasn't passed: "N items are
+     * due back today", with the borrowers and items, so Lab Personnel know what
+     * to expect at the counter. Gone once the deadline passes (the overdue
+     * items take over for anything still out).
+     */
+    private function dueTodayNotifications(?int $departmentId): array
+    {
+        $now = LoanTime::now();
+        $today = $now->toDateString();
+
+        $due = $this->loansOut($departmentId)
+            ->filter(fn (BorrowTransaction $loan) => $loan->due_date->toDateString() === $today
+                && !LoanTime::isOverdue($loan->due_date, $now))
+            ->sortBy(fn (BorrowTransaction $loan) => $loan->due_date->getTimestamp())
+            ->values();
+
+        if ($due->isEmpty()) {
+            return [];
+        }
+
+        $names = $due->take(3)->map(fn (BorrowTransaction $loan) => ($loan->request?->equipment?->name ?? 'Equipment')
+            . ' (' . $this->borrowerName($loan) . ')')->implode(', ');
+        $more = $due->count() > 3 ? ' and ' . ($due->count() - 3) . ' more' : '';
+        $count = $due->count();
+        $by = LoanReminders::time($due->first()->due_date);
+
+        return [[
+            'key' => 'returns-due-' . $today,
+            'type' => 'return',
+            'title' => 'Due Back Today',
+            'message' => $count . ' ' . ($count === 1 ? 'item is' : 'items are') . ' due back today by ' . $by . ': ' . $names . $more . '.',
+            'url' => route('department.monitoring'),
+            'at' => LoanReminders::instant(Carbon::parse($today)),
+        ]];
+    }
+
+    /**
+     * One item per overdue loan of the department's equipment, from the moment
+     * the deadline passes until the item is returned. On the follow-up day it
+     * comes back as unread, asking Lab Personnel to follow up or record a
+     * penalty.
+     */
+    private function departmentOverdueNotifications(?int $departmentId): array
+    {
+        $followUp = LoanReminders::departmentFollowUpDays();
+        $today = LoanTime::now()->toDateString();
+
+        return $this->loansOut($departmentId)
+            ->map(function (BorrowTransaction $loan) use ($followUp, $today) {
+                $daysLate = LoanReminders::daysLate($loan);
+
+                if ($daysLate <= 0) {
+                    return null;
+                }
+
+                $equipment = $loan->request?->equipment?->name ?? 'equipment';
+                $borrower = $this->borrowerName($loan);
+                $late = LoanReminders::daysLabel($daysLate) . ' late';
+
+                if ($daysLate >= $followUp) {
+                    return [
+                        'key' => 'overdue-' . $loan->transaction_id . '-follow-up',
+                        'type' => 'overdue',
+                        'title' => 'Overdue: Follow Up',
+                        'message' => $borrower . ' still has ' . $equipment . ' (due ' . LoanTime::dueBy($loan->due_date) . ', '
+                            . $late . '). Follow up with them, or record a Late Return penalty.',
+                        'url' => route('department.monitoring'),
+                        'at' => LoanReminders::lateSince($loan, $followUp),
+                    ];
+                }
+
+                $sameDay = $loan->due_date->toDateString() === $today;
+
+                return [
+                    'key' => 'overdue-' . $loan->transaction_id . '-late',
+                    'type' => 'overdue',
+                    'title' => $sameDay ? 'Not Returned by Closing' : 'Overdue Equipment',
+                    'message' => $borrower . ' has not returned ' . $equipment . ' (due ' . LoanTime::dueBy($loan->due_date) . ')'
+                        . ($sameDay ? '.' : ', ' . $late . '.'),
+                    'url' => route('department.monitoring'),
+                    'at' => LoanReminders::lateSince($loan, 1),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Admin: loans still out on the escalation day (7 office days late by
+     * default), one item each, so the admin sees only what Lab Personnel have
+     * not resolved.
+     */
+    private function escalationNotifications(): array
+    {
+        $escalation = LoanReminders::adminEscalationDays();
+
+        return $this->loansOut()
+            ->map(function (BorrowTransaction $loan) use ($escalation) {
+                $daysLate = LoanReminders::daysLate($loan);
+
+                if ($daysLate < $escalation) {
+                    return null;
+                }
+
+                $equipment = $loan->request?->equipment?->name ?? 'Equipment';
+                $department = $loan->request?->equipment?->department?->department_name;
+
+                return [
+                    'key' => 'overdue-' . $loan->transaction_id . '-escalated',
+                    'type' => 'overdue',
+                    'title' => 'Overdue ' . $escalation . '+ Days',
+                    'message' => $equipment . ($department ? ' (' . $department . ')' : '') . ' is '
+                        . LoanReminders::daysLabel($daysLate) . ' overdue: ' . $this->borrowerName($loan)
+                        . ' has not returned it (due ' . LoanTime::format($loan->due_date) . ').',
+                    'url' => route('admin.monitoring'),
+                    'at' => LoanReminders::lateSince($loan, $escalation),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Admin: one summary per office day, only when something has waited too
+     * long: Expensive requests still waiting for the admin's review, and
+     * penalty proofs still waiting for verification.
+     */
+    private function waitingTooLongNotifications(): array
+    {
+        $now = LoanTime::now();
+
+        if (!LoanTime::isOfficeDay($now)) {
+            return [];
+        }
+
+        $requestDays = LoanReminders::staleRequestDays();
+        $proofDays = LoanReminders::staleProofDays();
+
+        $requests = BorrowRequest::query()
+            ->where('overall_status', 'Pending')
+            ->where('admin_status', 'Pending')
+            ->where('equipment_classification', Equipment::CLASS_EXPENSIVE)
+            ->where('date_requested', '<=', now()->subDays($requestDays))
+            ->count();
+
+        $proofs = PenaltySubmission::query()
+            ->where('status', PenaltySubmission::STATUS_REVIEW)
+            ->where('submitted_at', '<=', now()->subDays($proofDays))
+            ->count();
+
+        if ($requests === 0 && $proofs === 0) {
+            return [];
+        }
+
+        $parts = [];
+        if ($requests > 0) {
+            $parts[] = $requests . ' Expensive ' . ($requests === 1 ? 'request has' : 'requests have')
+                . ' waited more than ' . LoanReminders::daysLabel($requestDays) . ' for your review';
+        }
+        if ($proofs > 0) {
+            $parts[] = $proofs . ' penalty ' . ($proofs === 1 ? 'proof has' : 'proofs have')
+                . ' waited more than ' . LoanReminders::daysLabel($proofDays) . ' for verification';
+        }
+
+        $today = $now->toDateString();
+
+        return [[
+            'key' => 'waiting-' . $today,
+            'type' => 'request',
+            'title' => 'Waiting Too Long',
+            'message' => implode('; ', $parts) . '.',
+            'url' => $requests > 0 ? route('admin.requests') : route('admin.penalties'),
+            'at' => LoanReminders::instant(Carbon::parse($today)),
+        ]];
+    }
+
+    private function borrowerName(BorrowTransaction $loan): string
+    {
+        $user = $loan->request?->user;
+
+        return $user?->fullName() ?: ($user?->email ?: 'A borrower');
     }
 
     /** Who made the decision, from the viewer's point of view. */

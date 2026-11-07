@@ -8,7 +8,11 @@ use App\Models\Department;
 use App\Models\DepartmentAccount;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
+use App\Services\ManualLoanReminder;
+use App\Support\LoanReminders;
 use App\Support\LoanTime;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
@@ -52,6 +56,24 @@ class AdminMonitoringController extends Controller
     }
 
     /**
+     * The "Remind" button: sends the borrower a return reminder by hand (bell +
+     * email), at most once per loan per day. See App\Services\ManualLoanReminder.
+     */
+    public function remind(Request $request, ManualLoanReminder $reminders): JsonResponse
+    {
+        $data = $request->validate(['transaction_id' => ['required', 'integer']]);
+        $loan = BorrowTransaction::find($data['transaction_id']);
+
+        if (!$loan) {
+            return response()->json(['success' => false, 'message' => 'Loan not found.'], 404);
+        }
+
+        $result = $reminders->send($loan, auth('admin')->user());
+
+        return response()->json(['success' => $result['ok'], 'message' => $result['message']], $result['status']);
+    }
+
+    /**
      * Live monitoring rows.
      *
      * - One row per active loan (Borrowed / Overdue), so every borrower is
@@ -90,6 +112,11 @@ class AdminMonitoringController extends Controller
             ->orderBy('transaction_id')
             ->get()
             ->groupBy(fn ($transaction) => $transaction->request?->equipment_id);
+
+        // Loans someone already reminded by hand today (the Remind button is spent for today).
+        $remindedToday = array_flip(ManualLoanReminder::remindedTodayIds(
+            $activeTransactions->flatten()->pluck('transaction_id')->map(fn ($id) => (int) $id)->all()
+        ));
 
         foreach ($equipmentList as $equipment) {
             $rawImg = trim((string) ($equipment->image ?? ''));
@@ -144,6 +171,10 @@ class AdminMonitoringController extends Controller
                     'notes' => $request->notes ?: 'None',
                     'img' => $img,
                     'avatar' => $avatar,
+                    // The Remind button: items out on loan (not reserved, return not submitted).
+                    'transactionId' => (int) $transaction->transaction_id,
+                    'canRemind' => !$reserved && LoanReminders::isOut($transaction),
+                    'remindedToday' => isset($remindedToday[(int) $transaction->transaction_id]),
                 ];
             }
 

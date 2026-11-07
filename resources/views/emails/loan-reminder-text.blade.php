@@ -1,6 +1,6 @@
 {{-- Plain-text version of the loan reminder email. Not HTML, so values are
      printed as-is ({!! !!}) to keep characters like ' and & readable. --}}
-{{ $overdue ? 'Your borrowed equipment is overdue' : 'Your borrowed equipment is due soon' }}
+{!! $heading !!}
 
 Hi {!! $name !!},
 
@@ -8,6 +8,10 @@ Hi {!! $name !!},
 {!! $equipment !!} was due on {{ $dueDate }} and is now {{ $when }}. Please return it to the laboratory as soon as possible.
 @else
 This is a reminder that {!! $equipment !!} is {{ $when }} ({{ $dueDate }}). Please return it to the laboratory on time.
+@endif
+@if (!empty($extra))
+
+{!! $extra !!}
 @endif
 
 Equipment:   {!! $equipment !!}

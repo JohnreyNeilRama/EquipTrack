@@ -114,7 +114,8 @@ class PhilippineDateTest extends TestCase
             ->firstWhere('type', 'overdue');
         $this->assertSame('Overdue Equipment', $notice['title']);
         $this->assertStringContainsString('(1 day late)', $notice['message']);
-        $this->assertStringEndsWith('-2026-10-31', $notice['key']);
+        // The first overdue step (1 office day late), counted on the Philippine date.
+        $this->assertStringEndsWith('-1', $notice['key']);
         // Shown as having arrived at midnight, never "from now".
         $this->assertStringNotContainsString('from now', $notice['ago']);
 

@@ -74,7 +74,7 @@
     color: var(--danger-color, #ef4444);
 }
 
-/* Page title + subtitle: departments/css/page-header.css */
+/* Page title + subtitle: ccs/page-header.css */
 
 /* Summary Cards Section */
 .monitoring-summary-section {
@@ -994,6 +994,98 @@
     background-color: var(--bg-color);
 }
 
+/* Send Reminder (overdue loans): amber, the same shape as Close */
+#viewMonitoringModal .btn-send-reminder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(217, 119, 6, 0.4);
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #b45309;
+    font-family: inherit;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+#viewMonitoringModal .btn-send-reminder[hidden] {
+    display: none;
+}
+
+#viewMonitoringModal .btn-send-reminder:hover:not(:disabled) {
+    background-color: #d97706;
+    border-color: #d97706;
+    color: #ffffff;
+}
+
+#viewMonitoringModal .btn-send-reminder:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.35);
+}
+
+/* Already reminded today (one reminder per loan per day) */
+#viewMonitoringModal .btn-send-reminder.is-reminded,
+#viewMonitoringModal .btn-send-reminder:disabled {
+    border-color: var(--border-color);
+    background-color: transparent;
+    color: var(--text-muted);
+    cursor: default;
+}
+
+.dark-theme #viewMonitoringModal .btn-send-reminder:not(:disabled) {
+    border-color: rgba(251, 191, 36, 0.4);
+    background-color: rgba(245, 158, 11, 0.12);
+    color: #fbbf24;
+}
+
+/* Toast (same look as the Department Users page) */
+.toast-notification {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 14px 22px;
+    border-radius: 12px;
+    background-color: #1e293b;
+    color: #ffffff;
+    font-size: var(--fs-body);
+    font-weight: 600;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 10000;
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast-notification #toastIcon {
+    color: #10b981;
+}
+
+.toast-notification.is-error #toastIcon {
+    color: #f87171;
+}
+
+@media (max-width: 640px) {
+    .toast-notification {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+    }
+}
+
 #viewMonitoringModal .modal-close:focus-visible,
 #viewMonitoringModal .btn-modal-close:focus-visible {
     outline: none;
@@ -1045,7 +1137,8 @@
     #viewMonitoringModal .mon-modal-footer {
         padding: 12px 18px;
     }
-    #viewMonitoringModal .mon-modal-footer .btn-modal-close {
+    #viewMonitoringModal .mon-modal-footer .btn-modal-close,
+    #viewMonitoringModal .mon-modal-footer .btn-send-reminder {
         flex: 1;
     }
 }

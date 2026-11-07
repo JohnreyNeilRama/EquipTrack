@@ -11,6 +11,7 @@ use App\Models\Student;
 use App\Models\UserAccount;
 use App\Models\UserNotificationRead;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -44,6 +45,18 @@ class UserNotificationTest extends TestCase
 
         $this->user = $this->makeStudent('student@example.com', '2020-0001', 'Juan');
         $this->otherUser = $this->makeStudent('other@example.com', '2020-0002', 'Maria');
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
+
+    /** Fix the clock at a Philippine date and time (Oct 29, 2026 is a Thursday, Nov 2 a Monday). */
+    private function at(string $philippineTime): void
+    {
+        Carbon::setTestNow(Carbon::parse($philippineTime, 'Asia/Manila'));
     }
 
     private function makeStudent(string $email, string $idNumber, string $firstName): UserAccount
@@ -212,6 +225,8 @@ class UserNotificationTest extends TestCase
 
     public function test_overdue_loan_notifies_until_it_is_returned(): void
     {
+        // Mon Nov 2; due Thu Oct 29: 3 office days late (Fri, Sat, Mon).
+        $this->at('2026-11-02 10:00');
         $equipment = $this->makeEquipment('Projector Epson');
         $request = $this->makeRequest($this->user, $equipment, [
             'overall_status' => 'Approved',
@@ -219,13 +234,13 @@ class UserNotificationTest extends TestCase
             // Approved long ago, so only the overdue notice remains.
             'admin_reviewed_at' => now()->subDays(40),
         ]);
-        $loan = $this->makeLoan($request, now()->subDays(4)->toDateString());
+        $loan = $this->makeLoan($request, '2026-10-29');
 
         $feed = $this->feed($this->user);
 
         $this->assertCount(1, $feed['notifications']);
         $item = $feed['notifications'][0];
-        $this->assertSame('overdue-' . $loan->transaction_id . '-' . now()->toDateString(), $item['key']);
+        $this->assertSame('overdue-' . $loan->transaction_id . '-3', $item['key']);
         $this->assertSame('overdue', $item['type']);
         $this->assertStringContainsString('Projector Epson', $item['message']);
         $this->assertStringContainsString('3 days late', $item['message']);
@@ -253,52 +268,67 @@ class UserNotificationTest extends TestCase
 
     public function test_loans_due_soon_get_a_reminder_that_counts_down_to_the_due_date(): void
     {
+        $this->at('2026-11-02 10:00');
         $request = $this->makeRequest($this->user, $this->makeEquipment('Projector Epson'), [
             'overall_status' => 'Approved',
             'admin_status' => 'Approved',
             'admin_reviewed_at' => now()->subDays(40),
         ]);
-        $loan = $this->makeLoan($request, now()->addDays(2)->toDateString());
+        // A 12-day loan due in 2 days: the early reminder (long loans only).
+        $loan = $this->makeLoan($request, '2026-11-04');
 
         $feed = $this->feed($this->user);
         $this->assertCount(1, $feed['notifications']);
         $item = $feed['notifications'][0];
-        $this->assertSame('due-' . $loan->transaction_id . '-' . now()->toDateString(), $item['key']);
+        $this->assertSame('due-' . $loan->transaction_id . '-early', $item['key']);
         $this->assertSame('due', $item['type']);
         $this->assertSame('Due in 2 Days', $item['title']);
         $this->assertStringContainsString('Projector Epson is due in 2 days', $item['message']);
 
-        foreach ([1 => 'Due Tomorrow', 0 => 'Due Today'] as $days => $title) {
-            $loan->update(['due_date' => now()->addDays($days)->toDateString()]);
-            $this->assertSame($title, $this->feed($this->user)['notifications'][0]['title']);
+        foreach (['2026-11-03' => ['Due Tomorrow', 'day-before'], '2026-11-02' => ['Due Today', 'due-today']] as $due => [$title, $stage]) {
+            $loan->update(['due_date' => $due]);
+            $item = $this->feed($this->user)['notifications'][0];
+            $this->assertSame($title, $item['title']);
+            $this->assertSame('due-' . $loan->transaction_id . '-' . $stage, $item['key']);
         }
+        $this->assertStringContainsString('due today by 7:00 PM', $item['message']);
 
         // The other user never sees it, and an overdue loan gets the overdue notice instead.
         $this->assertSame([], $this->feed($this->otherUser)['notifications']);
 
-        $loan->update(['due_date' => now()->subDay()->toDateString()]);
+        $loan->update(['due_date' => '2026-10-31']);
         $this->assertSame(['overdue'], array_column($this->feed($this->user)['notifications'], 'type'));
     }
 
-    public function test_reminders_repeat_each_day_until_the_item_is_returned(): void
+    public function test_the_overdue_reminder_comes_back_unread_on_each_overdue_step_not_every_day(): void
     {
+        // Mon Nov 2; due Fri Oct 30: 2 office days late (step 1).
+        $this->at('2026-11-02 10:00');
         $request = $this->makeRequest($this->user, $this->makeEquipment(), [
             'overall_status' => 'Approved',
             'admin_status' => 'Approved',
             'admin_reviewed_at' => now()->subDays(40),
         ]);
-        $loan = $this->makeLoan($request, now()->subDays(2)->toDateString());
+        $loan = $this->makeLoan($request, '2026-10-30');
 
         $this->actingAs($this->user, 'user')
             ->postJson(route('user.notifications.read'), ['all' => true])
             ->assertOk()
             ->assertJson(['unreadCount' => 0]);
 
-        // Next day: a new, unread reminder for the same loan.
-        $this->travel(1)->days();
+        // Tue Nov 3: 3 days late, the next step: unread again.
+        $this->at('2026-11-03 10:00');
         $feed = $this->feed($this->user);
         $this->assertSame(1, $feed['unreadCount']);
+        $this->assertCount(1, $feed['notifications']);
         $this->assertStringContainsString('3 days late', $feed['notifications'][0]['message']);
+
+        // Wed Nov 4: 4 days late, same step: once read, it stays read.
+        $this->actingAs($this->user, 'user')->postJson(route('user.notifications.read'), ['all' => true]);
+        $this->at('2026-11-04 10:00');
+        $feed = $this->feed($this->user);
+        $this->assertSame(0, $feed['unreadCount']);
+        $this->assertStringContainsString('4 days late', $feed['notifications'][0]['message']);
 
         // A return awaiting the department's confirmation stops the reminders.
         $loan->update(['return_status' => BorrowTransaction::RETURN_PENDING, 'return_submitted_at' => now()]);

@@ -1,4 +1,6 @@
-{{-- Due-soon / overdue reminder email (HTML). Same layout and colors as the
+{{-- Return reminder email (HTML): due soon, Within the Day, hours left,
+     overdue, or sent by hand by Admin / Lab Personnel. $heading and the
+     optional $extra line come from LoanReminderNotification. Same layout and colors as the
      password reset email: tables and inline styles, because email apps ignore
      <style> blocks and modern CSS. --}}
 @php
@@ -12,7 +14,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
-    <title>{{ $overdue ? 'Overdue equipment' : 'Equipment due soon' }}</title>
+    <title>{{ $heading }}</title>
 </head>
 <body style="margin:0; padding:0; background-color:#F0F2F5; -webkit-text-size-adjust:100%;">
     {{-- Preview text shown next to the subject in the inbox list --}}
@@ -35,7 +37,7 @@
                     <tr>
                         <td style="padding:32px 32px 8px; font-family:Arial, Helvetica, sans-serif; color:#333333;">
                             <h1 style="margin:0 0 16px; font-size:20px; line-height:28px; font-weight:bold; color:{{ $accent }};">
-                                {{ $overdue ? 'Your borrowed equipment is overdue' : 'Your borrowed equipment is due soon' }}
+                                {{ $heading }}
                             </h1>
                             <p style="margin:0 0 14px; font-size:15px; line-height:24px;">Hi {{ $name }},</p>
                             <p style="margin:0 0 20px; font-size:15px; line-height:24px;">
@@ -47,6 +49,9 @@
                                     (<strong>{{ $dueDate }}</strong>). Please return it to the laboratory on time.
                                 @endif
                             </p>
+                            @if (!empty($extra))
+                                <p style="margin:0 0 20px; font-size:15px; line-height:24px; font-weight:bold; color:{{ $accent }};">{{ $extra }}</p>
+                            @endif
 
                             {{-- Loan details --}}
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px; border:1px solid #E2E8F0; border-radius:10px;">

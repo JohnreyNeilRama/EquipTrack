@@ -82,6 +82,7 @@ Route::middleware(['auth:admin', 'auth.session', 'active', 'expire.requests'])->
     Route::post('/users/delete', [AdminUsersController::class, 'delete'])->name('users.delete');
     Route::post('/users/profile-image', [AdminUsersController::class, 'updateProfileImage'])->name('users.image');
     Route::get('/monitoring', [AdminMonitoringController::class, 'index'])->name('monitoring');
+    Route::post('/monitoring/remind', [AdminMonitoringController::class, 'remind'])->middleware('throttle:30,1')->name('monitoring.remind');
     Route::get('/reports', [AdminReportsController::class, 'index'])->name('reports');
     Route::get('/reports/data', [AdminReportsController::class, 'data'])->name('reports.data');
     Route::post('/reports/generate', [AdminReportsController::class, 'generate'])->name('reports.generate');
@@ -144,6 +145,7 @@ Route::middleware(['auth:dept', 'auth.session', 'active', 'expire.requests'])->p
     Route::post('/users/update', [DepartmentUsersController::class, 'update'])->name('users.update');
     Route::post('/users/status', [DepartmentUsersController::class, 'setStatus'])->name('users.status');
     Route::get('/monitoring', [DepartmentMonitoringController::class, 'index'])->name('monitoring');
+    Route::post('/monitoring/remind', [DepartmentMonitoringController::class, 'remind'])->middleware('throttle:30,1')->name('monitoring.remind');
     Route::get('/history', [DepartmentHistoryController::class, 'index'])->name('history');
     Route::get('/history/data', [DepartmentHistoryController::class, 'data'])->name('history.data');
     Route::get('/notifications', [DepartmentNotificationController::class, 'index'])->name('notifications');

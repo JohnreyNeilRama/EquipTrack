@@ -56,6 +56,10 @@ class AuditCatalog
         ['label' => 'Rejected Return', 'module' => 'Returns', 'prefixes' => [
             'Department rejected return of borrow request' => 'Return of borrow request (department)',
         ]],
+        // The "Remind" button on Equipment Monitoring (Admin, Lab Personnel)
+        ['label' => 'Sent Return Reminder', 'module' => 'Returns', 'prefixes' => [
+            'Sent return reminder for borrow request' => 'Return reminder for borrow request',
+        ]],
 
         // Damage & penalty recording
         ['label' => 'Recorded Penalty', 'module' => 'Penalties', 'prefixes' => ['Recorded penalty' => 'Penalty']],

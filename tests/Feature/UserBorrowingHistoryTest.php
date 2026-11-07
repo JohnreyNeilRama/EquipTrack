@@ -158,8 +158,9 @@ class UserBorrowingHistoryTest extends TestCase
         $this->actingAs($this->user, 'user')
             ->get(route('user.history'))
             ->assertOk()
-            ->assertSee('No transaction history')
-            ->assertSee('id="historyEmptyState" class="empty-state-container" style="display: flex;"', false)
+            // The empty message is a row under the table header (shown, no pagination bar).
+            ->assertSee('No borrowing history yet. Your past borrowing transactions will appear here.')
+            ->assertSee('<tr class="table-empty-row" id="historyEmptyRow" >', false)
             ->assertDontSee('class="history-row"', false);
 
         $this->assertCount(0, $this->historyRows());
@@ -292,16 +293,20 @@ class UserBorrowingHistoryTest extends TestCase
         $requestId = $this->submitBorrowRequest();
         $this->approve($requestId);
 
-        $this->actingAs($this->user, 'user')
-            ->get(route('user.history'))
+        $response = $this->actingAs($this->user, 'user')
+            ->get(route('user.history'));
+
+        // Rows to show: the empty message row is hidden.
+        $this->assertMatchesRegularExpression('/id="historyEmptyRow"\s+style="display: none;"/', $response->getContent());
+
+        $response
             ->assertOk()
             ->assertSee('Dell Latitude')
             ->assertSee('data-status="Borrowed"', false)
             ->assertSee('detail-status-badge status-borrowed', false)
             ->assertSee('data-badge="borrowed"', false)
             ->assertSee('data-handled-by="Lab Custodian"', false)
-            ->assertSee('data-timestamp=', false)
-            ->assertSee('id="historyEmptyState" class="empty-state-container" style="display: none;"', false);
+            ->assertSee('data-timestamp=', false);
     }
 
     public function test_history_only_contains_the_signed_in_users_transactions(): void

@@ -5,9 +5,11 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
+use App\Models\LoanManualReminder;
 use App\Models\Penalty;
 use App\Models\PenaltySubmission;
 use App\Models\UserNotificationRead;
+use App\Support\LoanReminders;
 use App\Support\LoanTime;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -23,9 +25,10 @@ use Illuminate\Support\Str;
  * Notifications are derived live from the signed-in user's own borrowing
  * records, so they always match the real request status and return dates and
  * can never be duplicated: each one has a deterministic key
- * (request-{id}-approved, request-{id}-rejected, due-{transaction_id}-{day},
- * overdue-{transaction_id}-{day},
+ * (request-{id}-approved, request-{id}-rejected, due-{transaction_id}-{stage},
+ * overdue-{transaction_id}-{step}, reminder-{id},
  * return-{transaction_id}-confirmed, return-{transaction_id}-rejected-{time}).
+ * Due-date reminders follow App\Support\LoanReminders.
  * Only the read state is stored (user_notification_reads).
  *
  * Every query is scoped to the authenticated user.
@@ -130,7 +133,8 @@ class UserNotificationController extends Controller
     private function build(int $userId): array
     {
         return collect($this->statusNotifications($userId))
-            ->merge($this->overdueNotifications($userId))
+            ->merge($this->loanReminderNotifications($userId))
+            ->merge($this->manualReminderNotifications($userId))
             ->merge($this->returnNotifications($userId))
             ->merge($this->penaltyNotifications($userId))
             ->sortByDesc(fn (array $n) => $n['at']->getTimestamp())
@@ -255,16 +259,17 @@ class UserNotificationController extends Controller
     }
 
     /**
-     * Overdue Reminder for every loan still with the user: a "due soon" notice
-     * from DUE_SOON_DAYS before the due date, then an overdue notice once the
-     * due date has passed. Reminders repeat: the key carries the day, so each
-     * day brings one new unread notice per loan until the item is returned.
-     * Loans whose return the department is verifying are skipped.
+     * Return reminders for every loan still with the user, on the schedule in
+     * App\Support\LoanReminders. Before the due date: one item for the
+     * current stage (N days before for long loans, the day before, the due
+     * date; for Within the Day loans "return it today" and "N hours left").
+     * After the deadline: one overdue item showing the days late, which comes
+     * back as unread on each overdue step (1, 3, 7 office days late, then
+     * weekly), not every day. Loans whose return the department is verifying
+     * are skipped.
      */
-    private function overdueNotifications(int $userId): array
+    private function loanReminderNotifications(int $userId): array
     {
-        $today = BorrowTransaction::today();
-
         $loans = BorrowTransaction::with('request.equipment')
             ->onLoan()
             ->whereHas('request', fn ($query) => $query
@@ -275,85 +280,119 @@ class UserNotificationController extends Controller
         $notifications = [];
 
         foreach ($loans as $loan) {
-            // The user already handed it back; the department is verifying it.
-            if ($loan->isReturnPending()) {
+            if (!LoanReminders::isOut($loan)) {
                 continue;
             }
 
-            $due = $loan->due_date?->copy()->startOfDay();
-            // Overdue once the due date's return deadline has passed.
-            $pastDue = LoanTime::isOverdue($loan->due_date);
+            $notice = LoanReminders::daysLate($loan) > 0
+                ? $this->overdueNotification($loan)
+                : $this->dueNotification($loan);
 
-            if (!$pastDue && $loan->status !== 'Overdue') {
-                if ($notice = $this->dueSoonNotification($loan, $due, $today)) {
-                    $notifications[] = $notice;
-                }
-
-                continue;
+            if ($notice) {
+                $notifications[] = $notice;
             }
-
-            $equipment = $loan->request?->equipment?->name ?? 'The borrowed equipment';
-            $daysLate = max(1, LoanTime::daysLate($loan->due_date));
-
-            $message = $due
-                ? $equipment . ' was due on ' . LoanTime::format($loan->due_date)
-                    . ($daysLate > 0 ? ' (' . $daysLate . ' ' . Str::plural('day', $daysLate) . ' late)' : '')
-                    . '. Please return it as soon as possible.'
-                : $equipment . ' is overdue. Please return it as soon as possible.';
-
-            $notifications[] = [
-                'key' => 'overdue-' . $loan->transaction_id . '-' . $today->toDateString(),
-                'type' => 'overdue',
-                'title' => 'Overdue Equipment',
-                'message' => $message,
-                'url' => route('user.returns'),
-                // Today's reminder.
-                'at' => $this->startOfToday(),
-            ];
         }
 
         return $notifications;
     }
 
-    /** "Due today / tomorrow / in N days" while the due date is DUE_SOON_DAYS away or less. */
-    private function dueSoonNotification(BorrowTransaction $loan, ?Carbon $due, Carbon $today): ?array
+    /** The current before-due stage of a loan, or null. */
+    private function dueNotification(BorrowTransaction $loan): ?array
     {
-        if (!$due) {
+        $upcoming = LoanReminders::upcoming($loan);
+
+        if (!$upcoming) {
             return null;
         }
-
-        $daysLeft = (int) $today->diffInDays($due, false);
-
-        if ($daysLeft < 0 || $daysLeft > BorrowTransaction::DUE_SOON_DAYS) {
-            return null;
-        }
-
-        $when = match ($daysLeft) {
-            0 => 'today',
-            1 => 'tomorrow',
-            default => 'in ' . $daysLeft . ' days',
-        };
 
         $equipment = $loan->request?->equipment?->name ?? 'The borrowed equipment';
+        $by = LoanReminders::time($loan->due_date);
+        $days = $upcoming['daysLeft'];
+        $hours = LoanReminders::hoursLabel(LoanReminders::sameDayHoursBefore());
+
+        [$title, $message] = match ($upcoming['stage']) {
+            LoanReminders::STAGE_SAME_DAY => ['Return Today',
+                'You have ' . $equipment . '. Return it to the lab today by ' . $by . '.'],
+            LoanReminders::STAGE_FINAL => [ucwords($hours) . ' Left',
+                'Return ' . $equipment . ' to the lab by ' . $by . ' today. ' . ucfirst($hours) . ' left.'],
+            LoanReminders::STAGE_DUE_TODAY => ['Due Today',
+                $equipment . ' is due today by ' . $by . '. Please return it on time.'],
+            LoanReminders::STAGE_DAY_BEFORE => ['Due Tomorrow',
+                $equipment . ' is due tomorrow (' . LoanTime::dueBy($loan->due_date) . '). Please return it on time.'],
+            default => ['Due in ' . $days . ' Days',
+                $equipment . ' is due in ' . $days . ' days (' . LoanTime::dueBy($loan->due_date) . '). Please return it on time.'],
+        };
 
         return [
-            'key' => 'due-' . $loan->transaction_id . '-' . $today->toDateString(),
+            'key' => 'due-' . $loan->transaction_id . '-' . $upcoming['stage'],
             'type' => 'due',
-            'title' => 'Due ' . match ($daysLeft) {
-                0 => 'Today',
-                1 => 'Tomorrow',
-                default => 'in ' . $daysLeft . ' Days',
-            },
-            'message' => $equipment . ' is due ' . $when . ' (' . LoanTime::dueBy($loan->due_date) . '). Please return it on time.',
+            'title' => $title,
+            'message' => $message,
             'url' => route('user.returns'),
-            'at' => $this->startOfToday(),
+            'at' => $upcoming['at'],
         ];
     }
 
-    /** Midnight today in Philippine time: when today's reminders "arrived". */
-    private function startOfToday(): Carbon
+    /** One overdue item per loan; its key changes (unread again) on each overdue step. */
+    private function overdueNotification(BorrowTransaction $loan): array
     {
-        return Carbon::now(config('app.display_timezone'))->startOfDay();
+        $daysLate = LoanReminders::daysLate($loan);
+        $step = LoanReminders::overdueStep($daysLate);
+        $equipment = $loan->request?->equipment?->name ?? 'The borrowed equipment';
+        $escalated = $daysLate >= LoanReminders::adminEscalationDays();
+
+        $message = $equipment . ' was due on ' . LoanTime::format($loan->due_date)
+            . ' (' . LoanReminders::daysLabel($daysLate) . ' late). Please return it as soon as possible.'
+            . ($escalated ? ' This has been reported to the Admin.' : '');
+
+        return [
+            'key' => 'overdue-' . $loan->transaction_id . '-' . $step,
+            'type' => 'overdue',
+            'title' => $escalated ? 'Overdue: Final Notice' : 'Overdue Equipment',
+            'message' => $message,
+            'url' => route('user.returns'),
+            'at' => LoanReminders::lateSince($loan, $step),
+        ];
+    }
+
+    /**
+     * Reminders Admin or Lab Personnel sent by hand, while the item is still
+     * out. If the table has not been migrated yet, the rest of the feed still
+     * loads.
+     */
+    private function manualReminderNotifications(int $userId): array
+    {
+        $since = now()->subDays(self::STATUS_WINDOW_DAYS);
+
+        try {
+            $reminders = LoanManualReminder::with(['transaction.request.equipment', 'admin', 'departmentAccount'])
+                ->where('sent_at', '>=', $since)
+                ->whereHas('transaction.request', fn ($query) => $query->where('user_id', $userId))
+                ->get();
+        } catch (QueryException $e) {
+            Log::warning('loan_manual_reminders is unavailable (run "php artisan migrate"): ' . $e->getMessage());
+
+            return [];
+        }
+
+        return $reminders
+            ->filter(fn (LoanManualReminder $reminder) => $reminder->transaction && LoanReminders::isOut($reminder->transaction))
+            ->map(function (LoanManualReminder $reminder) {
+                $loan = $reminder->transaction;
+                $equipment = $loan->request?->equipment?->name ?? 'the equipment';
+
+                return [
+                    'key' => 'reminder-' . $reminder->id,
+                    'type' => LoanReminders::daysLate($loan) > 0 ? 'overdue' : 'due',
+                    'title' => 'Return Reminder',
+                    'message' => $reminder->senderLabel() . ' reminded you to return ' . $equipment
+                        . ' (due ' . LoanTime::dueBy($loan->due_date) . ').',
+                    'url' => route('user.returns'),
+                    'at' => Carbon::parse($reminder->sent_at),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /** One notice per return the department confirmed or rejected. */

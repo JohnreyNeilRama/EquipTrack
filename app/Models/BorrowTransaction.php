@@ -92,6 +92,9 @@ class BorrowTransaction extends Model
         'return_restores_stock',
         'due_reminder_sent_at',
         'overdue_reminder_sent_at',
+        'release_reminder_sent_at',
+        'final_reminder_sent_at',
+        'overdue_reminder_step',
     ];
 
     // Borrow and due dates (Philippine wall-clock time, see App\Support\LoanTime);
@@ -108,6 +111,9 @@ class BorrowTransaction extends Model
         'return_restores_stock' => 'boolean',
         'due_reminder_sent_at' => 'datetime',
         'overdue_reminder_sent_at' => 'datetime',
+        'release_reminder_sent_at' => 'datetime',
+        'final_reminder_sent_at' => 'datetime',
+        'overdue_reminder_step' => 'integer',
     ];
 
     public function request()
@@ -125,6 +131,12 @@ class BorrowTransaction extends Model
     public function isOverdue(): bool
     {
         return $this->isOnLoan() && LoanTime::isOverdue($this->due_date);
+    }
+
+    /** Return reminders Admin or Lab Personnel sent by hand. */
+    public function manualReminders()
+    {
+        return $this->hasMany(LoanManualReminder::class, 'transaction_id', 'transaction_id');
     }
 
     /** Department account that confirmed or rejected the return. */

@@ -10,6 +10,17 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Department view: the sections are 24px apart (the page wrapper's gap, see
+   adminusers.css), and the Back button sits where the page heading sits
+   (10px below the navbar) */
+.main-content .users-container > .btn-back-depts {
+    margin: 10px 0 0 0;
+}
+
+.main-content .users-container > .selected-dept-header-card {
+    margin-bottom: 0;
+}
+
 /* Department Selection Screen */
 .dept-selection-title {
     text-align: center;
@@ -397,6 +408,19 @@
     background-color: rgba(245, 158, 11, 0.12);
     border-color: #fbbf24;
     color: #fbbf24;
+}
+
+/* A reminder already went out today (one per loan per day) */
+.btn-action-remind.is-reminded,
+.btn-action-remind.is-reminded:hover,
+.modal-actions-footer .btn-action-remind.is-reminded,
+.modal-actions-footer .btn-action-remind.is-reminded:hover {
+    background-color: transparent;
+    border-color: var(--border-color);
+    color: var(--text-muted);
+    cursor: default;
+    transform: none;
+    box-shadow: none;
 }
 
 /* Modern Stripe/Linear status badges with indicator dots */

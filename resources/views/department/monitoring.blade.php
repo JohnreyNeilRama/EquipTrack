@@ -191,9 +191,18 @@
             </div>
 
             <footer class="mon-modal-footer">
+                {{-- Overdue loans: send the borrower a return reminder by hand (once a day) --}}
+                <button type="button" class="btn-send-reminder" id="sendReminderBtn" hidden>
+                    <i class="fa-solid fa-bell" aria-hidden="true"></i> <span>Send Reminder</span>
+                </button>
                 <button type="button" class="btn-modal-close" id="closeViewModalFooterBtn">Close</button>
             </footer>
         </div>
+    </div>
+
+    <div class="toast-notification" id="toastNotif" role="status" aria-live="polite">
+        <i class="fa-solid fa-circle-check" id="toastIcon" aria-hidden="true"></i>
+        <span id="toastMessage"></span>
     </div>
 
     <!-- Interactivity Script -->
@@ -321,8 +330,8 @@
                         tr.classList.add('is-overdue-row');
                     }
 
-                    // View is on every row. (Borrowers get an automatic overdue
-                    // notification in their own bell, so there is no reminder button.)
+                    // View is on every row. (Overdue loans also get "Send Reminder" in
+                    // the View window, on top of the automatic reminders.)
                     const actionContent = `
                         <div class="monitoring-actions">
                             <button type="button" class="btn-action-view" onclick="openViewModal('${item.id}')">
@@ -558,8 +567,68 @@
                 statusBadge.textContent = item.status;
                 statusBadge.className = 'status-badge ' + statusClass(item.status);
 
+                renderReminderButton(item);
                 viewMonitoringModal.classList.add('show');
             };
+
+            // "Send Reminder" (overdue loans only): the borrower gets a notification and
+            // an email, at most once per loan per day; the server decides and records it.
+            const REMIND_URL = @json(route('department.monitoring.remind'));
+            const CSRF_TOKEN_REMIND = document.getElementById('notifWrapper')?.dataset.csrf || '';
+            const sendReminderBtn = document.getElementById('sendReminderBtn');
+            let reminderItem = null;
+
+            function renderReminderButton(item) {
+                const overdue = (Number(item.daysOverdue) || 0) > 0 || String(item.status).toLowerCase() === 'overdue';
+                reminderItem = overdue && item.canRemind ? item : null;
+                sendReminderBtn.hidden = !reminderItem;
+                if (!reminderItem) return;
+
+                sendReminderBtn.disabled = !!item.remindedToday;
+                sendReminderBtn.classList.toggle('is-reminded', !!item.remindedToday);
+                sendReminderBtn.querySelector('span').textContent = item.remindedToday ? 'Reminded Today' : 'Send Reminder';
+                sendReminderBtn.querySelector('i').className = item.remindedToday ? 'fa-solid fa-check' : 'fa-solid fa-bell';
+                sendReminderBtn.title = item.remindedToday ? 'A reminder was already sent today' : 'Send the borrower a return reminder';
+            }
+
+            function showToast(message, type) {
+                const toast = document.getElementById('toastNotif');
+                document.getElementById('toastMessage').textContent = message;
+                toast.classList.toggle('is-error', type === 'error');
+                document.getElementById('toastIcon').className = type === 'error' ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check';
+                toast.classList.add('show');
+                clearTimeout(showToast.timer);
+                showToast.timer = setTimeout(() => toast.classList.remove('show'), 3500);
+            }
+
+            sendReminderBtn.addEventListener('click', () => {
+                const item = reminderItem;
+                if (!item || item.remindedToday) return;
+                sendReminderBtn.disabled = true;
+
+                fetch(REMIND_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': CSRF_TOKEN_REMIND,
+                    },
+                    body: JSON.stringify({ transaction_id: item.transactionId }),
+                })
+                    .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data })))
+                    .then(({ ok, status, data }) => {
+                        // Sent now, or someone already reminded this loan today.
+                        if ((ok && data.success) || status === 429) {
+                            item.remindedToday = true;
+                        }
+                        renderReminderButton(item);
+                        showToast(data.message || 'The reminder could not be sent.', ok && data.success ? 'success' : 'error');
+                    })
+                    .catch(() => {
+                        renderReminderButton(item);
+                        showToast('The reminder could not be sent. Please check your connection and try again.', 'error');
+                    });
+            });
 
             if (closeViewModalBtn) {
                 closeViewModalBtn.addEventListener('click', () => {

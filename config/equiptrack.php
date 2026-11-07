@@ -76,4 +76,48 @@ return [
 
     'max_units_per_request' => (int) env('MAX_UNITS_PER_REQUEST', 0),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Return reminders (App\Support\LoanReminders)
+    |--------------------------------------------------------------------------
+    |
+    | Every reminder is sent automatically. Emails go out only on office days,
+    | during office hours (lab_opens until lab_closes); the notification bells
+    | update by themselves. Days late are counted in office days.
+    |
+    | Borrower (bell + email):
+    |   early_reminder_days: a bell reminder this many days before the due
+    |     date, for loans of at least long_loan_days days.
+    |   The day before the due date, and on the due date itself: always
+    |     (one email, on the first of those two days the borrower has it).
+    |   same_day_hours_before: Within the Day loans also get a reminder this
+    |     many hours before the return deadline, unless they were released
+    |     less than same_day_min_lead_hours before it.
+    |   overdue_steps / overdue_repeat_days: overdue reminders on these days
+    |     late, then every overdue_repeat_days days until the item is returned.
+    |
+    | Lab Personnel (bell): a "due back today" summary each due date, an item
+    |   per loan from the moment it is overdue, flagged again on
+    |   department_follow_up_days.
+    |
+    | Admin (bell): loans still overdue after admin_escalation_days, and one
+    |   daily summary of Expensive requests waiting more than
+    |   admin_stale_request_days for review and penalty proofs waiting more
+    |   than admin_stale_proof_days for verification.
+    |
+    */
+
+    'reminders' => [
+        'early_reminder_days' => (int) env('REMINDER_EARLY_DAYS', 3),
+        'long_loan_days' => (int) env('REMINDER_LONG_LOAN_DAYS', 5),
+        'same_day_hours_before' => (int) env('REMINDER_SAME_DAY_HOURS_BEFORE', 2),
+        'same_day_min_lead_hours' => (int) env('REMINDER_SAME_DAY_MIN_LEAD_HOURS', 3),
+        'overdue_steps' => [1, 3, 7],
+        'overdue_repeat_days' => (int) env('REMINDER_OVERDUE_REPEAT_DAYS', 7),
+        'department_follow_up_days' => (int) env('REMINDER_DEPARTMENT_FOLLOW_UP_DAYS', 3),
+        'admin_escalation_days' => (int) env('REMINDER_ADMIN_ESCALATION_DAYS', 7),
+        'admin_stale_request_days' => (int) env('REMINDER_ADMIN_STALE_REQUEST_DAYS', 2),
+        'admin_stale_proof_days' => (int) env('REMINDER_ADMIN_STALE_PROOF_DAYS', 3),
+    ],
+
 ];

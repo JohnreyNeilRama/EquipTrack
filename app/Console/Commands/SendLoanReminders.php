@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\BorrowTransaction;
 use App\Notifications\LoanReminderNotification;
+use App\Support\LoanReminders;
 use App\Support\LoanTime;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -11,31 +12,34 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Emails Student/Faculty borrowers about equipment they still have:
+ * Emails Student/Faculty borrowers about equipment they still have, on the
+ * schedule in App\Support\LoanReminders (config equiptrack.reminders):
  *
- *  - Due soon: once, when the item is due tomorrow or today.
- *  - Overdue: the day after the due date, then again every
- *    OVERDUE_REPEAT_DAYS days until the item is returned.
+ *  - Due soon: once, the day before the due date, or on the due date when the
+ *    borrower only got it the day before (or the day before was closed).
+ *  - Within the Day loans: "return it today" when released, then "N hours
+ *    left" before the deadline (unless released less than a few hours before).
+ *  - Overdue: on each overdue step (1, 3 and 7 office days late, then
+ *    weekly) until the item is returned. Day 1's email goes out the next
+ *    office morning, not at night.
  *
- * Loans whose return the department is still confirming are skipped, as are
- * deactivated accounts. Dates are Philippine dates. Each reminder is recorded
- * on the loan (due_reminder_sent_at / overdue_reminder_sent_at), so running
- * the command again the same day sends nothing new.
+ * Emails only go out on office days, during office hours. Loans whose return
+ * the department is still confirming are skipped, as are deactivated
+ * accounts. Each reminder is recorded on the loan (due_reminder_sent_at,
+ * release_reminder_sent_at, final_reminder_sent_at, overdue_reminder_step),
+ * so running the command again sends nothing new.
  *
- * Scheduled daily in routes/console.php; does nothing on days the equipment
- * office is closed (config equiptrack.office_days).
+ * Scheduled every 15 minutes in routes/console.php.
  */
 class SendLoanReminders extends Command
 {
     protected $signature = 'equiptrack:send-loan-reminders {--dry-run : List the reminders that would be sent without sending them}';
 
-    protected $description = 'Email borrowers whose equipment is due soon or overdue';
-
-    /** Days between repeat overdue emails for the same loan. */
-    public const OVERDUE_REPEAT_DAYS = 3;
+    protected $description = 'Email borrowers whose equipment is due soon, due today or overdue';
 
     public function handle(): int
     {
+        $now = LoanTime::now();
         $today = BorrowTransaction::today();
 
         // The office is closed (e.g. Sunday): nothing can be returned today,
@@ -46,8 +50,15 @@ class SendLoanReminders extends Command
             return self::SUCCESS;
         }
 
+        if (!LoanReminders::isEmailWindow($now)) {
+            $this->info('Outside office hours (' . LoanTime::clock(LoanTime::opens()) . '–' . LoanTime::clock(LoanTime::closes())
+                . '); no reminders sent.');
+
+            return self::SUCCESS;
+        }
+
         $dryRun = (bool) $this->option('dry-run');
-        $sent = ['due' => 0, 'overdue' => 0];
+        $sent = ['due' => 0, 'same-day' => 0, 'overdue' => 0];
         $failed = 0;
 
         $loans = BorrowTransaction::with('request.equipment', 'request.user')
@@ -58,77 +69,129 @@ class SendLoanReminders extends Command
             ->get();
 
         foreach ($loans as $loan) {
-            $type = $this->reminderDue($loan, $today);
             $user = $loan->request?->user;
 
-            if ($type === null || !$user || !filled($user->email) || strcasecmp((string) ($user->status ?: 'Active'), 'Active') !== 0) {
+            if (!LoanReminders::isOut($loan) || !$user || !filled($user->email)
+                || strcasecmp((string) ($user->status ?: 'Active'), 'Active') !== 0) {
                 continue;
             }
 
+            $plan = $this->reminderDue($loan, $now);
+
+            if ($plan === null) {
+                continue;
+            }
+
+            [$type, $step] = $plan;
+            $group = match ($type) {
+                LoanReminderNotification::OVERDUE => 'overdue',
+                LoanReminderNotification::DUE_SOON => 'due',
+                default => 'same-day',
+            };
+
             $line = sprintf('%s reminder: loan #%d (%s) to %s, due %s',
-                $type === LoanReminderNotification::OVERDUE ? 'Overdue' : 'Due soon',
+                $this->label($type, $step),
                 $loan->transaction_id,
                 $loan->request?->equipment?->name ?? 'equipment',
                 $user->email,
-                LoanTime::format($loan->due_date));
+                LoanTime::dueBy($loan->due_date));
 
             if ($dryRun) {
                 $this->line('[dry run] ' . $line);
-                $sent[$type]++;
+                $sent[$group]++;
+
                 continue;
             }
 
             try {
-                $user->notify(new LoanReminderNotification($loan, $type, $today));
+                $user->notify(new LoanReminderNotification($loan, $type, $today, $step));
             } catch (Throwable $e) {
-                // Not recorded as sent, so tomorrow's run tries again.
+                // Not recorded as sent, so the next run tries again.
                 $failed++;
                 Log::warning('Loan reminder email failed', ['transaction_id' => $loan->transaction_id, 'error' => $e->getMessage()]);
                 $this->warn('Failed: ' . $line . ' (' . $e->getMessage() . ')');
+
                 continue;
             }
 
-            $loan->forceFill([
-                $type === LoanReminderNotification::OVERDUE ? 'overdue_reminder_sent_at' : 'due_reminder_sent_at' => now(),
-            ])->save();
-
-            $sent[$type]++;
+            $this->record($loan, $type, $step, $now);
+            $sent[$group]++;
             $this->line('Sent ' . $line);
         }
 
-        $this->info(sprintf('%s%d due-soon and %d overdue reminder(s)%s.',
+        $this->info(sprintf('%s%d due-soon, %d same-day and %d overdue reminder(s)%s.',
             $dryRun ? 'Would send ' : 'Sent ',
             $sent['due'],
+            $sent['same-day'],
             $sent['overdue'],
             $failed ? ", {$failed} failed" : ''));
 
         return $failed ? self::FAILURE : self::SUCCESS;
     }
 
-    /** Which reminder, if any, this loan needs today. */
-    private function reminderDue(BorrowTransaction $loan, Carbon $today): ?string
+    /**
+     * Which email, if any, this loan needs now.
+     *
+     * @return array{0: string, 1: int}|null  [type, overdue step]
+     */
+    private function reminderDue(BorrowTransaction $loan, Carbon $now): ?array
     {
-        // Handed back; the department is confirming it.
-        if ($loan->isReturnPending()) {
+        $daysLate = LoanReminders::daysLate($loan, $now);
+
+        if ($daysLate > 0) {
+            $step = LoanReminders::overdueStep($daysLate);
+
+            return $step > (int) $loan->overdue_reminder_step ? [LoanReminderNotification::OVERDUE, $step] : null;
+        }
+
+        $upcoming = LoanReminders::upcoming($loan, $now);
+
+        if ($upcoming === null) {
             return null;
         }
 
-        $due = $loan->due_date->copy()->startOfDay();
+        if (in_array($upcoming['stage'], [LoanReminders::STAGE_SAME_DAY, LoanReminders::STAGE_FINAL], true)) {
+            if ($loan->release_reminder_sent_at === null) {
+                return [LoanReminderNotification::SAME_DAY, 0];
+            }
 
-        // Overdue once the due date's return deadline has passed.
-        if (LoanTime::isOverdue($loan->due_date)) {
-            $last = $loan->overdue_reminder_sent_at?->copy()->timezone(config('app.display_timezone'))->startOfDay();
-
-            return $last === null || $last->diffInDays($today) >= self::OVERDUE_REPEAT_DAYS
-                ? LoanReminderNotification::OVERDUE
+            return $upcoming['stage'] === LoanReminders::STAGE_FINAL && $loan->final_reminder_sent_at === null
+                ? [LoanReminderNotification::FINAL, 0]
                 : null;
         }
 
-        // Due tomorrow or today, and not reminded yet.
-        $daysLeft = (int) $today->diffInDays($due);
+        if (in_array($upcoming['stage'], [LoanReminders::STAGE_DAY_BEFORE, LoanReminders::STAGE_DUE_TODAY], true)
+            && $loan->due_reminder_sent_at === null) {
+            return [LoanReminderNotification::DUE_SOON, 0];
+        }
 
-        return $daysLeft <= 1 && $loan->due_reminder_sent_at === null
-            ? LoanReminderNotification::DUE_SOON
-            : null;
+        return null;
+    }
+
+    /** Remember what was sent, so it is never sent twice. */
+    private function record(BorrowTransaction $loan, string $type, int $step, Carbon $now): void
+    {
+        $at = now();
+
+        $changes = match ($type) {
+            LoanReminderNotification::OVERDUE => ['overdue_reminder_step' => $step, 'overdue_reminder_sent_at' => $at],
+            LoanReminderNotification::FINAL => ['final_reminder_sent_at' => $at],
+            LoanReminderNotification::SAME_DAY => ['release_reminder_sent_at' => $at, 'due_reminder_sent_at' => $at]
+                // Released (or first seen) when the "hours left" time has already come: this email covers both.
+                + ($now->gte(LoanReminders::finalReminderAt($loan)) ? ['final_reminder_sent_at' => $at] : []),
+            default => ['due_reminder_sent_at' => $at],
+        };
+
+        $loan->forceFill($changes)->save();
+    }
+
+    private function label(string $type, int $step): string
+    {
+        return match ($type) {
+            LoanReminderNotification::OVERDUE => 'Overdue (day ' . $step . ')',
+            LoanReminderNotification::SAME_DAY => 'Return today',
+            LoanReminderNotification::FINAL => 'Hours left',
+            default => 'Due soon',
+        };
     }
 }

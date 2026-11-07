@@ -62,7 +62,7 @@
             </div>
 
             <!-- Summary Cards Section matching Users page exactly -->
-            <div class="admin-section" style="margin-bottom: 8px; min-width: 0; width: 100%; overflow: hidden; display: none;">
+            <div class="admin-section" style="min-width: 0; width: 100%; overflow: hidden; display: none;">
                 <h4 class="admin-section-heading">Summary Cards</h4>
                 <div class="stats-scroll-container">
                     <!-- Card 1: Total Monitored -->
@@ -611,25 +611,55 @@
                 }, 3500);
             }
 
-            // Send notification return reminder action
-            window.sendReminder = function(id, event) {
+            // "Remind": sends the borrower a return reminder (notification + email),
+            // at most once per loan per day. The server decides and records it
+            // (App\Services\ManualLoanReminder); the button then shows "Reminded".
+            const REMIND_URL = @json(route('admin.monitoring.remind'));
+            const CSRF_TOKEN_REMIND = document.getElementById('notifWrapper')?.dataset.csrf || '';
+
+            window.sendReminder = function(transactionId, event) {
                 if (event) event.stopPropagation();
-                const req = requests.find(r => r.id === id);
-                if (req) {
-                    showNotification('Reminder Sent', `Return reminder notification successfully sent to ${req.user} for "${req.equipment}".`, 'success');
-                    
-                    // Store reminder alerts in localStorage for user profiles integration
-                    let alerts = JSON.parse(localStorage.getItem('equip-track-alerts')) || [];
-                    alerts.push({
-                        id: Date.now(),
-                        user: req.user,
-                        equipment: req.equipment,
-                        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                        message: `Reminder: Please return the borrowed "${req.equipment}" as soon as possible.`
-                    });
-                    localStorage.setItem('equip-track-alerts', JSON.stringify(alerts));
+                const req = requests.find(r => r.transactionId === transactionId);
+                if (!req || !req.canRemind) return;
+                if (req.remindedToday) {
+                    showNotification('Already Reminded', `${req.user} was already reminded about "${req.equipment}" today.`, 'error');
+                    return;
                 }
+
+                fetch(REMIND_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': CSRF_TOKEN_REMIND,
+                    },
+                    body: JSON.stringify({ transaction_id: transactionId }),
+                })
+                    .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data })))
+                    .then(({ ok, status, data }) => {
+                        if (ok && data.success) {
+                            req.remindedToday = true;
+                            renderTable();
+                            showNotification('Reminder Sent', data.message, 'success');
+                        } else {
+                            // Someone already reminded this loan today: show the button as spent.
+                            if (status === 429) {
+                                req.remindedToday = true;
+                                renderTable();
+                            }
+                            showNotification('Reminder Not Sent', data.message || 'The reminder could not be sent.', 'error');
+                        }
+                    })
+                    .catch(() => showNotification('Reminder Not Sent', 'The reminder could not be sent. Please check your connection and try again.', 'error'));
             };
+
+            /** The Remind button for an overdue loan row (spent once a reminder went out today). */
+            function remindButtonHtml(req, label) {
+                if (!req.canRemind) return '';
+                return req.remindedToday
+                    ? `<button class="btn-action-remind is-reminded" disabled title="A reminder was already sent today"><i class="fa-solid fa-check"></i> Reminded</button>`
+                    : `<button class="btn-action-remind" title="Send Return Reminder" onclick="sendReminder(${req.transactionId}, event)"><i class="fa-solid fa-bell"></i> ${label}</button>`;
+            }
 
             // Render stats cards values dynamically
             function updateSummaryCards() {
@@ -714,8 +744,8 @@
 
                         // Action buttons cell
                         let actionHtml = '';
-                        if (req.status === 'Overdue') {
-                            actionHtml = `<button class="btn-action-remind" title="Send Return Reminder" onclick="sendReminder(${req.id}, event)"><i class="fa-solid fa-bell"></i> Remind</button>`;
+                        if (req.status === 'Overdue' && req.canRemind) {
+                            actionHtml = remindButtonHtml(req, 'Remind');
                         } else if (req.status === 'Return Pending') {
                             actionHtml = `<button class="btn-action-confirm" onclick="confirmReturn(${req.id}, event)"><i class="fa-solid fa-circle-check"></i> Return</button>`;
                         } else {
@@ -876,7 +906,7 @@
                 } else if (req.status === 'Overdue') {
                     footer.innerHTML = `
                         <button class="btn-modal-close" onclick="closeModal()">Close</button>
-                        <button class="btn-action-remind" onclick="sendReminder(${req.id}); closeModal();"><i class="fa-solid fa-bell"></i> Send Reminder</button>
+                        ${remindButtonHtml(req, 'Send Reminder')}
                     `;
                 } else {
                     footer.innerHTML = `
