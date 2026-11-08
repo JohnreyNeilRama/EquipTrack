@@ -118,10 +118,11 @@
                 <h2>Welcome back, Department Personnel! 👋</h2>
                 <p>Manage your department's equipment, monitor borrowing activities, and review requests efficiently.</p>
             </div>
-            <!-- Styled Icon Graphic instead of PNG/JPG image -->
-            <div class="welcome-banner-graphic" style="position: absolute; right: 40px; top: 50%; transform: translateY(-50%); font-size: 80px; color: rgba(56, 85, 133, 0.08); pointer-events: none;">
-                <i class="fa-solid fa-boxes-stacked"></i>
-            </div>
+            {{-- Same presentation as the Admin dashboard (admin/css/admindashboard.css
+                 .welcome-banner-img). dept_design1.png is dept_design1.jpg with the
+                 white background made transparent and the empty margins trimmed. --}}
+            <img src="{{ asset('images/dept_design1.png') }}?v={{ filemtime(public_path('images/dept_design1.png')) }}" alt="" class="welcome-banner-img">
+
         </div>
 
         <!-- Quick Stats Section -->
