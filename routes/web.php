@@ -68,6 +68,8 @@ Route::middleware(['auth:admin', 'auth.session', 'active', 'expire.requests'])->
     Route::get('/equipment/data', [AdminEquipmentController::class, 'data'])->name('equipment.data');
     Route::post('/equipment/save', [AdminEquipmentController::class, 'save'])->name('equipment.save');
     Route::post('/equipment/category', [AdminEquipmentController::class, 'addCategory'])->name('equipment.category');
+    Route::post('/equipment/category/update', [AdminEquipmentController::class, 'updateCategory'])->name('equipment.category.update');
+    Route::post('/equipment/category/delete', [AdminEquipmentController::class, 'deleteCategory'])->name('equipment.category.delete');
     Route::post('/equipment/delete', [AdminEquipmentController::class, 'destroy'])->name('equipment.delete');
     Route::get('/requests', [AdminRequestsController::class, 'index'])->name('requests');
     Route::get('/requests/data', [AdminRequestsController::class, 'data'])->name('requests.data');

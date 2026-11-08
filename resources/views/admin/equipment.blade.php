@@ -6,6 +6,98 @@
 <link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
 <link rel="stylesheet" href="{{ asset('admin/css/adminequipment.css') }}?v={{ filemtime(public_path('admin/css/adminequipment.css')) }}">
 <style>
+    /* ---------------- Manage Categories window ---------------- */
+    .cat-manage-card { max-width: 560px; }
+    .cat-section-label {
+        display: block;
+        font-size: var(--fs-small);
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .cat-add-form { padding-top: 6px; }
+    .cat-add-form .cat-section-label { margin-bottom: 8px; }
+    .cat-add-row { display: flex; gap: 10px; }
+    .cat-add-row .form-control-flat { flex: 1; min-width: 0; height: 42px; }
+    .cat-add-row .btn-submit-request {
+        width: auto; height: 42px; padding: 0 20px; flex-shrink: 0;
+        display: inline-flex; align-items: center; gap: 8px;
+    }
+    .cat-list-head {
+        display: flex; align-items: baseline; justify-content: space-between;
+        margin: 22px 0 8px;
+    }
+    .cat-count { font-size: var(--fs-small); color: var(--text-muted); }
+    .cat-list {
+        list-style: none; margin: 0; padding: 0;
+        max-height: 300px; overflow-y: auto;
+        border: 1px solid var(--border-color); border-radius: 12px;
+    }
+    .cat-row {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        min-height: 56px; padding: 8px 10px 8px 14px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .cat-row:last-child { border-bottom: none; }
+    .cat-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .cat-name {
+        font-size: var(--fs-body); font-weight: 600; color: var(--text-main);
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cat-usage { font-size: var(--fs-small); color: var(--text-muted); }
+    .cat-usage.is-used { color: var(--primary-color); font-weight: 600; }
+    .cat-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .cat-icon-btn {
+        width: 34px; height: 34px; border-radius: 8px;
+        display: inline-flex; align-items: center; justify-content: center;
+        border: 1px solid var(--border-color); background: transparent;
+        color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+    }
+    .cat-icon-btn:hover { border-color: #385585; color: #385585; background-color: rgba(56, 85, 133, 0.08); }
+    .cat-icon-btn.is-danger:hover { border-color: #dc2626; color: #dc2626; background-color: rgba(239, 68, 68, 0.08); }
+    .cat-icon-btn:focus-visible, .cat-btn:focus-visible { outline: 2px solid #385585; outline-offset: 2px; }
+    .cat-btn {
+        height: 34px; padding: 0 14px; border-radius: 8px;
+        border: 1px solid var(--border-color); background: var(--card-bg);
+        color: var(--text-main); font-family: inherit; font-size: var(--fs-label); font-weight: 600;
+        cursor: pointer; white-space: nowrap; transition: all 0.2s;
+    }
+    .cat-btn:hover:not(:disabled) { background-color: var(--bg-color); }
+    .cat-btn:disabled { opacity: 0.6; cursor: wait; }
+    .cat-btn-primary { background-color: #385585; border-color: #385585; color: #ffffff; }
+    .cat-btn-primary:hover:not(:disabled) { background-color: #2f477a; }
+    .cat-btn-danger { background-color: #dc2626; border-color: #dc2626; color: #ffffff; }
+    .cat-btn-danger:hover:not(:disabled) { background-color: #b91c1c; }
+    .cat-row.is-editing .cat-rename-input { flex: 1; min-width: 0; height: 38px; }
+    .cat-row.is-confirming { background-color: rgba(239, 68, 68, 0.06); }
+    .cat-row.is-blocked { background-color: rgba(56, 85, 133, 0.06); align-items: flex-start; }
+    .cat-question {
+        display: flex; align-items: flex-start; gap: 10px; min-width: 0;
+        font-size: var(--fs-label); line-height: 1.5; color: var(--text-main);
+    }
+    .cat-row.is-confirming .cat-question i { color: #dc2626; margin-top: 3px; }
+    .cat-row.is-blocked .cat-question i { color: #385585; margin-top: 3px; }
+    .cat-empty { padding: 18px 14px; font-size: var(--fs-label); color: var(--text-muted); text-align: center; }
+    .cat-help {
+        display: flex; align-items: flex-start; gap: 8px; margin: 10px 0 0;
+        font-size: var(--fs-small); color: var(--text-muted); line-height: 1.5;
+    }
+    .cat-help i { color: #385585; margin-top: 2px; }
+    .cat-footer { display: flex; justify-content: flex-end; margin-top: 20px; }
+    .cat-close-btn {
+        height: 42px; padding: 0 22px; border-radius: 8px;
+        border: 1px solid var(--border-color, #e2e8f0); background: transparent;
+        color: var(--text-main); font-weight: 600; cursor: pointer;
+    }
+    .dark-theme .cat-row.is-confirming { background-color: rgba(239, 68, 68, 0.1); }
+    .dark-theme .cat-row.is-blocked { background-color: rgba(96, 165, 250, 0.08); }
+    .dark-theme .cat-usage.is-used { color: #93c5fd; }
+    @media (max-width: 480px) {
+        .cat-row.is-confirming, .cat-row.is-blocked { flex-direction: column; align-items: stretch; }
+        .cat-row.is-confirming .cat-actions, .cat-row.is-blocked .cat-actions { justify-content: flex-end; }
+    }
+
     .eq-status-badge {
         display: inline-block;
         padding: 3px 10px;
@@ -519,7 +611,7 @@
             </div>
             <div class="filter-card-actions">
                 <button class="btn-add-category" id="addCategoryBtn" style="padding: 0 20px; background-color: var(--card-bg, #ffffff); color: var(--text-main, #0f172a); border: 1px solid var(--border-color, #e2e8f0); font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-                    <i class="fa-solid fa-folder-plus" style="color: #385585;"></i> Add Category
+                    <i class="fa-solid fa-folder-open" style="color: #385585;"></i> Manage Categories
                 </button>
                 <button class="btn-add-equipment" id="addEquipmentBtn">
                     <i class="fa-solid fa-plus"></i> Add Equipment
@@ -701,27 +793,41 @@
         </div>
     </div>
 
-    {{-- Category Modal (Add Category) --}}
-    <div class="modal-overlay" id="categoryModal" style="display: none;">
-        <div class="modal-card eq-modal-card" style="max-width: 480px;">
+    {{-- Manage Categories: add, rename and delete equipment categories.
+         A category that equipment uses can't be deleted (the Admin is told why);
+         the server and the database (ON DELETE RESTRICT) enforce the same rule. --}}
+    <div class="modal-overlay" id="categoryModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="categoryModalTitle">
+        <div class="modal-card eq-modal-card cat-manage-card">
             <div class="modal-outer-header">
-                <p class="modal-subtitle-top">Create a new equipment classification</p>
+                <p class="modal-subtitle-top">Add, rename or delete equipment categories</p>
             </div>
             <div class="modal-inner-card">
-                <button class="modal-close" id="closeCategoryModalBtn">&times;</button>
-                <h3 class="modal-title-center">Add New Category</h3>
+                <button type="button" class="modal-close" id="closeCategoryModalBtn" aria-label="Close">&times;</button>
+                <h3 class="modal-title-center" id="categoryModalTitle">Manage Categories</h3>
 
-                <form id="categoryForm" class="new-modal-form" style="padding-top: 10px;">
-                    <div class="form-group-flat">
-                        <label for="catFormName">Category Name <span style="color: #ef4444;">*</span></label>
-                        <input type="text" id="catFormName" name="category_name" class="form-control-flat" required placeholder="e.g., Laboratory Equipment">
-                    </div>
-
-                    <div class="modal-actions-footer" style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
-                        <button type="button" class="btn-modal-close" id="cancelCategoryBtn" style="height: 42px; padding: 0 18px; border-radius: 8px; border: 1px solid var(--border-color, #e2e8f0); background: transparent; color: var(--text-main); font-weight: 600; cursor: pointer;">Cancel</button>
-                        <button type="submit" class="btn-submit-request" id="saveCategoryBtn" style="height: 42px; width: auto; padding: 0 24px;">Save Category</button>
+                <form id="categoryForm" class="new-modal-form cat-add-form" novalidate>
+                    <label for="catFormName" class="cat-section-label">Add a Category</label>
+                    <div class="cat-add-row">
+                        <input type="text" id="catFormName" name="category_name" class="form-control-flat" maxlength="255" required placeholder="e.g., Laboratory Equipment" autocomplete="off">
+                        <button type="submit" class="btn-submit-request" id="saveCategoryBtn">
+                            <i class="fa-solid fa-plus" aria-hidden="true"></i> Add
+                        </button>
                     </div>
                 </form>
+
+                <div class="cat-list-head">
+                    <span class="cat-section-label">Categories</span>
+                    <span class="cat-count" id="categoryCount"></span>
+                </div>
+                <ul class="cat-list" id="categoryList" aria-live="polite"></ul>
+                <p class="cat-help">
+                    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                    A category that equipment uses can't be deleted. Move that equipment to another category first.
+                </p>
+
+                <div class="modal-actions-footer cat-footer">
+                    <button type="button" class="btn-modal-close cat-close-btn" id="cancelCategoryBtn">Close</button>
+                </div>
             </div>
         </div>
     </div>
@@ -734,6 +840,10 @@
         const URL_DATA = @json(route('admin.equipment.data'));
         const URL_SAVE = @json(route('admin.equipment.save'));
         const URL_CATEGORY = @json(route('admin.equipment.category'));
+        const URL_CATEGORY_UPDATE = @json(route('admin.equipment.category.update'));
+        const URL_CATEGORY_DELETE = @json(route('admin.equipment.category.delete'));
+        // Categories with how much equipment uses each (Manage Categories window)
+        let categoryList = @json($categoryList);
         const URL_DELETE = @json(route('admin.equipment.delete'));
 
         // Master Equipment Array loaded from database
@@ -1013,9 +1123,16 @@
             resetUploader();
         });
 
-        // Open / Close Category Modal Logic
+        // ---------------- Manage Categories ----------------
+        const categoryListEl = document.getElementById('categoryList');
+        const categoryCountEl = document.getElementById('categoryCount');
+        // One row at a time is being renamed or asked to confirm a delete.
+        let categoryEdit = { id: null, mode: null };
+
         function openCategoryModal() {
             categoryForm.reset();
+            categoryEdit = { id: null, mode: null };
+            renderCategoryList();
             categoryModal.style.display = 'flex';
             setTimeout(() => {
                 categoryModal.classList.add('show');
@@ -1028,6 +1145,7 @@
             setTimeout(() => {
                 categoryModal.style.display = 'none';
                 categoryForm.reset();
+                categoryEdit = { id: null, mode: null };
             }, 200);
         }
 
@@ -1038,54 +1156,249 @@
             categoryModal.addEventListener('click', (e) => {
                 if (e.target === categoryModal) closeCategoryModal();
             });
+            categoryModal.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape') return;
+                // Escape first leaves a rename / delete question, then closes the window.
+                if (categoryEdit.id !== null) {
+                    categoryEdit = { id: null, mode: null };
+                    renderCategoryList();
+                } else {
+                    closeCategoryModal();
+                }
+            });
         }
 
-        // Add Category Submit
+        function usedByLabel(count) {
+            return count === 0 ? 'Not used' : `Used by ${count} ${count === 1 ? 'item' : 'items'}`;
+        }
+
+        function inUseMessage(cat) {
+            const n = cat.equipment_count;
+            return `"${cat.category_name}" can't be deleted because ${n} equipment ${n === 1 ? 'item uses' : 'items use'} it. `
+                + `Move ${n === 1 ? 'that item' : 'those items'} to another category first (edit the equipment), then delete the category.`;
+        }
+
+        function renderCategoryList() {
+            categoryCountEl.textContent = categoryList.length + (categoryList.length === 1 ? ' category' : ' categories');
+
+            if (categoryList.length === 0) {
+                categoryListEl.innerHTML = '<li class="cat-empty">No categories yet. Add the first one above.</li>';
+                return;
+            }
+
+            categoryListEl.innerHTML = categoryList.map(cat => {
+                const id = cat.category_id;
+                const editing = categoryEdit.id === id ? categoryEdit.mode : null;
+                const name = escapeHTML(cat.category_name);
+
+                if (editing === 'rename') {
+                    return `<li class="cat-row is-editing" data-id="${id}">
+                        <input type="text" class="form-control-flat cat-rename-input" value="${name}" maxlength="255" aria-label="New name for ${name}">
+                        <div class="cat-actions">
+                            <button type="button" class="cat-btn cat-btn-primary" data-action="save-rename">Save</button>
+                            <button type="button" class="cat-btn" data-action="cancel">Cancel</button>
+                        </div>
+                    </li>`;
+                }
+
+                if (editing === 'confirm-delete') {
+                    return `<li class="cat-row is-confirming" data-id="${id}" role="alertdialog" aria-label="Confirm delete">
+                        <div class="cat-question">
+                            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                            <span>Delete <strong>${name}</strong>? This can't be undone.</span>
+                        </div>
+                        <div class="cat-actions">
+                            <button type="button" class="cat-btn" data-action="cancel">Cancel</button>
+                            <button type="button" class="cat-btn cat-btn-danger" data-action="confirm-delete">Delete</button>
+                        </div>
+                    </li>`;
+                }
+
+                if (editing === 'in-use') {
+                    return `<li class="cat-row is-blocked" data-id="${id}" role="alert">
+                        <div class="cat-question">
+                            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                            <span>${escapeHTML(inUseMessage(cat))}</span>
+                        </div>
+                        <div class="cat-actions">
+                            <button type="button" class="cat-btn" data-action="cancel">OK</button>
+                        </div>
+                    </li>`;
+                }
+
+                return `<li class="cat-row" data-id="${id}">
+                    <div class="cat-info">
+                        <span class="cat-name" title="${name}">${name}</span>
+                        <span class="cat-usage ${cat.equipment_count ? 'is-used' : ''}">${usedByLabel(cat.equipment_count)}</span>
+                    </div>
+                    <div class="cat-actions">
+                        <button type="button" class="cat-icon-btn" data-action="rename" title="Rename" aria-label="Rename ${name}"><i class="fa-solid fa-pen"></i></button>
+                        <button type="button" class="cat-icon-btn is-danger" data-action="delete" title="Delete" aria-label="Delete ${name}"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </li>`;
+            }).join('');
+
+            const input = categoryListEl.querySelector('.cat-rename-input');
+            if (input) { input.focus(); input.select(); }
+            const confirmBtn = categoryListEl.querySelector('[data-action="confirm-delete"]');
+            if (confirmBtn) confirmBtn.focus();
+        }
+
+        // Keep the toolbar filter and the equipment form's Category list in step with the categories.
+        function syncCategorySelects() {
+            dbCategories = categoryList.map(c => ({ category_id: c.category_id, category_name: c.category_name }));
+            const fill = (select, firstOption) => {
+                const keep = select.value;
+                select.innerHTML = firstOption + dbCategories.map(c =>
+                    `<option value="${c.category_id}">${escapeHTML(c.category_name)}</option>`).join('');
+                select.value = [...select.options].some(o => o.value === keep) ? keep : select.options[0].value;
+                return keep !== select.value;
+            };
+            const filterReset = fill(filterSelect, '<option value="all">All Categories</option>');
+            const firstFormOption = eqCategoryField.options[0] && eqCategoryField.options[0].value === ''
+                ? eqCategoryField.options[0].outerHTML : '';
+            fill(eqCategoryField, firstFormOption);
+            if (filterReset) filterEquipment();
+        }
+
+        function postCategory(url, payload) {
+            const body = new FormData();
+            Object.entries(payload).forEach(([k, v]) => body.append(k, v));
+            body.append('_token', CSRF_TOKEN);
+            return fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body })
+                .then(res => res.json().catch(() => ({})).then(data => ({ ok: res.ok, status: res.status, data })));
+        }
+
+        // Every answer from the server carries the current list: apply it.
+        function applyCategories(data) {
+            if (Array.isArray(data.categories)) {
+                categoryList = data.categories;
+                syncCategorySelects();
+            }
+        }
+
+        // Add
         if (categoryForm) {
             categoryForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 const catName = catFormNameInput.value.trim();
                 if (!catName) {
-                    showNotification('Validation Error', 'Please enter a category name.', 'error');
+                    showNotification('Category Name Required', 'Type a name for the new category.', 'error');
+                    catFormNameInput.focus();
                     return;
                 }
 
-                const formData = new FormData(categoryForm);
-                formData.append('_token', CSRF_TOKEN);
-                fetch(URL_CATEGORY, {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        const newCat = data.category;
-                        dbCategories.push(newCat);
+                const saveBtn = document.getElementById('saveCategoryBtn');
+                saveBtn.disabled = true;
+                postCategory(URL_CATEGORY, { category_name: catName })
+                    .then(({ ok, data }) => {
+                        if (ok && data.success) {
+                            applyCategories(data);
+                            categoryForm.reset();
+                            categoryEdit = { id: null, mode: null };
+                            renderCategoryList();
+                            showNotification('Category Added', `Category "${data.category.category_name}" was added.`, 'success');
+                        } else {
+                            const first = data.errors ? Object.values(data.errors)[0] : null;
+                            showNotification('Category Not Added', (first && first[0]) || data.message || 'The category could not be added.', 'error');
+                        }
+                    })
+                    .catch(() => showNotification('Category Not Added', 'Could not reach the server. Check your connection and try again.', 'error'))
+                    .finally(() => { saveBtn.disabled = false; catFormNameInput.focus(); });
+            });
+        }
 
-                        // Add to Category Filter
-                        const filterOpt = document.createElement('option');
-                        filterOpt.value = newCat.category_id;
-                        filterOpt.textContent = newCat.category_name;
-                        filterSelect.appendChild(filterOpt);
+        // Rename / Delete (one handler for the whole list)
+        categoryListEl.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            const row = btn.closest('.cat-row');
+            const id = Number(row.dataset.id);
+            const cat = categoryList.find(c => c.category_id === id);
+            if (!cat) return;
 
-                        // Add to Form Select
-                        const formOpt = document.createElement('option');
-                        formOpt.value = newCat.category_id;
-                        formOpt.textContent = newCat.category_name;
-                        eqCategoryField.appendChild(formOpt);
-                        eqCategoryField.value = newCat.category_id;
+            switch (btn.dataset.action) {
+                case 'rename':
+                    categoryEdit = { id, mode: 'rename' };
+                    renderCategoryList();
+                    break;
+                case 'delete':
+                    // In use: explain instead of asking to confirm.
+                    categoryEdit = { id, mode: cat.equipment_count > 0 ? 'in-use' : 'confirm-delete' };
+                    renderCategoryList();
+                    break;
+                case 'cancel':
+                    categoryEdit = { id: null, mode: null };
+                    renderCategoryList();
+                    break;
+                case 'save-rename':
+                    saveRename(cat, row.querySelector('.cat-rename-input').value.trim(), btn);
+                    break;
+                case 'confirm-delete':
+                    deleteCategory(cat, btn);
+                    break;
+            }
+        });
 
-                        closeCategoryModal();
-                        showNotification('Category Added', `Category "${newCat.category_name}" saved to database successfully!`, 'success');
+        categoryListEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.target.classList.contains('cat-rename-input')) {
+                e.preventDefault();
+                e.target.closest('.cat-row').querySelector('[data-action="save-rename"]').click();
+            }
+        });
+
+        function saveRename(cat, name, btn) {
+            if (!name) {
+                showNotification('Category Name Required', 'Type a name for the category.', 'error');
+                return;
+            }
+            if (name === cat.category_name) {
+                categoryEdit = { id: null, mode: null };
+                renderCategoryList();
+                return;
+            }
+            btn.disabled = true;
+            postCategory(URL_CATEGORY_UPDATE, { category_id: cat.category_id, category_name: name })
+                .then(({ ok, data }) => {
+                    if (ok && data.success) {
+                        applyCategories(data);
+                        categoryEdit = { id: null, mode: null };
+                        renderCategoryList();
+                        loadEquipment(); // the cards show the new name
+                        showNotification('Category Renamed', data.message, 'success');
                     } else {
-                        showNotification('Error', data.message || 'Failed to save category.', 'error');
+                        btn.disabled = false;
+                        const first = data.errors ? Object.values(data.errors)[0] : null;
+                        showNotification('Category Not Renamed', (first && first[0]) || data.message || 'The category could not be renamed.', 'error');
                     }
                 })
-                .catch(err => {
-                    console.error('Error saving category:', err);
-                    showNotification('System Error', 'An unexpected error occurred while saving the category.', 'error');
+                .catch(() => {
+                    btn.disabled = false;
+                    showNotification('Category Not Renamed', 'Could not reach the server. Check your connection and try again.', 'error');
                 });
-            });
+        }
+
+        function deleteCategory(cat, btn) {
+            btn.disabled = true;
+            postCategory(URL_CATEGORY_DELETE, { category_id: cat.category_id })
+                .then(({ ok, status, data }) => {
+                    applyCategories(data);
+                    if (ok && data.success) {
+                        categoryEdit = { id: null, mode: null };
+                        renderCategoryList();
+                        showNotification('Category Deleted', data.message, 'success');
+                        return;
+                    }
+                    // In use after all (e.g. equipment was just assigned to it): show the explanation in the row.
+                    const now = categoryList.find(c => c.category_id === cat.category_id);
+                    categoryEdit = now && status === 409 ? { id: cat.category_id, mode: 'in-use' } : { id: null, mode: null };
+                    renderCategoryList();
+                    showNotification('Category Not Deleted', data.message || 'The category could not be deleted.', 'error');
+                })
+                .catch(() => {
+                    btn.disabled = false;
+                    showNotification('Category Not Deleted', 'Could not reach the server. Check your connection and try again.', 'error');
+                });
         }
 
         // Search & Filter Trigger

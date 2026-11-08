@@ -8,6 +8,7 @@ use App\Models\BorrowRequest;
 use App\Models\Department;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -20,8 +21,10 @@ class AdminEquipmentController extends Controller
     {
         $dbCategories = EquipmentCategory::orderBy('category_name')->get();
         $dbDepartments = Department::orderBy('department_name')->get();
+        // Manage Categories window: every category with how much equipment uses it.
+        $categoryList = $this->categoryList();
 
-        return view('admin.equipment', compact('dbCategories', 'dbDepartments'));
+        return view('admin.equipment', compact('dbCategories', 'dbDepartments', 'categoryList'));
     }
 
     /** JSON feed for the card grid (legacy equipment.php?action=get_equipment). */
@@ -77,7 +80,117 @@ class AdminEquipmentController extends Controller
                 'category_id' => $category->category_id,
                 'category_name' => $category->category_name,
             ],
+            'categories' => $this->categoryList(),
         ]);
+    }
+
+    /** Rename a category. Its equipment keeps it (only the name changes). */
+    public function updateCategory(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'category_id' => ['required', 'integer'],
+            'category_name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $category = EquipmentCategory::find($data['category_id']);
+        if (!$category) {
+            return response()->json(['success' => false, 'message' => 'This category no longer exists. Refresh the page and try again.'], 404);
+        }
+
+        $name = trim($data['category_name']);
+        $old = $category->category_name;
+
+        $taken = EquipmentCategory::whereRaw('LOWER(category_name) = ?', [strtolower($name)])
+            ->where('category_id', '!=', $category->category_id)
+            ->exists();
+        if ($taken) {
+            return response()->json(['success' => false, 'message' => 'A category with this name already exists.'], 400);
+        }
+
+        if ($name !== $old) {
+            $category->update(['category_name' => $name]);
+            $this->audit($request, 'Renamed category "' . $old . '" to "' . $name . '"', 'category:' . $category->category_id);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Category renamed to "' . $name . '".',
+            'categories' => $this->categoryList(),
+        ]);
+    }
+
+    /**
+     * Delete a category that no equipment uses. A category in use is never
+     * deleted (its equipment would lose its category): the Admin is told how
+     * many items use it and to move them first. The database enforces the
+     * same rule (equipment.category_id ON DELETE RESTRICT).
+     */
+    public function deleteCategory(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'category_id' => ['required', 'integer'],
+        ]);
+
+        $category = EquipmentCategory::find($data['category_id']);
+        if (!$category) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This category was already deleted.',
+                'categories' => $this->categoryList(),
+            ], 404);
+        }
+
+        $inUse = Equipment::where('category_id', $category->category_id)->count();
+        if ($inUse > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => $this->inUseMessage($category->category_name, $inUse),
+                'categories' => $this->categoryList(),
+            ], 409);
+        }
+
+        try {
+            $category->delete();
+        } catch (QueryException $e) {
+            // Equipment was assigned to it in the meantime: the database refused.
+            return response()->json([
+                'success' => false,
+                'message' => $this->inUseMessage($category->category_name, max(1, Equipment::where('category_id', $category->category_id)->count())),
+                'categories' => $this->categoryList(),
+            ], 409);
+        }
+
+        $this->audit($request, 'Deleted category "' . $category->category_name . '"', 'category:' . $category->category_id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Category "' . $category->category_name . '" deleted.',
+            'categories' => $this->categoryList(),
+        ]);
+    }
+
+    private function inUseMessage(string $name, int $count): string
+    {
+        return '"' . $name . '" can\'t be deleted because ' . $count . ' equipment ' . ($count === 1 ? 'item uses' : 'items use')
+            . ' it. Move ' . ($count === 1 ? 'that item' : 'those items') . ' to another category first (edit the equipment), then delete the category.';
+    }
+
+    /**
+     * Categories A–Z with how many equipment items use each.
+     *
+     * @return array<int, array{category_id: int, category_name: string, equipment_count: int}>
+     */
+    private function categoryList(): array
+    {
+        return EquipmentCategory::withCount('equipment')
+            ->orderBy('category_name')
+            ->get()
+            ->map(fn (EquipmentCategory $category) => [
+                'category_id' => (int) $category->category_id,
+                'category_name' => $category->category_name,
+                'equipment_count' => (int) $category->equipment_count,
+            ])
+            ->all();
     }
 
     public function save(Request $request): JsonResponse

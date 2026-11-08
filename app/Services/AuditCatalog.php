@@ -26,6 +26,8 @@ class AuditCatalog
         ['label' => 'Updated Equipment', 'module' => 'Equipment Management', 'prefixes' => ['Updated equipment' => 'Equipment']],
         ['label' => 'Deleted Equipment', 'module' => 'Equipment Management', 'prefixes' => ['Deleted equipment' => 'Equipment']],
         ['label' => 'Added Category', 'module' => 'Equipment Management', 'prefixes' => ['Added category' => 'Category']],
+        ['label' => 'Renamed Category', 'module' => 'Equipment Management', 'prefixes' => ['Renamed category' => 'Category']],
+        ['label' => 'Deleted Category', 'module' => 'Equipment Management', 'prefixes' => ['Deleted category' => 'Category']],
 
         // Borrow requests
         ['label' => 'Submitted Request', 'module' => 'Requests', 'prefixes' => ['Submitted borrow request' => 'Borrow request']],
