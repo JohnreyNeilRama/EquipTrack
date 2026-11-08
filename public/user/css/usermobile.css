@@ -1,0 +1,355 @@
+/* ==========================================================================
+   EquipTrack — Student / Faculty pages on phones (User account only)
+   --------------------------------------------------------------------------
+   Loaded last by layouts/user.blade.php, after ccs/mobile-shell.css (the
+   slide-in menu and compact top bar shared with the Department account).
+   Desktop and tablet (above 768px) are unchanged: every rule except the
+   hidden-by-default page name sits inside the phone media query.
+   ========================================================================== */
+
+/* Page name in the top bar: phones only */
+.mobile-page-title {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    /* The current page's name (the sidebar that shows it is folded away) */
+    .mobile-page-title {
+        display: block;
+        flex: 1 1 auto;
+        min-width: 0;
+        /* Long names ("Available Equipment") take two lines, not "…" */
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.2;
+        color: var(--page-title-color);
+    }
+
+    .dark-theme .mobile-page-title {
+        color: var(--text-main);
+    }
+
+    /* ---------- Text sizes ----------
+       The page name in the top bar (16px) is the heading; everything else
+       steps down from it: section titles 15px, body 14px, details 12-13px,
+       badges at least 11px. */
+
+    /* Page descriptions ("Track the status of your equipment requests"):
+       a quiet line under the page name, not a second, bigger heading */
+    .track-status-header,
+    .manage-return-header,
+    .history-header,
+    .pp-title {
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 1.45;
+        color: var(--text-muted);
+        letter-spacing: 0;
+    }
+
+    /* Dashboard welcome: still the largest text on the page, but compact */
+    #welcomeTitle {
+        font-size: 20px;
+        line-height: 1.25;
+    }
+
+    /* Big numbers (Dashboard and My Penalties summary cards) */
+    .stat-value,
+    .pp-summary-value {
+        font-size: 22px;
+    }
+
+    /* Status badge on equipment cards: up from 10px */
+    .eq-status-badge {
+        font-size: 11px;
+    }
+
+    /* ---------- Filter dropdowns (My Request, Borrowing History) ----------
+       Compact, not full width: each one is as wide as its chosen option, and
+       they share one line under the search box (wrapping only when the
+       screen is too narrow). Text stays the normal size; iPhones don't zoom
+       in when one is tapped (see the viewport script in layouts/user). */
+    .search-filter-row .filter-wrapper,
+    .filters-right .filter-wrapper {
+        flex: 0 1 auto;
+        align-self: flex-start;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .filters-right {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 10px;
+    }
+
+    .search-filter-row .filter-select,
+    .filters-right .filter-select {
+        field-sizing: content;
+        width: auto;
+        min-width: 112px;
+        max-width: 100%;
+        padding: 10px 40px 10px 16px;
+        background-position: right 14px center;
+    }
+
+    /* Browsers that can't size a dropdown to its chosen option (Safari)
+       make it as wide as its longest option; capping Status keeps Status
+       and Sort on one line on phones 360px and wider. */
+    @supports not (field-sizing: content) {
+        .filters-right #statusHistoryFilter,
+        .search-filter-row #statusFilter {
+            max-width: 170px;
+        }
+    }
+
+    /* ---------- Tables as cards ----------
+       Dashboard (Active Borrow Items, Recent Requests), My Request, Return
+       Item and Borrowing History. Each row becomes a card: equipment and
+       status on top, the dates as labelled lines, the action button full
+       width. Nothing scrolls sideways. Labels come from the column names. */
+    .main-content .requests-table-card,
+    .main-content .returns-table-card,
+    .main-content .history-table-card {
+        overflow: hidden;
+    }
+
+    .main-content .requests-table-card table,
+    .main-content .returns-table-card table,
+    .main-content .history-table-card table,
+    .main-content .requests-table-card tbody,
+    .main-content .returns-table-card tbody,
+    .main-content .history-table-card tbody {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+
+    /* Column headings are read out by screen readers but not shown */
+    .main-content .requests-table-card thead,
+    .main-content .returns-table-card thead,
+    .main-content .history-table-card thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+
+    .main-content .requests-table-card tbody tr,
+    .main-content .returns-table-card tbody tr,
+    .main-content .history-table-card tbody tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        column-gap: 12px;
+        row-gap: 6px;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .main-content .requests-table-card tbody tr:last-child,
+    .main-content .returns-table-card tbody tr:last-child,
+    .main-content .history-table-card tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    /* Every cell: one full-width "Label ........ value" line */
+    .main-content .requests-table-card tbody td,
+    .main-content .returns-table-card tbody td,
+    .main-content .history-table-card tbody td {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        padding: 0 !important;
+        border: none !important;
+        font-size: var(--fs-body);
+        text-align: right !important;
+    }
+
+    /* (History pads its Status cell on its own; the card sets the spacing) */
+    .main-content .history-table-card .history-table td.col-status {
+        padding: 0 !important;
+    }
+
+    .main-content .requests-table-card tbody td::before,
+    .main-content .returns-table-card tbody td::before,
+    .main-content .history-table-card tbody td::before {
+        flex-shrink: 0;
+        font-size: var(--fs-label);
+        font-weight: 500;
+        color: var(--text-muted);
+        text-align: left;
+    }
+
+    /* Row number: the cards don't need it */
+    .main-content .my-requests-table td:not([colspan]):nth-child(1),
+    .main-content .my-returns-table td:not([colspan]):nth-child(1),
+    .main-content .history-table td:not([colspan]):nth-child(1) {
+        display: none;
+    }
+
+    /* Equipment (photo, name, category): top left of the card */
+    .main-content .requests-table-card td.equipment-col,
+    .main-content .returns-table-card td.equipment-col,
+    .main-content .history-table-card td.equipment-col {
+        grid-column: 1;
+        grid-row: 1;
+        justify-content: flex-start;
+        margin-bottom: 6px;
+        text-align: left !important;
+    }
+
+    .main-content td.equipment-col .eq-cell {
+        width: 100%;
+    }
+
+    .main-content td.equipment-col .eq-title {
+        font-size: var(--fs-card-title);
+    }
+
+    /* Status badge: top right of the card, next to the equipment */
+    .main-content .my-requests-table td:not([colspan]):nth-child(6),
+    .main-content .history-table td:not([colspan]):nth-child(5),
+    .main-content #activeBorrowsBody td:not([colspan]):nth-child(4),
+    .main-content #recentRequestsBody td:not([colspan]):nth-child(3) {
+        grid-column: 2;
+        grid-row: 1;
+        align-self: start;
+        justify-content: flex-end;
+        margin-bottom: 6px;
+    }
+
+    /* Action button: full width at the bottom of the card, easy to tap */
+    .main-content .my-requests-table td:not([colspan]):nth-child(7),
+    .main-content .my-returns-table td:not([colspan]):nth-child(6),
+    .main-content .history-table td:not([colspan]):nth-child(7) {
+        justify-content: stretch;
+        margin-top: 8px;
+    }
+
+    .main-content .requests-table-card .btn-action-view,
+    .main-content .history-table-card .btn-action-view,
+    .main-content .returns-table-card .btn-return-action {
+        width: 100%;
+        min-height: 44px;
+        justify-content: center;
+    }
+
+    .main-content .returns-table-card .awaiting-confirmation-note {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+
+    /* Labels: the column names */
+    .main-content .my-requests-table td:not([colspan]):nth-child(3)::before { content: "Request date"; }
+    .main-content .my-requests-table td:not([colspan]):nth-child(4)::before { content: "Borrow date"; }
+    .main-content .my-requests-table td:not([colspan]):nth-child(5)::before { content: "Due date"; }
+
+    .main-content .my-returns-table td:not([colspan]):nth-child(3)::before { content: "Borrow date"; }
+    .main-content .my-returns-table td:not([colspan]):nth-child(4)::before { content: "Due date"; }
+    .main-content .my-returns-table td:not([colspan]):nth-child(5)::before { content: "Status"; }
+
+    .main-content .history-table td:not([colspan]):nth-child(3)::before { content: "Borrow date"; }
+    .main-content .history-table td:not([colspan]):nth-child(4)::before { content: "Return date"; }
+    .main-content .history-table td:not([colspan]):nth-child(6)::before { content: "Remarks"; }
+
+    .main-content #activeBorrowsBody td:not([colspan]):nth-child(2)::before { content: "Borrow date"; }
+    .main-content #activeBorrowsBody td:not([colspan]):nth-child(3)::before { content: "Due date"; }
+
+    .main-content #recentRequestsBody td:not([colspan]):nth-child(2)::before { content: "Requested"; }
+
+    /* Return Item status: a labelled line; a "Return rejected" reason wraps
+       under it at full width */
+    .main-content .my-returns-table td:not([colspan]):nth-child(5) {
+        flex-wrap: wrap;
+    }
+
+    .main-content .my-returns-table .return-rejected-note {
+        flex-basis: 100%;
+        text-align: left;
+    }
+
+    /* Remarks: one line ending in "…" (full text in the details window) */
+    .main-content .history-table td.col-remarks .remarks-text {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Empty table message: one centred block */
+    .main-content .requests-table-card td[colspan],
+    .main-content .returns-table-card td[colspan],
+    .main-content .history-table-card td[colspan] {
+        display: block;
+        text-align: center !important;
+        padding: 24px 8px !important;
+    }
+
+    /* Page count and page buttons stack, centred */
+    .main-content .pagination-container,
+    .main-content .table-footer-pagination {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        text-align: center;
+    }
+
+    /* ---------- Profile ---------- */
+    .profile-details.card {
+        padding: 24px 20px;
+    }
+
+    /* Edit Profile, and Save Changes / Cancel while editing: full width,
+       stacked with the main action first (like Save Password below) */
+    #formActions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    #formActions .btn-edit-profile,
+    #formActions .btn-save,
+    #formActions .btn-cancel {
+        width: 100%;
+        min-height: 46px;
+        justify-content: center;
+        text-align: center;
+    }
+
+    #formActions .btn-save {
+        order: -1;
+    }
+
+    /* ---------- Request Item form ----------
+       Labels sit above their fields, so the fields use the full width. */
+    .borrow-modal-card .form-horizontal-group {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .borrow-modal-card .form-horizontal-group .flat-label {
+        width: auto;
+        min-width: 0;
+        padding-top: 0;
+    }
+
+    .borrow-modal-card .booked-dates,
+    .borrow-modal-card .lab-hours-note {
+        margin-left: 0;
+    }
+}

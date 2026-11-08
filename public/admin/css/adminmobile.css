@@ -1,0 +1,261 @@
+/* ==========================================================================
+   EquipTrack — Admin pages on phones (Admin account only)
+   --------------------------------------------------------------------------
+   Loaded last by layouts/admin.blade.php, after ccs/mobile-shell.css (menu
+   and top bar) and ccs/mobile-staff.css (tables as cards, search and filter
+   cards, text sizes; shared with the Department account). Only the Admin
+   pages' own layouts are adjusted here. Desktop and tablet (above 768px)
+   are unchanged: everything is inside the phone media query.
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    /* ---------- Stat cards (Dashboard, Users): two per row ----------
+       On desktop they sit in a strip that scrolls sideways on narrow
+       screens; on a phone they wrap into a grid like the Department summary
+       cards (a last odd card takes the full row). */
+    .stats-scroll-container {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        overflow: visible;
+        padding: 0;
+    }
+
+    .stats-scroll-container > :last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+    }
+
+    .stats-scroll-container > .quick-stat-card,
+    .stats-scroll-container > .stat-card-mini {
+        min-width: 0;
+        padding: 14px 16px;
+        border-radius: 14px;
+    }
+
+    .stats-scroll-container .quick-stat-icon-wrapper,
+    .stats-scroll-container .stat-icon-wrapper {
+        flex-shrink: 0;
+        width: 34px;
+        height: 34px;
+        font-size: 14px;
+    }
+
+    /* ---------- Users table ----------
+       In each card, Deactivate / Activate takes the width and the icon-only
+       Delete button stays a 44px square beside it. */
+    .main-content table tbody td.cell-action .btn-action-delete {
+        flex: 0 0 44px;
+        width: 44px;
+        padding: 0;
+    }
+
+    /* ---------- Reports: Generate a Report form ----------
+         Report type            full width
+         Date from | Date to    share a row
+         Status | Category      share a row
+         Generate Report        full width (main action first)
+         Reset Filters          full width */
+    .reports-page .rp-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 10px;
+    }
+
+    .reports-page .rp-filter-type {
+        grid-column: 1 / -1;
+    }
+
+    .reports-page .filter-group .form-control {
+        min-width: 0;
+        height: 44px;
+        font-size: var(--fs-body);
+    }
+
+    .reports-page .filters-actions {
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .reports-page .filters-actions .btn {
+        width: 100%;
+        min-height: 44px;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    /* Report Preview: Export PDF | Export CSV share a row, Print Report
+       takes the next one; all 44px tall */
+    .reports-page .rp-export-group {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        width: 100%;
+    }
+
+    .reports-page .rp-export-group > :last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+    }
+
+    .reports-page .rp-export-group .btn-export {
+        width: 100%;
+        min-height: 44px;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    /* Reports overview numbers: two per row, like the summary cards on the
+       other pages (a last odd card takes the full row) */
+    .reports-page .rp-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .reports-page .rp-kpi-grid > :last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+    }
+
+    /* Report Preview cards: the preview table pads its cells by id
+       (#previewTableBody) on desktop; the card sets its own spacing */
+    .main-content .admin-table-card #previewTableBody td[data-label],
+    .main-content .admin-table-card #previewTableBody td[data-label]:first-child {
+        padding: 0 !important;
+    }
+
+    /* ---------- Audit Trail ---------- */
+
+    /* Stat cards two per row */
+    .audit-page .audit-stats-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .audit-page .audit-stat-card {
+        min-width: 0;
+        padding: 14px 16px;
+        gap: 8px;
+    }
+
+    /* Toolbar: search full width; the three dropdowns share rows (each at
+       least as wide as its text, growing to fill the row); Export Logs full
+       width. All 44px tall. */
+    .audit-page .white-card:has(> .filter-toolbar) {
+        padding: 14px;
+        border-radius: 16px;
+    }
+
+    .audit-page .filter-toolbar {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .audit-page .search-box {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    .audit-page .search-box input {
+        height: 44px;
+    }
+
+    .audit-page .filter-dropdowns {
+        flex: 1 1 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .audit-page .filter-dropdowns .filter-select {
+        field-sizing: content;
+        flex: 1 1 auto;
+        width: auto;
+        min-width: 112px;
+        max-width: 100%;
+        height: 44px;
+    }
+
+    .audit-page .export-menu {
+        flex: 1 1 100%;
+    }
+
+    .audit-page .btn-export-logs {
+        width: 100%;
+        height: 44px;
+        justify-content: center;
+        font-size: var(--fs-body);
+    }
+
+    .audit-page .export-menu-list {
+        left: 0;
+        right: 0;
+        min-width: 0;
+    }
+
+    /* Custom date range: Start | End side by side, Apply full width */
+    .audit-page .custom-date-container {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .audit-page .custom-date-container[style*="display: none"] {
+        display: none;
+    }
+
+    .audit-page .custom-date-group,
+    .audit-page .custom-date-group input {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .audit-page #btnApplyCustomDate {
+        grid-column: 1 / -1;
+        width: 100%;
+        height: 44px !important;
+    }
+
+    @supports not (field-sizing: content) {
+        .audit-page .filter-dropdowns .filter-select {
+            max-width: 160px;
+        }
+    }
+
+    /* ---------- Text sizes (same scale as Department and User) ---------- */
+
+    /* Dashboard welcome: still the largest text on the page, but compact */
+    body .main-content .welcome-banner.card {
+        padding: 20px !important;
+    }
+
+    .welcome-text h3 {
+        font-size: 20px;
+        line-height: 1.25;
+    }
+
+    .welcome-text p {
+        font-size: 14px;
+    }
+
+    /* Page titles on Reports and Audit Trail (other pages use the shared
+       page header, sized in ccs/mobile-staff.css) */
+    .audit-page-title,
+    .reports-page .reports-page-title {
+        font-size: 18px;
+        line-height: 1.3;
+    }
+
+    /* Big numbers: 22px, the hero total 26px */
+    .quick-stat-card-value,
+    .stat-card-value,
+    .audit-stat-value,
+    .reports-page .rp-kpi-value {
+        font-size: 22px;
+    }
+
+    .summary-hero-value {
+        font-size: 26px;
+    }
+}

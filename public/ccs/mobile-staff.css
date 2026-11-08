@@ -1,0 +1,421 @@
+/* ==========================================================================
+   EquipTrack — Department and Admin pages on phones (staff accounts)
+   --------------------------------------------------------------------------
+   Loaded by layouts/department.blade.php and layouts/admin.blade.php after
+   ccs/mobile-shell.css (the slide-in menu and compact top bar shared with
+   the User account). Same standards as the User pages on phones
+   (user/css/usermobile.css): tables as cards, aligned search and filter
+   cards, one text scale. Admin-only phone fixes are in
+   admin/css/adminmobile.css. Desktop and tablet (above 768px) are
+   unchanged: everything is inside the phone media query.
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    /* ---------- Text sizes ----------
+       Page title 18px, section titles 15px, body 14px, details 12-13px,
+       badges at least 11px, big numbers 22px. */
+    .main-content .page-title-section h2,
+    .main-content .equipment-header-section h2 {
+        font-size: 18px;
+        line-height: 1.3;
+    }
+
+    .main-content .page-title-section p,
+    .main-content .equipment-header-section p {
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .summary-card-val,
+    .quick-stat-card-value {
+        font-size: 22px;
+    }
+
+    /* Dashboard welcome: still the largest text on the page, but compact */
+    .welcome-banner {
+        padding: 20px;
+    }
+
+    .banner-text h2 {
+        font-size: 20px;
+        line-height: 1.25;
+    }
+
+    .banner-text p {
+        font-size: 14px;
+    }
+
+    /* ---------- Profile (same as the User Profile on phones) ---------- */
+    .profile-details.card {
+        padding: 24px 20px;
+    }
+
+    /* Edit Profile, and Save Changes / Cancel while editing: full width,
+       stacked with the main action first */
+    #formActions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    #formActions .btn-edit-profile,
+    #formActions .btn-save,
+    #formActions .btn-cancel {
+        width: 100%;
+        min-height: 46px;
+        justify-content: center;
+        text-align: center;
+    }
+
+    #formActions .btn-save {
+        order: -1;
+    }
+
+    /* ---------- Page rhythm ----------
+       16px between the summary cards, the search and filter card and the
+       table (instead of 44px above the card and 24px below it). */
+    .summary-cards-grid {
+        margin-bottom: 0;
+    }
+
+    .main-content [class*="summary-section"] {
+        margin-bottom: 16px;
+    }
+
+    /* ---------- Summary cards: two per row ----------
+       (a last odd card takes the full row) */
+    .summary-cards-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .summary-cards-grid > :last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+    }
+
+    .summary-card-item {
+        min-width: 0;
+        padding: 14px 16px;
+        border-radius: 14px;
+    }
+
+    .summary-card-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+
+    /* ---------- Search and filter card ----------
+         search                 full width
+         dropdown | dropdown    share the row: each starts at its text's
+                                width and they grow together, so the row
+                                lines up with the search box and a longer
+                                label ("Ready for Pickup") gets more room
+         (a third dropdown, or one that doesn't fit, takes a full row)
+         buttons                full width (two buttons split the row)
+       All controls are 44px tall (easy to tap) with the same pill shape and
+       14px text; iPhones don't zoom in when one is tapped (viewport script
+       in the layouts). */
+    .filter-card-container {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 10px;
+        margin: 0 0 16px;
+        padding: 14px;
+        border-radius: 16px;
+    }
+
+    .filter-card-container > .search-box-right-icon,
+    .filter-card-container > button,
+    .filter-card-container > .filter-card-actions,
+    .filter-card-container > .users-add-actions {
+        flex: 1 1 100%;
+        min-width: 0;
+        margin: 0;
+    }
+
+    /* (Some pages give a dropdown a minimum width for desktop; on a phone
+       each one fills its half of the row.) */
+    /* (!important: the shared Role rule, .filter-select-item:has(#filterRole),
+       counts as an id selector and would keep Role from growing.) */
+    body .main-content .filter-card-container > .filter-select-item {
+        flex: 1 1 auto !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: 100%;
+    }
+
+    .filter-card-container > .filter-select-item select {
+        field-sizing: content;
+        width: 100%;
+        min-width: 112px;
+        height: 44px;
+        padding: 10px 36px 10px 14px;
+        font-size: var(--fs-body);
+    }
+
+    .filter-card-container > .filter-select-item i {
+        right: 14px;
+    }
+
+    .filter-card-container > .search-box-right-icon input {
+        height: 44px;
+        font-size: var(--fs-body);
+    }
+
+    /* Buttons: full width, 44px, centred label, a light shadow */
+    .filter-card-container > button,
+    .filter-card-actions > button,
+    .users-add-actions .btn-add-user {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        height: 44px;
+        margin: 0;
+        padding: 0 16px;
+        border-radius: 22px;
+        font-size: var(--fs-body);
+        font-weight: 600;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(42, 63, 99, 0.12);
+        transform: none;
+    }
+
+    .filter-card-actions,
+    .users-add-actions {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    /* Only one dropdown: it sits beside the search box at its own width,
+       instead of stretching across a row by itself */
+    .filter-card-container:not(:has(> .filter-select-item ~ .filter-select-item)) > .search-box-right-icon {
+        flex: 1 1 150px;
+    }
+
+    body .main-content .filter-card-container:not(:has(> .filter-select-item ~ .filter-select-item)) > .filter-select-item {
+        flex: 0 0 auto !important;
+    }
+
+    /* Very narrow phones: every control on its own row */
+    @media (max-width: 340px) {
+        body .main-content .filter-card-container > .filter-select-item {
+            flex-basis: 100% !important;
+        }
+    }
+
+    /* ---------- Tables as cards ----------
+       Every table in the page content (js/table-cards.js marks it
+       "cards-on-phone"). The script labels each cell
+       with its column name and marks the title (first column), Status and
+       Action cells. Each row becomes a card: title and status on top, the
+       other columns as "Label ..... value" lines, the buttons full width.
+       Nothing scrolls sideways. */
+    .main-content .table-container,
+    .main-content .history-table-container,
+    .main-content .monitoring-table-container,
+    .main-content .users-table-container {
+        overflow: hidden;
+        border-radius: 14px;
+    }
+
+    .main-content table.cards-on-phone,
+    .main-content table.cards-on-phone tbody {
+        display: block;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    /* Column headings are read out by screen readers but not shown */
+    .main-content table.cards-on-phone thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+
+    .main-content table.cards-on-phone tbody tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        column-gap: 12px;
+        row-gap: 6px;
+        align-items: center;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .main-content table.cards-on-phone tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    /* Hidden rows (filtered out) stay hidden */
+    .main-content table.cards-on-phone tbody tr[style*="display: none"],
+    .main-content table.cards-on-phone tbody tr[hidden] {
+        display: none;
+    }
+
+    /* Every cell: a full-width line, the label on the left and the value
+       (or values, e.g. a name and its ID number) stacked on the right */
+    .main-content table tbody td[data-label] {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: max-content minmax(0, 1fr);
+        column-gap: 12px;
+        row-gap: 2px;
+        align-items: center;
+        justify-items: end;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: auto !important;
+        padding: 0 !important;
+        border: none !important;
+        background: transparent !important;
+        font-size: var(--fs-body);
+        text-align: right !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+    }
+
+    /* (Some pages pad their first and last columns with !important; the
+       card sets its own spacing, so this reset needs the extra weight.) */
+    body .main-content table.cards-on-phone > tbody > tr > td[data-label] {
+        padding: 0 !important;
+    }
+
+    .main-content table tbody td[data-label]::before {
+        content: attr(data-label);
+        grid-column: 1;
+        grid-row: 1 / span 3;
+        justify-self: start;
+        align-self: start;
+        max-width: 40vw;
+        font-size: var(--fs-label);
+        font-weight: 500;
+        color: var(--text-muted);
+        text-align: left;
+    }
+
+    /* Values: right column, may shrink and wrap instead of overflowing */
+    .main-content table tbody td[data-label] > * {
+        grid-column: 2;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    /* Title (first column): top left of the card, no label */
+    .main-content table tbody td.cell-head {
+        grid-column: 1;
+        grid-row: 1;
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: start;
+        align-self: start;
+        margin-bottom: 4px;
+        font-size: var(--fs-card-title);
+        font-weight: 600;
+        color: var(--text-main);
+        text-align: left !important;
+    }
+
+    .main-content table tbody td.cell-head > * {
+        grid-column: 1;
+    }
+
+    /* The card title shows in full (wrapping if long) instead of ending in
+       "…" as it does in a narrow desktop column */
+    .main-content table tbody td.cell-head,
+    .main-content table tbody td.cell-head * {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+    }
+
+    /* Status: badge (and its note, e.g. when it was released) top right,
+       next to the title, no label */
+    .main-content table tbody td.cell-status {
+        grid-column: 2;
+        grid-row: 1;
+        grid-template-columns: minmax(0, 1fr);
+        align-self: start;
+        max-width: 52vw !important;
+        margin-bottom: 4px;
+    }
+
+    .main-content table tbody td.cell-status > * {
+        grid-column: 1;
+    }
+
+    .main-content table tbody td.cell-head::before,
+    .main-content table tbody td.cell-status::before,
+    .main-content table tbody td.cell-action::before {
+        content: none;
+    }
+
+    /* Actions: full-width buttons at the bottom of the card, easy to tap */
+    .main-content table tbody td.cell-action {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: stretch;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .main-content table tbody td.cell-action > *,
+    .main-content table tbody td.cell-action > div > * {
+        flex: 1 1 auto;
+    }
+
+    .main-content table tbody td.cell-action > div {
+        display: flex;
+        flex: 1 1 100%;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .main-content table tbody td.cell-action button,
+    .main-content table tbody td.cell-action a {
+        min-height: 42px;
+        justify-content: center;
+    }
+
+    /* Equipment Monitoring: the red line marking an overdue loan runs down
+       the card's left edge (on desktop it's on the row's first cell) */
+    .monitoring-table tbody tr.is-overdue-row {
+        box-shadow: inset 3px 0 0 #ef4444;
+    }
+
+    .monitoring-table tbody tr.is-overdue-row td:first-child {
+        box-shadow: none;
+    }
+
+    /* Empty-table and loading messages: one centred block */
+    .main-content table tbody tr.is-message-row {
+        display: block;
+    }
+
+    .main-content table tbody tr.is-message-row > td {
+        display: block;
+        width: auto !important;
+        padding: 24px 8px !important;
+        border: none !important;
+        text-align: center !important;
+        white-space: normal !important;
+    }
+
+    /* Page count and page buttons stack, centred */
+    .main-content .table-footer-pagination,
+    .main-content .pagination-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        text-align: center;
+    }
+}

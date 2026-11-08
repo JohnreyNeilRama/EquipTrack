@@ -1589,9 +1589,13 @@ body {
     color: var(--primary-color);
 }
 
-/* Charts: the monthly trend wider; "Most Borrowed Equipment" fits on one line */
-.reports-page .rp-charts {
-    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr) minmax(0, 1.05fr);
+/* Charts: the monthly trend wider; "Most Borrowed Equipment" fits on one line.
+   Wide screens only, so the two-column (1280px and below) and one-column
+   (640px and below) layouts above still apply. */
+@media (min-width: 1281px) {
+    .reports-page .rp-charts {
+        grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr) minmax(0, 1.05fr);
+    }
 }
 
 /* Key figure cards: icon at the top right (like the Department summary

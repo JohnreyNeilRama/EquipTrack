@@ -1,12 +1,37 @@
 {{-- Shared shell for authenticated Student/Faculty pages --}}
 @php
     $u = auth('user')->user();
+    // Shown in the top bar on phones, where the sidebar (which marks the
+    // current page) is folded away. Same names as the sidebar menu.
+    $mobilePageTitle = collect([
+        'user.dashboard' => 'Dashboard',
+        'user.profile' => 'Profile',
+        'user.equipment' => 'Available Equipment',
+        'user.requests' => 'My Request',
+        'user.returns' => 'Return Item',
+        'user.history' => 'Borrowing History',
+        'user.penalties' => 'My Penalties',
+    ])->first(fn ($title, $route) => request()->routeIs($route), 'EquipTrack');
 @endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        // iPhone / iPad Safari zooms the page in when a field or dropdown with
+        // text under 16px is tapped. maximum-scale stops that zoom; Safari
+        // still lets people pinch-zoom. Other phones don't auto-zoom, so they
+        // keep the plain viewport (and pinch-zoom) unchanged.
+        (function () {
+            var ua = navigator.userAgent;
+            var iOS = /iPad|iPhone|iPod/.test(ua) || (ua.indexOf('Macintosh') !== -1 && navigator.maxTouchPoints > 1);
+            if (iOS) {
+                document.querySelector('meta[name="viewport"]')
+                    .setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0');
+            }
+        })();
+    </script>
     <title>@yield('title', 'EquipTrack')</title>
     <link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}?v={{ filemtime(public_path('images/favicon.png')) }}">
     <link rel="apple-touch-icon" href="{{ asset('images/favicon.png') }}?v={{ filemtime(public_path('images/favicon.png')) }}">
@@ -18,6 +43,10 @@
          the exact same bar: fixed height, reserved scrollbar gutter, and a
          capped name width, whatever the page content is. --}}
     <link rel="stylesheet" href="{{ asset('ccs/navbar.css') }}?v={{ filemtime(public_path('ccs/navbar.css')) }}">
+    {{-- Phones: slide-in menu, full-width pages and compact top bar (shared
+         with the Department layout), then the User pages' own phone rules --}}
+    <link rel="stylesheet" href="{{ asset('ccs/mobile-shell.css') }}?v={{ filemtime(public_path('ccs/mobile-shell.css')) }}">
+    <link rel="stylesheet" href="{{ asset('user/css/usermobile.css') }}?v={{ filemtime(public_path('user/css/usermobile.css')) }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -29,11 +58,14 @@
     </script>
 </head>
 <body data-avatar-key="user-avatar-src">
-    <aside class="sidebar">
+    <aside class="sidebar" id="appSidebar">
         <div class="sidebar-logo">
             <img src="{{ asset('images/EquipTrack_logo.png') }}" alt="EquipTrack Logo" class="sidebar-logo-img">
+            <button type="button" class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
         </div>
-        <nav class="sidebar-nav">
+        <nav class="sidebar-nav" aria-label="Main menu">
             <div class="sidebar-section-label">General</div>
             <a href="{{ route('user.dashboard') }}" class="nav-item {{ request()->routeIs('user.dashboard') ? 'active' : '' }}">
                 <i class="fa-solid fa-table-cells-large"></i> <span>Dashboard</span>
@@ -60,9 +92,14 @@
             </a>
         </nav>
     </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
     <main class="main-content">
         <header class="top-navbar profile-navbar">
+            <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu" aria-controls="appSidebar" aria-expanded="false">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <span class="mobile-page-title">{{ $mobilePageTitle }}</span>
             <div class="navbar-right">
                 <span class="navbar-divider"></span>
                 <div class="icon-btn" id="themeToggleBtn" title="Toggle theme">
@@ -130,6 +167,7 @@
     </script>
     <script src="{{ asset('js/admin-shell.js') }}"></script>
     <script src="{{ asset('js/user-notifications.js') }}"></script>
+    <script src="{{ asset('js/mobile-nav.js') }}?v={{ filemtime(public_path('js/mobile-nav.js')) }}"></script>
     @stack('scripts')
 </body>
 </html>

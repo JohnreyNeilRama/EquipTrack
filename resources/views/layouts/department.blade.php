@@ -7,6 +7,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        // iPhone / iPad Safari zooms the page in when a field or dropdown with
+        // text under 16px is tapped. maximum-scale stops that zoom; Safari
+        // still lets people pinch-zoom. Other phones don't auto-zoom, so they
+        // keep the plain viewport (and pinch-zoom) unchanged.
+        (function () {
+            var ua = navigator.userAgent;
+            var iOS = /iPad|iPhone|iPod/.test(ua) || (ua.indexOf('Macintosh') !== -1 && navigator.maxTouchPoints > 1);
+            if (iOS) {
+                document.querySelector('meta[name="viewport"]')
+                    .setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0');
+            }
+        })();
+    </script>
     <title>@yield('title', 'EquipTrack - Department')</title>
     <link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}?v={{ filemtime(public_path('images/favicon.png')) }}">
     <link rel="apple-touch-icon" href="{{ asset('images/favicon.png') }}?v={{ filemtime(public_path('images/favicon.png')) }}">
@@ -18,6 +32,11 @@
     {{-- Search + filters card above every table (shared with Admin) --}}
     <link rel="stylesheet" href="{{ asset('ccs/filter-card.css') }}?v={{ filemtime(public_path('ccs/filter-card.css')) }}">
     <link rel="stylesheet" href="{{ asset('ccs/navbar.css') }}">
+    {{-- Phones: slide-in menu, full-width pages and compact top bar (shared
+         with the User and Admin layouts), then the staff pages' phone rules
+         (tables as cards, search and filter cards; shared with Admin) --}}
+    <link rel="stylesheet" href="{{ asset('ccs/mobile-shell.css') }}?v={{ filemtime(public_path('ccs/mobile-shell.css')) }}">
+    <link rel="stylesheet" href="{{ asset('ccs/mobile-staff.css') }}?v={{ filemtime(public_path('ccs/mobile-staff.css')) }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -29,11 +48,14 @@
     </script>
 </head>
 <body data-avatar-key="dept-avatar-src" data-theme-key="dept-dashboard-theme">
-    <aside class="sidebar">
+    <aside class="sidebar" id="appSidebar">
         <div class="sidebar-logo">
             <img src="{{ asset('images/EquipTrack_logo.png') }}" alt="EquipTrack Logo" class="sidebar-logo-img">
+            <button type="button" class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
         </div>
-        <nav class="sidebar-nav">
+        <nav class="sidebar-nav" aria-label="Main menu">
             <div class="sidebar-section-label">General</div>
             <a href="{{ route('department.dashboard') }}" class="nav-item {{ request()->routeIs('department.dashboard') ? 'active' : '' }}">
                 <i class="fa-solid fa-table-cells-large"></i> <span>Dashboard</span>
@@ -69,9 +91,13 @@
             </a>
         </nav>
     </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
     <main class="main-content">
         <header class="top-navbar profile-navbar">
+            <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu" aria-controls="appSidebar" aria-expanded="false">
+                <i class="fa-solid fa-bars"></i>
+            </button>
             <div class="navbar-right">
                 <span class="navbar-divider"></span>
                 <div class="icon-btn" id="themeToggleBtn" title="Toggle theme">
@@ -139,6 +165,11 @@
     </script>
     <script src="{{ asset('js/admin-shell.js') }}"></script>
     <script src="{{ asset('js/user-notifications.js') }}"></script>
+    <script src="{{ asset('js/mobile-nav.js') }}?v={{ filemtime(public_path('js/mobile-nav.js')) }}"></script>
     @stack('scripts')
+    {{-- Phones: labels each table cell with its column name, so tables can
+         show as cards (ccs/mobile-staff.css). Loaded after the page
+         scripts; it also labels rows the page draws later. --}}
+    <script src="{{ asset('js/table-cards.js') }}?v={{ filemtime(public_path('js/table-cards.js')) }}"></script>
 </body>
 </html>
