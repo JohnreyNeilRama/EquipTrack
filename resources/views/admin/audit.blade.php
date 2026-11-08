@@ -108,13 +108,13 @@
                             <i class="fa-solid fa-download"></i> Export Logs <i class="fa-solid fa-chevron-down export-caret"></i>
                         </button>
                         <div class="export-menu-list" id="exportMenuList" role="menu" hidden>
-                            <button type="button" role="menuitem" data-format="pdf" title="Opens a print-ready report. Choose “Save as PDF” in the print dialog.">
+                            <button type="button" role="menuitem" data-format="pdf" title="Downloads the filtered audit logs as a PDF file.">
                                 <i class="fa-solid fa-file-pdf"></i> Export PDF
                             </button>
                             <button type="button" role="menuitem" data-format="csv" title="Downloads a CSV file that opens in Excel.">
                                 <i class="fa-solid fa-file-csv"></i> Export CSV
                             </button>
-                            <button type="button" role="menuitem" data-format="print">
+                            <button type="button" role="menuitem" data-format="print" title="Opens a print-ready copy in a new tab.">
                                 <i class="fa-solid fa-print"></i> Print Report
                             </button>
                         </div>
@@ -568,17 +568,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const params = queryString(false);
         const url = EXPORT_URL + '?' + (params ? params + '&' : '') + 'format=' + format;
 
-        if (format === 'csv') {
+        if (format === 'csv' || format === 'pdf') {
+            // File downloads: the page stays where it is.
             window.location.href = url;
-            showToast('Export Started', 'Your CSV download of the filtered audit logs is starting.', 'success');
+            showToast('Export Started', format === 'pdf'
+                ? 'Your PDF of the filtered audit logs is downloading.'
+                : 'Your CSV download of the filtered audit logs is starting.', 'success');
         } else {
-            if (!window.open(url, '_blank')) {
-                showToast('Pop-up Blocked', 'Allow pop-ups for this site to open the report.', 'error');
-                return;
-            }
-            showToast(format === 'pdf' ? 'Opening PDF View' : 'Opening Print View',
-                format === 'pdf' ? 'Choose “Save as PDF” as the destination in the print dialog.' : 'The print dialog opens in the new tab.',
-                'success');
+            // A detached tab (noopener) runs on its own, so its print dialog
+            // does not freeze this page.
+            window.open(url, '_blank', 'noopener');
+            showToast('Opening Print View', 'The print dialog opens in the new tab. You can keep using EquipTrack here.', 'success');
         }
         setTimeout(load, 1500);
     }));

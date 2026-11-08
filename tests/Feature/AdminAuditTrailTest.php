@@ -462,27 +462,47 @@ class AdminAuditTrailTest extends TestCase
         $this->assertSame('Audit Trail', $logged['module']);
     }
 
-    public function test_pdf_and_print_exports_render_the_filtered_audit_trail_report(): void
+    public function test_print_export_renders_the_filtered_audit_trail_report(): void
     {
         $this->insertRow(['action' => 'Deleted equipment #5', 'affected_entity' => 'equipment:5']);
         $this->insertRow();
 
-        foreach (['pdf' => 'PDF', 'print' => 'Print'] as $format => $label) {
-            $this->actingAs($this->admin, 'admin')
-                ->get(route('admin.audit.export', ['action' => 'Deleted Equipment', 'format' => $format]))
-                ->assertOk()
-                ->assertSee('Audit Trail Report')
-                ->assertSee('Action: Deleted Equipment')
-                ->assertSee('Equipment #5')
-                ->assertSee('System Admin')
-                ->assertDontSee('Authentication');
+        $this->actingAs($this->admin, 'admin')
+            ->get(route('admin.audit.export', ['action' => 'Deleted Equipment', 'format' => 'print']))
+            ->assertOk()
+            ->assertSee('Audit Trail Report')
+            ->assertSee('Action: Deleted Equipment')
+            ->assertSee('Equipment #5')
+            ->assertSee('System Admin')
+            ->assertDontSee('Authentication');
 
-            $this->assertSame(1, AuditTrail::where('action', 'Exported audit log (' . $label . ')')->count());
-        }
+        $this->assertSame(1, AuditTrail::where('action', 'Exported audit log (Print)')->count());
 
         $this->actingAs($this->admin, 'admin')
             ->get(route('admin.audit.export', ['format' => 'docx']))
             ->assertNotFound();
+    }
+
+    public function test_pdf_export_downloads_a_pdf_file(): void
+    {
+        $this->insertRow(['action' => 'Deleted equipment #5', 'affected_entity' => 'equipment:5']);
+
+        $response = $this->actingAs($this->admin, 'admin')
+            ->get(route('admin.audit.export', ['action' => 'Deleted Equipment', 'format' => 'pdf']));
+
+        $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $response->getContent());
+        $this->assertMatchesRegularExpression(
+            '/^attachment; filename="equiptrack-audit-trail-\d{4}-\d{2}-\d{2}\.pdf"$/',
+            $response->headers->get('Content-Disposition'),
+        );
+
+        $this->assertDatabaseHas('audit_trail', [
+            'admin_id' => $this->admin->admin_id,
+            'action' => 'Exported audit log (PDF)',
+            'affected_entity' => 'audit',
+        ]);
+        $this->assertSame(1, AuditTrail::where('action', 'Exported audit log (PDF)')->count());
     }
 
     public function test_profile_and_password_changes_are_recorded_for_every_account_type(): void

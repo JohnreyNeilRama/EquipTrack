@@ -1,14 +1,18 @@
 {{-- Downloadable PDF of a report (Export PDF), rendered by DomPDF. Same content
      and look as the print view (admin/reports-print.blade.php), written with
      tables and simple CSS because DomPDF does not support flexbox or grid.
-     The table header and the footer (title, "Page X of Y") repeat on every
-     page. DejaVu Sans covers ₱ and —. --}}
+     The table header and the footer repeat on every page; "Page X of N" is
+     drawn by App\Support\ReportPdf. DejaVu Sans covers ₱ and —. --}}
 @php
     $columns = $report['columns'];
     $statusColumn = collect($columns)->firstWhere('kind', 'status');
     $breakdown = $statusColumn
         ? collect($report['rows'])->groupBy($statusColumn['key'])->map->count()->sortDesc()
         : collect();
+    // DomPDF won't split a word, so one long word (a name typed without
+    // spaces) widens its column and squeezes the others. A soft hyphen every
+    // 15 characters lets it wrap; it only shows where the line breaks.
+    $breakable = fn ($text) => preg_replace('/(\S{15})(?=\S)/u', "\$1\u{00AD}", (string) $text);
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -89,14 +93,11 @@
             position: fixed; left: 0; right: 0; bottom: -9mm; height: 6mm;
             font-size: 8px; color: #666666; border-top: 1px solid #e2e8f0; padding-top: 4px;
         }
-        .page-footer .right { position: absolute; right: 0; top: 4px; }
-        .page-footer .pagenum:before { content: counter(page); }
     </style>
 </head>
 <body>
     <div class="page-footer">
         EquipTrack - {{ $report['title'] }}
-        <span class="right">Page <span class="pagenum"></span>@if ($totalPages) of {{ $totalPages }}@endif</span>
     </div>
 
     <table class="doc-header">
@@ -142,7 +143,7 @@
             <thead>
                 <tr>
                     @foreach ($columns as $column)
-                        <th @class(['num' => $column['kind'] === 'num'])>{{ $column['label'] }}</th>
+                        <th @class(['num' => $column['kind'] === 'num']) @if (!empty($column['pdfWidth'])) style="width: {{ $column['pdfWidth'] }}%" @endif>{{ $column['label'] }}</th>
                     @endforeach
                 </tr>
             </thead>
@@ -154,7 +155,7 @@
                             @if ($column['kind'] === 'status')
                                 <td><span class="status {{ \Illuminate\Support\Str::slug($value) }}">{{ $value === '' ? '—' : $value }}</span></td>
                             @else
-                                <td @class(['num' => $column['kind'] === 'num'])>{{ $value === '' ? '—' : $value }}</td>
+                                <td @class(['num' => $column['kind'] === 'num'])>{{ $value === '' ? '—' : $breakable($value) }}</td>
                             @endif
                         @endforeach
                     </tr>

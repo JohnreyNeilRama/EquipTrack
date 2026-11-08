@@ -10,7 +10,7 @@ use App\Models\Equipment;
 use App\Models\EquipmentCategory;
 use App\Models\Penalty;
 use App\Support\LoanTime;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Support\ReportPdf;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -176,35 +176,9 @@ class AdminReportsController extends Controller
      */
     private function pdf(array $filters, array $report, string $generatedAt, string $filtersText, string $generatedBy): Response
     {
-        $logoPath = public_path('images/EquipTrack_logo.png');
-        $data = [
-            'report' => $report,
-            'filtersText' => $filtersText,
-            'generatedAt' => $generatedAt,
-            'generatedBy' => $generatedBy,
-            'logo' => is_file($logoPath) ? 'data:image/png;base64,' . base64_encode((string) file_get_contents($logoPath)) : null,
-            'totalPages' => null,
-        ];
-
-        $make = fn (array $data) => Pdf::loadView('admin.reports-pdf', $data)
-            ->setPaper('a4', 'landscape')
-            // Embed only the characters used, not the whole font (keeps the file small).
-            ->setOption('isFontSubsettingEnabled', true);
-
-        // DomPDF can't print the total page count from CSS: lay the report out
-        // once to count its pages, then render it with "Page X of N".
-        $draft = $make($data);
-        $draft->render();
-        $data['totalPages'] = $draft->getDomPDF()->getCanvas()->get_page_count();
-
-        $pdf = $make($data);
-
         $filename = 'equiptrack-' . $filters['type'] . '-report-' . now(self::REPORT_TIMEZONE)->format('Y-m-d') . '.pdf';
 
-        return response($pdf->output(), 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ]);
+        return ReportPdf::download($report, $filtersText, $generatedAt, $generatedBy, $filename);
     }
 
     // ------------------------------------------------------------------

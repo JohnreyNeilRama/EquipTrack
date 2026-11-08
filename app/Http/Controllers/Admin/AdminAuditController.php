@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditTrail;
 use App\Services\AuditCatalog;
 use App\Services\AuditLogger;
+use App\Support\ReportPdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -31,6 +33,13 @@ class AdminAuditController extends Controller
     private const PER_PAGE = 10;
 
     private const EXPORT_LIMIT = 5000;
+
+    /**
+     * Export PDF is drawn on the server, which takes about 20 seconds for
+     * 1,000 rows, so the PDF holds the first 1,000 (in the table's sort order).
+     * CSV and Print keep 5,000.
+     */
+    private const PDF_LIMIT = 1000;
 
     private const RANGES = ['all', 'today', 'week', 'month', 'custom'];
 
@@ -74,9 +83,10 @@ class AdminAuditController extends Controller
 
     /**
      * Everything the current filters match (not just the visible page), as a
-     * CSV download or as the print-ready Audit Trail Report (PDF / Print).
+     * CSV download, a PDF file download (Export PDF), or the print-ready
+     * Audit Trail Report opened in its own tab (Print Report).
      */
-    public function export(Request $request): StreamedResponse|View
+    public function export(Request $request): StreamedResponse|Response|View
     {
         $format = strtolower((string) $request->query('format', 'csv'));
         abort_unless(isset(self::FORMATS[$format]), 404);
@@ -86,7 +96,8 @@ class AdminAuditController extends Controller
         // Read before the export is logged, so the report shows the moment it was made.
         $generatedAt = $this->dbNow();
 
-        $rows = $this->query($filters)->limit(self::EXPORT_LIMIT)->get()
+        $limit = $format === 'pdf' ? self::PDF_LIMIT : self::EXPORT_LIMIT;
+        $rows = $this->query($filters)->limit($limit)->get()
             ->map(fn (AuditTrail $log) => $this->present($log));
 
         // Logged after the rows are read, so the export does not list itself.
@@ -98,13 +109,22 @@ class AdminAuditController extends Controller
             $request,
         );
 
-        if ($format !== 'csv') {
+        if ($format === 'pdf') {
+            return ReportPdf::download(
+                $this->printableReport($rows, $limit),
+                $this->describeFilters($filters, true),
+                $generatedAt->format('M d, Y h:i A'),
+                $admin->name ?: 'Administrator',
+                'equiptrack-audit-trail-' . now()->format('Y-m-d') . '.pdf',
+            );
+        }
+
+        if ($format === 'print') {
             return view('admin.reports-print', [
-                'report' => $this->printableReport($rows),
+                'report' => $this->printableReport($rows, $limit),
                 'filtersText' => $this->describeFilters($filters, true),
                 'generatedAt' => $generatedAt->format('M d, Y h:i A'),
                 'generatedBy' => $admin->name ?: 'Administrator',
-                'format' => $format,
             ]);
         }
 
@@ -142,25 +162,27 @@ class AdminAuditController extends Controller
      * is the template's status column, so the report opens with a count per
      * action.
      */
-    private function printableReport($rows): array
+    private function printableReport($rows, int $limit): array
     {
         return [
             'title' => 'Audit Trail Report',
             'columns' => [
-                ['key' => 'date', 'label' => 'Date & Time', 'kind' => 'text'],
-                ['key' => 'user', 'label' => 'User', 'kind' => 'text'],
-                ['key' => 'role', 'label' => 'Role', 'kind' => 'text'],
-                ['key' => 'module', 'label' => 'Module', 'kind' => 'text'],
-                ['key' => 'action', 'label' => 'Action', 'kind' => 'status'],
-                ['key' => 'entity', 'label' => 'Affected Record', 'kind' => 'text'],
-                ['key' => 'description', 'label' => 'Description', 'kind' => 'text'],
-                ['key' => 'note', 'label' => 'Note', 'kind' => 'text'],
-                ['key' => 'ip', 'label' => 'IP Address', 'kind' => 'text'],
+                ['key' => 'date', 'label' => 'Date & Time', 'kind' => 'text', 'pdfWidth' => 14],
+                ['key' => 'user', 'label' => 'User', 'kind' => 'text', 'pdfWidth' => 13],
+                ['key' => 'role', 'label' => 'Role', 'kind' => 'text', 'pdfWidth' => 9],
+                ['key' => 'module', 'label' => 'Module', 'kind' => 'text', 'pdfWidth' => 9],
+                ['key' => 'action', 'label' => 'Action', 'kind' => 'status', 'pdfWidth' => 11],
+                ['key' => 'entity', 'label' => 'Affected Record', 'kind' => 'text', 'pdfWidth' => 10],
+                ['key' => 'description', 'label' => 'Description', 'kind' => 'text', 'pdfWidth' => 14],
+                ['key' => 'note', 'label' => 'Note', 'kind' => 'text', 'pdfWidth' => 13],
+                ['key' => 'ip', 'label' => 'IP Address', 'kind' => 'text', 'pdfWidth' => 7],
             ],
             'rows' => $rows->all(),
             'total' => $rows->count(),
-            'note' => $rows->count() >= self::EXPORT_LIMIT
-                ? 'Only the first ' . number_format(self::EXPORT_LIMIT) . ' matching records are included. Narrow the filters to see the rest.'
+            'note' => $rows->count() >= $limit
+                ? 'Only the first ' . number_format($limit) . ' matching records are included. Narrow the filters'
+                    . ($limit < self::EXPORT_LIMIT ? ', or use Export CSV (up to ' . number_format(self::EXPORT_LIMIT) . ' records),' : '')
+                    . ' to see the rest.'
                 : null,
         ];
     }
