@@ -5,7 +5,9 @@ namespace App\Providers;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -24,6 +26,22 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Live server (APP_ENV=production):
+        // - Links, form actions and downloads always use https://, even if
+        //   APP_URL was left on http:// (a download link on http:// from an
+        //   https:// page is blocked by the browser as insecure).
+        // - Debug mode stays off even if APP_DEBUG=true was left in .env: debug
+        //   error pages show code, settings and passwords to any visitor.
+        //   The mistake is logged so it can be fixed in .env.
+        if ($this->app->isProduction()) {
+            URL::forceScheme('https');
+
+            if (config('app.debug')) {
+                config(['app.debug' => false]);
+                Log::warning('APP_DEBUG=true was ignored because APP_ENV=production. Set APP_DEBUG=false in .env.');
+            }
+        }
+
         // One password policy for every account type (Student/Faculty, Admin,
         // Laboratory Personnel). Used wherever a password is set or changed via
         // Password::defaults(); existing passwords keep working.

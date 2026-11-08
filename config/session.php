@@ -169,7 +169,9 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // EquipTrack: on the live server (APP_ENV=production) the session cookie
+    // is only ever sent over HTTPS unless SESSION_SECURE_COOKIE says otherwise.
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------

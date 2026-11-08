@@ -26,6 +26,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         // Unauthenticated hits on protected routes go to our login page.
         $middleware->redirectGuestsTo(fn () => route('login'));
+        // Live server only: plain http:// visits go to https:// (see the class).
+        // Appended, so it runs after TrustProxies has read the proxy headers.
+        $middleware->append(\App\Http\Middleware\RedirectToHttps::class);
+        // Browser protections on every response (clickjacking, file types,
+        // referrer, permissions, HTTPS memory). See the class.
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
