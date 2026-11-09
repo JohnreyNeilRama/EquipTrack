@@ -8,6 +8,7 @@ use App\Models\BorrowRequest;
 use App\Models\Department;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
+use App\Support\EquipmentImage;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -220,7 +221,7 @@ class AdminEquipmentController extends Controller
 
         // Legacy stored whatever the JS posted (base64 data URI or URL). We decode
         // data URIs into real files so the DB keeps paths, matching migrated rows.
-        $image = $this->normalizeImage($data['image'] ?? '', $equipmentId ?: null);
+        $image = EquipmentImage::normalize($data['image'] ?? '', $equipmentId ?: null);
 
         $dupe = Equipment::whereRaw('LOWER(serial_number) = ?', [strtolower($data['serial_number'])])
             ->when($equipmentId > 0, fn ($q) => $q->where('equipment_id', '!=', $equipmentId))
@@ -286,33 +287,6 @@ class AdminEquipmentController extends Controller
         $this->audit($request, 'Deleted equipment #' . $data['equipment_id'], 'equipment:' . $data['equipment_id']);
 
         return response()->json(['success' => true, 'message' => 'Equipment removed from inventory successfully!']);
-    }
-
-    private function normalizeImage(string $image, ?int $equipmentId): string
-    {
-        $image = trim($image);
-
-        if (!preg_match('/^data:image\/([a-z+]+);base64,(.+)$/is', $image, $m)) {
-            return $image; // URL or existing /storage path
-        }
-
-        $binary = base64_decode($m[2], true);
-        if ($binary === false || strlen($binary) > 5 * 1024 * 1024) {
-            abort(400, 'Image must be a valid file of 5MB or less.');
-        }
-
-        $ext = match (strtolower($m[1])) {
-            'jpeg', 'jpg' => 'jpg',
-            'png' => 'png',
-            'webp' => 'webp',
-            'gif' => 'gif',
-            default => 'img',
-        };
-
-        $filename = 'images/equipment-' . ($equipmentId ?: 'new-' . bin2hex(random_bytes(4))) . '.' . $ext;
-        Storage::disk('public')->put($filename, $binary);
-
-        return '/storage/' . $filename;
     }
 
     private function audit(Request $request, string $action, string $entity): void

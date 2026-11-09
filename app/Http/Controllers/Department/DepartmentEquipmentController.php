@@ -7,6 +7,7 @@ use App\Models\AuditTrail;
 use App\Models\BorrowRequest;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
+use App\Support\EquipmentImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -143,7 +144,7 @@ class DepartmentEquipmentController extends Controller
             ], 400);
         }
 
-        $image = $this->normalizeImage($data['image'] ?? '', $equipmentId ?: null);
+        $image = EquipmentImage::normalize($data['image'] ?? '', $equipmentId ?: null);
 
         if ($equipment) {
             $equipment->update([
@@ -234,34 +235,6 @@ class DepartmentEquipmentController extends Controller
         $departmentId = auth('dept')->user()?->department_id;
 
         return $departmentId ? (int) $departmentId : null;
-    }
-
-    /** Mirrors the admin equipment image handling (base64 data URI -> file). */
-    private function normalizeImage(string $image, ?int $equipmentId): string
-    {
-        $image = trim($image);
-
-        if (!preg_match('/^data:image\/([a-z+]+);base64,(.+)$/is', $image, $m)) {
-            return $image; // URL or existing /storage path
-        }
-
-        $binary = base64_decode($m[2], true);
-        if ($binary === false || strlen($binary) > 5 * 1024 * 1024) {
-            abort(400, 'Image must be a valid file of 5MB or less.');
-        }
-
-        $ext = match (strtolower($m[1])) {
-            'jpeg', 'jpg' => 'jpg',
-            'png' => 'png',
-            'webp' => 'webp',
-            'gif' => 'gif',
-            default => 'img',
-        };
-
-        $filename = 'images/equipment-' . ($equipmentId ?: 'new-' . bin2hex(random_bytes(4))) . '.' . $ext;
-        Storage::disk('public')->put($filename, $binary);
-
-        return '/storage/' . $filename;
     }
 
     private function audit(Request $request, string $action, string $entity): void
