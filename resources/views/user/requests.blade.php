@@ -463,6 +463,13 @@
         toastTimer = setTimeout(() => requestsToast.classList.remove('show'), 4000);
     }
 
+    // A request just submitted on Available Equipment: show its message here.
+    try {
+        const flash = JSON.parse(sessionStorage.getItem('equiptrack:flash') || 'null');
+        sessionStorage.removeItem('equiptrack:flash');
+        if (flash && flash.message) showToast(flash.title || 'Request submitted', flash.message);
+    } catch (err) { /* storage unavailable or not a message: nothing to show */ }
+
     function closeCancelConfirm() {
         cancelConfirmModal.classList.remove('show');
     }

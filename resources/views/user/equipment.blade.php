@@ -260,6 +260,16 @@
             </div>
         </div>
     </div>
+    {{-- EquipTrack's own message (same look as My Requests) for results and errors --}}
+    <div class="toast-notification" id="equipmentToast" role="status" aria-live="polite">
+        <div class="toast-content">
+            <i class="fa-solid fa-circle-check toast-icon"></i>
+            <div class="toast-message">
+                <span class="toast-title"></span>
+                <span class="toast-desc"></span>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
@@ -377,13 +387,66 @@
 
         const latestBorrowDate = () => addDays(toYmd(new Date()), MAX_ADVANCE_DAYS);
 
+        // ---- Messages -----------------------------------------------------
+        // A mistake in the form shows in red under its field (the field gets a
+        // red border and the focus); results and server errors show as
+        // EquipTrack's own message at the corner (same as My Requests).
+        function clearFieldMessages() {
+            borrowForm.querySelectorAll('.field-message').forEach(el => el.remove());
+            borrowForm.querySelectorAll('.is-invalid').forEach(el => {
+                el.classList.remove('is-invalid');
+                el.removeAttribute('aria-invalid');
+            });
+        }
+
+        function showFieldMessage(input, message, kind = 'error') {
+            clearFieldMessages();
+            const group = input.closest('.form-horizontal-group') || input;
+            const note = document.createElement('p');
+            note.className = 'field-message field-message-' + kind;
+            note.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+            const icon = document.createElement('i');
+            icon.className = 'fa-solid ' + (kind === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info');
+            icon.setAttribute('aria-hidden', 'true');
+            note.append(icon, ' ', message);
+            group.insertAdjacentElement('afterend', note);
+            if (kind === 'error') {
+                input.classList.add('is-invalid');
+                input.setAttribute('aria-invalid', 'true');
+                input.focus({ preventScroll: true });
+            }
+            note.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+
+        const equipmentToast = document.getElementById('equipmentToast');
+        let toastTimer = null;
+        function showToast(title, message, type = 'success') {
+            const ok = type === 'success';
+            const icon = equipmentToast.querySelector('.toast-icon');
+            equipmentToast.querySelector('.toast-title').textContent = title;
+            equipmentToast.querySelector('.toast-desc').textContent = message;
+            icon.className = 'fa-solid ' + (ok ? 'fa-circle-check' : 'fa-circle-xmark') + ' toast-icon';
+            icon.style.color = ok ? '#10b981' : '#ef4444';
+            equipmentToast.querySelector('.toast-content').style.borderLeft = '4px solid ' + (ok ? '#10b981' : '#ef4444');
+            equipmentToast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => equipmentToast.classList.remove('show'), 5000);
+        }
+
+        // Typing or picking again clears the message for that mistake.
+        if (borrowForm) {
+            ['input', 'change'].forEach(type => borrowForm.addEventListener(type, e => {
+                if (e.target.classList && e.target.classList.contains('is-invalid')) clearFieldMessages();
+            }));
+        }
+
         // A closed day picked in the calendar moves to the next office day,
         // with a note why (the browser's date picker can't grey out weekdays).
         function keepOfficeDay(input, which) {
             if (!input.value || isOfficeDay(input.value)) return;
             const picked = input.value;
             input.value = nextOfficeDay(picked);
-            alert(closedMessage(picked, which) + ' It was moved to the next office day.');
+            showFieldMessage(input, closedMessage(picked, which) + ' It was moved to the next office day.', 'info');
         }
 
         let borrowType = 'within_day';
@@ -476,7 +539,10 @@
         // Close modal functions
         const closeModal = () => {
             if (modal) modal.classList.remove('show');
-            if (borrowForm) borrowForm.reset();
+            if (borrowForm) {
+                borrowForm.reset();
+                clearFieldMessages();
+            }
         };
 
         if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
@@ -503,46 +569,47 @@
                 const instructor = instructorInput ? instructorInput.value.trim() : '';
                 const notes      = document.getElementById('borrowNotes').value;
                 const submitBtn  = borrowForm.querySelector('.btn-submit-request');
+                clearFieldMessages();
 
                 if (!eqId) {
-                    alert('Invalid equipment item selected.');
+                    showToast('Request not sent', 'Invalid equipment item selected. Please close the form and choose the equipment again.', 'error');
                     return;
                 }
 
                 if (!borrowDate) {
-                    alert('Please choose the borrow date.');
+                    showFieldMessage(borrowDateInput, 'Please choose the borrow date.');
                     return;
                 }
 
                 if (!isOfficeDay(borrowDate)) {
-                    alert(closedMessage(borrowDate, 'borrow'));
+                    showFieldMessage(borrowDateInput, closedMessage(borrowDate, 'borrow'));
                     return;
                 }
 
                 if (borrowDate < earliestBorrowDate()) {
-                    alert(borrowDate === toYmd(new Date())
+                    showFieldMessage(borrowDateInput, borrowDate === toYmd(new Date())
                         ? "Today's return deadline (" + RETURN_DEADLINE_TEXT + ') has passed. Please choose a later date.'
                         : 'The borrow date cannot be in the past.');
                     return;
                 }
 
                 if (borrowDate > latestBorrowDate()) {
-                    alert('You can request up to ' + MAX_ADVANCE_DAYS + ' days ahead.');
+                    showFieldMessage(borrowDateInput, 'You can request up to ' + MAX_ADVANCE_DAYS + ' days ahead.');
                     return;
                 }
 
                 if (borrowType === 'multiple_days' && !returnDate) {
-                    alert('Please choose the return date.');
+                    showFieldMessage(returnDateInput, 'Please choose the return date.');
                     return;
                 }
 
                 if (borrowType === 'multiple_days' && returnDate <= borrowDate) {
-                    alert('For Multiple Days, the return date must be after the borrow date.');
+                    showFieldMessage(returnDateInput, 'For Multiple Days, the return date must be after the borrow date.');
                     return;
                 }
 
                 if (borrowType === 'multiple_days' && !isOfficeDay(returnDate)) {
-                    alert(closedMessage(returnDate, 'return'));
+                    showFieldMessage(returnDateInput, closedMessage(returnDate, 'return'));
                     return;
                 }
 
@@ -550,21 +617,21 @@
                 const quantity = Number(qtyInput.value);
                 const maxQty = Number(qtyInput.max) || 1;
                 if (!Number.isInteger(quantity) || quantity < 1) {
-                    alert('Please enter the number of units as a whole number (at least 1).');
+                    showFieldMessage(qtyInput, 'Please enter the number of units as a whole number (at least 1).');
                     return;
                 }
                 if (quantity > maxQty) {
-                    alert(maxQty === 1 ? 'You can request 1 unit of this equipment.' : 'You can request up to ' + maxQty + ' units of this equipment.');
+                    showFieldMessage(qtyInput, maxQty === 1 ? 'You can request 1 unit of this equipment.' : 'You can request up to ' + maxQty + ' units of this equipment.');
                     return;
                 }
 
                 if (!purpose) {
-                    alert('Please select a purpose for borrowing.');
+                    showFieldMessage(document.getElementById('borrowPurpose'), 'Please select a purpose for borrowing.');
                     return;
                 }
 
                 if (instructorInput && !instructor) {
-                    alert("Please enter your instructor's name.");
+                    showFieldMessage(instructorInput, "Please enter your instructor's name.");
                     return;
                 }
 
@@ -594,20 +661,39 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        alert(data.message || 'Borrow request submitted successfully!');
+                        const message = data.message || 'Your borrowing request has been submitted successfully!';
                         closeModal();
                         if (data.redirect) {
+                            // My Requests shows the message after the page opens.
+                            try {
+                                sessionStorage.setItem('equiptrack:flash', JSON.stringify({ title: 'Request submitted', message }));
+                            } catch (err) { /* storage unavailable: the new request is still listed */ }
                             window.location.href = data.redirect;
+                        } else {
+                            showToast('Request submitted', message);
                         }
                     } else {
-                        const firstError = data.errors ? Object.values(data.errors)[0] : null;
-                        const message = (Array.isArray(firstError) ? firstError[0] : firstError) || data.message || 'Failed to submit request.';
-                        alert('Submission Error: ' + message);
+                        // A refused field shows under that field; anything else as a message.
+                        const fields = {
+                            borrow_date: borrowDateInput,
+                            return_date: borrowType === 'multiple_days' ? returnDateInput : borrowDateInput,
+                            quantity: document.getElementById('borrowQuantity'),
+                            purpose: document.getElementById('borrowPurpose'),
+                            instructor_name: instructorInput,
+                            notes: document.getElementById('borrowNotes'),
+                        };
+                        const [field, errors] = data.errors ? Object.entries(data.errors)[0] : [null, null];
+                        const message = (Array.isArray(errors) ? errors[0] : errors) || data.message || 'Failed to submit request.';
+                        if (field && fields[field]) {
+                            showFieldMessage(fields[field], message);
+                        } else {
+                            showToast('Request not sent', message, 'error');
+                        }
                     }
                 })
                 .catch(err => {
                     console.error(err);
-                    alert('An unexpected network error occurred while submitting your request.');
+                    showToast('Request not sent', 'A network error occurred while submitting your request. Please check your connection and try again.', 'error');
                 })
                 .finally(() => {
                     if (submitBtn) {

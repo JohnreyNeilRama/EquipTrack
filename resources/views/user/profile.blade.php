@@ -8,7 +8,7 @@
 
 @php
     $display_avatar_url = $user_profile_image
-        ?: 'https://ui-avatars.com/api/?name=' . urlencode($full_name) . '&background=385585&color=fff&size=300&bold=true';
+        ?: \App\Support\Avatar::url((string) $full_name, 300, true);
 @endphp
 
 @section('content')
@@ -161,8 +161,8 @@
     </div>
 
     {{-- Toast Notification --}}
-    <div class="toast-notification" id="toastNotif" style="position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px; opacity: 0; visibility: hidden; transition: all 0.3s ease; z-index: 9999;">
-        <i class="fa-solid fa-circle-check" style="color: #10b981;"></i>
+    <div class="toast-notification" id="toastNotif" role="status" aria-live="polite" style="position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 10px; opacity: 0; visibility: hidden; transition: all 0.3s ease; z-index: 9999;">
+        <i class="fa-solid fa-circle-check" id="toastIcon" style="color: #10b981; flex-shrink: 0;"></i>
         <span id="toastMsg">Profile picture updated successfully!</span>
     </div>
     <form id="logoutForm" method="POST" action="{{ route('logout') }}" style="display:none;">@csrf</form>
@@ -199,12 +199,12 @@
                             if (typeof syncNavbarAvatar === 'function') syncNavbarAvatar(data.image_url);
                             showToast('Profile picture uploaded and saved to database!');
                         } else {
-                            alert(data.message || 'Error uploading profile picture');
+                            showToast(data.message || 'Error uploading profile picture.', false);
                         }
                     })
                     .catch(err => {
                         console.error('Error:', err);
-                        alert('An error occurred while uploading your profile picture.');
+                        showToast('An error occurred while uploading your profile picture. Please try again.', false);
                     });
                 }
             });
@@ -298,12 +298,12 @@
                             profileNameHeading.textContent = (formData.get('first_name') + ' ' + (formData.get('last_name') || '')).trim();
                         }
                     } else {
-                        alert(data.message || 'Error updating profile');
+                        showToast(data.message || 'Error updating profile.', false);
                     }
                 })
                 .catch(err => {
                     console.error('Error:', err);
-                    alert('An error occurred while updating your profile.');
+                    showToast('An error occurred while updating your profile. Please try again.', false);
                 });
             });
         }
@@ -403,18 +403,25 @@
             document.getElementById('logoutForm').submit();
         });
 
-        // Toast Helper
-        function showToast(msg) {
+        // Toast Helper: green check for success, red cross for errors
+        let toastTimer = null;
+        function showToast(msg, ok = true) {
             const toast = document.getElementById('toastNotif');
             const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
             if (toast && toastMsg) {
                 toastMsg.textContent = msg;
+                if (toastIcon) {
+                    toastIcon.className = 'fa-solid ' + (ok ? 'fa-circle-check' : 'fa-circle-xmark');
+                    toastIcon.style.color = ok ? '#10b981' : '#f87171';
+                }
                 toast.style.opacity = '1';
                 toast.style.visibility = 'visible';
-                setTimeout(() => {
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => {
                     toast.style.opacity = '0';
                     toast.style.visibility = 'hidden';
-                }, 3500);
+                }, ok ? 3500 : 5000);
             }
         }
     });

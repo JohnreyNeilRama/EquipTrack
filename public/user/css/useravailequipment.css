@@ -1415,3 +1415,110 @@
         margin-left: 0;
     }
 }
+
+/* Request form: a mistake shows in red under its field (the field gets a red
+   border); a note (e.g. a closed day moved to the next office day) in blue. */
+.flat-control.is-invalid {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.field-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: -4px 0 0;
+    font-size: var(--fs-small, 12.5px);
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.field-message i {
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.field-message-error {
+    color: #dc2626;
+}
+
+.field-message-info {
+    color: #2563eb;
+}
+
+.dark-theme .field-message-error {
+    color: #f87171;
+}
+
+.dark-theme .field-message-info {
+    color: #60a5fa;
+}
+
+/* EquipTrack's own message (same look as My Requests), above the request form */
+.toast-notification {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(20px);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.toast-notification.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.toast-content {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
+    border: 1px solid var(--border-color);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 325px;
+    max-width: 420px;
+}
+
+.toast-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.toast-message {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    min-width: 0;
+}
+
+.toast-title {
+    font-size: var(--fs-body);
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 2px;
+}
+
+.toast-desc {
+    font-size: var(--fs-label);
+    font-weight: 500;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 768px) {
+    .toast-notification {
+        left: 16px;
+        right: 16px;
+    }
+
+    .toast-content {
+        min-width: 0;
+        max-width: none;
+    }
+}
