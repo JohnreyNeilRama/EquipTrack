@@ -82,7 +82,6 @@ class DepartmentDashboardController extends Controller
                     'overdueItems' => 0,
                     'departmentUsers' => 0,
                 ],
-                'recentRequests' => [],
                 'overdue' => [],
                 'upcoming' => [],
                 'generatedAt' => now()->toIso8601String(),
@@ -93,7 +92,6 @@ class DepartmentDashboardController extends Controller
 
         return [
             'stats' => $this->stats($departmentId, $loans),
-            'recentRequests' => $this->recentRequests($departmentId),
             'overdue' => $this->overdueLoans($loans),
             'upcoming' => $this->upcomingReturns($loans),
             'generatedAt' => now()->toIso8601String(),
@@ -143,33 +141,6 @@ class DepartmentDashboardController extends Controller
             'overdueItems' => $overdueUnits,
             'departmentUsers' => UserAccount::where('department_id', $departmentId)->count(),
         ];
-    }
-
-    /**
-     * Recent borrow requests for equipment owned by this department.
-     */
-    private function recentRequests(int $departmentId): array
-    {
-        $rows = BorrowRequest::with(['user.student', 'user.facultyMember', 'equipment'])
-            ->whereHas('equipment', fn ($query) => $query->where('department_id', $departmentId))
-            ->orderByDesc('request_id')
-            ->limit(self::RECENT_REQUESTS_LIMIT)
-            ->get();
-
-        return $rows->map(function (BorrowRequest $row) {
-            $user = $row->user;
-            $status = $row->overall_status ?: 'Pending';
-
-            return [
-                'id' => (int) $row->request_id,
-                'user' => $user?->fullName() ?: ($user?->email ?? 'Unknown User'),
-                'equipment' => $row->equipment?->name ?? 'Unknown Equipment',
-                'date' => $row->date_requested
-                    ? Carbon::parse($row->date_requested)->format('M d, Y')
-                    : ($row->created_at ? Carbon::parse($row->created_at)->format('M d, Y') : 'N/A'),
-                'status' => ucfirst($status),
-            ];
-        })->all();
     }
 
     /**

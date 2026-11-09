@@ -175,10 +175,11 @@ class DepartmentDashboardTest extends TestCase
                 'overdueItems' => 0,
                 'departmentUsers' => 1, // studentA is the only user in deptA
             ],
-            'recentRequests' => [],
             'overdue' => [],
             'upcoming' => [],
         ]);
+        // Recent Borrow Requests comes from the Borrow Requests feed, not this one.
+        $response->assertJsonMissingPath('recentRequests');
 
         $response->assertJsonStructure([
             'success',
@@ -191,7 +192,6 @@ class DepartmentDashboardTest extends TestCase
                 'overdueItems',
                 'departmentUsers',
             ],
-            'recentRequests',
             'overdue',
             'upcoming',
             'generatedAt',
@@ -237,16 +237,18 @@ class DepartmentDashboardTest extends TestCase
             ->json();
 
         $this->assertSame(1, $dataA['stats']['pendingRequests']);
-        $this->assertCount(1, $dataA['recentRequests']);
-        $this->assertSame('Alice Smith', $dataA['recentRequests'][0]['user']);
+        $rowsA = $this->requestRows($this->deptAccountA);
+        $this->assertCount(1, $rowsA);
+        $this->assertSame('Alice Smith', $rowsA[0]['user']);
 
         $dataB = $this->actingAs($this->deptAccountB, 'dept')
             ->getJson(route('department.dashboard.data'))
             ->json();
 
         $this->assertSame(1, $dataB['stats']['pendingRequests']);
-        $this->assertCount(1, $dataB['recentRequests']);
-        $this->assertSame('Bob Jones', $dataB['recentRequests'][0]['user']);
+        $rowsB = $this->requestRows($this->deptAccountB);
+        $this->assertCount(1, $rowsB);
+        $this->assertSame('Bob Jones', $rowsB[0]['user']);
     }
 
     public function test_borrowed_equipment_and_upcoming_returns(): void
@@ -412,10 +414,20 @@ class DepartmentDashboardTest extends TestCase
         $this->assertSame(3, $data['stats']['availableUnits']);
         $this->assertSame(1, $data['stats']['pendingRequests']);
         $this->assertSame(1, $data['stats']['overdueItems']);
-        // Both dept A requests are listed (pending + approved), dept B's is not.
-        $this->assertCount(2, $data['recentRequests']);
         $this->assertCount(1, $data['overdue']);
-        $this->assertSame('CCS Projector', $data['recentRequests'][0]['equipment']);
+        // Both dept A requests are listed (pending + approved), dept B's is not.
+        $rows = $this->requestRows($this->deptAccountA);
+        $this->assertCount(2, $rows);
+        $this->assertSame('CCS Projector', $rows[0]['equipment']);
+    }
+
+    /** Rows of the Borrow Requests feed, which the Recent Borrow Requests table shows (newest first). */
+    private function requestRows(DepartmentAccount $account): array
+    {
+        return $this->actingAs($account, 'dept')
+            ->getJson(route('department.requests.data'))
+            ->assertOk()
+            ->json('requests');
     }
 
     public function test_recent_borrow_requests_table_uses_the_borrow_requests_rows(): void
