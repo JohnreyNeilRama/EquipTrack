@@ -5,7 +5,7 @@
 @push('css')
 <link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
 <link rel="stylesheet" href="{{ asset('admin/css/adminequipment.css') }}">
-<link rel="stylesheet" href="{{ asset('admin/css/adminusers.css') }}">
+<link rel="stylesheet" href="{{ asset('admin/css/adminusers.css') }}?v={{ filemtime(public_path('admin/css/adminusers.css')) }}">
 <link rel="stylesheet" href="{{ asset('admin/css/adminmonitoring.css') }}?v={{ filemtime(public_path('admin/css/adminmonitoring.css')) }}">
 @endpush
 
@@ -55,9 +55,6 @@
                             </div>
                         @endforeach
                     @endif
-                    <div class="add-dept-card" id="btnOpenAddDeptCard" role="button" tabindex="0" title="Add Department" onclick="openAddDeptModal()">
-                        <i class="fa-solid fa-plus add-dept-icon"></i>
-                    </div>
                 </div>
             </div>
 
@@ -278,47 +275,6 @@
         </div>
     </div>
 
-    <!-- Add Department Modal -->
-    <div class="modal-overlay" id="addDeptModal" style="display: none;">
-        <div class="add-dept-modal-box">
-            <div class="modal-outer-header">
-                <div>
-                    <h3 class="add-dept-modal-title">Add New Department</h3>
-                    <p class="add-dept-modal-desc">Create a new department record in the system.</p>
-                </div>
-                <button type="button" id="btnCloseAddDeptModal" class="add-dept-close-btn">&times;</button>
-            </div>
-            <form id="addDeptForm" style="padding: 24px;">
-                <input type="hidden" name="action" value="add_department">
-                
-                <div class="add-dept-form-group">
-                    <label class="add-dept-label">Department Name <span style="color: #ef4444;">*</span></label>
-                    <input type="text" name="department_name" class="add-dept-input" placeholder="e.g. College of Computer Studies" required>
-                </div>
-
-                <div class="add-dept-form-group">
-                    <label class="add-dept-label">Department Code <span style="color: #ef4444;">*</span></label>
-                    <input type="text" name="department_code" class="add-dept-input" placeholder="e.g. CCS" required>
-                </div>
-
-                <div class="add-dept-form-group">
-                    <label class="add-dept-label">College <span style="color: #ef4444;">*</span></label>
-                    <input type="text" name="college" class="add-dept-input" placeholder="e.g. College of Computer Studies" required>
-                </div>
-
-                <div class="add-dept-form-group" style="margin-bottom: 24px;">
-                    <label class="add-dept-label">Department Head <span style="color: #ef4444;">*</span></label>
-                    <input type="text" name="department_head" class="add-dept-input" placeholder="e.g. Dr. Jane Doe" required>
-                </div>
-
-                <div class="add-dept-footer">
-                    <button type="button" class="btn-add-dept-cancel" id="btnCancelAddDept">Cancel</button>
-                    <button type="submit" class="btn-add-dept-save">Save Department</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- Interactivity Script -->
 @endsection
 
@@ -368,103 +324,6 @@
             let currentPage = 1;
             const pageSize = 10;
 
-            // Add Department Modal Elements & Global Functions
-            window.openAddDeptModal = function() {
-                const modal = document.getElementById('addDeptModal');
-                if (modal) {
-                    modal.style.setProperty('display', 'flex', 'important');
-                    modal.style.setProperty('opacity', '1', 'important');
-                    modal.style.setProperty('pointer-events', 'auto', 'important');
-                    modal.style.setProperty('visibility', 'visible', 'important');
-                    modal.classList.add('show');
-                    const firstField = document.querySelector('#addDeptForm input[name="department_name"]');
-                    if (firstField) firstField.focus();
-                }
-            };
-
-            window.closeAddDeptModal = function() {
-                const modal = document.getElementById('addDeptModal');
-                if (modal) {
-                    modal.style.setProperty('display', 'none', 'important');
-                    modal.style.setProperty('opacity', '0', 'important');
-                    modal.style.setProperty('pointer-events', 'none', 'important');
-                    modal.style.setProperty('visibility', 'hidden', 'important');
-                    modal.classList.remove('show');
-                }
-                const form = document.getElementById('addDeptForm');
-                if (form) form.reset();
-            };
-
-            const addDeptModal = document.getElementById('addDeptModal');
-            const btnCloseAddDeptModal = document.getElementById('btnCloseAddDeptModal');
-            const btnCancelAddDept = document.getElementById('btnCancelAddDept');
-            const addDeptForm = document.getElementById('addDeptForm');
-
-            // Attach global delegated click listener for any open trigger
-            document.addEventListener('click', function(e) {
-                if (e.target.closest('#btnOpenAddDeptCard') || e.target.closest('#btnOpenAddDeptModal') || e.target.closest('.add-dept-card')) {
-                    e.preventDefault();
-                    window.openAddDeptModal();
-                }
-            });
-
-            if (btnCloseAddDeptModal) btnCloseAddDeptModal.addEventListener('click', window.closeAddDeptModal);
-            if (btnCancelAddDept) btnCancelAddDept.addEventListener('click', window.closeAddDeptModal);
-            if (addDeptModal) {
-                addDeptModal.addEventListener('click', (e) => {
-                    if (e.target === addDeptModal) window.closeAddDeptModal();
-                });
-            }
-
-            if (addDeptForm) {
-                addDeptForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    
-                    const deptName = addDeptForm.querySelector('input[name="department_name"]').value.trim();
-                    const deptCode = addDeptForm.querySelector('input[name="department_code"]').value.trim();
-                    const college = addDeptForm.querySelector('input[name="college"]').value.trim();
-                    const deptHead = addDeptForm.querySelector('input[name="department_head"]').value.trim();
-
-                    if (!deptName || !deptCode || !college || !deptHead) {
-                        showNotification('Validation Error', 'All department fields are required.', 'error');
-                        return;
-                    }
-
-                    const formData = new FormData(addDeptForm);
-                    fetch('/admin/monitoring', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                            showNotification('Department Added', data.message || 'Department created successfully!', 'success');
-                            
-                            const newDept = {
-                                department_id: data.department.department_id,
-                                department_name: data.department.department_name,
-                                department_code: data.department.department_code,
-                                college: data.department.college,
-                                department_head: data.department.department_head,
-                                title: data.department.department_name,
-                                name: data.department.department_name,
-                                image: '{{ asset('images/logo_only.png') }}'
-                            };
-
-                            departments.push(newDept);
-                            closeAddDeptModal();
-                            renderDepartmentGrid();
-                        } else {
-                            showNotification('Error', data.message || 'Failed to add department.', 'error');
-                        }
-                    })
-                    .catch(err => {
-                        console.error('Error adding department:', err);
-                        showNotification('System Error', 'An unexpected error occurred while saving the department.', 'error');
-                    });
-                });
-            }
-
             // Render Department Selection Cards Grid
             function renderDepartmentGrid() {
                 deptGrid.innerHTML = '';
@@ -476,7 +335,7 @@
                         const deptCode = dept.department_code || dept.code || '';
                         const collegeName = dept.college || '';
                         const headName = dept.department_head || '';
-                        const imgUrl = dept.image || dept.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(headName || deptTitle)}&background=385585&color=fff&size=300&bold=true`;
+                        const imgUrl = dept.image || dept.profile_image || `{{ url('/avatar') }}?name=${encodeURIComponent(headName || deptTitle)}&background=385585&color=fff&size=300&bold=true`;
 
                         card.innerHTML = `
                             <div class="dept-logo-wrapper">
@@ -492,20 +351,6 @@
                         deptGrid.appendChild(card);
                     });
                 }
-
-                // Append Add Department Card directly into grid layout
-                const addCard = document.createElement('div');
-                addCard.className = 'add-dept-card';
-                addCard.id = 'btnOpenAddDeptCard';
-                addCard.title = 'Add Department';
-                addCard.setAttribute('role', 'button');
-                addCard.setAttribute('tabindex', '0');
-                addCard.innerHTML = `<i class="fa-solid fa-plus add-dept-icon"></i>`;
-                addCard.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    window.openAddDeptModal();
-                });
-                deptGrid.appendChild(addCard);
             }
 
             // Select a department and swap views
@@ -539,7 +384,7 @@
                     // Display department card
                     selectedDeptHeaderCard.style.display = 'flex';
                     
-                    const logoSrc = deptMeta ? (deptMeta.image || deptMeta.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(deptMeta.department_head || selectedDept)}&background=385585&color=fff&size=300&bold=true`) : '{{ asset('images/logo_only.png') }}';
+                    const logoSrc = deptMeta ? (deptMeta.image || deptMeta.profile_image || `{{ url('/avatar') }}?name=${encodeURIComponent(deptMeta.department_head || selectedDept)}&background=385585&color=fff&size=300&bold=true`) : '{{ asset('images/logo_only.png') }}';
                     
                     // Translate standard department name to exact program/degree name as requested
                     let customTitle = deptMeta ? deptMeta.title : selectedDept;
@@ -877,8 +722,9 @@
                 if (!req) return;
 
                 // Set content values
-                document.getElementById('modalBorrowerAvatar').src = req.avatar || "https://ui-avatars.com/api/?name=" + encodeURIComponent(req.user || 'N/A');
+                document.getElementById('modalBorrowerAvatar').src = req.avatar || "{{ url('/avatar') }}?name=" + encodeURIComponent(req.user || 'N/A');
                 document.getElementById('modalBorrowerName').textContent = req.user || '—';
+                document.getElementById('modalBorrowerName').title = req.user || '';
                 document.getElementById('modalBorrowerRole').textContent = req.role || '—';
                 document.getElementById('modalBorrowerId').textContent = req.id_number || 'N/A';
 

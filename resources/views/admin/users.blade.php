@@ -1025,12 +1025,18 @@
         window.openEditUserModal = openEditUserModal;
 
         // Delete User Account
-        window.deleteUser = function(id) {
+        window.deleteUser = async function(id) {
             const user = users.find(u => u.id === id);
             if (!user) return;
 
             const fullName = user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
-            if (confirm(`Are you sure you want to permanently delete the account of ${fullName}?`)) {
+            const ok = await equipConfirm({
+                title: 'Delete this account?',
+                message: `The account of ${fullName} will be permanently deleted. This cannot be undone.`,
+                confirmText: 'Delete Account',
+                tone: 'danger',
+            });
+            if (ok) {
                 postForm(URL_DELETE, {
                     user_id: user.id,
                     user_type: user.db_type,
@@ -1056,10 +1062,10 @@
             let avatarUrl = user.profile_image || user.avatar;
 
             if (!avatarUrl) {
-                avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=385585&color=fff&size=300&bold=true`;
+                avatarUrl = `{{ url('/avatar') }}?name=${encodeURIComponent(fullName)}&background=385585&color=fff&size=300&bold=true`;
             }
 
-            const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=385585&color=fff&size=300&bold=true`;
+            const fallbackAvatar = `{{ url('/avatar') }}?name=${encodeURIComponent(fullName)}&background=385585&color=fff&size=300&bold=true`;
             modalUserAvatar.onerror = function() {
                 this.onerror = null;
                 this.src = fallbackAvatar;
@@ -1072,6 +1078,7 @@
             modalUserAvatar.src = avatarUrl;
             modalUserProfileImg.src = avatarUrl;
             modalUserName.textContent = fullName;
+            modalUserName.title = fullName || '';
             modalUserRole.textContent = roleLabel;
 
             const statusClass = 'status-' + user.status.toLowerCase();
