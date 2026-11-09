@@ -14,10 +14,17 @@ namespace App\Services;
  */
 class AuditCatalog
 {
+    /** Sign-in attempts that didn't succeed: recorded with no actor (nobody signed in). */
+    public const SIGN_IN_PROBLEMS = ['Failed Login', 'Account Locked', 'Blocked Login'];
+
     private const RULES = [
         // Authentication
         ['label' => 'Login', 'module' => 'Authentication', 'prefixes' => ['Login' => '']],
         ['label' => 'Logout', 'module' => 'Authentication', 'prefixes' => ['Logout' => '']],
+        // Sign-ins that didn't succeed (LoginController); no account is the actor
+        ['label' => 'Failed Login', 'module' => 'Authentication', 'prefixes' => ['Failed login' => 'Failed sign-in']],
+        ['label' => 'Account Locked', 'module' => 'Authentication', 'prefixes' => ['Account locked' => 'Sign-in locked']],
+        ['label' => 'Blocked Login', 'module' => 'Authentication', 'prefixes' => ['Blocked login' => 'Blocked sign-in']],
         ['label' => 'Requested Password Reset', 'module' => 'Authentication', 'prefixes' => ['Requested password reset' => 'Password reset']],
         ['label' => 'Reset Password', 'module' => 'Authentication', 'prefixes' => ['Reset password via email link' => 'Password']],
 
@@ -206,6 +213,7 @@ class AuditCatalog
                 'admin' => 'Administrator account',
                 'dept' => 'Department account',
                 'user' => 'User account',
+                'unknown' => 'Unknown account',
                 default => 'Account',
             },
             default => $entity !== '' ? $entity : '—',

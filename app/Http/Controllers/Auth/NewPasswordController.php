@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Services\AuditLogger;
 use App\Services\PasswordResetAccounts;
+use App\Support\LoginLockout;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -107,6 +108,10 @@ class NewPasswordController extends Controller
         if ($status !== Password::PASSWORD_RESET) {
             return $this->invalidLink();
         }
+
+        // A new password unlocks sign-in straight away (Admins can also sign
+        // in with their username).
+        LoginLockout::clear($account->getEmailForPasswordReset(), $account->username ?? null);
 
         AuditLogger::log(
             'Reset password via email link',

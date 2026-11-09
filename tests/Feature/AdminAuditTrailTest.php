@@ -152,11 +152,17 @@ class AdminAuditTrailTest extends TestCase
         $this->assertSame(0, AuditTrail::count());
     }
 
-    public function test_a_failed_login_is_not_recorded(): void
+    public function test_a_failed_login_is_recorded_without_counting_as_the_accounts_activity(): void
     {
         $this->post('/login', ['email' => 'admin', 'password' => 'wrong-password']);
 
-        $this->assertSame(0, AuditTrail::count());
+        // Recorded as a failed attempt on the admin account, with no actor:
+        // nobody signed in (details in FailedLoginAuditTest).
+        $row = AuditTrail::sole();
+        $this->assertSame('Failed login (wrong password)', $row->action);
+        $this->assertSame('admin:' . $this->admin->admin_id, $row->affected_entity);
+        $this->assertNull($row->admin_id);
+        $this->assertSame(0, AuditTrail::whereNotNull('admin_id')->count());
     }
 
     public function test_student_login_is_recorded_against_that_student(): void

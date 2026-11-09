@@ -7,6 +7,7 @@ use App\Models\Admin;
 use App\Models\DepartmentAccount;
 use App\Models\UserAccount;
 use App\Services\AuditLogger;
+use App\Support\LoginLockout;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -64,15 +65,30 @@ class LoginController extends Controller
         $password = $credentials['password'];
         $remember = $request->boolean('remember');
 
+        // Too many wrong passwords for this email/username: refused for a
+        // while, even with the right password (App\Support\LoginLockout).
+        if (LoginLockout::isLocked($input)) {
+            $minutes = LoginLockout::minutesLeft($input);
+
+            throw ValidationException::withMessages([
+                'email' => 'Too many failed sign-in attempts for this account. Try again in '
+                    . $minutes . ' ' . ($minutes === 1 ? 'minute' : 'minutes')
+                    . ', or reset your password with "Forgot password?".',
+            ]);
+        }
+
         // 1. User accounts (Student / Faculty) — matched by email.
         $user = UserAccount::where('email', $input)->first();
         if ($user && Hash::check($password, $user->password)) {
             if (strtolower((string) $user->status) === 'deactivated') {
+                $this->logSignInProblem('Blocked login (deactivated account)', $user, $input, $request);
+
                 throw ValidationException::withMessages([
                     'email' => 'Your account has been deactivated by the Administrator.',
                 ]);
             }
             $user->forceFill(['last_online' => now()])->save();
+            LoginLockout::clear($input);
 
             return $this->logInto('user', $user, $remember);
         }
@@ -81,11 +97,14 @@ class LoginController extends Controller
         $admin = Admin::where('username', $input)->orWhere('email', $input)->first();
         if ($admin && Hash::check($password, $admin->password)) {
             if (strtolower((string) $admin->status) === 'deactivated') {
+                $this->logSignInProblem('Blocked login (deactivated account)', $admin, $input, $request);
+
                 throw ValidationException::withMessages([
                     'email' => 'This administrator account has been deactivated.',
                 ]);
             }
             $admin->forceFill(['last_online' => now()])->save();
+            LoginLockout::clear($input, $admin->username, $admin->email);
 
             return $this->logInto('admin', $admin, $remember);
         }
@@ -94,18 +113,74 @@ class LoginController extends Controller
         $dept = DepartmentAccount::where('email', $input)->first();
         if ($dept && Hash::check($password, $dept->password)) {
             if (strtolower((string) $dept->status) === 'deactivated') {
+                $this->logSignInProblem('Blocked login (deactivated account)', $dept, $input, $request);
+
                 throw ValidationException::withMessages([
                     'email' => 'This department account has been deactivated by the Administrator.',
                 ]);
             }
             $dept->forceFill(['last_online' => now()])->save();
+            LoginLockout::clear($input);
 
             return $this->logInto('dept', $dept, $remember);
+        }
+
+        // Wrong password, or no account with this email/username. Recorded in
+        // the Audit Trail (and once more when it locks the account).
+        $target = $user ?? $admin ?? $dept;
+        $justLocked = LoginLockout::recordFailure($input);
+        $this->logSignInProblem(
+            $target ? 'Failed login (wrong password)' : 'Failed login (unknown account)',
+            $target,
+            $input,
+            $request,
+        );
+        if ($justLocked) {
+            $this->logSignInProblem('Account locked', $target, $input, $request);
         }
 
         throw ValidationException::withMessages([
             'email' => 'Invalid email/username or password.',
         ]);
+    }
+
+    /**
+     * Audit Trail entry for a sign-in that didn't succeed. No account is
+     * recorded as the actor (nobody signed in, and the targeted account must
+     * not count as "active"): the Admin sees "Not signed in", the targeted
+     * account under Affected Record, and its email in the details. For a name
+     * that matches no account only a masked form is kept, because people
+     * sometimes type their password into the email box.
+     */
+    private function logSignInProblem(string $action, $account, string $input, Request $request): void
+    {
+        [$entity, $who] = match (true) {
+            $account instanceof UserAccount => ['user_account:' . $account->user_id, $account->email],
+            $account instanceof Admin => ['admin:' . $account->admin_id, $account->email ?: $account->username],
+            $account instanceof DepartmentAccount => ['department_account:' . $account->dept_acc_id, $account->email],
+            default => ['auth:unknown', self::mask($input)],
+        };
+
+        $details = match ($action) {
+            'Account locked' => 'Sign-in for ' . $who . ' locked for ' . LoginLockout::LOCK_MINUTES
+                . ' minutes after ' . LoginLockout::MAX_FAILURES . ' failed attempts',
+            'Blocked login (deactivated account)' => 'Correct password for ' . $who . ', but the account is deactivated',
+            'Failed login (unknown account)' => 'No account matches ' . $who,
+            default => 'Wrong password for ' . $who,
+        };
+
+        AuditLogger::log($action, $entity, $details, [], $request);
+    }
+
+    /** "jdelacruz@gmail.com" -> "jd***@gmail.com", "someone" -> "so***". */
+    private static function mask(string $input): string
+    {
+        $input = trim($input);
+        $at = mb_strrpos($input, '@');
+        $name = $at === false ? $input : mb_substr($input, 0, $at);
+        $domain = $at === false ? '' : mb_substr($input, $at);
+
+        return mb_substr(mb_substr($name, 0, 2) . '***' . $domain, 0, 80);
     }
 
     private function logInto(string $guard, $account, bool $remember): RedirectResponse

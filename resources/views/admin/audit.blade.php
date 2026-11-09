@@ -289,6 +289,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function badgeClass(action) {
         const a = action.toLowerCase();
+        // Sign-in problems (before the general "login" rule)
+        if (a.includes('failed login') || a.includes('blocked login') || a.includes('account locked')) return 'badge-red';
         if (a.includes('login')) return 'badge-blue';
         if (a.includes('logout') || a.includes('waived')) return 'badge-gray';
         if (a.includes('recorded penalty')) return 'badge-red';
