@@ -14,6 +14,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\Department\DepartmentDashboardController;
 
 use App\Http\Controllers\Department\DepartmentEquipmentController;
@@ -39,6 +40,10 @@ use Illuminate\Support\Facades\Route;
 
 // Categories shared by mock pages (department lists, filters).
 $catNames = fn () => ['dbCategories' => EquipmentCategory::orderBy('category_name')->pluck('category_name')->all()];
+
+// Initials picture for accounts and departments without an uploaded picture
+// (drawn here instead of by an outside website; see App\Support\Avatar).
+Route::get('/avatar', AvatarController::class)->middleware('throttle:600,1')->name('avatar');
 
 // Guest pages
 Route::view('/', 'landing')->name('landing');

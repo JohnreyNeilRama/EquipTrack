@@ -11,6 +11,7 @@ use App\Models\EquipmentCategory;
 use App\Services\ManualLoanReminder;
 use App\Support\LoanReminders;
 use App\Support\LoanTime;
+use App\Support\Avatar;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -35,7 +36,7 @@ class AdminMonitoringController extends Controller
             }
 
             $displayName = $d->department_head ?: $d->department_name;
-            $img = $headImg ?: 'https://ui-avatars.com/api/?name=' . urlencode($displayName) . '&background=385585&color=fff&size=300&bold=true';
+            $img = $headImg ?: Avatar::url($displayName, 300, true);
 
             $dbDepartments[] = [
                 'department_id' => (int) $d->department_id,
@@ -141,7 +142,7 @@ class AdminMonitoringController extends Controller
                 $fullName = $user->fullName() ?: $user->email;
                 $avatar = trim((string) ($user->profile_image ?? ''));
                 if ($avatar === '') {
-                    $avatar = 'https://ui-avatars.com/api/?name=' . urlencode($fullName ?: 'User') . '&background=385585&color=fff';
+                    $avatar = Avatar::url($fullName ?: 'User');
                 }
 
                 $idNumber = $user->role === 'Student'

@@ -10,7 +10,7 @@
 
 @php
     $display_avatar_url = $admin_profile_image
-        ?: 'https://ui-avatars.com/api/?name=' . urlencode($admin_name) . '&background=385585&color=fff&size=300&bold=true';
+        ?: \App\Support\Avatar::url((string) $admin_name, 300, true);
 @endphp
 
 @section('content')

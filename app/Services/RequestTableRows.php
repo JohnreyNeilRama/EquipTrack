@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BorrowRequest;
 use App\Support\LoanTime;
+use App\Support\Avatar;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
@@ -37,7 +38,7 @@ class RequestTableRows
 
         $avatar = trim((string) ($u?->profile_image ?? ''));
         if ($avatar === '') {
-            $avatar = 'https://ui-avatars.com/api/?name=' . urlencode($fullName ?: 'User') . '&background=385585&color=fff';
+            $avatar = Avatar::url($fullName ?: 'User');
         }
 
         $eqImg = $row->equipment?->imageUrl() ?? asset('images/EquipTrack_logo.png');
