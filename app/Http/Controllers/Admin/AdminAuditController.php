@@ -438,6 +438,12 @@ class AdminAuditController extends Controller
     /** "Now" on the database clock, which is what stamps audit_trail.created_at. */
     private function dbNow(): Carbon
     {
+        // Tests freeze the clock (Carbon::setTestNow); the database's clock
+        // would still say the real date, so use the frozen one there.
+        if (Carbon::hasTestNow()) {
+            return now();
+        }
+
         try {
             $sql = DB::connection()->getDriverName() === 'sqlite'
                 ? "select datetime('now') as n"
