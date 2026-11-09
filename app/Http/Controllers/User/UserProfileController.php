@@ -6,10 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Rules\UniqueAccountEmail;
 use App\Services\AccountPassword;
 use App\Services\AuditLogger;
+use App\Support\ProfileImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -119,13 +119,12 @@ class UserProfileController extends Controller
             'profile_image_file.max' => 'Image size must be less than 5MB',
         ]);
 
-        // FIX vs legacy base64-in-LONGTEXT and per-upload ALTER TABLE.
-        $file = $data['profile_image_file'];
-        $filename = 'images/user-' . auth('user')->user()->user_id . '-profile.' . $file->extension();
-        Storage::disk('public')->put($filename, file_get_contents($file->getRealPath()));
-        $path = '/storage/' . $filename;
+        $user = auth('user')->user();
+        $old = $user->profile_image;
+        $path = ProfileImage::store($data['profile_image_file'], 'user-' . $user->user_id . '-profile');
 
-        auth('user')->user()->update(['profile_image' => $path]);
+        $user->update(['profile_image' => $path]);
+        ProfileImage::deleteUnused($old);
 
         AuditLogger::log('Updated profile picture', 'user_account:' . auth('user')->user()->user_id, null, AuditLogger::actorFor('user', auth('user')->user()), $request);
 

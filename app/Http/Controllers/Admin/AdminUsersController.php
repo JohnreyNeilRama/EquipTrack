@@ -13,12 +13,12 @@ use App\Rules\UniqueAccountEmail;
 use App\Services\AuditLogger;
 use App\Services\UserAccountCreator;
 use App\Services\UserAccountEditor;
+use App\Support\ProfileImage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
@@ -408,31 +408,43 @@ class AdminUsersController extends Controller
             ],
         ]);
 
-        // FIX vs legacy: base64-in-LONGTEXT storage + ALTER TABLE per upload.
-        $file = $data['admin_profile_img_file'];
-        $filename = 'images/' . $data['target_user_type'] . '-' . $data['target_user_id'] . '-profile.' . $file->extension();
-        Storage::disk('public')->put($filename, file_get_contents($file->getRealPath()));
-        $path = '/storage/' . $filename;
-
         $targetExists = match ($data['target_user_type']) {
             'department' => DepartmentAccount::whereKey($data['target_user_id'] - 100000)->exists(),
             'admin' => Admin::whereKey($data['target_user_id'] - self::ADMIN_ID_OFFSET)->exists(),
             default => UserAccount::whereKey($data['target_user_id'])->exists(),
         };
 
-        if ($data['target_user_type'] === 'admin') {
-            Admin::whereKey($data['target_user_id'] - self::ADMIN_ID_OFFSET)->update(['profile_image' => $path]);
+        // A new, unique file each time (so the new picture shows right away);
+        // the previous file is deleted once nothing uses it.
+        $path = $targetExists
+            ? ProfileImage::store($data['admin_profile_img_file'], $data['target_user_type'] . '-' . $data['target_user_id'] . '-profile')
+            : null;
+        $old = [];
+
+        if (!$targetExists) {
+            // Nothing to update: the account no longer exists.
+        } elseif ($data['target_user_type'] === 'admin') {
+            $admin = Admin::find($data['target_user_id'] - self::ADMIN_ID_OFFSET);
+            $old[] = $admin->profile_image;
+            $admin->update(['profile_image' => $path]);
         } elseif ($data['target_user_type'] === 'department') {
             $account = DepartmentAccount::find($data['target_user_id'] - 100000);
-            $account?->update(['profile_image' => $path]);
-            if ($account?->department_id) {
-                // Legacy synced the department banner + all department accounts.
+            $old[] = $account->profile_image;
+            if ($account->department_id) {
+                // The account's picture is also its department's logo.
+                $old[] = Department::whereKey($account->department_id)->value('profile_image');
                 Department::where('department_id', $account->department_id)->update(['profile_image' => $path]);
                 DepartmentAccount::where('department_id', $account->department_id)->update(['profile_image' => $path]);
+            } else {
+                $account->update(['profile_image' => $path]);
             }
         } else {
-            UserAccount::where('user_id', $data['target_user_id'])->update(['profile_image' => $path]);
+            $user = UserAccount::find($data['target_user_id']);
+            $old[] = $user->profile_image;
+            $user->update(['profile_image' => $path]);
         }
+
+        ProfileImage::deleteUnused(...$old);
 
         if ($targetExists) {
             AuditLogger::log(

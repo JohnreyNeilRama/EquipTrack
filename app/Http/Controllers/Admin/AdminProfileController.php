@@ -7,10 +7,10 @@ use App\Models\Admin;
 use App\Rules\UniqueAccountEmail;
 use App\Services\AccountPassword;
 use App\Services\AuditLogger;
+use App\Support\ProfileImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -121,13 +121,12 @@ class AdminProfileController extends Controller
             'admin_avatar_file' => ['required', 'file', 'max:5120', 'mimes:jpeg,png,webp,gif'],
         ]);
 
-        // FIX vs legacy base64-in-LONGTEXT storage.
-        $file = $data['admin_avatar_file'];
-        $filename = 'images/admin-' . auth('admin')->user()->admin_id . '-avatar.' . $file->extension();
-        Storage::disk('public')->put($filename, file_get_contents($file->getRealPath()));
-        $path = '/storage/' . $filename;
+        $adminId = auth('admin')->user()->admin_id;
+        $old = Admin::whereKey($adminId)->value('profile_image');
+        $path = ProfileImage::store($data['admin_avatar_file'], 'admin-' . $adminId . '-avatar');
 
-        Admin::where('admin_id', auth('admin')->user()->admin_id)->update(['profile_image' => $path]);
+        Admin::where('admin_id', $adminId)->update(['profile_image' => $path]);
+        ProfileImage::deleteUnused($old);
 
         AuditLogger::log('Updated profile picture', 'admin:' . auth('admin')->user()->admin_id, null, AuditLogger::actorFor('admin', auth('admin')->user()), $request);
 

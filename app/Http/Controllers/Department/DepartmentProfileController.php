@@ -8,9 +8,9 @@ use App\Models\DepartmentAccount;
 use App\Rules\UniqueAccountEmail;
 use App\Services\AccountPassword;
 use App\Services\AuditLogger;
+use App\Support\ProfileImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -100,15 +100,15 @@ class DepartmentProfileController extends Controller
         ]);
 
         $account = auth('dept')->user();
-        $file = $data['avatar_file'];
-        $filename = 'images/dept-account-' . $account->dept_acc_id . '-avatar.' . $file->extension();
-        Storage::disk('public')->put($filename, file_get_contents($file->getRealPath()));
-        $path = '/storage/' . $filename;
+        // The account's picture is also its department's logo.
+        $old = [$account->profile_image, Department::whereKey($account->department_id)->value('profile_image')];
+        $path = ProfileImage::store($data['avatar_file'], 'dept-account-' . $account->dept_acc_id . '-avatar');
 
         $account->update(['profile_image' => $path]);
         if ($account->department_id) {
             Department::where('department_id', $account->department_id)->update(['profile_image' => $path]);
         }
+        ProfileImage::deleteUnused(...$old);
 
         AuditLogger::log('Updated profile picture', 'department_account:' . $account->dept_acc_id, null, AuditLogger::actorFor('dept', $account), $request);
 
