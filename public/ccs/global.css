@@ -1023,24 +1023,45 @@ tbody tr:hover td {
     }
 }
 
-/* Dark theme shared overrides */
+/* ---------- Dropdowns (User, Department and Admin) ----------
+   Every dropdown shows exactly one arrow, on the right:
+   - by default the arrow below (drawn once: no-repeat), instead of the
+     browser's own arrow, so dropdowns look the same in every browser;
+   - a dropdown inside a wrapper that has its own arrow icon (filter cards,
+     equipment forms, Register) shows only that icon.
+   Pages may still style a dropdown's colours, size and arrow position. */
+select:not([multiple]):not([size]) {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px 16px;
+}
+
+/* Dark Mode: a lighter arrow, still drawn once, and the open list of
+   options in dark colours too. */
 .dark-theme select,
 .dark-theme .form-select,
 .dark-theme .flat-select,
 .dark-theme .filter-select,
 .dark-theme .select-control {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    color-scheme: dark;
 }
 
-/* Prevent duplicate background SVG arrow on select controls wrapped with custom icon */
-.filter-select-wrapper select,
-.filter-select-item select,
-.select-wrapper select,
-.flat-select-wrapper select,
-.dark-theme .filter-select-wrapper select,
-.dark-theme .filter-select-item select,
-.dark-theme .select-wrapper select,
-.dark-theme .flat-select-wrapper select {
+.dark-theme select option,
+.dark-theme select optgroup {
+    background-color: #1e293b;
+    color: #f8fafc;
+}
+
+/* Wrappers that draw their own arrow icon: no second arrow on the dropdown.
+   (A wrapper without an icon keeps the dropdown's own arrow.) */
+:is(.filter-select-wrapper, .filter-select-item, .select-wrapper, .flat-select-wrapper):has(> i, > svg) select,
+.dark-theme :is(.filter-select-wrapper, .filter-select-item, .select-wrapper, .flat-select-wrapper):has(> i, > svg) select {
     background-image: none !important;
     appearance: none !important;
     -webkit-appearance: none !important;

@@ -160,6 +160,13 @@
     .detail-form-control[readonly] {
         cursor: default;
     }
+    /* Dropdowns (e.g. the penalty Type on Return Confirmation): room for the
+       arrow so long options never run under it */
+    select.detail-form-control {
+        padding-right: 40px;
+        cursor: pointer;
+        text-overflow: ellipsis;
+    }
 
     .detail-lower-section {
         border-top: 1px solid var(--border-color);
