@@ -199,3 +199,89 @@
         transition: none !important;
     }
 }
+
+/* ---------- Top bar on phones: theme, bell and profile spaced out ----------
+   User, Department and Admin: even spacing, the same 40px tap size, a thin
+   divider before the profile, and a badge that stands clear of the bell.
+   Desktop and tablet (above 768px) are unchanged. */
+@media (max-width: 768px) {
+    .top-navbar .navbar-right {
+        gap: 10px;
+        height: 50px;
+        padding: 0 12px 0 5px;
+        border-radius: 25px;
+    }
+
+    .top-navbar .navbar-right .icon-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .top-navbar .navbar-right .icon-btn i {
+        font-size: 16px;
+    }
+
+    /* Badge: sits on the bell's corner with a ring in the bar's colour */
+    .top-navbar .notif-badge {
+        top: -3px;
+        right: -3px;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 5px;
+        border: 2px solid var(--card-bg);
+        box-sizing: border-box;
+    }
+
+    .top-navbar .user-profile {
+        gap: 6px;
+        height: 40px;
+        padding: 0 0 0 10px;
+        border-left: 1px solid var(--border-color);
+    }
+
+    .top-navbar .user-profile .profile-avatar {
+        width: 36px !important;
+        height: 36px !important;
+    }
+
+    .top-navbar .user-profile .dropdown-arrow {
+        width: 12px;
+        font-size: 11px;
+        text-align: center;
+    }
+}
+
+/* Small phones (360px and below): a little tighter so everything fits */
+@media (max-width: 360px) {
+    .top-navbar .navbar-right {
+        gap: 6px;
+        height: 46px;
+        padding: 0 10px 0 4px;
+    }
+
+    .top-navbar .navbar-right .icon-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .top-navbar .user-profile {
+        padding-left: 8px;
+    }
+
+    /* The picture alone opens the profile menu; the arrow's room goes to
+       the page name */
+    .top-navbar .user-profile .dropdown-arrow {
+        display: none;
+    }
+
+    .mobile-menu-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+    }
+
+    .top-navbar .user-profile .profile-avatar {
+        width: 32px !important;
+        height: 32px !important;
+    }
+}

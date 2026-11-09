@@ -353,3 +353,12 @@
         margin-left: 0;
     }
 }
+
+/* Small phones (360px and below): the page name is a little smaller and
+   breaks only between words ("Borrowing / History", not "Borrow / ing") */
+@media (max-width: 360px) {
+    .mobile-page-title {
+        font-size: 14px;
+        overflow-wrap: normal;
+    }
+}
