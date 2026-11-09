@@ -1,6 +1,6 @@
 @extends('layouts.department')
 
-@section('title', 'EquipTrack')
+@section('title', 'EquipTrack - Borrowing History')
 
 @push('css')
 <link rel="stylesheet" href="{{ asset('departments/css/history.css') }}?v={{ filemtime(public_path('departments/css/history.css')) }}">
@@ -187,30 +187,7 @@
 
 @push('scripts')
 <script>
-        // Mobile sidebar toggle
-        const sidebar = document.getElementById('sidebar');
-        const sidebarScrim = document.getElementById('sidebarScrim');
-        const topbarMenuBtn = document.getElementById('topbarMenuBtn');
 
-        function openSidebar() {
-            if (sidebar) sidebar.classList.add('open');
-            if (sidebarScrim) sidebarScrim.classList.add('show');
-        }
-        function closeSidebar() {
-            if (sidebar) sidebar.classList.remove('open');
-            if (sidebarScrim) sidebarScrim.classList.remove('show');
-        }
-
-        if (topbarMenuBtn) topbarMenuBtn.addEventListener('click', openSidebar);
-        if (sidebarScrim) sidebarScrim.addEventListener('click', closeSidebar);
-
-        // Notifications bell
-        const notifBtn = document.getElementById('notifBtn');
-        if (notifBtn) {
-            notifBtn.addEventListener('click', () => {
-                alert('No new notifications.');
-            });
-        }
 
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -479,7 +456,7 @@
             // First paint from the server payload, then poll in the background
             render();
 
-            setInterval(refreshHistory, REFRESH_MS);
+            setInterval(() => { if (!document.hidden) refreshHistory(); }, REFRESH_MS);
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
                     refreshHistory();

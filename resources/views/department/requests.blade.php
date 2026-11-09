@@ -1,6 +1,6 @@
 @extends('layouts.department')
 
-@section('title', 'EquipTrack')
+@section('title', 'EquipTrack - Borrow Requests')
 
 @push('css')
 {{-- Same table design as the Admin Requests page --}}
@@ -129,22 +129,6 @@
 
 @push('scripts')
 <script>
-    // Mobile sidebar toggle
-    const sidebar = document.getElementById('sidebar');
-    const sidebarScrim = document.getElementById('sidebarScrim');
-    const topbarMenuBtn = document.getElementById('topbarMenuBtn');
-
-    function openSidebar() {
-        if (sidebar) sidebar.classList.add('open');
-        if (sidebarScrim) sidebarScrim.classList.add('show');
-    }
-    function closeSidebar() {
-        if (sidebar) sidebar.classList.remove('open');
-        if (sidebarScrim) sidebarScrim.classList.remove('show');
-    }
-
-    if (topbarMenuBtn) topbarMenuBtn.addEventListener('click', openSidebar);
-    if (sidebarScrim) sidebarScrim.addEventListener('click', closeSidebar);
 
     // Summary cards follow the rows the shared table renders (initial load,
     // live polling and after every approve / reject).

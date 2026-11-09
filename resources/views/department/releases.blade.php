@@ -1,6 +1,6 @@
 @extends('layouts.department')
 
-@section('title', 'EquipTrack')
+@section('title', 'EquipTrack - Release Equipment')
 
 @push('css')
 {{-- Same table, badge and modal design as the Borrow Requests / Return Confirmation pages --}}
@@ -874,10 +874,14 @@
         }
 
         render();
-        setInterval(() => {
-            // Don't redraw the table under an open window.
+        // Refresh while the tab is visible (a hidden tab catches up when shown),
+        // and never redraw the table under an open window.
+        const refreshIfIdle = () => {
+            if (document.hidden) return;
             if (!modal.classList.contains('show') && !viewModal.classList.contains('show')) refresh();
-        }, REFRESH_MS);
+        };
+        setInterval(refreshIfIdle, REFRESH_MS);
+        document.addEventListener('visibilitychange', refreshIfIdle);
     })();
 </script>
 @endpush

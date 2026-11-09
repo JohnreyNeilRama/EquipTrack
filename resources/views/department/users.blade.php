@@ -1,10 +1,10 @@
 @extends('layouts.department')
 
-@section('title', 'EquipTrack')
+@section('title', 'EquipTrack - Department Users')
 
 @push('css')
 <link rel="stylesheet" href="{{ asset('departments/css/users.css') }}?v={{ filemtime(public_path('departments/css/users.css')) }}">
-<link rel="stylesheet" href="{{ asset('departments/css/user-details-modal.css') }}">
+<link rel="stylesheet" href="{{ asset('departments/css/user-details-modal.css') }}?v={{ filemtime(public_path('departments/css/user-details-modal.css')) }}">
 <link rel="stylesheet" href="{{ asset('departments/css/user-forms.css') }}?v={{ filemtime(public_path('departments/css/user-forms.css')) }}">
 @endpush
 
@@ -306,22 +306,6 @@
 
 @push('scripts')
 <script>
-        // Mobile sidebar toggle
-        const sidebar = document.getElementById('sidebar');
-        const sidebarScrim = document.getElementById('sidebarScrim');
-        const topbarMenuBtn = document.getElementById('topbarMenuBtn');
-
-        function openSidebar() {
-            if (sidebar) sidebar.classList.add('open');
-            if (sidebarScrim) sidebarScrim.classList.add('show');
-        }
-        function closeSidebar() {
-            if (sidebar) sidebar.classList.remove('open');
-            if (sidebarScrim) sidebarScrim.classList.remove('show');
-        }
-
-        if (topbarMenuBtn) topbarMenuBtn.addEventListener('click', openSidebar);
-        if (sidebarScrim) sidebarScrim.addEventListener('click', closeSidebar);
 
         document.addEventListener('DOMContentLoaded', () => {
             const tableBody = document.getElementById('usersTableBody');
@@ -428,7 +412,7 @@
 
                 // Profile picture: the user's own image, else a generated initials avatar
                 // (same fallback the admin View Details uses).
-                const fallbackAvatar = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.fullName) + '&background=385585&color=fff&size=300&bold=true';
+                const fallbackAvatar = '{{ url('/avatar') }}?name=' + encodeURIComponent(user.fullName) + '&background=385585&color=fff&size=300&bold=true';
                 const avatarUrl = user.profileImage || fallbackAvatar;
                 const avatarEl = document.getElementById('modalUserAvatar');
                 const photoEl = document.getElementById('modalUserProfileImg');
@@ -441,6 +425,7 @@
                 });
 
                 document.getElementById('modalUserName').textContent = user.fullName;
+                document.getElementById('modalUserName').title = user.fullName || '';
                 document.getElementById('modalUserRole').textContent = user.userType;
 
                 const statusBadge = document.getElementById('modalStatusBadge');
@@ -797,7 +782,7 @@
 
             // Initial render, then keep it current.
             renderTable();
-            setInterval(refreshUsers, REFRESH_MS);
+            setInterval(() => { if (!document.hidden) refreshUsers(); }, REFRESH_MS);
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') refreshUsers();
             });

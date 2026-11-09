@@ -1,6 +1,6 @@
 @extends('layouts.department')
 
-@section('title', 'EquipTrack')
+@section('title', 'EquipTrack - Return Confirmation')
 
 @push('css')
 {{-- Same table, badge and modal design as the Borrow Requests page --}}
@@ -1159,8 +1159,12 @@
                 .catch(err => console.error('Error fetching returns:', err));
         }
 
-        // New returns appear automatically.
-        setInterval(() => { if (!busy) loadReturns(); }, 5000);
+        // New returns appear automatically while the tab is visible; a hidden
+        // tab waits, then catches up as soon as it is shown again.
+        setInterval(() => { if (!busy && !document.hidden) loadReturns(); }, 5000);
+        document.addEventListener('visibilitychange', () => {
+            if (!busy && !document.hidden) loadReturns();
+        });
 
         function updateSummaryCards() {
             const count = status => returns.filter(r => r.status === status).length;
@@ -1570,7 +1574,7 @@
                 .finally(() => { busy = false; });
         }
 
-        function confirmReturn(id) {
+        async function confirmReturn(id) {
             const condition = selectedCondition();
             const remarks = inspectRemarks.value.trim();
 
@@ -1606,10 +1610,17 @@
                 payload.penalty_description = description;
             }
 
-            const question = condition === 'Lost'
-                ? 'Confirm that this equipment was lost? The unit will be removed from the equipment\'s total quantity.'
-                : `Confirm that this equipment was physically returned in ${condition} condition?`;
-            if (!confirm(question + (payload.penalty_type ? `\n\nA ${payload.penalty_type} penalty will also be recorded.` : ''))) return;
+            const lost = condition === 'Lost';
+            const question = lost
+                ? 'The unit will be removed from the equipment\'s total quantity.'
+                : `Confirm that this equipment was physically returned in ${condition} condition.`;
+            const ok = await equipConfirm({
+                title: lost ? 'Mark this equipment as lost?' : 'Confirm this return?',
+                message: question + (payload.penalty_type ? `\n\nA ${payload.penalty_type} penalty will also be recorded.` : ''),
+                confirmText: lost ? 'Mark as Lost' : 'Confirm Return',
+                tone: lost ? 'danger' : 'success',
+            });
+            if (!ok) return;
 
             const button = document.getElementById('confirmReturnBtn');
             const buttons = document.querySelectorAll('#reviewActionsFooter button');

@@ -187,8 +187,10 @@
         window.navInitials = @json($adminInitials);
     </script>
     <script src="{{ asset('js/admin-shell.js') }}"></script>
-    <script src="{{ asset('js/user-notifications.js') }}"></script>
+    <script src="{{ asset('js/user-notifications.js') }}?v={{ filemtime(public_path('js/user-notifications.js')) }}"></script>
     <script src="{{ asset('js/mobile-nav.js') }}?v={{ filemtime(public_path('js/mobile-nav.js')) }}"></script>
+    {{-- EquipTrack's own confirmation window (window.equipConfirm), instead of the browser's pop-up --}}
+    @include('partials.confirm-dialog')
     @stack('scripts')
     {{-- Phones: labels each table cell with its column name, so tables can
          show as cards (ccs/mobile-staff.css). Loaded after the page scripts;

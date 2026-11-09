@@ -547,7 +547,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('pfItemReceived').addEventListener('change', () => $('pfReceivedField').classList.remove('is-invalid'));
 
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
-    setInterval(refresh, 15000);
+    setInterval(() => { if (!document.hidden) refresh(); }, 15000);
 
     renderTable();
 });

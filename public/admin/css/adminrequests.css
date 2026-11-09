@@ -132,20 +132,34 @@
 }
 
 .modal-requester-avatar {
+    flex-shrink: 0;
     width: 48px;
     height: 48px;
     border-radius: 50%;
     object-fit: cover;
 }
 
+/* min-width: 0 lets the name column shrink to the card's width instead of
+   pushing past it */
 .modal-requester-meta {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
     gap: 2px;
     text-align: left;
 }
 
+/* Long names wrap (even one long word) and stop at two lines with "…";
+   the full name shows on hover (title) */
 .modal-requester-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     font-size: var(--fs-card-title);
     font-weight: 600;
     color: var(--text-main);
@@ -153,6 +167,7 @@
 }
 
 .modal-requester-details {
+    overflow-wrap: anywhere;
     font-size: var(--fs-small);
     color: var(--text-muted);
 }

@@ -1,6 +1,6 @@
 @extends('layouts.department')
 
-@section('title', 'EquipTrack')
+@section('title', 'EquipTrack - Dashboard')
 
 @push('css')
 <link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}?v={{ filemtime(public_path('admin/css/admindashboard.css')) }}">
@@ -505,20 +505,13 @@
     // First paint from server payload, then poll in background and on visibility change
     applyDashboard(dashboard);
 
-    setInterval(refreshDashboard, REFRESH_MS);
+    setInterval(() => { if (!document.hidden) refreshDashboard(); }, REFRESH_MS);
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
             refreshDashboard();
         }
     });
 
-    // Notification bell (placeholder)
-    const notifBtn = document.getElementById('notifBtn');
-    if (notifBtn) {
-        notifBtn.addEventListener('click', () => {
-            alert('No new notifications yet.');
-        });
-    }
     
 </script>
 {{-- Recent Borrow Requests: the Borrow Requests table script in compact mode --}}

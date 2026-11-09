@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'EquipTrack')
+@section('title', 'EquipTrack - Dashboard')
 
 @push('css')
 <link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}?v={{ filemtime(public_path('admin/css/admindashboard.css')) }}">
@@ -412,7 +412,7 @@
         // background and refresh whenever the tab regains focus.
         applyDashboard(dashboard);
 
-        setInterval(refreshDashboard, REFRESH_MS);
+        setInterval(() => { if (!document.hidden) refreshDashboard(); }, REFRESH_MS);
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 refreshDashboard();

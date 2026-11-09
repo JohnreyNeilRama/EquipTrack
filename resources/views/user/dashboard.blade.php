@@ -1,6 +1,6 @@
 @extends('layouts.user')
 
-@section('title', 'EquipTrack')
+@section('title', 'EquipTrack - Dashboard')
 
 @push('css')
 <link rel="stylesheet" href="{{ asset('user/css/usertable.css') }}?v={{ filemtime(public_path('user/css/usertable.css')) }}">

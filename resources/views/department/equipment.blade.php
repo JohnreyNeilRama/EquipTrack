@@ -1,6 +1,6 @@
 @extends('layouts.department')
 
-@section('title', 'EquipTrack')
+@section('title', 'EquipTrack - Department Equipment')
 
 @push('css')
 <link rel="stylesheet" href="{{ asset('departments/css/equipment.css') }}?v={{ filemtime(public_path('departments/css/equipment.css')) }}">
@@ -362,32 +362,7 @@
         
 
 
-        // Mobile sidebar toggle
-        const sidebar = document.getElementById('sidebar');
-        const sidebarScrim = document.getElementById('sidebarScrim');
-        const topbarMenuBtn = document.getElementById('topbarMenuBtn');
-        const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
 
-        function openSidebar() {
-            if (sidebar) sidebar.classList.add('open');
-            if (sidebarScrim) sidebarScrim.classList.add('show');
-        }
-        function closeSidebar() {
-            if (sidebar) sidebar.classList.remove('open');
-            if (sidebarScrim) sidebarScrim.classList.remove('show');
-        }
-
-        if (topbarMenuBtn) topbarMenuBtn.addEventListener('click', openSidebar);
-        if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', closeSidebar);
-        if (sidebarScrim) sidebarScrim.addEventListener('click', closeSidebar);
-
-        // Notifications
-        const notifBtn = document.getElementById('notifBtn');
-        if (notifBtn) {
-            notifBtn.addEventListener('click', () => {
-                alert('No new notifications.');
-            });
-        }
     
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -937,10 +912,16 @@
             });
 
             // Delete the item shown in the details view (same rules as the admin delete)
-            viewDeleteBtn.addEventListener('click', () => {
+            viewDeleteBtn.addEventListener('click', async () => {
                 const item = equipment.find(e => e.id == viewedItemId);
                 if (!item) return;
-                if (!confirm(`Are you sure you want to delete "${item.name}" (${item.serial_number})? This cannot be undone.`)) return;
+                const ok = await equipConfirm({
+                    title: 'Delete this equipment?',
+                    message: `"${item.name}" (${item.serial_number}) will be permanently deleted. This cannot be undone.`,
+                    confirmText: 'Delete',
+                    tone: 'danger',
+                });
+                if (!ok) return;
 
                 const payload = new FormData();
                 payload.append('equipment_id', item.id);

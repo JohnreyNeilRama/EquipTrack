@@ -1494,11 +1494,17 @@
         };
 
         // Delete Equipment
-        window.deleteEquipment = function(id) {
+        window.deleteEquipment = async function(id) {
             const item = equipment.find(e => e.equipment_id == id);
             if (!item) return;
 
-            if (confirm(`Are you sure you want to delete "${item.name}" (${item.serial_number})?`)) {
+            const ok = await equipConfirm({
+                title: 'Delete this equipment?',
+                message: `"${item.name}" (${item.serial_number}) will be permanently deleted. This cannot be undone.`,
+                confirmText: 'Delete',
+                tone: 'danger',
+            });
+            if (ok) {
                 const formData = new FormData();
                 formData.append('_token', CSRF_TOKEN);
                 formData.append('equipment_id', id);

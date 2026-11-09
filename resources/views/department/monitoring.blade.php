@@ -1,6 +1,6 @@
 @extends('layouts.department')
 
-@section('title', 'EquipTrack')
+@section('title', 'EquipTrack - Equipment Monitoring')
 
 @push('css')
 <link rel="stylesheet" href="{{ asset('departments/css/monitoring.css') }}?v={{ filemtime(public_path('departments/css/monitoring.css')) }}">
@@ -222,30 +222,7 @@
         
 
 
-        // Mobile sidebar toggle
-        const sidebar = document.getElementById('sidebar');
-        const sidebarScrim = document.getElementById('sidebarScrim');
-        const topbarMenuBtn = document.getElementById('topbarMenuBtn');
 
-        function openSidebar() {
-            if (sidebar) sidebar.classList.add('open');
-            if (sidebarScrim) sidebarScrim.classList.add('show');
-        }
-        function closeSidebar() {
-            if (sidebar) sidebar.classList.remove('open');
-            if (sidebarScrim) sidebarScrim.classList.remove('show');
-        }
-
-        if (topbarMenuBtn) topbarMenuBtn.addEventListener('click', openSidebar);
-        if (sidebarScrim) sidebarScrim.addEventListener('click', closeSidebar);
-
-        // Notifications bell
-        const notifBtn = document.getElementById('notifBtn');
-        if (notifBtn) {
-            notifBtn.addEventListener('click', () => {
-                alert('No new notifications.');
-            });
-        }
     
 
         document.addEventListener('DOMContentLoaded', () => {

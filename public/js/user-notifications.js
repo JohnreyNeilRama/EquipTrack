@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load, then stay current without a manual reload.
     refresh();
-    setInterval(refresh, REFRESH_MS);
+    setInterval(() => { if (!document.hidden) refresh(); }, REFRESH_MS);
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') refresh();
     });

@@ -84,8 +84,12 @@
                 .catch(err => console.error('Error fetching requests:', err));
         }
 
-        // Auto-refresh requests every 5 seconds for seamless automatic updating
-        setInterval(loadRequests, 5000);
+        // Auto-refresh every 15 seconds while the tab is visible; a hidden tab
+        // waits, then catches up as soon as it is shown again.
+        setInterval(() => { if (!document.hidden) loadRequests(); }, 15000);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) loadRequests();
+        });
 
         // The reviewer can act only on requests their role handles (the admin:
         // Expensive only; the department: every request for its equipment),
@@ -258,8 +262,15 @@
         }
 
         // Approve Request function
-        window.approveRequest = function(id) {
-            if (!confirm('Are you sure you want to approve this equipment request?')) return;
+        window.approveRequest = async function(id) {
+            const req = requests.find(r => r.id === id);
+            const ok = await equipConfirm({
+                title: 'Approve this request?',
+                message: req ? `${req.user} — ${req.equipment}` : 'Are you sure you want to approve this equipment request?',
+                confirmText: 'Approve',
+                tone: 'primary',
+            });
+            if (!ok) return;
 
             const formData = new FormData();
             formData.append('_token', CSRF_TOKEN);
@@ -341,8 +352,10 @@
             if (!req) return;
 
             // Populate modal user details
-            document.getElementById('modalUserAvatar').src = req.avatar || "https://ui-avatars.com/api/?name=" + encodeURIComponent(req.user);
-            document.getElementById('modalUserName').textContent = req.user;
+            document.getElementById('modalUserAvatar').src = req.avatar || "{{ url('/avatar') }}?name=" + encodeURIComponent(req.user);
+            const modalUserName = document.getElementById('modalUserName');
+            modalUserName.textContent = req.user;
+            modalUserName.title = req.user || '';
             document.getElementById('modalUserRole').textContent = req.role;
 
             document.getElementById('modalEqImg').src = req.img;

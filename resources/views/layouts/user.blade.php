@@ -166,7 +166,7 @@
         window.navInitials = @json($u?->initials() ?? 'US');
     </script>
     <script src="{{ asset('js/admin-shell.js') }}"></script>
-    <script src="{{ asset('js/user-notifications.js') }}"></script>
+    <script src="{{ asset('js/user-notifications.js') }}?v={{ filemtime(public_path('js/user-notifications.js')) }}"></script>
     <script src="{{ asset('js/mobile-nav.js') }}?v={{ filemtime(public_path('js/mobile-nav.js')) }}"></script>
     @stack('scripts')
 </body>
