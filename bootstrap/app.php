@@ -37,4 +37,22 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // Login and Register sent too often from one device (route throttle):
+        // back to the form with a message, instead of the bare "429 Too Many
+        // Requests" page. (Forgot / Reset Password have their own limit with
+        // a message on the page, in their controllers.)
+        $exceptions->render(function (\Illuminate\Http\Exceptions\ThrottleRequestsException $e, Request $request) {
+            if ($request->expectsJson() || !$request->isMethod('post')
+                || !$request->is('login', 'register')) {
+                return null;
+            }
+
+            $seconds = max(1, (int) ($e->getHeaders()['Retry-After'] ?? 60));
+            $wait = $seconds >= 60 ? 'a minute' : $seconds . ' seconds';
+
+            return back()
+                ->withInput($request->except('password', 'password_confirmation'))
+                ->withErrors(['email' => "Too many requests. Please wait {$wait} and try again."]);
+        });
     })->create();
