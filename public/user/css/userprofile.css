@@ -558,3 +558,45 @@
     }
 }
 
+
+/* Dark Mode: Edit Profile, Save Changes and Save Password use the same solid
+   blue as the other Dark Mode buttons (#2563eb, hover #1d4ed8), instead of the
+   lighter --primary-sidebar blue. Light Mode is unchanged. */
+.dark-theme .btn-edit-profile,
+.dark-theme .btn-save {
+    background-color: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.dark-theme .btn-edit-profile i,
+.dark-theme .btn-save i {
+    color: #ffffff;
+}
+
+/* By ID: global.css sets every Dark Mode .btn-save hover to #2563eb
+   !important, which would leave no visible hover change here. */
+.dark-theme #btnEditProfile:hover,
+.dark-theme #btnSaveEdit:hover:not(:disabled),
+.dark-theme #btnUpdatePassword:hover:not(:disabled) {
+    background-color: #1d4ed8 !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+
+.dark-theme #btnEditProfile:active,
+.dark-theme #btnSaveEdit:active:not(:disabled),
+.dark-theme #btnUpdatePassword:active:not(:disabled) {
+    background-color: #1e40af !important;
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.dark-theme .btn-edit-profile:focus-visible,
+.dark-theme .btn-save:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.45);
+}
+
+.dark-theme .btn-save:disabled {
+    background-color: #2563eb;
+}
