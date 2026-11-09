@@ -91,9 +91,4 @@ class Equipment extends Model
     {
         return $this->belongsTo(Department::class, 'department_id', 'department_id');
     }
-
-    public function borrowRequests()
-    {
-        return $this->hasMany(BorrowRequest::class, 'equipment_id', 'equipment_id');
-    }
 }

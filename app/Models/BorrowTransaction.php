@@ -133,12 +133,6 @@ class BorrowTransaction extends Model
         return $this->isOnLoan() && LoanTime::isOverdue($this->due_date);
     }
 
-    /** Return reminders Admin or Lab Personnel sent by hand. */
-    public function manualReminders()
-    {
-        return $this->hasMany(LoanManualReminder::class, 'transaction_id', 'transaction_id');
-    }
-
     /** Department account that confirmed or rejected the return. */
     public function returnReviewer()
     {

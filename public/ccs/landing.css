@@ -379,7 +379,7 @@ img {
     z-index: 3;
 }
 
-/* Mini picture (web-optimised copies of public/images/Mini_picture.png) fills the card */
+/* Mini picture (web-optimised Mini_picture-600/-1100.webp) fills the card */
 .hero-status-card img {
     display: block;
     width: 100%;

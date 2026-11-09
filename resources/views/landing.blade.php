@@ -1,6 +1,6 @@
 @extends('layouts.guest')
 
-@section('title', 'EquipTrack')
+@section('title', 'EquipTrack - Equipment Reservation and Asset Tracking')
 
 @push('css')
 <meta name="description" content="EquipTrack is a centralized platform for requesting, approving, borrowing, and returning school equipment.">
@@ -62,7 +62,7 @@
                 </div>
 
                 <div class="hero-status-card">
-                    {{-- Web-optimised copies of images/Mini_picture.png: 260px card on
+                    {{-- Web-optimised Mini picture: 260px card on
                          desktop, up to ~560px wide on phones (see .hero-status-card) --}}
                     <img src="{{ asset('images/Mini_picture-600.webp') }}"
                          srcset="{{ asset('images/Mini_picture-600.webp') }} 600w, {{ asset('images/Mini_picture-1100.webp') }} 1100w"

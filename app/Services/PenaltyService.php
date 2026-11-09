@@ -32,14 +32,6 @@ class PenaltyService
         return $rate > 0 && $days > 0 ? round($rate * $days, 2) : null;
     }
 
-    /** The penalty type that matches an inspected condition, if any. */
-    public static function typeForCondition(?string $condition): ?string
-    {
-        return in_array($condition, [Penalty::TYPE_DAMAGED, Penalty::TYPE_INCOMPLETE, Penalty::TYPE_LOST], true)
-            ? $condition
-            : null;
-    }
-
     /**
      * Records a Pending penalty on a returned loan. Returns an error message
      * instead when the loan is not returned yet or already has a penalty of

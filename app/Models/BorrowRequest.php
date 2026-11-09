@@ -93,12 +93,6 @@ class BorrowRequest extends Model
         return $this->hasOne(BorrowTransaction::class, 'request_id', 'request_id');
     }
 
-    /** Rejected, Cancelled or Expired: no one can approve or reject it any more. */
-    public function isClosed(): bool
-    {
-        return in_array($this->overall_status, ['Rejected', self::STATUS_CANCELLED, self::STATUS_EXPIRED], true);
-    }
-
     /**
      * Pending requests with no loan yet whose due date's return deadline has
      * passed: the dates are over, so they can no longer be approved.
