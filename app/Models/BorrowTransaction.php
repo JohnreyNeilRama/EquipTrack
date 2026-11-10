@@ -133,6 +133,39 @@ class BorrowTransaction extends Model
         return $this->isOnLoan() && LoanTime::isOverdue($this->due_date);
     }
 
+    /**
+     * The borrower's oldest overdue loan, which blocks new borrow requests
+     * until it is returned (config equiptrack.block_borrowing_with_overdue_item),
+     * or null. A loan whose return the borrower already submitted (waiting
+     * for the department's confirmation) no longer blocks; a rejected
+     * return does, since the item is still out.
+     */
+    public static function blockingBorrowFor(int $userId): ?self
+    {
+        if (!config('equiptrack.block_borrowing_with_overdue_item', true)) {
+            return null;
+        }
+
+        $now = LoanTime::now()->format('Y-m-d H:i:s');
+
+        return self::with('request.equipment')
+            ->onLoan()
+            ->whereHas('request', fn ($q) => $q->where('user_id', $userId))
+            ->where(fn ($q) => $q->where('due_date', '<', $now)->orWhere('status', self::STATUS_OVERDUE))
+            ->where(fn ($q) => $q->whereNull('return_status')->orWhere('return_status', '!=', self::RETURN_PENDING))
+            ->orderBy('due_date')
+            ->first();
+    }
+
+    /** Why new requests are blocked, for the Available Equipment page and the request form. */
+    public function borrowBlockMessage(): string
+    {
+        $equipment = $this->request?->equipment?->name ?? 'a borrowed item';
+
+        return 'You have overdue equipment: ' . $equipment . ' was due ' . LoanTime::dueBy($this->due_date)
+            . '. Return it first; you can borrow again once it is back.';
+    }
+
     /** Department account that confirmed or rejected the return. */
     public function returnReviewer()
     {

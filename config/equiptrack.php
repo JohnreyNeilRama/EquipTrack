@@ -23,6 +23,14 @@ return [
     'block_borrowing_with_pending_penalty' => (bool) env('BLOCK_BORROWING_WITH_PENDING_PENALTY', true),
 
     /*
+    | block_borrowing_with_overdue_item: students and faculty who still have
+    | an overdue item (not returned, or its return was rejected) cannot submit
+    | new borrow requests until they return it. A return waiting for the
+    | department's confirmation no longer blocks.
+    */
+    'block_borrowing_with_overdue_item' => (bool) env('BLOCK_BORROWING_WITH_OVERDUE_ITEM', true),
+
+    /*
     |--------------------------------------------------------------------------
     | Borrowing times
     |--------------------------------------------------------------------------

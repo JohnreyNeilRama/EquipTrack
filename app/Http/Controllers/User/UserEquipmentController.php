@@ -52,13 +52,41 @@ class UserEquipmentController extends Controller
         // Instructor Name field (see store()).
         $askInstructor = auth('user')->user()->role !== 'Faculty';
 
-        // A Pending penalty blocks new requests; the page explains why.
-        $blocking = Penalty::blockingBorrowFor((int) auth('user')->user()->user_id);
-        $penaltyBlock = $blocking?->borrowBlockMessage();
-        // Where the user submits proof for that penalty.
-        $penaltyBlockUrl = $blocking ? route('user.penalties', ['penalty' => $blocking->penalty_id]) : null;
+        // An overdue item or a Pending penalty blocks new requests; the page
+        // explains why and links to where the borrower can resolve it.
+        $borrowBlock = $this->borrowBlock((int) auth('user')->user()->user_id);
 
-        return view('user.equipment', compact('dbCategories', 'dbEquipment', 'availability', 'categoryCounts', 'askInstructor', 'penaltyBlock', 'penaltyBlockUrl'));
+        return view('user.equipment', compact('dbCategories', 'dbEquipment', 'availability', 'categoryCounts', 'askInstructor', 'borrowBlock'));
+    }
+
+    /**
+     * What stops this borrower from submitting new requests, or null: an
+     * overdue item first (it has to come back before anything else), then an
+     * unsettled penalty. Each comes with the page where it is resolved.
+     *
+     * @return array{message: string, url: string, action: string, icon: string}|null
+     */
+    private function borrowBlock(int $userId): ?array
+    {
+        if ($overdue = BorrowTransaction::blockingBorrowFor($userId)) {
+            return [
+                'message' => $overdue->borrowBlockMessage(),
+                'url' => route('user.returns'),
+                'action' => 'Return Item',
+                'icon' => 'fa-rotate-left',
+            ];
+        }
+
+        if ($penalty = Penalty::blockingBorrowFor($userId)) {
+            return [
+                'message' => $penalty->borrowBlockMessage(),
+                'url' => route('user.penalties', ['penalty' => $penalty->penalty_id]),
+                'action' => 'Submit Proof',
+                'icon' => 'fa-upload',
+            ];
+        }
+
+        return null;
     }
 
     /**
@@ -139,9 +167,10 @@ class UserEquipmentController extends Controller
 
         $instructorName = $askInstructor ? trim($data['instructor_name']) : null;
 
-        // An unsettled penalty blocks new requests (config equiptrack.block_borrowing_with_pending_penalty).
-        if ($blocking = Penalty::blockingBorrowFor((int) $userId)) {
-            return response()->json(['success' => false, 'message' => $blocking->borrowBlockMessage()], 403);
+        // An overdue item or an unsettled penalty blocks new requests (config
+        // equiptrack.block_borrowing_with_overdue_item / _with_pending_penalty).
+        if ($block = $this->borrowBlock((int) $userId)) {
+            return response()->json(['success' => false, 'message' => $block['message']], 403);
         }
 
         $quantity = (int) ($data['quantity'] ?? 1);

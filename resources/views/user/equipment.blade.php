@@ -28,14 +28,14 @@
 
 @section('content')
     <div class="equipment-container">
-        @if ($penaltyBlock)
+        @if ($borrowBlock)
             <div class="penalty-block-banner" role="alert">
                 <i class="fa-solid fa-scale-balanced" aria-hidden="true"></i>
                 <div>
                     <strong>Borrowing is on hold</strong>
-                    <span>{{ $penaltyBlock }}</span>
+                    <span>{{ $borrowBlock['message'] }}</span>
                 </div>
-                <a href="{{ $penaltyBlockUrl }}" class="penalty-block-action"><i class="fa-solid fa-upload" aria-hidden="true"></i> Submit Proof</a>
+                <a href="{{ $borrowBlock['url'] }}" class="penalty-block-action"><i class="fa-solid {{ $borrowBlock['icon'] }}" aria-hidden="true"></i> {{ $borrowBlock['action'] }}</a>
             </div>
         @endif
 
