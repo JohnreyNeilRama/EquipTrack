@@ -565,9 +565,10 @@ section[id] {
 /* --------------------------------------------------------------------
    Departments
    -------------------------------------------------------------------- */
+/* Ten departments: two even rows of five (two columns on phones). */
 .dept-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 20px;
 }
 
@@ -795,17 +796,54 @@ footer {
    Responsive
    ========================================================================== */
 @media (max-width: 1024px) {
+    /* Hero, one column (tablets and phones): centered text above the same
+       picture as on desktop, the campus photo with the Mini picture card
+       attached to its lower-left corner, scaled to the screen. */
     .hero .wrap {
         grid-template-columns: 1fr;
+        gap: 56px;
     }
 
-    .hero-visual {
-        max-width: 520px;
+    .hero-content {
+        max-width: 640px;
         margin: 0 auto;
+        text-align: center;
     }
 
+    .hero-description {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .hero-actions,
+    .hero-roles {
+        justify-content: center;
+    }
+
+    /* Room below for the card that hangs over the photo's bottom edge. */
+    .hero-visual {
+        width: 100%;
+        max-width: 560px;
+        margin: 0 auto 34px;
+    }
+
+    .hero-photo-frame img {
+        display: block;
+    }
+
+    /* The card takes the same share of the photo as on desktop (about
+       half its width), so it keeps its proportions at every size. */
     .hero-status-card {
-        left: 16px;
+        width: 48%;
+        left: -20px;
+        bottom: -34px;
+    }
+
+    /* The card covers the photo's lower-left corner, where the caption
+       sits on desktop, so the caption moves to the top-left corner. */
+    .hero-photo-caption {
+        top: 18px;
+        bottom: auto;
     }
 
     .hero-title {
@@ -822,7 +860,8 @@ footer {
     }
 
     .dept-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(5, 1fr);
+        gap: 14px;
     }
 
     .footer-grid {
@@ -897,21 +936,76 @@ footer {
 }
 
 @media (max-width: 640px) {
+    /* Hero on phones: smaller type that scales with the screen, full-width
+       stacked buttons, and the photo-with-card picture scaled down. */
     .hero {
-        padding: 132px 0 72px;
+        padding: 104px 0 56px;
+    }
+
+    .hero .wrap {
+        gap: 36px;
+    }
+
+    .hero-eyebrow {
+        font-size: 0.75rem;
+        padding: 6px 14px;
+        margin-bottom: 16px;
     }
 
     .hero-title {
-        font-size: 2.1rem;
+        font-size: clamp(1.8rem, 7.6vw, 2.25rem);
+        line-height: 1.15;
+        margin-bottom: 16px;
+    }
+
+    .hero-description {
+        font-size: 1rem;
+        line-height: 1.65;
+        margin-bottom: 1.75rem;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        max-width: 360px;
+        margin: 0 auto 1.75rem;
+    }
+
+    .hero-actions a {
+        width: 100%;
+    }
+
+    .hero-roles {
+        gap: 8px;
+    }
+
+    .role-chip {
+        font-size: 0.78rem;
+    }
+
+    .hero-visual {
+        margin-bottom: 26px;
+    }
+
+    /* A wider frame than desktop's on narrow screens: the campus photo
+       (886 x 498) loses only a sliver at the sides instead of half. */
+    .hero-photo-frame {
+        aspect-ratio: 16 / 10;
+        border-radius: 18px;
+    }
+
+    .hero-photo-caption {
+        left: 14px;
+        top: 12px;
+        font-size: 0.72rem;
     }
 
     .hero-status-card {
-        position: static;
-        width: 100%;
-        margin-top: -40px;
-        margin-left: 20px;
-        margin-right: 20px;
-        max-width: calc(100% - 40px);
+        width: 52%;
+        left: -10px;
+        bottom: -26px;
+        border-radius: 12px;
     }
 
     section {

@@ -63,10 +63,11 @@
 
                 <div class="hero-status-card">
                     {{-- Web-optimised Mini picture: 260px card on
-                         desktop, up to ~560px wide on phones (see .hero-status-card) --}}
+                         desktop, about half the photo's width on tablets
+                         and phones (see .hero-status-card) --}}
                     <img src="{{ asset('images/Mini_picture-600.webp') }}"
                          srcset="{{ asset('images/Mini_picture-600.webp') }} 600w, {{ asset('images/Mini_picture-1100.webp') }} 1100w"
-                         sizes="(max-width: 640px) calc(100vw - 80px), 260px"
+                         sizes="(max-width: 1024px) min(270px, 52vw), 260px"
                          width="600" height="400"
                          alt="EquipTrack on a laptop beside a projector, a camera and an approval checklist">
                 </div>
@@ -189,8 +190,24 @@
                     <span>Criminology</span>
                 </div>
                 <div class="dept-item">
-                    <img src="{{ asset('images/custom_department.jpg') }}" alt="Other departments">
-                    <span>And more</span>
+                    <img src="{{ asset('images/arts_sciences.jpg') }}" alt="College of Arts and Sciences">
+                    <span>Arts and Sciences</span>
+                </div>
+                <div class="dept-item">
+                    <img src="{{ asset('images/hospitality_management.png') }}" alt="College of Hospitality Management">
+                    <span>Hospitality Management</span>
+                </div>
+                <div class="dept-item">
+                    <img src="{{ asset('images/nursing.jpg') }}" alt="College of Nursing">
+                    <span>Nursing</span>
+                </div>
+                <div class="dept-item">
+                    <img src="{{ asset('images/social_work.jpg') }}" alt="College of Social Work">
+                    <span>Social Work</span>
+                </div>
+                <div class="dept-item">
+                    <img src="{{ asset('images/custom_department.png') }}" alt="College of Customs Administration">
+                    <span>Customs Administration</span>
                 </div>
             </div>
         </div>
