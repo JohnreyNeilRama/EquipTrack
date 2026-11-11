@@ -24,8 +24,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class AdminUsersController extends Controller
@@ -155,14 +155,23 @@ class AdminUsersController extends Controller
      */
     public function resendInvite(Request $request): RedirectResponse
     {
-        $data = $request->validate(['user_id' => ['required', 'integer', 'min:1']]);
-        $account = UserAccount::find($data['user_id']);
+        $data = $request->validate([
+            'user_id' => ['required', 'integer', 'min:1'],
+            'user_type' => ['nullable', 'in:user_account,department,admin'],
+        ]);
+
+        // Department rows carry a 100000 offset on the page, admin rows 200000 (see fetchDbUsers).
+        $account = match ($data['user_type'] ?? 'user_account') {
+            'department' => DepartmentAccount::find($data['user_id'] - 100000),
+            'admin' => Admin::find($data['user_id'] - self::ADMIN_ID_OFFSET),
+            default => UserAccount::find($data['user_id']),
+        };
 
         if (!$account) {
             return redirect()->route('admin.users')->with('serverMsg', 'That account no longer exists.')->with('serverMsgType', 'error');
         }
 
-        if (!$account->hasVerifiedEmail() && !$account->invited_at) {
+        if ($account instanceof UserAccount && !$account->hasVerifiedEmail() && !$account->invited_at) {
             try {
                 $account->sendEmailVerificationNotification();
             } catch (\Throwable $e) {
@@ -235,7 +244,9 @@ class AdminUsersController extends Controller
 
         $changed = UserAccountEditor::update($account, $data, AuditLogger::actorFor('admin', auth('admin')->user()), $request);
 
-        if ($adminEmailChanging) {
+        // An Admin still waiting for their invite never used the old address
+        // (often a typo being fixed): no takeover alert; resend the invite instead.
+        if ($adminEmailChanging && $account->isSetUp()) {
             AdminEmailChange::notifyOldAddress($account, $oldAdminEmail, $data['email'], auth('admin')->user(), $request);
         }
 
@@ -256,19 +267,21 @@ class AdminUsersController extends Controller
             'name' => ['required', 'string', 'max:100'],
             'employee_id' => ['nullable', 'string', 'max:50'],
             'email' => ['required', 'email', 'max:100', Rule::unique('admin', 'email'), Rule::unique('admin', 'username'), new UniqueAccountEmail()],
-            'password' => ['required', 'string', Password::defaults()],
         ], [
             'name.required' => "Enter the administrator's full name.",
             'email.unique' => 'An account with email :input already exists.',
         ]);
 
+        // The new Admin sets their own password from the invite email
+        // (UserInvites); until then nobody can sign in to the account.
         $admin = Admin::create([
             'name' => $data['name'],
             'username' => $data['email'],
             'email' => $data['email'],
             'employee_id' => ($data['employee_id'] ?? '') ?: null,
-            'password' => Hash::make($data['password']),
+            'password' => Hash::make(Str::random(40)),
             'status' => 'Active',
+            'invited_at' => now(),
         ]);
 
         AuditLogger::log(
@@ -279,10 +292,14 @@ class AdminUsersController extends Controller
             $request,
         );
 
+        $inviteError = UserInvites::send($admin, auth('admin')->user(), $request);
+
         return redirect()
             ->route('admin.users')
-            ->with('serverMsg', "Administrator account for '{$data['name']}' created successfully!")
-            ->with('serverMsgType', 'success');
+            ->with('serverMsg', $inviteError
+                ? "Administrator account for '{$data['name']}' was created. " . $inviteError
+                : "Administrator account for '{$data['name']}' created. An invite to set their password was emailed to {$data['email']}.")
+            ->with('serverMsgType', $inviteError ? 'error' : 'success');
     }
 
     /**
@@ -296,8 +313,10 @@ class AdminUsersController extends Controller
             return "You can't {$action} your own account. Ask another administrator to do it.";
         }
 
+        // Admins still waiting for their invite can't sign in yet, so they don't count.
         $otherActiveAdmins = Admin::where('admin_id', '!=', $target->admin_id)
             ->where(fn ($q) => $q->whereNull('status')->orWhere('status', '!=', 'Deactivated'))
+            ->where(fn ($q) => $q->whereNull('invited_at')->orWhereNotNull('email_verified_at'))
             ->count();
 
         if (strtolower((string) $target->status) !== 'deactivated' && $otherActiveAdmins === 0) {
@@ -305,6 +324,25 @@ class AdminUsersController extends Controller
         }
 
         return null;
+    }
+
+    /** active | inactive | invited (added by an Admin, password not set yet). */
+    private static function staffState(DepartmentAccount|Admin $account): string
+    {
+        return match (true) {
+            strcasecmp((string) $account->status, 'Deactivated') === 0 => 'inactive',
+            $account->hasPendingInvite() => 'invited',
+            default => 'active',
+        };
+    }
+
+    private static function staffStateLabel(DepartmentAccount|Admin $account): string
+    {
+        return match (self::staffState($account)) {
+            'inactive' => $account->status ?: 'Deactivated',
+            'invited' => 'Invite Sent',
+            default => $account->status ?: 'Active',
+        };
     }
 
     /** Value of the Department field that means "create a new department with this account". */
@@ -332,7 +370,6 @@ class AdminUsersController extends Controller
             'full_name' => ['required', 'string', 'max:255'],
             'employee_id' => ['required', 'string', 'max:100', Rule::unique('department_account', 'employee_id')],
             'email' => ['required', 'email', 'max:100', Rule::unique('department_account', 'email'), new UniqueAccountEmail()],
-            'password' => ['required', 'string', Password::defaults()],
         ] + ($isNewDepartment ? [
             'new_department_name' => ['required', 'string', 'max:255', Rule::unique('department', 'department_name')],
             'new_department_code' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9-]+$/', Rule::unique('department', 'department_code')],
@@ -370,7 +407,10 @@ class AdminUsersController extends Controller
                 // Every Department Account is its department's Department Head.
                 'role' => DepartmentAccount::ROLE,
                 'department_id' => $department->department_id,
-                'password' => Hash::make($data['password']),
+                // The Lab Personnel member sets their own password from the
+                // invite email (UserInvites); until then nobody can sign in.
+                'password' => Hash::make(Str::random(40)),
+                'invited_at' => now(),
                 // Legacy copied the department's existing image to the new account
                 'profile_image' => $department->profile_image
                     ?? DepartmentAccount::where('department_id', $department->department_id)
@@ -399,14 +439,19 @@ class AdminUsersController extends Controller
             $request,
         );
 
+        $inviteError = UserInvites::send($account, auth('admin')->user(), $request);
+
         $message = $isNewDepartment
-            ? "Department '{$department->department_name}' and its Department Account for '{$data['full_name']}' created successfully!"
-            : "Department account for '{$data['full_name']}' created successfully!";
+            ? "Department '{$department->department_name}' and its Department Account for '{$data['full_name']}' were created."
+            : "Department account for '{$data['full_name']}' was created.";
+        $message .= $inviteError
+            ? ' ' . $inviteError
+            : " An invite to set their password was emailed to {$data['email']}.";
 
         return redirect()
             ->route('admin.users')
             ->with('serverMsg', $message)
-            ->with('serverMsgType', 'success');
+            ->with('serverMsgType', $inviteError ? 'error' : 'success');
     }
 
     public function toggleStatus(Request $request): RedirectResponse
@@ -779,7 +824,7 @@ class AdminUsersController extends Controller
             ];
         }
 
-        foreach (DepartmentAccount::get(['dept_acc_id', 'full_name', 'employee_id', 'email', 'status']) as $row) {
+        foreach (DepartmentAccount::get(['dept_acc_id', 'full_name', 'employee_id', 'email', 'status', 'invited_at', 'email_verified_at']) as $row) {
             $index[] = [
                 'type' => 'department',
                 'id' => (int) $row->dept_acc_id,
@@ -788,11 +833,11 @@ class AdminUsersController extends Controller
                 'idNumber' => $lower($row->employee_id ?: ('EMP-' . $row->dept_acc_id)),
                 'email' => $lower($row->email ?: 'dept@equiptrack.edu'),
                 'role' => 'department',
-                'state' => strcasecmp((string) $row->status, 'Deactivated') === 0 ? 'inactive' : 'active',
+                'state' => self::staffState($row),
             ];
         }
 
-        foreach (Admin::get(['admin_id', 'name', 'employee_id', 'email', 'username', 'status']) as $row) {
+        foreach (Admin::get(['admin_id', 'name', 'employee_id', 'email', 'username', 'status', 'invited_at', 'email_verified_at']) as $row) {
             $index[] = [
                 'type' => 'admin',
                 'id' => (int) $row->admin_id,
@@ -801,7 +846,7 @@ class AdminUsersController extends Controller
                 'idNumber' => $lower($row->employee_id ?: ('ADM-' . sprintf('%04d', $row->admin_id))),
                 'email' => $lower($row->email ?: $row->username),
                 'role' => 'administrator',
-                'state' => strcasecmp((string) $row->status, 'Deactivated') === 0 ? 'inactive' : 'active',
+                'state' => self::staffState($row),
             ];
         }
 
@@ -903,7 +948,8 @@ class AdminUsersController extends Controller
                 'email' => $email,
                 'address' => $deptName,
                 'department' => $deptName,
-                'status' => $row->status ?: 'Active',
+                'status' => self::staffStateLabel($row),
+                'state' => self::staffState($row),
                 'username' => $email !== '' ? explode('@', $email)[0] : 'dept',
                 'employee_id' => $empId,
                 'department_id' => $row->department_id,
@@ -931,7 +977,8 @@ class AdminUsersController extends Controller
                 'email' => (string) $email,
                 'address' => 'N/A',
                 'department' => 'All Departments',
-                'status' => $row->status ?: 'Active',
+                'status' => self::staffStateLabel($row),
+                'state' => self::staffState($row),
                 'username' => (string) $row->username,
                 'is_self' => (int) $row->admin_id === $currentAdminId,
                 // Added before this column existed: unknown.

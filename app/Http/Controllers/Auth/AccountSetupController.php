@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin;
+use App\Models\DepartmentAccount;
 use App\Models\UserAccount;
 use App\Services\AuditLogger;
+use App\Services\PasswordResetAccounts;
+use App\Services\UserInvites;
 use App\Support\LoginLockout;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,10 +21,12 @@ use Illuminate\View\View;
 
 /**
  * Set Your Password: the page the invite email links to
- * (/account/setup/{token}?email=...), for Student and Faculty accounts added by
- * staff. The token is checked by the "user_invites" broker (hashed, 7 days,
- * single use). Choosing the password also confirms the email address, since
- * only the inbox owner has the link. The person then logs in.
+ * (/account/setup/{token}?email=...), for accounts added by someone else:
+ * Students and Faculty added by staff, and Department (Lab Personnel) and
+ * Admin accounts added by an Admin. The token is checked by the account
+ * type's invite broker (hashed, 7 days, single use). Choosing the password
+ * also confirms the email address, since only the inbox owner has the link.
+ * The person then logs in.
  */
 class AccountSetupController extends Controller
 {
@@ -31,13 +37,14 @@ class AccountSetupController extends Controller
     public function show(Request $request, string $token): View
     {
         $email = trim((string) $request->query('email', ''));
-        $account = $this->invited($email);
+        $found = $this->invited($email);
+        $account = $found['account'] ?? null;
 
         return view('auth.account-setup', [
             'token' => $token,
             'email' => $email,
-            'name' => $account?->fullName() ?: null,
-            'linkValid' => $account && Password::broker('user_invites')->tokenExists($account, $token),
+            'name' => $account ? (self::displayName($account) ?: null) : null,
+            'linkValid' => $account && Password::broker(UserInvites::broker($account))->tokenExists($account, $token),
         ]);
     }
 
@@ -63,8 +70,9 @@ class AccountSetupController extends Controller
             'password.confirmed' => 'Password and confirm password do not match.',
         ]);
 
-        $account = $this->invited($data['email']);
-        $broker = Password::broker('user_invites');
+        $found = $this->invited($data['email']);
+        $account = $found['account'] ?? null;
+        $broker = $account ? Password::broker(UserInvites::broker($account)) : null;
 
         if (!$account || !$broker->tokenExists($account, $data['token'])) {
             return back()->with('link_invalid', true)->withErrors(['email' => self::INVALID_LINK]);
@@ -77,7 +85,7 @@ class AccountSetupController extends Controller
                 'password' => $data['password'],
                 'password_confirmation' => $data['password'],
             ],
-            function (UserAccount $account, string $password) {
+            function ($account, string $password) {
                 $account->forceFill([
                     'password' => Hash::make($password),
                     'remember_token' => Str::random(60),
@@ -90,13 +98,14 @@ class AccountSetupController extends Controller
             return back()->with('link_invalid', true)->withErrors(['email' => self::INVALID_LINK]);
         }
 
-        LoginLockout::clear($account->email);
+        // Admins can also sign in with their username.
+        LoginLockout::clear($account->email, $account instanceof Admin ? $account->username : null);
 
         AuditLogger::log(
             'Set password from invite',
-            'user_account:' . $account->user_id,
+            PasswordResetAccounts::entity($found['guard'], $account),
             'Email address confirmed: ' . $account->email,
-            AuditLogger::actorFor('user', $account),
+            AuditLogger::actorFor($found['guard'], $account),
             $request,
         );
 
@@ -104,20 +113,32 @@ class AccountSetupController extends Controller
             ->with('status', 'Your password is set and your email is confirmed. Log in with your new password.');
     }
 
-    /** The invited account for this email: not deactivated and not set up yet. */
-    private function invited(string $email): ?UserAccount
+    /**
+     * The invited account for this email (any account type): not deactivated
+     * and not set up yet.
+     *
+     * @return array{account: UserAccount|DepartmentAccount|Admin, guard: string}|null
+     */
+    private function invited(string $email): ?array
     {
-        $email = trim($email);
-        if ($email === '') {
+        $found = PasswordResetAccounts::find($email);
+        if (!$found) {
             return null;
         }
 
-        $account = UserAccount::where('email', $email)->first();
+        $account = $found['account'];
 
-        return $account
-            && !$account->hasVerifiedEmail()
-            && strcasecmp((string) $account->status, UserAccount::STATUS_DEACTIVATED) !== 0
-            ? $account
+        return !UserInvites::isSetUp($account) && !PasswordResetAccounts::isDeactivated($account)
+            ? ['account' => $account, 'guard' => $found['guard']]
             : null;
+    }
+
+    private static function displayName(UserAccount|DepartmentAccount|Admin $account): string
+    {
+        return trim((string) match (true) {
+            $account instanceof Admin => $account->name,
+            $account instanceof DepartmentAccount => $account->full_name,
+            default => $account->fullName(),
+        });
     }
 }

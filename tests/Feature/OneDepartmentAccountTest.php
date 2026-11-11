@@ -102,7 +102,7 @@ class OneDepartmentAccountTest extends TestCase
             'new_department_code' => 'coe',
             'new_department_college' => 'College of Engineering',
         ])->assertSessionHasNoErrors()
-            ->assertSessionHas('serverMsg', "Department 'College of Engineering' and its Department Account for 'Engr. Maria Santos' created successfully!");
+            ->assertSessionHas('serverMsg', "Department 'College of Engineering' and its Department Account for 'Engr. Maria Santos' were created. An invite to set their password was emailed to santos@example.com.");
 
         $department = Department::where('department_code', 'COE')->firstOrFail();
         $this->assertSame('College of Engineering', $department->department_name);

@@ -21,16 +21,17 @@ use Illuminate\Http\Request;
  */
 class FacultyApproval
 {
-    /** Whether the department has a Department Account that can sign in. */
+    /**
+     * Whether the department has a Department Account that can sign in: not
+     * deactivated, and not still waiting for its invite (no password yet).
+     */
     public static function departmentHasActiveAccount(?int $departmentId): bool
     {
         if (!$departmentId) {
             return false;
         }
 
-        return DepartmentAccount::where('department_id', $departmentId)
-            ->where(fn ($q) => $q->whereNull('status')->orWhere('status', '!=', 'Deactivated'))
-            ->exists();
+        return self::canSignIn(DepartmentAccount::where('department_id', $departmentId))->exists();
     }
 
     /**
@@ -40,11 +41,17 @@ class FacultyApproval
      */
     public static function departmentsWithActiveAccount(): array
     {
-        return DepartmentAccount::whereNotNull('department_id')
-            ->where(fn ($q) => $q->whereNull('status')->orWhere('status', '!=', 'Deactivated'))
+        return self::canSignIn(DepartmentAccount::whereNotNull('department_id'))
             ->pluck('department_id')
             ->mapWithKeys(fn ($id) => [(int) $id => true])
             ->all();
+    }
+
+    private static function canSignIn($query)
+    {
+        return $query
+            ->where(fn ($q) => $q->whereNull('status')->orWhere('status', '!=', 'Deactivated'))
+            ->where(fn ($q) => $q->whereNull('invited_at')->orWhereNotNull('email_verified_at'));
     }
 
     /** Activates the account and emails the teacher; returns the message for staff. */

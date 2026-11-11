@@ -131,6 +131,20 @@ return [
             'expire' => 10080,
             'throttle' => 60,
         ],
+        // Invites for Department (Lab Personnel) and Admin accounts added by an
+        // Admin: set the first password (confirms the email). 7 days, 60-second wait.
+        'department_invites' => [
+            'provider' => 'department_accounts',
+            'table' => 'dept_invite_tokens',
+            'expire' => 10080,
+            'throttle' => 60,
+        ],
+        'admin_invites' => [
+            'provider' => 'admins',
+            'table' => 'admin_invite_tokens',
+            'expire' => 10080,
+            'throttle' => 60,
+        ],
         // System administrators
         'admins' => [
             'provider' => 'admins',

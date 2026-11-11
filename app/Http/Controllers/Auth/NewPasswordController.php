@@ -103,8 +103,11 @@ class NewPasswordController extends Controller
                 ]);
 
                 // The link reached this inbox, so the address is confirmed too
-                // (Students & Faculty; e.g. an invite that expired).
+                // (e.g. an invite that expired): Students & Faculty, and staff
+                // accounts still waiting for their invite.
                 if ($account instanceof MustVerifyEmail && !$account->hasVerifiedEmail()) {
+                    $account->forceFill(['email_verified_at' => now()]);
+                } elseif (method_exists($account, 'hasPendingInvite') && $account->hasPendingInvite()) {
                     $account->forceFill(['email_verified_at' => now()]);
                 }
 

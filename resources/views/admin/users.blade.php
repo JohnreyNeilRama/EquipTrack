@@ -358,11 +358,7 @@
                         <input type="email" id="admEmail" name="email" class="form-control-flat" required maxlength="100" placeholder="name@example.com" value="{{ $adminOld ? old('email') : '' }}">
                     </div>
 
-                    <div class="form-group-flat">
-                        <label for="admPassword">Password</label>
-                        <input type="password" id="admPassword" name="password" class="form-control-flat" required minlength="8" autocomplete="new-password" title="At least 8 characters, with letters and numbers." aria-describedby="admPasswordHint">
-                        <p class="pw-hint" id="admPasswordHint">At least 8 characters, with letters and numbers.</p>
-                    </div>
+                    <p class="pw-hint">We'll email them a link to set their own password. Opening it also confirms their email address.</p>
 
                     <button type="submit" class="btn-submit-request" style="margin-top: 10px;">
                         Create Administrator Account
@@ -573,11 +569,7 @@
                         Each department has one Department Account. To change who manages a department, edit its existing account. For a department that isn't listed yet, choose "+ Add a new department".
                     </p>
 
-                    <div class="form-group-flat">
-                        <label>Password <span style="color: #ef4444;">*</span></label>
-                        <input type="password" id="deptPassword" name="password" class="form-control-flat" required minlength="8" title="At least 8 characters, with letters and numbers." aria-describedby="deptPasswordHint">
-                        <p class="pw-hint" id="deptPasswordHint">At least 8 characters, with letters and numbers.</p>
-                    </div>
+                    <p class="pw-hint">We'll email them a link to set their own password. Opening it also confirms their email address.</p>
 
                     <button type="submit" class="btn-submit-request" style="margin-top: 10px;">
                         Create Department Account
@@ -705,7 +697,7 @@
 
         const STATE_NOTES = {
             pending: 'This teacher registered themselves and is waiting for approval by the Lab Personnel of their department (on their Users page). Editing is unavailable until the account is approved.',
-            invited: 'Waiting for this person to set their password from the invite email. If the address was wrong, fix it with Edit Details, then resend the invite.',
+            invited: 'Waiting for this person to set their password from the invite email; until then nobody can sign in to this account. If the address was wrong, fix it with Edit Details, then resend the invite.',
             unverified: 'This person has not verified their email address yet, so they cannot use EquipTrack.',
         };
         // department_id => dept_acc_id of the department's one Department Account
@@ -1214,8 +1206,8 @@
 
         // Resend invite (account added by staff) or verification email (self-registered).
         document.getElementById('modalResendBtn').addEventListener('click', () => {
-            if (activeModalUser && activeModalUser.db_type === 'user_account') {
-                postForm(URL_INVITE, { user_id: activeModalUser.id });
+            if (activeModalUser) {
+                postForm(URL_INVITE, { user_id: activeModalUser.id, user_type: activeModalUser.db_type });
             }
         });
 
@@ -1440,12 +1432,6 @@
         // Quick checks before sending; the server checks everything again.
         adminForm.addEventListener('submit', (e) => {
             const email = document.getElementById('admEmail').value.trim().toLowerCase();
-            const password = document.getElementById('admPassword').value;
-            if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
-                e.preventDefault();
-                showNotification('Validation Error', 'The password must be at least 8 characters and include a letter and a number.', 'error');
-                return;
-            }
             if (users.some(u => (u.email || '').toLowerCase() === email || (u.username || '').toLowerCase() === email)) {
                 e.preventDefault();
                 showNotification('Registration Error', 'An account with this email already exists.', 'error');

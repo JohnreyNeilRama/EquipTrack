@@ -7,9 +7,11 @@ use App\Models\AuditTrail;
 use App\Models\Penalty;
 use App\Services\AuditCatalog;
 use App\Services\PasswordResetAccounts;
+use App\Notifications\UserInviteNotification;
 use App\Services\UserAccountEditor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Tests\Concerns\CreatesEquipTrackRecords;
 use Tests\TestCase;
 
@@ -54,17 +56,36 @@ class AdminAccountManagementTest extends TestCase
         $maria = Admin::where('email', 'maria@example.com')->firstOrFail();
         $this->assertSame('Active', $maria->status);
         $this->assertSame('maria@example.com', $maria->username);   // the email is also the username
-        $this->assertTrue(Hash::check('Admin2026', $maria->password));
+        // The Admin who added her chose no password: she sets her own from the invite.
+        $this->assertFalse(Hash::check('Admin2026', $maria->password));
+        $this->assertTrue($maria->hasPendingInvite());
 
         $audit = AuditTrail::where('affected_entity', 'admin:' . $maria->admin_id)->where('action', 'Added admin account')->firstOrFail();
         $this->assertSame($this->me->admin_id, (int) $audit->admin_id);
         $this->assertSame('Added User', AuditCatalog::classify($audit->action, $audit->affected_entity)['label']);
     }
 
-    public function test_the_new_administrator_can_sign_in_and_last_online_is_recorded(): void
+    public function test_the_new_administrator_sets_a_password_from_the_invite_then_signs_in(): void
     {
+        Notification::fake();
         $this->addAdmin();
+        $maria = Admin::where('email', 'maria@example.com')->firstOrFail();
+
+        $token = null;
+        Notification::assertSentTo($maria, UserInviteNotification::class, function ($n) use (&$token) {
+            $token = $n->token;
+
+            return true;
+        });
+
+        // Nobody can sign in before she chooses a password.
         $this->app['auth']->forgetGuards();
+        $this->post('/login', ['email' => 'maria@example.com', 'password' => 'Admin2026'])->assertSessionHasErrors('email');
+
+        $this->post(route('account.setup.store'), [
+            'token' => $token, 'email' => 'maria@example.com', 'password' => 'Admin2026', 'password_confirmation' => 'Admin2026',
+        ])->assertRedirect(route('login'));
+        $this->assertTrue($maria->fresh()->isSetUp());
 
         $this->post('/login', ['email' => 'maria@example.com', 'password' => 'Admin2026'])
             ->assertRedirect(route('admin.dashboard'));
@@ -83,7 +104,6 @@ class AdminAccountManagementTest extends TestCase
             // Same spelling: MySQL/MariaDB also match other capitalisations, the SQLite test database does not.
             "Lab Personnel's email" => [['email' => 'lab@example.com'], 'already used by another EquipTrack account'],
             'an existing administrator email' => [['email' => 'maria@example.com'], 'already exists'],
-            'a weak password' => [['email' => 'x@example.com', 'password' => 'short'], 'at least 8 characters'],
             'no name' => [['email' => 'y@example.com', 'name' => ''], "Enter the administrator's full name."],
         ];
 
