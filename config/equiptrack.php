@@ -154,6 +154,10 @@ return [
         'keep_days' => (int) env('BACKUP_KEEP_DAYS', 14),
         'time' => env('BACKUP_TIME', '19:30'),
         'mysqldump' => env('BACKUP_MYSQLDUMP', 'mysqldump'),
+        // How the database is saved: "auto" uses mysqldump where PHP may start
+        // other programs, and PHP itself where it may not (shared hosting such
+        // as Hostinger switches that off); "php" always uses PHP.
+        'method' => env('BACKUP_METHOD', 'auto'),
     ],
 
 ];

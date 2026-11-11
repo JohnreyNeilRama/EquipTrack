@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
@@ -18,6 +19,10 @@ use Illuminate\Support\Facades\Process;
  * with database.sql and files/public + files/private (copies of
  * storage/app/public and storage/app/private), then deletes backups older than
  * equiptrack.backup.keep_days. Runs daily from routes/console.php.
+ *
+ * The database is saved with mysqldump where PHP may start other programs,
+ * and by PHP itself where it may not (shared hosting such as Hostinger turns
+ * proc_open off); config equiptrack.backup.method = "php" forces the latter.
  *
  * Restoring: import database.sql into an empty database (phpMyAdmin, HeidiSQL
  * or `mysql equiptrack_laravel < database.sql`) and copy files/public and
@@ -66,10 +71,101 @@ class BackupEquipTrack extends Command
         $db = config("database.connections.{$connection}");
 
         match ($db['driver'] ?? null) {
-            'mysql', 'mariadb' => $this->dumpMysql($db, $target),
+            'mysql', 'mariadb' => self::canRunPrograms() && config('equiptrack.backup.method') !== 'php'
+                ? $this->dumpMysql($db, $target)
+                : $this->dumpMysqlWithPhp($connection, $target),
             'sqlite' => $this->copySqlite($db, $target),
             default => throw new \RuntimeException('Backups support MySQL, MariaDB and SQLite databases only.'),
         };
+    }
+
+    /**
+     * Whether PHP may start another program (mysqldump). Shared hosting such
+     * as Hostinger switches proc_open off; the backup then writes the dump
+     * with PHP itself (dumpMysqlWithPhp).
+     */
+    public static function canRunPrograms(): bool
+    {
+        $disabled = array_map('trim', explode(',', strtolower((string) ini_get('disable_functions'))));
+
+        return function_exists('proc_open') && !in_array('proc_open', $disabled, true);
+    }
+
+    /**
+     * The same kind of file mysqldump writes, made by PHP over the normal
+     * database connection: for every table its CREATE TABLE statement and
+     * its rows as INSERT statements (200 rows each), with foreign key checks
+     * off while restoring. Rows are read one at a time, so large tables don't
+     * fill the memory. Restore it like any .sql file (phpMyAdmin Import, or
+     * `mysql equiptrack_laravel < database.sql`).
+     */
+    private function dumpMysqlWithPhp(string $connection, string $target): void
+    {
+        $db = DB::connection($connection);
+        $pdo = $db->getPdo();
+        $out = fopen($target, 'wb');
+
+        if ($out === false) {
+            throw new \RuntimeException('Could not create ' . $target . '.');
+        }
+
+        try {
+            $write = function (string $text) use ($out) {
+                if (fwrite($out, $text) === false) {
+                    throw new \RuntimeException('Could not write the database backup (is the disk full?).');
+                }
+            };
+
+            $write("-- EquipTrack database backup (made by PHP)\n"
+                . '-- Database: ' . $db->getDatabaseName() . "\n"
+                . '-- Created: ' . now(config('app.display_timezone'))->format('Y-m-d H:i:s') . " (Philippine time)\n\n"
+                . "SET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS = 0;\nSET UNIQUE_CHECKS = 0;\n"
+                . "SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';\n\n");
+
+            $tables = array_map(
+                fn ($row) => array_values((array) $row)[0],
+                $db->select("SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'"),
+            );
+
+            foreach ($tables as $table) {
+                $quoted = '`' . str_replace('`', '``', $table) . '`';
+                $create = array_values((array) $db->selectOne('SHOW CREATE TABLE ' . $quoted))[1];
+
+                $write("-- Table {$table}\nDROP TABLE IF EXISTS {$quoted};\n{$create};\n\n");
+
+                $columns = null;
+                $batch = [];
+                $flush = function () use (&$batch, &$columns, $quoted, $write) {
+                    if ($batch) {
+                        $write("INSERT INTO {$quoted} ({$columns}) VALUES\n" . implode(",\n", $batch) . ";\n");
+                        $batch = [];
+                    }
+                };
+
+                foreach ($db->table($table)->cursor() as $row) {
+                    $row = (array) $row;
+                    $columns ??= implode(', ', array_map(fn ($c) => '`' . str_replace('`', '``', $c) . '`', array_keys($row)));
+                    $batch[] = '(' . implode(', ', array_map(
+                        fn ($value) => $value === null ? 'NULL' : $pdo->quote((string) $value),
+                        $row,
+                    )) . ')';
+
+                    if (count($batch) >= 200) {
+                        $flush();
+                    }
+                }
+                $flush();
+                $write("\n");
+            }
+
+            $write("SET FOREIGN_KEY_CHECKS = 1;\nSET UNIQUE_CHECKS = 1;\n");
+        } finally {
+            fclose($out);
+        }
+
+        if (filesize($target) === 0) {
+            throw new \RuntimeException('The database backup came out empty.');
+        }
     }
 
     private function dumpMysql(array $db, string $target): void
