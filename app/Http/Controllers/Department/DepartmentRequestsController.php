@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditTrail;
 use App\Models\BorrowRequest;
 use App\Services\RequestTableRows;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,17 +20,34 @@ use Illuminate\View\View;
  */
 class DepartmentRequestsController extends Controller
 {
-    public function index(): View
+    /** First page of active requests (finished ones are behind the Status filter). */
+    public function index(Request $request): View
     {
+        $requestPage = RequestTableRows::page($this->scope(), fn () => true, $request);
+
         return view('department.requests', [
-            'dbRequests' => $this->fetchDepartmentRequests(),
+            'dbRequests' => $requestPage['requests'],
+            'requestPage' => $requestPage,
         ]);
     }
 
-    /** JSON feed for live polling, same as the admin Requests page. */
-    public function data(): JsonResponse
+    /**
+     * JSON feed for live polling, same as the admin Requests page:
+     * ?paged=1 (+ page, search, status, role) for one page of the table,
+     * ?limit=N for the newest N (dashboard), no parameters for every request.
+     */
+    public function data(Request $request): JsonResponse
     {
-        return response()->json(['success' => true, 'requests' => $this->fetchDepartmentRequests()]);
+        if ($request->boolean('paged')) {
+            return response()->json(['success' => true] + RequestTableRows::page($this->scope(), fn () => true, $request));
+        }
+
+        $limit = $request->integer('limit');
+
+        return response()->json([
+            'success' => true,
+            'requests' => RequestTableRows::fetch($this->scope(), fn () => true, $limit > 0 ? min($limit, 50) : null),
+        ]);
     }
 
     public function updateStatus(Request $request): JsonResponse
@@ -186,17 +204,15 @@ class DepartmentRequestsController extends Controller
      * request in its scope: Not Expensive ones alone, Expensive ones together
      * with the admin.
      */
-    private function fetchDepartmentRequests(): array
+    private function scope(): Builder
     {
         $departmentId = auth('dept')->user()->department_id;
 
+        // An account without a department has no requests in scope.
         if (!$departmentId) {
-            return [];
+            return BorrowRequest::query()->whereRaw('1 = 0');
         }
 
-        return RequestTableRows::fetch(
-            BorrowRequest::query()->whereHas('equipment', fn ($query) => $query->where('department_id', $departmentId)),
-            fn () => true,
-        );
+        return BorrowRequest::query()->whereHas('equipment', fn ($query) => $query->where('department_id', $departmentId));
     }
 }

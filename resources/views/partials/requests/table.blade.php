@@ -11,7 +11,10 @@
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
             <div class="filter-select-item">
+                {{-- "Active" (the default) hides finished requests: rejected, cancelled,
+                     expired, and approved ones whose loan is over. --}}
                 <select id="filterStatus" aria-label="Filter by status">
+                    <option value="active" selected>Active</option>
                     <option value="all">All Status</option>
                     <option value="pending">Pending</option>
                     <option value="approved">Approved</option>

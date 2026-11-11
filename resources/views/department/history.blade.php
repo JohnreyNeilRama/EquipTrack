@@ -193,7 +193,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             const URL_DATA = @json(route('department.history.data'));
             const REFRESH_MS = 30000;
-            const PAGE_SIZE = 10;
 
             const tableBody = document.getElementById('historyTableBody');
             const searchInput = document.getElementById('searchHistory');
@@ -210,10 +209,15 @@
             const txnCloseFooterBtn = document.getElementById('txnCloseFooterBtn');
 
             // Borrowing history comes from the database (returned borrow
-            // transactions for this department's equipment). It is embedded on
-            // first load and refreshed from the JSON feed below.
+            // transactions for this department's equipment), one page at a
+            // time: the server searches, filters and counts every record
+            // (DepartmentHistoryController). The first page is embedded on
+            // load; filters, page buttons and polling fetch from the feed.
             let historyData = @json($dbHistory, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
-            let currentPage = 1;
+            let pagination = @json($historyPage['pagination']);
+            let counts = @json($historyPage['counts']);
+            let currentPage = pagination.page;
+            let loadSeq = 0;
 
             function escapeHTML(str) {
                 if (!str) return '';
@@ -239,35 +243,37 @@
                 }
             }
 
+            // Summary cards: every returned record of the department (counted
+            // by the server, not just the page shown).
             function updateSummaryCards() {
-                const count = status => historyData.filter(h => h.status.toLowerCase() === status).length;
-
                 const set = (id, value) => {
                     const el = document.getElementById(id);
                     if (el) el.textContent = value;
                 };
 
-                set('statTotal', historyData.length);
-                set('statReturned', count('returned'));
-                set('statLate', count('returned late'));
-                set('statDamaged', count('damaged'));
+                set('statTotal', counts.total);
+                set('statReturned', counts.returned);
+                set('statLate', counts.late);
+                set('statDamaged', counts.damaged);
             }
 
-            // Search + role / status / category filters over the full dataset
-            function getFilteredData() {
-                const query = searchInput.value.toLowerCase().trim();
-                const selectedRole = filterRoleSelect.value.toLowerCase();
-                const selectedStatus = filterStatusSelect.value.toLowerCase();
-                const selectedCategory = filterCategorySelect.value.toLowerCase();
+            function filtersInUse() {
+                return searchInput.value.trim() !== ''
+                    || filterRoleSelect.value !== 'all'
+                    || filterStatusSelect.value !== 'all'
+                    || filterCategorySelect.value !== 'all';
+            }
 
-                return historyData.filter(item => {
-                    const searchData = `${item.txnid} ${item.idnumber} ${item.name} ${item.equipment} ${item.userType}`.toLowerCase();
-
-                    return searchData.includes(query)
-                        && (selectedRole === 'all' || item.userType.toLowerCase().includes(selectedRole))
-                        && (selectedStatus === 'all' || item.status.toLowerCase() === selectedStatus)
-                        && (selectedCategory === 'all' || item.category.toLowerCase().includes(selectedCategory));
-                });
+            // The feed address for the current page, search and filters.
+            function dataUrl() {
+                const url = new URL(URL_DATA, window.location.origin);
+                url.searchParams.set('page', String(currentPage));
+                url.searchParams.set('role', filterRoleSelect.value);
+                url.searchParams.set('status', filterStatusSelect.value);
+                url.searchParams.set('category', filterCategorySelect.value);
+                const query = searchInput.value.trim();
+                if (query !== '') url.searchParams.set('search', query);
+                return url.toString();
             }
 
             function renderRows(rows) {
@@ -321,7 +327,7 @@
                     if (page !== null && !(extraClass || '').includes('disabled')) {
                         btn.addEventListener('click', () => {
                             currentPage = page;
-                            render();
+                            refreshHistory();
                         });
                     }
                     paginationControls.appendChild(btn);
@@ -342,17 +348,14 @@
             }
 
             function render() {
-                const filtered = getFilteredData();
-                const totalEntries = filtered.length;
-                const totalPages = Math.max(1, Math.ceil(totalEntries / PAGE_SIZE));
+                const totalEntries = pagination.total;
+                const totalPages = Math.max(1, pagination.lastPage);
+                currentPage = pagination.page;
 
-                if (currentPage > totalPages) currentPage = totalPages;
-                if (currentPage < 1) currentPage = 1;
+                const startIndex = (currentPage - 1) * pagination.perPage;
+                const endIndex = startIndex + historyData.length;
 
-                const startIndex = (currentPage - 1) * PAGE_SIZE;
-                const endIndex = Math.min(startIndex + PAGE_SIZE, totalEntries);
-
-                renderRows(filtered.slice(startIndex, endIndex));
+                renderRows(historyData);
                 renderPagination(totalPages);
                 updateSummaryCards();
 
@@ -365,7 +368,7 @@
                 // No rows: a message row inside the table (same as the Release
                 // Equipment table), and no pagination bar.
                 if (totalEntries === 0) {
-                    const message = historyData.length === 0
+                    const message = !filtersInUse() && counts.total === 0
                         ? 'No borrowing history yet. Returned equipment will appear here.'
                         : 'No records match your search or filters.';
                     tableBody.innerHTML = `
@@ -430,23 +433,32 @@
                 if (e.key === 'Escape' && txnModal.classList.contains('show')) closeDrawer();
             });
 
-            const onFilterChange = () => {
+            // A new search or filter starts again from page 1 (typing waits a moment).
+            let searchTimer = null;
+            const onFilterChange = (wait) => {
                 currentPage = 1;
-                render();
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(refreshHistory, wait);
             };
 
-            searchInput.addEventListener('input', onFilterChange);
-            filterRoleSelect.addEventListener('change', onFilterChange);
-            filterStatusSelect.addEventListener('change', onFilterChange);
-            filterCategorySelect.addEventListener('change', onFilterChange);
+            searchInput.addEventListener('input', () => onFilterChange(300));
+            filterRoleSelect.addEventListener('change', () => onFilterChange(0));
+            filterStatusSelect.addEventListener('change', () => onFilterChange(0));
+            filterCategorySelect.addEventListener('change', () => onFilterChange(0));
 
-            // Pull fresh records so new returns show up without a page reload
+            // Pull this page from the server (page buttons, filters, and polling
+            // so new returns show up without a page reload). Only the newest
+            // answer counts.
             function refreshHistory() {
-                return fetch(URL_DATA, { headers: { 'Accept': 'application/json' } })
+                const seq = ++loadSeq;
+                return fetch(dataUrl(), { headers: { 'Accept': 'application/json' } })
                     .then(res => res.json())
                     .then(data => {
+                        if (seq !== loadSeq) return;
                         if (data && data.success && Array.isArray(data.history)) {
                             historyData = data.history;
+                            pagination = data.pagination || pagination;
+                            counts = data.counts || counts;
                             render();
                         }
                     })

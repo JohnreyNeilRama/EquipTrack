@@ -29,6 +29,7 @@
     'party' => 'admin',
     'dataUrl' => route('admin.requests.data'),
     'updateUrl' => route('admin.requests.update'),
+    'requestPage' => $requestPage,
     'showRequestId' => true,
     'combineUserRole' => true,
     'stackEquipmentTag' => true,

@@ -13,17 +13,38 @@ use Illuminate\View\View;
 
 class AdminRequestsController extends Controller
 {
-    public function index(): View
+    /** First page of active requests (finished ones are behind the Status filter). */
+    public function index(Request $request): View
     {
-        $dbRequests = $this->fetchAllBorrowRequests();
+        [$scope, $canReview] = $this->scope();
+        $requestPage = RequestTableRows::page($scope, $canReview, $request);
 
-        return view('admin.requests', compact('dbRequests'));
+        return view('admin.requests', [
+            'dbRequests' => $requestPage['requests'],
+            'requestPage' => $requestPage,
+        ]);
     }
 
-    /** JSON feed for live polling (legacy requests.php?action=get_requests). */
-    public function data(): JsonResponse
+    /**
+     * JSON feed for live polling:
+     * - ?paged=1 (+ page, search, status, role): one page of the Requests table;
+     * - ?limit=N: the newest N requests (the dashboard's Recent Requests);
+     * - no parameters: every request (legacy requests.php?action=get_requests).
+     */
+    public function data(Request $request): JsonResponse
     {
-        return response()->json(['success' => true, 'requests' => $this->fetchAllBorrowRequests()]);
+        [$scope, $canReview] = $this->scope();
+
+        if ($request->boolean('paged')) {
+            return response()->json(['success' => true] + RequestTableRows::page($scope, $canReview, $request));
+        }
+
+        $limit = $request->integer('limit');
+
+        return response()->json([
+            'success' => true,
+            'requests' => RequestTableRows::fetch($scope, $canReview, $limit > 0 ? min($limit, 50) : null),
+        ]);
     }
 
     /**
@@ -187,12 +208,17 @@ class AdminRequestsController extends Controller
         ]);
     }
 
-    /** Expensive requests (Not Expensive ones are handled by the department alone). */
-    private function fetchAllBorrowRequests(): array
+    /**
+     * Expensive requests (Not Expensive ones are handled by the department
+     * alone), and which of them the admin may approve or reject.
+     *
+     * @return array{0: \Illuminate\Database\Eloquent\Builder, 1: callable}
+     */
+    private function scope(): array
     {
-        return RequestTableRows::fetch(
+        return [
             BorrowRequest::query()->visibleToAdmin(),
             fn (BorrowRequest $row) => $row->adminCanReview(),
-        );
+        ];
     }
 }

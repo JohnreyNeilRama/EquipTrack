@@ -130,11 +130,12 @@
 @push('scripts')
 <script>
 
-    // Summary cards follow the rows the shared table renders (initial load,
-    // live polling and after every approve / reject).
+    // Summary cards: every request of the department per status (counted by
+    // the server, not just the page shown), refreshed with the table.
     document.addEventListener('requests:updated', (e) => {
         const rows = e.detail.requests || [];
-        const count = (status) => rows.filter(r => r.status === status).length;
+        const counts = e.detail.counts;
+        const count = (status) => counts ? (counts[status] || 0) : rows.filter(r => r.status === status).length;
 
         document.getElementById('sumPending').textContent = count('Pending');
         document.getElementById('sumApproved').textContent = count('Approved');
@@ -145,6 +146,7 @@
     'party' => 'dept',
     'dataUrl' => route('department.requests.data'),
     'updateUrl' => route('department.requests.update'),
+    'requestPage' => $requestPage,
     'showRequestId' => true,
     'combineUserRole' => true,
     'stackEquipmentTag' => true,

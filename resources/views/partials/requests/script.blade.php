@@ -7,6 +7,12 @@
       $updateUrl  Approve / Reject endpoint for that reviewer
       $dbRequests initial rows (App\Services\RequestTableRows)
 
+    Full table (no $limit): paged on the server, 25 rows a page. Search and
+    the Status / Role filters are sent to $dataUrl (?paged=1&page=…&search=…
+    &status=…&role=…), so they cover every request, not just one page.
+    Status starts on "Active" (finished requests hidden). Pass $requestPage
+    (RequestTableRows::page) for the first page's counts and page numbers.
+
     Optional (compact "recent requests" table, e.g. the Department dashboard):
       $limit          show only the newest N requests, without search, filter
                       or pagination (default: null, the full paginated table)
@@ -45,6 +51,12 @@
         // Initial requests dataset loaded directly from the database
         let requests = @json($dbRequests, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 
+        // Full table: one page at a time from the server (see the note above).
+        const PAGED = !LIMIT;
+        let serverPage = @json($requestPage['pagination'] ?? null);
+        let statusCounts = @json($requestPage['counts'] ?? null);
+        let loadSeq = 0;
+
         // DOM Elements
         const tableBody = document.getElementById('requestsTableBody');
         const searchInput = document.getElementById('searchRequests');
@@ -70,13 +82,38 @@
         const rejectRequestIdInput = document.getElementById('rejectRequestId');
         const rejectReasonInput = document.getElementById('rejectReasonInput');
 
+        // The feed address: this page with the current search and filters
+        // (full table), the newest LIMIT rows (compact table), or everything.
+        function dataUrl() {
+            const url = new URL(URL_DATA, window.location.origin);
+            if (PAGED) {
+                url.searchParams.set('paged', '1');
+                url.searchParams.set('page', String(currentPage));
+                url.searchParams.set('status', filterSelect ? filterSelect.value : 'all');
+                url.searchParams.set('role', filterRole ? filterRole.value : 'all');
+                const query = searchInput ? searchInput.value.trim() : '';
+                if (query !== '') url.searchParams.set('search', query);
+            } else if (LIMIT) {
+                url.searchParams.set('limit', String(LIMIT));
+            }
+            return url.toString();
+        }
+
         // Function to fetch latest requests from backend (live polling & after updates)
         function loadRequests() {
-            fetch(URL_DATA)
+            // Only the newest answer counts (typing a search sends several).
+            const seq = ++loadSeq;
+            fetch(dataUrl(), { headers: { 'Accept': 'application/json' } })
                 .then(res => res.json())
                 .then(data => {
+                    if (seq !== loadSeq) return;
                     if (data.success && Array.isArray(data.requests)) {
                         requests = data.requests;
+                        if (PAGED && data.pagination) {
+                            serverPage = data.pagination;
+                            currentPage = data.pagination.page;
+                            statusCounts = data.counts || statusCounts;
+                        }
                         renderTable();
                         updateDashboardStats();
                     }
@@ -126,7 +163,9 @@
             const role = filterRole ? filterRole.value : 'all';
             tableBody.innerHTML = '';
 
-            const filtered = requests.filter(req => {
+            // Full table: the server already searched, filtered and cut the
+            // page. Compact table: the newest rows as they arrived.
+            const filtered = PAGED ? requests : requests.filter(req => {
                 const matchesSearch = (req.user || '').toLowerCase().includes(query) ||
                                       (req.equipment || '').toLowerCase().includes(query) ||
                                       (req.role || '').toLowerCase().includes(query);
@@ -136,11 +175,16 @@
             });
 
             if (filtered.length === 0) {
+                const filtersInUse = query !== '' || filter !== 'active' || role !== 'all';
+                const emptyText = LIMIT ? 'No recent borrow requests found.'
+                    : (PAGED && !filtersInUse
+                        ? 'No active requests. Choose "All Status" to see finished ones.'
+                        : 'No requests found matching your query.');
                 tableBody.innerHTML = `
                     <tr>
                         <td colspan="${COLUMN_COUNT}" class="no-requests-message">
                             <i class="fa-solid fa-folder-open"></i>
-                            ${LIMIT ? 'No recent borrow requests found.' : 'No requests found matching your query.'}
+                            ${emptyText}
                         </td>
                     </tr>
                 `;
@@ -148,15 +192,17 @@
                 return;
             }
 
-            const totalEntries = filtered.length;
-            const totalPages = Math.ceil(totalEntries / pageSize);
+            const perPage = PAGED && serverPage ? serverPage.perPage : pageSize;
+            const totalEntries = PAGED && serverPage ? serverPage.total : filtered.length;
+            const totalPages = PAGED && serverPage ? serverPage.lastPage : Math.ceil(totalEntries / pageSize);
 
             if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
 
-            const startIndex = (currentPage - 1) * pageSize;
-            const endIndex = Math.min(startIndex + pageSize, totalEntries);
+            const startIndex = (currentPage - 1) * perPage;
+            const endIndex = PAGED ? startIndex + filtered.length : Math.min(startIndex + pageSize, totalEntries);
             // Rows arrive newest first, so the compact table shows the newest LIMIT
-            const paginatedRequests = LIMIT ? filtered.slice(0, LIMIT) : filtered.slice(startIndex, endIndex);
+            const paginatedRequests = PAGED ? filtered
+                : (LIMIT ? filtered.slice(0, LIMIT) : filtered.slice(startIndex, endIndex));
 
             if (paginationContainer) paginationContainer.style.display = 'flex';
 
@@ -229,35 +275,39 @@
         function renderPaginationButtons(totalPages) {
             paginationButtons.innerHTML = '';
 
+            // Full table: ask the server for that page; otherwise re-slice.
+            const goTo = (page) => {
+                currentPage = page;
+                if (PAGED) loadRequests(); else renderTable();
+            };
+
             const prevBtn = document.createElement('button');
             prevBtn.className = 'btn-page';
             prevBtn.innerHTML = '<i class="fa-solid fa-angle-left"></i>';
+            prevBtn.setAttribute('aria-label', 'Previous page');
             prevBtn.disabled = currentPage === 1;
-            prevBtn.addEventListener('click', () => {
-                currentPage--;
-                renderTable();
-            });
+            prevBtn.addEventListener('click', () => goTo(currentPage - 1));
             paginationButtons.appendChild(prevBtn);
 
-            for (let i = 1; i <= totalPages; i++) {
+            // Up to 5 page numbers around the current page.
+            let start = Math.max(1, currentPage - 2);
+            const end = Math.min(totalPages, start + 4);
+            start = Math.max(1, end - 4);
+
+            for (let i = start; i <= end; i++) {
                 const pageBtn = document.createElement('button');
                 pageBtn.className = `btn-page ${currentPage === i ? 'active' : ''}`;
                 pageBtn.textContent = i;
-                pageBtn.addEventListener('click', () => {
-                    currentPage = i;
-                    renderTable();
-                });
+                pageBtn.addEventListener('click', () => goTo(i));
                 paginationButtons.appendChild(pageBtn);
             }
 
             const nextBtn = document.createElement('button');
             nextBtn.className = 'btn-page';
             nextBtn.innerHTML = '<i class="fa-solid fa-angle-right"></i>';
-            nextBtn.disabled = currentPage === totalPages;
-            nextBtn.addEventListener('click', () => {
-                currentPage++;
-                renderTable();
-            });
+            nextBtn.setAttribute('aria-label', 'Next page');
+            nextBtn.disabled = currentPage >= totalPages;
+            nextBtn.addEventListener('click', () => goTo(currentPage + 1));
             paginationButtons.appendChild(nextBtn);
         }
 
@@ -464,27 +514,30 @@
 
         // Sync stats to the admin dashboard in localStorage, and let the page
         // refresh anything derived from the rows (e.g. the department's summary cards).
+        // counts: requests per status in the whole list (full table only),
+        // for summary cards; requests: the rows shown.
         function updateDashboardStats() {
             if (PARTY === 'admin') {
-                const pendingCount = requests.filter(r => r.status.toLowerCase() === 'pending').length;
-                localStorage.setItem('dashboard-pending-count', pendingCount);
+                const pendingCount = statusCounts
+                    ? statusCounts.Pending
+                    : requests.filter(r => r.status.toLowerCase() === 'pending').length;
+                try { localStorage.setItem('dashboard-pending-count', pendingCount); } catch (e) { /* storage blocked */ }
             }
-            document.dispatchEvent(new CustomEvent('requests:updated', { detail: { requests } }));
+            document.dispatchEvent(new CustomEvent('requests:updated', { detail: { requests, counts: statusCounts } }));
         }
 
-        // Event Listeners for search & filters (absent in the compact table)
-        if (searchInput) searchInput.addEventListener('input', () => {
+        // Event Listeners for search & filters (absent in the compact table).
+        // Full table: back to page 1 and ask the server; typing waits a moment.
+        let searchTimer = null;
+        const onFiltersChanged = (wait) => {
             currentPage = 1;
-            renderTable();
-        });
-        if (filterSelect) filterSelect.addEventListener('change', () => {
-            currentPage = 1;
-            renderTable();
-        });
-        if (filterRole) filterRole.addEventListener('change', () => {
-            currentPage = 1;
-            renderTable();
-        });
+            if (!PAGED) { renderTable(); return; }
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(loadRequests, wait);
+        };
+        if (searchInput) searchInput.addEventListener('input', () => onFiltersChanged(300));
+        if (filterSelect) filterSelect.addEventListener('change', () => onFiltersChanged(0));
+        if (filterRole) filterRole.addEventListener('change', () => onFiltersChanged(0));
 
         // Initial render
         renderTable();
