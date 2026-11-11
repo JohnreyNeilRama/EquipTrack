@@ -42,7 +42,8 @@ class UserInvites
             $account->notify(new UserInviteNotification($token, self::senderName($sender)));
         } catch (\Throwable $e) {
             // The mail server is down or misconfigured; the account stays
-            // waiting for an invite, which can be sent again later.
+            // waiting for an invite (invited_at was set when staff created it,
+            // see UserAccountCreator), which can be sent again later.
             report($e);
             $tokens->delete($account);
 

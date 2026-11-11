@@ -70,12 +70,18 @@ class UserAccountCreator
             // Staff don't choose the password: it stays an unusable random one
             // until the owner sets theirs from the invite email (UserInvites),
             // which also confirms the email address.
+            //
+            // invited_at is set here, before the first invite is even tried, so
+            // the account counts as "added by staff, waiting for its invite"
+            // even if that email fails: Resend then sends an invite (to set a
+            // password), never the self-registration verification email.
             $account = UserAccount::create([
                 'role' => $role,
                 'email' => $data['email'],
                 'password' => Hash::make(Str::random(40)),
                 'department_id' => $departmentId,
                 'status' => UserAccount::STATUS_ACTIVE,
+                'invited_at' => now(),
             ]);
 
             $profile = [

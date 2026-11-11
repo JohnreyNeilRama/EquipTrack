@@ -45,7 +45,12 @@ return [
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-            'timeout' => null,
+            // Seconds to wait for the mail server (connecting and each reply).
+            // Emails are sent while the page waits (no queue), so a slow or
+            // unreachable server must not hang buttons like Remind, Forgot
+            // Password or Add Student; every sender catches the failure and
+            // shows a message or retries later.
+            'timeout' => (int) env('MAIL_TIMEOUT', 10),
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
