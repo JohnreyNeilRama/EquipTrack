@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
 use App\Models\UserAccount;
-use App\Notifications\FacultyApprovalNotification;
 use App\Services\AuditLogger;
+use App\Services\FacultyApproval;
 use App\Services\UserAccountCreator;
 use App\Services\UserAccountEditor;
 use App\Services\UserInvites;
@@ -161,22 +161,9 @@ class DepartmentUsersController extends Controller
             return $account;
         }
 
-        $account->update(['status' => UserAccount::STATUS_ACTIVE]);
-        $name = $account->fullName() ?: $account->email;
-
-        AuditLogger::log(
-            'Approved faculty account',
-            'user_account:' . $account->user_id,
-            $name . ' (' . $account->email . ')',
-            AuditLogger::actorFor('dept', auth('dept')->user()),
-            $request,
-        );
-
-        $emailed = $this->notifyDecision($account, new FacultyApprovalNotification(true, $name, $this->departmentName()));
-
         return response()->json([
             'success' => true,
-            'message' => $name . "'s Faculty account is approved." . ($emailed ? ' They were emailed.' : ' (The email to tell them could not be sent.)'),
+            'message' => FacultyApproval::approve($account, auth('dept')->user(), $request),
             'users' => $this->rows(),
         ]);
     }
@@ -198,25 +185,9 @@ class DepartmentUsersController extends Controller
             return $account;
         }
 
-        $name = $account->fullName() ?: $account->email;
-        $reason = trim((string) $request->input('reason'));
-
-        // Emailed before the account is removed (the notification needs its address).
-        $emailed = $this->notifyDecision($account, new FacultyApprovalNotification(false, $name, $this->departmentName(), $reason));
-
-        AuditLogger::log(
-            'Declined faculty account',
-            'user_account:' . $account->user_id,
-            $name . ' (' . $account->email . '). Reason: ' . $reason,
-            AuditLogger::actorFor('dept', auth('dept')->user()),
-            $request,
-        );
-
-        $account->delete();
-
         return response()->json([
             'success' => true,
-            'message' => $name . "'s registration was declined and removed." . ($emailed ? ' They were emailed the reason.' : ' (The email to tell them could not be sent.)'),
+            'message' => FacultyApproval::decline($account, (string) $request->input('reason'), auth('dept')->user(), $request),
             'users' => $this->rows(),
         ]);
     }
@@ -289,24 +260,6 @@ class DepartmentUsersController extends Controller
         }
 
         return $account;
-    }
-
-    private function notifyDecision(UserAccount $account, FacultyApprovalNotification $notification): bool
-    {
-        try {
-            $account->notify($notification);
-
-            return true;
-        } catch (\Throwable $e) {
-            report($e);
-
-            return false;
-        }
-    }
-
-    private function departmentName(): string
-    {
-        return auth('dept')->user()->department?->department_name ?: 'Your department';
     }
 
     private function addUserAccount(Request $request, string $role): JsonResponse

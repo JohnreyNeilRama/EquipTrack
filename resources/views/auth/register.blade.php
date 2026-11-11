@@ -123,6 +123,15 @@
                                         <i class="fa-solid fa-chevron-down select-arrow" aria-hidden="true"></i>
                                     </div>
                                 </div>
+                                {{-- Teachers only (in place of Year & Level): the number on their
+                                     professional teaching license. Shown by the role script. --}}
+                                <div class="form-group" id="licenseGroup" hidden>
+                                    <label for="teaching_license_no">Teaching License No.</label>
+                                    <div class="input-icon">
+                                        <i class="fa-solid fa-certificate field-icon"></i>
+                                        <input type="text" id="teaching_license_no" name="teaching_license_no" value="{{ old('teaching_license_no') }}" maxlength="30" placeholder="e.g., 1234567" title="Letters, numbers and hyphens only." disabled @class(['is-invalid' => $errors->has('teaching_license_no')])>
+                                    </div>
+                                </div>
                             </div>
                         </fieldset>
 
@@ -211,6 +220,8 @@
     const yearLevelSelect = document.getElementById('year_level');
     const idNumberLabel = document.getElementById('idNumberLabel');
     const idInput = document.getElementById('id_number');
+    const licenseGroup = document.getElementById('licenseGroup');
+    const licenseInput = document.getElementById('teaching_license_no');
     const backToRole = document.getElementById('backToRole');
     const roleStudentBtn = document.getElementById('roleStudent');
     const roleTeacherBtn = document.getElementById('roleTeacher');
@@ -278,6 +289,12 @@
             if (idNumberLabel) idNumberLabel.textContent = 'Student ID Number';
             if (yearLevelGroup) yearLevelGroup.hidden = false;
             if (yearLevelSelect) yearLevelSelect.setAttribute('required', 'required');
+            // Students have no teaching license: hidden, and not sent.
+            if (licenseGroup) licenseGroup.hidden = true;
+            if (licenseInput) {
+                licenseInput.required = false;
+                licenseInput.disabled = true;
+            }
             if (idInput) {
                 idInput.placeholder = 'e.g., 20230123';
                 idInput.pattern = '\\d{8}';
@@ -293,6 +310,12 @@
             if (yearLevelSelect) {
                 yearLevelSelect.removeAttribute('required');
                 yearLevelSelect.value = '';
+            }
+            // Teachers enter the number on their teaching license (required).
+            if (licenseGroup) licenseGroup.hidden = false;
+            if (licenseInput) {
+                licenseInput.disabled = false;
+                licenseInput.required = true;
             }
             if (idInput) {
                 idInput.placeholder = 'e.g., T-00987';

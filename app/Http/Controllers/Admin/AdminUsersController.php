@@ -12,6 +12,7 @@ use App\Models\UserAccount;
 use App\Rules\UniqueAccountEmail;
 use App\Services\AdminEmailChange;
 use App\Services\AuditLogger;
+use App\Services\FacultyApproval;
 use App\Services\UserAccountCreator;
 use App\Services\UserAccountEditor;
 use App\Services\UserInvites;
@@ -92,6 +93,59 @@ class AdminUsersController extends Controller
                 ? "{$role} account for '{$data['first_name']} {$data['last_name']}' was created. " . $inviteError
                 : "{$role} account for '{$data['first_name']} {$data['last_name']}' created. An invite to set their password was emailed to {$account->email}.")
             ->with('serverMsgType', $inviteError ? 'error' : 'success');
+    }
+
+    /**
+     * Approve a self-registered Faculty account: only as a backup, when the
+     * teacher's department has no active Department Account to do it
+     * (FacultyApproval). Otherwise the department decides.
+     */
+    public function approveFaculty(Request $request): RedirectResponse
+    {
+        $account = $this->facultyAwaitingAdmin($request);
+        if ($account instanceof RedirectResponse) {
+            return $account;
+        }
+
+        return redirect()->route('admin.users')
+            ->with('serverMsg', FacultyApproval::approve($account, auth('admin')->user(), $request))
+            ->with('serverMsgType', 'success');
+    }
+
+    /** Decline a self-registered Faculty account with a reason (same backup rule as approveFaculty). */
+    public function declineFaculty(Request $request): RedirectResponse
+    {
+        $request->validate(
+            ['reason' => ['required', 'string', 'max:500']],
+            ['reason.required' => 'Give a reason; it is included in the email to the applicant.'],
+        );
+
+        $account = $this->facultyAwaitingAdmin($request);
+        if ($account instanceof RedirectResponse) {
+            return $account;
+        }
+
+        return redirect()->route('admin.users')
+            ->with('serverMsg', FacultyApproval::decline($account, (string) $request->input('reason'), auth('admin')->user(), $request))
+            ->with('serverMsgType', 'success');
+    }
+
+    /** The pending Faculty account the Admin may review, or the redirect explaining why not. */
+    private function facultyAwaitingAdmin(Request $request): UserAccount|RedirectResponse
+    {
+        $data = $request->validate(['user_id' => ['required', 'integer', 'min:1']]);
+        $account = UserAccount::with('department')->find($data['user_id']);
+        $refuse = fn (string $message) => redirect()->route('admin.users')->with('serverMsg', $message)->with('serverMsgType', 'error');
+
+        if (!$account || !$account->isPendingApproval()) {
+            return $refuse('This account is not waiting for approval.');
+        }
+
+        if (FacultyApproval::departmentHasActiveAccount($account->department_id)) {
+            return $refuse('This teacher\'s department has an active account, so its Lab Personnel approve or decline the registration on their Users page.');
+        }
+
+        return $account;
     }
 
     /**
@@ -385,6 +439,20 @@ class AdminUsersController extends Controller
             $account->status = $previous; // for the "real change" check below
         } elseif ($data['target_user_type'] === 'department') {
             $account = DepartmentAccount::find($data['target_user_id'] - 100000);
+
+            // Its department's self-registered teachers wait for this account's
+            // approval: deactivating it would leave them with nobody to review them.
+            $waiting = $account && $account->department_id && $data['new_status'] === 'Deactivated'
+                ? UserAccount::where('department_id', $account->department_id)->where('status', UserAccount::STATUS_PENDING_APPROVAL)->count()
+                : 0;
+            if ($waiting > 0) {
+                return redirect()->route('admin.users')
+                    ->with('serverMsg', 'This department account can\'t be deactivated because ' . $waiting . ' Faculty '
+                        . ($waiting === 1 ? 'registration is' : 'registrations are') . ' waiting for its approval. '
+                        . 'Ask its Lab Personnel to approve or decline them first.')
+                    ->with('serverMsgType', 'error');
+            }
+
             $entity = $account ? 'department_account:' . $account->dept_acc_id : '';
             $name = $account ? ($account->full_name ?: $account->email) : '';
             DepartmentAccount::where('dept_acc_id', $data['target_user_id'] - 100000)
@@ -464,6 +532,15 @@ class AdminUsersController extends Controller
             $msg = 'Department account deleted successfully.';
         } else {
             $account = UserAccount::findOrFail($data['user_id']);
+
+            // A registration waiting for approval is turned away with Decline,
+            // which emails the teacher the reason, never deleted silently.
+            if ($account->isPendingApproval()) {
+                return redirect()
+                    ->route('admin.users')
+                    ->with('serverMsg', 'This Faculty account is waiting for approval, so it can\'t be deleted. Use Decline instead, so the teacher is told why.')
+                    ->with('serverMsgType', 'error');
+            }
 
             // Users who ever made a borrow request keep their history (requests,
             // loans, penalties): they are deactivated, not deleted. The database
@@ -744,6 +821,10 @@ class AdminUsersController extends Controller
             ->when($userIds !== null, fn ($q) => $q->whereIn('user_id', $userIds))
             ->orderByDesc('user_id')->get();
 
+        // Departments whose Lab Personnel can review their own teachers; for the
+        // rest, the Admin approves or declines pending Faculty (FacultyApproval).
+        $reviewingDepartments = FacultyApproval::departmentsWithActiveAccount();
+
         foreach ($rows as $row) {
             $isStudent = strtolower($row->role) === 'student';
             $profile = $isStudent ? $row->student : $row->facultyMember;
@@ -776,6 +857,8 @@ class AdminUsersController extends Controller
                 // Active | Inactive | Pending Approval | Invite Sent | Email Not Verified
                 'status' => $row->accountStateLabel(),
                 'state' => $row->accountState(),
+                // Pending Faculty whose department has no active account: the Admin decides.
+                'admin_can_review' => $row->isPendingApproval() && !isset($reviewingDepartments[(int) $row->department_id]),
                 'username' => explode('@', $row->email)[0],
                 'created_at' => $row->date_created ? Carbon::parse($row->date_created)->format('M j, Y, g:i A') : 'Database Record',
                 // last_online is saved by the app in UTC; date_created comes from the database

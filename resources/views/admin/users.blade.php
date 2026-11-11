@@ -675,6 +675,9 @@
                 <div class="modal-actions-footer" style="display: flex; gap: 12px; align-items: center;">
                     <button type="button" id="modalEditDetailsBtn" class="btn-modal-edit" style="flex: 1;"><i class="fa-regular fa-pen-to-square"></i> Edit Details</button>
                     <button type="button" id="modalResendBtn" class="btn-modal-resend" style="flex: 1;" hidden>Resend Invite</button>
+                    {{-- Only when the teacher's department has no active account (FacultyApproval). --}}
+                    <button type="button" id="modalApproveFacultyBtn" class="btn-modal-approve" style="flex: 1;" hidden><i class="fa-solid fa-check"></i> Approve</button>
+                    <button type="button" id="modalDeclineFacultyBtn" class="btn-modal-decline" style="flex: 1;" hidden>Decline</button>
                     <button type="button" id="modalToggleStatusBtn" class="btn-modal-toggle-status" style="flex: 1; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: background 0.2s ease, transform 0.1s ease;">Deactivate Account</button>
                     <button type="button" class="btn-modal-close" style="flex: 1;" id="modalCloseDetailsBtn">Close</button>
                 </div>
@@ -690,6 +693,8 @@
         const URL_TOGGLE = @json(route('admin.users.toggle'));
         const URL_DELETE = @json(route('admin.users.delete'));
         const URL_INVITE = @json(route('admin.users.invite'));
+        const URL_APPROVE_FACULTY = @json(route('admin.users.approve-faculty'));
+        const URL_DECLINE_FACULTY = @json(route('admin.users.decline-faculty'));
 
         // active | inactive | pending | invited | unverified. Student and Faculty
         // rows come with it; Admin and Department rows only have Active/Deactivated.
@@ -888,7 +893,7 @@
                         <td class="action-cell" style="text-align: center;">
                             <div class="action-buttons" style="justify-content: center; gap: 8px;">
                                 <button class="btn-action-toggle" onclick="toggleUserStatus(${user.id})"${selfLock || toggleLock}>${toggleText}</button>
-                                <button class="btn-action-delete" onclick="deleteUser(${user.id})" aria-label="Delete ${escapeHTML(fullName)}"${selfLock}><i class="fa-regular fa-trash-can"></i></button>
+                                <button class="btn-action-delete" onclick="deleteUser(${user.id})" aria-label="Delete ${escapeHTML(fullName)}"${selfLock || (state === 'pending' ? ' disabled title="A registration waiting for approval is declined, not deleted."' : '')}><i class="fa-regular fa-trash-can"></i></button>
                             </div>
                         </td>
                     `;
@@ -1125,8 +1130,13 @@
             modalStatusBadge.className = 'status-badge status-' + state;
 
             const stateNote = document.getElementById('modalStateNote');
-            stateNote.textContent = STATE_NOTES[state] || '';
-            stateNote.hidden = !STATE_NOTES[state];
+            const adminDecides = state === 'pending' && !!user.admin_can_review;
+            stateNote.textContent = adminDecides
+                ? "This teacher registered themselves, and their department has no active account to review them, so you can approve or decline the registration. Editing is unavailable until it is approved."
+                : (STATE_NOTES[state] || '');
+            stateNote.hidden = !stateNote.textContent;
+            document.getElementById('modalApproveFacultyBtn').hidden = !adminDecides;
+            document.getElementById('modalDeclineFacultyBtn').hidden = !adminDecides;
             const resendBtn = document.getElementById('modalResendBtn');
             resendBtn.hidden = state !== 'invited' && state !== 'unverified';
             resendBtn.textContent = state === 'invited' ? 'Resend Invite' : 'Resend Verification Email';
@@ -1171,6 +1181,35 @@
         // Details-modal toggle button (dead in legacy — wired to the same action as row buttons)
         document.getElementById('modalToggleStatusBtn').addEventListener('click', () => {
             if (activeModalUser) toggleUserStatus(activeModalUser.id);
+        });
+
+        // Approve / Decline a pending teacher (only offered when their department
+        // has no active account; the server checks that again).
+        document.getElementById('modalApproveFacultyBtn').addEventListener('click', async () => {
+            const user = activeModalUser;
+            if (!user || !user.admin_can_review) return;
+            const fullName = user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
+            const ok = await equipConfirm({
+                title: 'Approve this Faculty account?',
+                message: `${fullName} (${user.email}) will be able to borrow equipment once their email is verified. They will be emailed.`,
+                confirmText: 'Approve',
+                tone: 'success',
+            });
+            if (ok) postForm(URL_APPROVE_FACULTY, { user_id: user.id });
+        });
+
+        document.getElementById('modalDeclineFacultyBtn').addEventListener('click', async () => {
+            const user = activeModalUser;
+            if (!user || !user.admin_can_review) return;
+            const fullName = user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
+            const reason = await equipConfirm({
+                title: 'Decline this registration?',
+                message: `${fullName}'s account will be removed and they will be emailed the reason below. They can register again.`,
+                confirmText: 'Decline',
+                tone: 'danger',
+                askText: { label: 'Reason (sent to the applicant)', placeholder: 'e.g. Not a faculty member of this school.', maxLength: 500 },
+            });
+            if (reason) postForm(URL_DECLINE_FACULTY, { user_id: user.id, reason });
         });
 
         // Resend invite (account added by staff) or verification email (self-registered).

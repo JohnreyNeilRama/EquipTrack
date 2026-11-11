@@ -62,24 +62,46 @@ class RegistrationTest extends TestCase
         $this->assertSame(1, Student::count());
     }
 
-    public function test_a_faculty_member_registers_with_an_upper_case_id(): void
+    public function test_a_faculty_member_registers_with_their_real_license_number_in_upper_case(): void
     {
-        $this->register(['role' => 'teacher', 'id_number' => ' t-1001 '])->assertRedirect(route('verification.notice'));
+        $this->register(['role' => 'teacher', 'id_number' => ' t-1001 ', 'teaching_license_no' => ' prc-1234567 '])
+            ->assertRedirect(route('verification.notice'));
 
         $account = UserAccount::where('email', 'ana@example.com')->firstOrFail();
         $this->assertSame('Faculty', $account->role);
         $this->assertDatabaseHas('faculty_member', [
             'user_id' => $account->user_id,
             'faculty_id_number' => 'T-1001',
-            'teaching_license_no' => 'TL-T-1001',
+            // What the teacher typed, not a "TL-" + Faculty ID placeholder.
+            'teaching_license_no' => 'PRC-1234567',
         ]);
+    }
+
+    public function test_a_teacher_must_enter_a_teaching_license_number(): void
+    {
+        $this->register(['role' => 'teacher', 'id_number' => 'T-1001'])
+            ->assertRedirect('/register')
+            ->assertSessionHasErrors(['teaching_license_no' => 'Enter your teaching license number.']);
+
+        $this->register(['role' => 'teacher', 'id_number' => 'T-1001', 'teaching_license_no' => 'PRC 12/34'])
+            ->assertSessionHasErrors(['teaching_license_no' => 'The teaching license number may contain only letters, numbers and hyphens.']);
+
+        $this->assertSame(0, FacultyMember::count());
+    }
+
+    public function test_students_need_no_teaching_license_number(): void
+    {
+        $this->register(['role' => 'student', 'id_number' => '20260001', 'teaching_license_no' => 'IGNORED'])
+            ->assertRedirect(route('verification.notice'));
+
+        $this->assertSame(0, FacultyMember::count());
     }
 
     public function test_a_taken_faculty_id_is_rejected_whatever_its_case(): void
     {
         $this->makeFaculty($this->ccs, 'first@example.com', ['faculty_id_number' => 'T-1001']);
 
-        $this->register(['role' => 'teacher', 'id_number' => 't-1001'])
+        $this->register(['role' => 'teacher', 'id_number' => 't-1001', 'teaching_license_no' => 'PRC-1'])
             ->assertRedirect('/register')
             ->assertSessionHasErrors(['id_number' => 'Another faculty member already has this faculty ID number.']);
 
@@ -87,20 +109,20 @@ class RegistrationTest extends TestCase
         $this->assertSame(1, FacultyMember::count());
     }
 
-    public function test_a_faculty_id_whose_license_number_is_taken_is_rejected(): void
+    public function test_a_taken_teaching_license_number_is_rejected_whatever_its_case(): void
     {
-        $this->makeFaculty($this->ccs, 'first@example.com', ['faculty_id_number' => 'OLD-1', 'teaching_license_no' => 'TL-T-2002']);
+        $this->makeFaculty($this->ccs, 'first@example.com', ['faculty_id_number' => 'OLD-1', 'teaching_license_no' => 'PRC-2002']);
 
-        $this->register(['role' => 'teacher', 'id_number' => 'T-2002'])
+        $this->register(['role' => 'teacher', 'id_number' => 'T-2002', 'teaching_license_no' => 'prc-2002'])
             ->assertRedirect('/register')
-            ->assertSessionHasErrors(['id_number' => 'Another faculty member already has this faculty ID number.']);
+            ->assertSessionHasErrors(['teaching_license_no' => 'Another faculty member already has this teaching license number.']);
 
         $this->assertSame(1, FacultyMember::count());
     }
 
     public function test_a_faculty_id_with_invalid_characters_is_rejected(): void
     {
-        $this->register(['role' => 'teacher', 'id_number' => 'T 1001!'])
+        $this->register(['role' => 'teacher', 'id_number' => 'T 1001!', 'teaching_license_no' => 'PRC-1'])
             ->assertRedirect('/register')
             ->assertSessionHasErrors(['id_number' => 'The faculty ID number may contain only letters, numbers and hyphens.']);
 

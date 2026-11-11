@@ -113,6 +113,9 @@ Route::middleware(['auth:admin', 'auth.session', 'active', 'expire.requests'])->
     Route::post('/users/admin', [AdminUsersController::class, 'addAdmin'])->name('users.admin');
     Route::post('/users/toggle-status', [AdminUsersController::class, 'toggleStatus'])->name('users.toggle');
     Route::post('/users/resend-invite', [AdminUsersController::class, 'resendInvite'])->middleware('throttle:20,1')->name('users.invite');
+    // Backup for self-registered Faculty whose department has no active account.
+    Route::post('/users/approve-faculty', [AdminUsersController::class, 'approveFaculty'])->name('users.approve-faculty');
+    Route::post('/users/decline-faculty', [AdminUsersController::class, 'declineFaculty'])->name('users.decline-faculty');
     Route::post('/users/delete', [AdminUsersController::class, 'delete'])->name('users.delete');
     Route::post('/users/profile-image', [AdminUsersController::class, 'updateProfileImage'])->name('users.image');
     Route::get('/monitoring', [AdminMonitoringController::class, 'index'])->name('monitoring');

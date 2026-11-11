@@ -42,6 +42,12 @@ class RegisteredUserController extends Controller
             $request->merge(['id_number' => $isStudent ? $idNumber : strtoupper($idNumber)]);
         }
 
+        // Teaching license numbers are stored upper-case too, as when staff add
+        // faculty (UserAccountCreator), so "tl-1" and "TL-1" are the same number.
+        if (!$isStudent && is_string($request->input('teaching_license_no'))) {
+            $request->merge(['teaching_license_no' => strtoupper(trim($request->input('teaching_license_no')))]);
+        }
+
         $data = $request->validate([
             'role' => ['required', Rule::in(['student', 'teacher'])],
             'first_name' => ['required', 'string', 'max:50'],
@@ -50,16 +56,12 @@ class RegisteredUserController extends Controller
             // the database's unique key.
             'id_number' => $isStudent
                 ? ['required', 'string', 'regex:/^\d{8}$/', Rule::unique('student', 'id_number')]
-                : [
-                    'required', 'string', 'max:20', 'regex:/^[A-Za-z0-9-]+$/',
-                    Rule::unique('faculty_member', 'faculty_id_number'),
-                    // The teaching license number is derived from the ID and is unique too.
-                    function (string $attribute, mixed $value, \Closure $fail) {
-                        if (FacultyMember::where('teaching_license_no', 'TL-' . $value)->exists()) {
-                            $fail('Another faculty member already has this faculty ID number.');
-                        }
-                    },
-                ],
+                : ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9-]+$/', Rule::unique('faculty_member', 'faculty_id_number')],
+            // Teachers: the number on their teaching license, the same rules as
+            // when staff add faculty (UserAccountCreator::facultyRules).
+            'teaching_license_no' => $isStudent
+                ? ['exclude']
+                : ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9-]+$/', Rule::unique('faculty_member', 'teaching_license_no')],
             'year_level' => ['nullable', 'string'],
             // The department decides which Lab Personnel see and manage this user.
             'department_id' => ['required', 'integer', Rule::exists('department', 'department_id')],
@@ -75,6 +77,9 @@ class RegisteredUserController extends Controller
                 : 'Another faculty member already has this faculty ID number.',
             'department_id.required' => 'Please select your department.',
             'department_id.exists' => 'Please select a valid department.',
+            'teaching_license_no.required' => 'Enter your teaching license number.',
+            'teaching_license_no.regex' => 'The teaching license number may contain only letters, numbers and hyphens.',
+            'teaching_license_no.unique' => 'Another faculty member already has this teaching license number.',
         ]);
 
         $yearLevelMap = ['1' => '1st Year', '2' => '2nd Year', '3' => '3rd Year', '4' => '4th Year'];
@@ -106,7 +111,7 @@ class RegisteredUserController extends Controller
                     'first_name' => $data['first_name'],
                     'last_name' => $data['last_name'],
                     'faculty_id_number' => $data['id_number'],
-                    'teaching_license_no' => 'TL-' . $data['id_number'],
+                    'teaching_license_no' => $data['teaching_license_no'],
                     'address' => $data['address'],
                 ]);
             }

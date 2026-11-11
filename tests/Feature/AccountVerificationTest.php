@@ -238,6 +238,73 @@ class AccountVerificationTest extends TestCase
         $this->assertSame('Changed', $ramon->fresh('facultyMember')->facultyMember->first_name);
     }
 
+    public function test_the_admin_reviews_teachers_only_when_their_department_has_no_active_account(): void
+    {
+        $ramon = $this->makeFaculty($this->ccs, 'ramon@example.com');
+        $ramon->update(['status' => UserAccount::STATUS_PENDING_APPROVAL]);
+        $asAdmin = fn (string $route, array $data = []) => $this->actingAs($this->admin, 'admin')
+            ->post(route($route), ['user_id' => $ramon->user_id] + $data);
+
+        // The department can review: the Admin can't, and isn't offered it.
+        $asAdmin('admin.users.approve-faculty')->assertSessionHas('serverMsg', fn ($m) => str_contains($m, 'Lab Personnel'));
+        $this->assertSame(UserAccount::STATUS_PENDING_APPROVAL, $ramon->fresh()->status);
+        $row = collect($this->getJson(route('admin.users.data', ['status' => 'pending']))->json('users'))->firstWhere('id', $ramon->user_id);
+        $this->assertFalse($row['admin_can_review']);
+
+        // The department has no active account (here: deactivated earlier).
+        $this->ccsLab->update(['status' => 'Deactivated']);
+        $row = collect($this->getJson(route('admin.users.data', ['status' => 'pending']))->json('users'))->firstWhere('id', $ramon->user_id);
+        $this->assertTrue($row['admin_can_review']);
+
+        $asAdmin('admin.users.approve-faculty')->assertSessionHas('serverMsgType', 'success');
+        $this->assertSame('Active', $ramon->fresh()->status);
+        Notification::assertSentTo($ramon, FacultyApprovalNotification::class, fn ($n) => $n->approved);
+        $this->assertDatabaseHas('audit_trail', ['action' => 'Approved faculty account', 'admin_id' => $this->admin->admin_id]);
+    }
+
+    public function test_the_admin_backup_decline_needs_a_reason_and_emails_it(): void
+    {
+        $this->ccsLab->update(['status' => 'Deactivated']);
+        $ramon = $this->makeFaculty($this->ccs, 'ramon@example.com');
+        $ramon->update(['status' => UserAccount::STATUS_PENDING_APPROVAL]);
+
+        $this->actingAs($this->admin, 'admin')->post(route('admin.users.decline-faculty'), ['user_id' => $ramon->user_id])
+            ->assertSessionHasErrors('reason');
+        $this->assertNotNull($ramon->fresh());
+
+        $this->post(route('admin.users.decline-faculty'), ['user_id' => $ramon->user_id, 'reason' => 'Not on the faculty list.'])
+            ->assertSessionHas('serverMsgType', 'success');
+        $this->assertNull($ramon->fresh());
+        Notification::assertSentTo($ramon, FacultyApprovalNotification::class, fn ($n) => !$n->approved && $n->reason === 'Not on the faculty list.');
+    }
+
+    public function test_pending_teachers_cannot_be_deleted_or_stranded(): void
+    {
+        $ramon = $this->makeFaculty($this->ccs, 'ramon@example.com');
+        $ramon->update(['status' => UserAccount::STATUS_PENDING_APPROVAL]);
+
+        // No silent decline: deleting a pending registration is refused.
+        $this->actingAs($this->admin, 'admin')->post(route('admin.users.delete'), ['user_id' => $ramon->user_id, 'user_type' => 'faculty'])
+            ->assertSessionHas('serverMsg', fn ($m) => str_contains($m, 'Decline'));
+        $this->assertNotNull($ramon->fresh());
+
+        // Its department's only account can't be deactivated while he waits.
+        $this->post(route('admin.users.toggle'), [
+            'target_user_id' => $this->ccsLab->dept_acc_id + 100000,
+            'target_user_type' => 'department',
+            'new_status' => 'Deactivated',
+        ])->assertSessionHas('serverMsg', fn ($m) => str_contains($m, '1 Faculty registration is waiting'));
+        $this->assertSame('Active', $this->ccsLab->fresh()->status);
+
+        // Another department's account still can be.
+        $this->post(route('admin.users.toggle'), [
+            'target_user_id' => $this->ccjLab->dept_acc_id + 100000,
+            'target_user_type' => 'department',
+            'new_status' => 'Deactivated',
+        ])->assertSessionHas('serverMsgType', 'success');
+        $this->assertSame('Deactivated', $this->ccjLab->fresh()->status);
+    }
+
     public function test_a_declined_registration_cannot_be_edited(): void
     {
         $ramon = $this->makeFaculty($this->ccs, 'ramon@example.com');
@@ -389,6 +456,6 @@ class AccountVerificationTest extends TestCase
             'email' => 'ana@example.com',
             'address' => 'Cebu City',
             'password' => 'Study2026',
-        ]);
+        ] + ($role === 'teacher' ? ['teaching_license_no' => 'PRC-' . $id] : []));
     }
 }
