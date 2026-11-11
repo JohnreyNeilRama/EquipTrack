@@ -256,6 +256,18 @@
     background-color: var(--primary-sidebar);
 }
 
+/* Edit Details while a Faculty registration waits for its department's approval. */
+.modal-actions-footer .btn-modal-edit:disabled,
+.modal-actions-footer .btn-modal-edit:disabled:hover {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background-color: #385585;
+}
+
+.dark-theme .modal-actions-footer .btn-modal-edit:disabled {
+    background-color: var(--primary-sidebar);
+}
+
 /* Your own admin account in the list */
 .you-badge {
     display: inline-block;

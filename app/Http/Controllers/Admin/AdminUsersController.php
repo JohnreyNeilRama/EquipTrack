@@ -157,6 +157,15 @@ class AdminUsersController extends Controller
                 ->with('serverMsgType', 'error');
         }
 
+        // A self-registered Faculty account is reviewed by its department as
+        // submitted, so nobody edits it until it is approved (the department's
+        // Users page has the same rule).
+        if ($account instanceof UserAccount && $account->isPendingApproval()) {
+            return redirect()->route('admin.users')
+                ->with('serverMsg', 'This Faculty account is waiting for approval by its department, so its details can\'t be edited yet. They can be edited once it is approved.')
+                ->with('serverMsgType', 'error');
+        }
+
         $data = $request->validate(UserAccountEditor::rules($account), UserAccountEditor::messages());
 
         // Changing an Administrator's email needs the password of the Admin

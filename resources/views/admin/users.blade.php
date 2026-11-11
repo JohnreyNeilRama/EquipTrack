@@ -699,7 +699,7 @@
         }
 
         const STATE_NOTES = {
-            pending: 'This teacher registered themselves and is waiting for approval by the Lab Personnel of their department (on their Users page).',
+            pending: 'This teacher registered themselves and is waiting for approval by the Lab Personnel of their department (on their Users page). Editing is unavailable until the account is approved.',
             invited: 'Waiting for this person to set their password from the invite email. If the address was wrong, fix it with Edit Details, then resend the invite.',
             unverified: 'This person has not verified their email address yet, so they cannot use EquipTrack.',
         };
@@ -1131,6 +1131,14 @@
             resendBtn.hidden = state !== 'invited' && state !== 'unverified';
             resendBtn.textContent = state === 'invited' ? 'Resend Invite' : 'Resend Verification Email';
 
+            // A registration waiting for its department's approval is reviewed
+            // as submitted: Edit Details unlocks once it is approved (the server
+            // refuses too).
+            const editBtn = document.getElementById('modalEditDetailsBtn');
+            editBtn.disabled = state === 'pending';
+            editBtn.title = state === 'pending' ? 'Details can be edited after the department approves this account.' : '';
+            editBtn.setAttribute('aria-disabled', state === 'pending' ? 'true' : 'false');
+
             modalFullName.value = fullName;
             modalStudentId.value = user.id_number || 'N/A';
             modalYearLevel.value = user.year_level || 'N/A';
@@ -1453,7 +1461,7 @@
         });
         // Edit Details: from the User Details window to the Edit form for that user.
         document.getElementById('modalEditDetailsBtn').addEventListener('click', () => {
-            if (!activeModalUser) return;
+            if (!activeModalUser || rowState(activeModalUser) === 'pending') return;
             userDetailsModal.classList.remove('show');
             openEditUserModal(activeModalUser.id);
         });

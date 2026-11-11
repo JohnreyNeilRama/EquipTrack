@@ -211,6 +211,33 @@ class AccountVerificationTest extends TestCase
         $this->assertSame('Changed', $ramon->fresh('facultyMember')->facultyMember->first_name);
     }
 
+    public function test_the_admin_cannot_edit_a_teacher_until_the_department_approves(): void
+    {
+        $ramon = $this->makeFaculty($this->ccs, 'ramon@example.com', ['first_name' => 'Ramon']);
+        $ramon->update(['status' => UserAccount::STATUS_PENDING_APPROVAL]);
+
+        $edit = fn () => $this->actingAs($this->admin, 'admin')->post(route('admin.users.update'), [
+            'user_id' => $ramon->user_id,
+            'user_type' => 'user_account',
+            'first_name' => 'Changed',
+            'last_name' => 'Reyes',
+            'faculty_id_number' => 'T-' . $ramon->user_id,
+            'teaching_license_no' => 'PRC-' . $ramon->user_id,
+            'email' => 'ramon@example.com',
+            'address' => 'Cebu City',
+            'department_id' => $this->ccs->department_id,
+        ]);
+
+        // Pending: refused, nothing saved.
+        $edit()->assertRedirect(route('admin.users'))->assertSessionHas('serverMsgType', 'error');
+        $this->assertSame('Ramon', $ramon->fresh('facultyMember')->facultyMember->first_name);
+
+        // Approved by the department: the Admin can edit.
+        $this->actingAs($this->ccsLab, 'dept')->postJson(route('department.users.approve'), ['user_id' => $ramon->user_id])->assertOk();
+        $edit()->assertSessionHas('serverMsgType', 'success');
+        $this->assertSame('Changed', $ramon->fresh('facultyMember')->facultyMember->first_name);
+    }
+
     public function test_a_declined_registration_cannot_be_edited(): void
     {
         $ramon = $this->makeFaculty($this->ccs, 'ramon@example.com');
