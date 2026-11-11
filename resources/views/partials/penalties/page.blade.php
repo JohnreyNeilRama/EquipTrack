@@ -55,7 +55,7 @@
              Admin filters by department; Lab Personnel by Student / Faculty Member. --}}
         <div class="filter-card-container penalties-filter-card">
                 <div class="search-box-right-icon">
-                    <input type="text" id="searchPenalties" placeholder="Search user, equipment or ID..." aria-label="Search penalties">
+                    <input type="text" id="searchPenalties" placeholder="Search user, equipment or ID" aria-label="Search penalties">
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </div>
                 <div class="filter-select-item">
@@ -161,14 +161,14 @@
                                 <label class="detail-form-label" for="pfAmount">Amount <span class="optional">optional</span></label>
                                 <div class="penalty-input-prefix">
                                     <span aria-hidden="true">₱</span>
-                                    <input type="number" id="pfAmount" class="detail-form-control" min="0" max="999999.99" step="0.01" inputmode="decimal" placeholder="0.00">
+                                    <input type="number" id="pfAmount" class="detail-form-control" min="0" max="999999.99" step="0.01" inputmode="decimal" placeholder="Leave empty if non-monetary">
                                 </div>
                                 <p class="penalty-hint">Leave empty for a non-monetary penalty.</p>
                             </div>
                         </div>
                         <div class="penalty-field" data-modes="add edit">
                             <label class="detail-form-label" for="pfDescription">Description <span class="req">*</span></label>
-                            <textarea id="pfDescription" class="detail-form-control textarea-control" rows="4" maxlength="1000" placeholder="e.g. Pay for the replacement charger at the Accounting Office."></textarea>
+                            <textarea id="pfDescription" class="detail-form-control textarea-control" rows="4" maxlength="1000" placeholder="e.g. Replace the charger or pay at the Accounting Office"></textarea>
                         </div>
                         <div class="penalty-field" data-modes="settle">
                             <label class="detail-form-label" for="pfReference">Reference / Receipt No. <span class="optional">optional</span></label>
@@ -189,7 +189,7 @@
                         <p class="penalty-note" data-modes="approveProof"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Approving settles the penalty, copies the reference number, notifies the borrower and lifts their borrowing hold.</p>
                         <div class="penalty-field" data-modes="rejectProof">
                             <label class="detail-form-label" for="pfRejectReason">Reason for Rejecting <span class="req">*</span></label>
-                            <textarea id="pfRejectReason" class="detail-form-control textarea-control" rows="4" maxlength="1000" placeholder="e.g. The receipt is unreadable. Please upload a clearer photo."></textarea>
+                            <textarea id="pfRejectReason" class="detail-form-control textarea-control" rows="4" maxlength="1000" placeholder="e.g. Receipt is unreadable; upload a clearer photo"></textarea>
                             <p class="penalty-hint">The borrower sees this reason and can submit new proof.</p>
                         </div>
                     </div>

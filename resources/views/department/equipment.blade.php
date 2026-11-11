@@ -66,7 +66,7 @@
         <!-- Controls Bar (Filter Container Card) -->
         <div class="filter-card-container">
             <div class="search-box-right-icon">
-                <input type="text" id="searchEquipment" placeholder="Search by name or serial no..." aria-label="Search equipment">
+                <input type="text" id="searchEquipment" placeholder="Search name, brand or serial no." aria-label="Search equipment">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
 
@@ -165,7 +165,7 @@
                         <h4 class="eq-form-section-title" id="eqBasicHeading">Basic Information</h4>
                         <div class="form-group-flat">
                             <label for="eqFormName">Equipment Name <span class="req" aria-hidden="true">*</span></label>
-                            <input type="text" id="eqFormName" class="form-control-flat" required maxlength="100" placeholder="e.g., Laptop Dell XPS">
+                            <input type="text" id="eqFormName" class="form-control-flat" required maxlength="100" placeholder="e.g. Dell XPS Laptop">
                         </div>
                         <div class="form-row-flat">
                             <div class="form-group-flat">
@@ -199,16 +199,16 @@
                         <div class="form-row-flat">
                             <div class="form-group-flat">
                                 <label for="eqFormBrand">Brand <span class="req" aria-hidden="true">*</span></label>
-                                <input type="text" id="eqFormBrand" class="form-control-flat" required maxlength="50" placeholder="e.g., Dell">
+                                <input type="text" id="eqFormBrand" class="form-control-flat" required maxlength="50" placeholder="e.g. Dell">
                             </div>
                             <div class="form-group-flat">
                                 <label for="eqFormModel">Model</label>
-                                <input type="text" id="eqFormModel" class="form-control-flat" maxlength="50" placeholder="e.g., Latitude 5420">
+                                <input type="text" id="eqFormModel" class="form-control-flat" maxlength="50" placeholder="e.g. Latitude 5420">
                             </div>
                         </div>
                         <div class="form-group-flat">
                             <label for="eqFormSerial">Serial Number <span class="req" aria-hidden="true">*</span></label>
-                            <input type="text" id="eqFormSerial" class="form-control-flat mono" required maxlength="50" placeholder="e.g., SN-000123" aria-describedby="eqSerialHint">
+                            <input type="text" id="eqFormSerial" class="form-control-flat mono" required maxlength="50" placeholder="e.g. SN-000123" aria-describedby="eqSerialHint">
                             <p class="form-hint" id="eqSerialHint">Must be unique across all equipment.</p>
                         </div>
                     </section>
@@ -245,7 +245,7 @@
                         <p class="form-hint" id="eqQtyHint" aria-live="polite">Available units can't be more than the total.</p>
                         <div class="form-group-flat">
                             <label for="eqFormAccessories">Accessories Included</label>
-                            <input type="text" id="eqFormAccessories" class="form-control-flat" maxlength="150" placeholder="e.g., Charger, Power Adapter, Carrying Case">
+                            <input type="text" id="eqFormAccessories" class="form-control-flat" maxlength="150" placeholder="e.g. Charger, carrying case">
                         </div>
                     </section>
                 </div>

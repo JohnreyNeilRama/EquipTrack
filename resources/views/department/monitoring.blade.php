@@ -66,7 +66,7 @@
         <!-- Controls Bar (Filter Container Card) -->
         <div class="filter-card-container">
             <div class="search-box-right-icon">
-                <input type="text" id="searchMonitoring" placeholder="Search by name or ID...">
+                <input type="text" id="searchMonitoring" placeholder="Search borrower, equipment or ID">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
 

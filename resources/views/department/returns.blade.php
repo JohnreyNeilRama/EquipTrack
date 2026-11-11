@@ -780,7 +780,7 @@
         {{-- Controls bar (Search & Filters) --}}
         <div class="filter-card-container">
             <div class="search-box-right-icon">
-                <input type="text" id="searchReturns" placeholder="Search user, equipment or ID..." aria-label="Search returns">
+                <input type="text" id="searchReturns" placeholder="Search user, equipment or ID" aria-label="Search returns">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
             <div class="filter-select-item ret-filter">
@@ -990,7 +990,7 @@
                                 </label>
                                 <span class="char-counter" id="remarksCounter">0 / 1000</span>
                             </div>
-                            <textarea id="inspectRemarks" class="detail-form-control textarea-control" rows="3" maxlength="1000" placeholder="Describe any damage, missing components, or other issues found..."></textarea>
+                            <textarea id="inspectRemarks" class="detail-form-control textarea-control" rows="3" maxlength="1000" placeholder="e.g. Cracked screen; charger missing"></textarea>
                         </div>
                     </section>
 
@@ -1016,12 +1016,12 @@
                                 </div>
                                 <div class="review-field">
                                     <label class="review-field-label" for="penaltyAmount">Amount (₱) <span class="optional">optional</span></label>
-                                    <input type="number" id="penaltyAmount" class="detail-form-control" min="0" max="999999.99" step="0.01" inputmode="decimal" placeholder="Leave empty for a non-monetary penalty">
+                                    <input type="number" id="penaltyAmount" class="detail-form-control" min="0" max="999999.99" step="0.01" inputmode="decimal" placeholder="Leave empty if non-monetary">
                                 </div>
                             </div>
                             <div class="review-field">
                                 <label class="review-field-label" for="penaltyDescription">Description <span class="req">*</span></label>
-                                <textarea id="penaltyDescription" class="detail-form-control textarea-control" rows="2" maxlength="1000" placeholder="e.g. Pay for the replacement charger at the Accounting Office, or replace the item."></textarea>
+                                <textarea id="penaltyDescription" class="detail-form-control textarea-control" rows="2" maxlength="1000" placeholder="e.g. Replace the charger or pay at the Accounting Office"></textarea>
                             </div>
                             <p class="review-hint">EquipTrack only records the penalty. Payment is handled outside the system; mark it settled on the Penalties page afterwards.</p>
                         </div>
@@ -1074,7 +1074,7 @@
                     <input type="hidden" id="rejectReturnId">
                     <div class="reject-reason-input-group">
                         <label class="detail-form-label text-danger" style="text-align: left;">Reason for Rejection</label>
-                        <textarea id="rejectReturnReason" class="detail-form-control textarea-control" rows="4" maxlength="1000" placeholder="e.g. The equipment has not been handed over to the department yet." required style="border-color: rgba(239, 68, 68, 0.3);"></textarea>
+                        <textarea id="rejectReturnReason" class="detail-form-control textarea-control" rows="4" maxlength="1000" placeholder="e.g. Item not yet handed over" required style="border-color: rgba(239, 68, 68, 0.3);"></textarea>
                     </div>
                     <p class="reject-hint">The item stays on loan to the user, who can submit the return again.</p>
                     <div class="form-submit-container" style="margin-top: 24px;">

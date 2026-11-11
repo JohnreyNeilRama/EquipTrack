@@ -105,7 +105,7 @@
                     <input type="hidden" id="rejectRequestId">
                     <div class="reject-reason-input-group">
                         <label class="detail-form-label text-danger" style="text-align: left;">Reason for Rejection</label>
-                        <textarea id="rejectReasonInput" class="detail-form-control textarea-control" rows="4" placeholder="Please provide a brief explanation for rejecting this request..." required style="border-color: rgba(239, 68, 68, 0.3);"></textarea>
+                        <textarea id="rejectReasonInput" class="detail-form-control textarea-control" rows="4" placeholder="e.g. Unit is needed for a class that day" required style="border-color: rgba(239, 68, 68, 0.3);"></textarea>
                     </div>
                     <div class="form-submit-container" style="margin-top: 24px;">
                         <button type="submit" class="btn-submit-reject">Reject Request</button>

@@ -7,7 +7,7 @@
      (ccs/filter-card.css). --}}
         <div class="filter-card-container">
             <div class="search-box-right-icon">
-                <input type="text" id="searchRequests" placeholder="Search user or equipment..." aria-label="Search requests">
+                <input type="text" id="searchRequests" placeholder="Search user or equipment" aria-label="Search requests">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
             <div class="filter-select-item">

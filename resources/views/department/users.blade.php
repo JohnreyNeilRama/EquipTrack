@@ -68,7 +68,7 @@
         <!-- Controls Bar (Filter Container Card) -->
         <div class="filter-card-container">
             <div class="search-box-right-icon">
-                <input type="text" id="searchUsers" placeholder="Search by name or ID...">
+                <input type="text" id="searchUsers" placeholder="Search name or ID">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
 
@@ -240,7 +240,7 @@
                 <div class="uf-row" data-for="student">
                     <div class="form-group-flat">
                         <label for="ufIdNumber">Student ID Number</label>
-                        <input type="text" id="ufIdNumber" name="id_number" class="form-control-flat" required pattern="\d{8}" maxlength="8" inputmode="numeric" placeholder="e.g., 20230123" title="Student ID must be exactly 8 digits.">
+                        <input type="text" id="ufIdNumber" name="id_number" class="form-control-flat" required pattern="\d{8}" maxlength="8" inputmode="numeric" placeholder="e.g. 20230123" title="Student ID must be exactly 8 digits.">
                     </div>
                     <div class="form-group-flat">
                         <label for="ufYearLevel">Year &amp; Level</label>
@@ -255,17 +255,17 @@
                 <div class="uf-row" data-for="faculty">
                     <div class="form-group-flat">
                         <label for="ufFacultyId">Faculty ID Number</label>
-                        <input type="text" id="ufFacultyId" name="faculty_id_number" class="form-control-flat" required maxlength="20" pattern="[A-Za-z0-9\-]+" placeholder="e.g., T-00987" title="Letters, numbers and hyphens only.">
+                        <input type="text" id="ufFacultyId" name="faculty_id_number" class="form-control-flat" required maxlength="20" pattern="[A-Za-z0-9\-]+" placeholder="e.g. T-00987" title="Letters, numbers and hyphens only.">
                     </div>
                     <div class="form-group-flat">
                         <label for="ufLicense">Teaching License No.</label>
-                        <input type="text" id="ufLicense" name="teaching_license_no" class="form-control-flat" required maxlength="30" pattern="[A-Za-z0-9\-]+" placeholder="e.g., 1234567" title="Letters, numbers and hyphens only.">
+                        <input type="text" id="ufLicense" name="teaching_license_no" class="form-control-flat" required maxlength="30" pattern="[A-Za-z0-9\-]+" placeholder="e.g. 1234567" title="Letters, numbers and hyphens only.">
                     </div>
                 </div>
 
                 <div class="form-group-flat" data-for="faculty">
                     <label for="ufEducation">Highest Educational Attainment <span class="label-optional">(optional)</span></label>
-                    <input type="text" id="ufEducation" name="highest_educational_attainment" class="form-control-flat" maxlength="100" placeholder="e.g., Master of Information Technology">
+                    <input type="text" id="ufEducation" name="highest_educational_attainment" class="form-control-flat" maxlength="100" placeholder="e.g. Master of Information Technology">
                 </div>
 
                 <div class="form-group-flat">
@@ -280,12 +280,13 @@
 
                 <div class="form-group-flat">
                     <label for="ufAddress">Home Address</label>
-                    <input type="text" id="ufAddress" name="address" class="form-control-flat" required maxlength="150" placeholder="123 University Ave, Tech City">
+                    <input type="text" id="ufAddress" name="address" class="form-control-flat" required maxlength="150" placeholder="Street, barangay, city">
                 </div>
 
                 <div class="form-group-flat" data-for="add">
                     <label for="ufPassword">Password</label>
-                    <input type="password" id="ufPassword" name="password" class="form-control-flat" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters, with letters and numbers">
+                    <input type="password" id="ufPassword" name="password" class="form-control-flat" required minlength="8" autocomplete="new-password" aria-describedby="ufPasswordHint">
+                    <p class="uf-hint" id="ufPasswordHint">At least 8 characters, with letters and numbers.</p>
                 </div>
 
                 <p class="uf-error" id="ufError" role="alert" hidden></p>

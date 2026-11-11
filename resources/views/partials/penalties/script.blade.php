@@ -379,8 +379,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ? 'Reason for Waiving <span class="req">*</span>'
             : 'Remarks <span class="optional">optional</span>';
         $('pfRemarks').placeholder = mode === 'waive'
-            ? 'e.g. The damage was already there before the loan.'
-            : 'e.g. Paid at the Accounting Office.';
+            ? 'e.g. Damage was there before the loan'
+            : 'e.g. Paid at the Accounting Office';
 
         if (mode === 'edit' && p) {
             $('pfAmount').value = p.amount !== null ? Number(p.amount).toFixed(2) : '';

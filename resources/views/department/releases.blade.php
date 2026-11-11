@@ -309,7 +309,7 @@
         <!-- Search & filter -->
         <div class="filter-card-container">
             <div class="search-box-right-icon">
-                <input type="text" id="searchReleases" placeholder="Search user, equipment or ID..." aria-label="Search releases">
+                <input type="text" id="searchReleases" placeholder="Search user, equipment or ID" aria-label="Search releases">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
             <div class="filter-select-item rel-filter">
@@ -459,7 +459,7 @@
                     <div id="cancelFields" style="display: none;">
                         <p class="release-help">The reservation is closed and the dates are free again. The borrower is not penalized, sees your reason and can request the item again.</p>
                         <label class="detail-form-label" for="relCancelReason" style="text-align: left;">Reason (shown to the borrower)</label>
-                        <textarea id="relCancelReason" class="detail-form-control textarea-control" rows="3" maxlength="255" placeholder="e.g. The projector is being repaired. Please request another unit."></textarea>
+                        <textarea id="relCancelReason" class="detail-form-control textarea-control" rows="3" maxlength="255" placeholder="e.g. Unit under repair; please request another"></textarea>
                         <div class="form-submit-container" style="margin-top: 20px;">
                             <button type="submit" class="btn-submit-reject" id="relSubmitCancel" disabled>Cancel Reservation</button>
                         </div>
@@ -469,7 +469,7 @@
                     <div id="notClaimedFields" style="display: none;">
                         <p class="release-help">The held unit goes back to stock. The borrower is not penalized and can request the item again.</p>
                         <label class="detail-form-label" for="relNote" style="text-align: left;">Note (optional)</label>
-                        <textarea id="relNote" class="detail-form-control textarea-control" rows="3" maxlength="255" placeholder="e.g. Borrower did not come on the pickup date."></textarea>
+                        <textarea id="relNote" class="detail-form-control textarea-control" rows="3" maxlength="255" placeholder="e.g. Did not come on the pickup date"></textarea>
                         <div class="form-submit-container" style="margin-top: 20px;">
                             <button type="submit" class="btn-submit-reject">Mark as Not Claimed</button>
                         </div>

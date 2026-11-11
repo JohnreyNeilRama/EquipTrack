@@ -64,7 +64,7 @@
                     <label for="fullName">Full Name</label>
                     <div class="input-wrapper">
                         <i class="fa-regular fa-user input-icon"></i>
-                        <input type="text" id="fullName" name="full_name" class="form-control" value="{{ $dept_full_name }}" placeholder="Enter full name" autocomplete="name" maxlength="255" readonly>
+                        <input type="text" id="fullName" name="full_name" class="form-control" value="{{ $dept_full_name }}" autocomplete="name" maxlength="255" readonly>
                     </div>
                 </div>
 
@@ -73,14 +73,14 @@
                         <label for="email">Email Address</label>
                         <div class="input-wrapper">
                             <i class="fa-regular fa-envelope input-icon"></i>
-                            <input type="email" id="email" name="email" class="form-control" value="{{ $dept_email_val }}" placeholder="Enter email address" autocomplete="email" maxlength="100" readonly>
+                            <input type="email" id="email" name="email" class="form-control" value="{{ $dept_email_val }}" autocomplete="email" maxlength="100" readonly>
                         </div>
                     </div>
                     <div class="form-group">
                         <label for="employeeId">Employee ID</label>
                         <div class="input-wrapper">
                             <i class="fa-regular fa-id-badge input-icon"></i>
-                            <input type="text" id="employeeId" name="employee_id" class="form-control" value="{{ $dept_employee_id }}" placeholder="Enter employee ID" maxlength="100" readonly>
+                            <input type="text" id="employeeId" name="employee_id" class="form-control" value="{{ $dept_employee_id }}" maxlength="100" readonly>
                         </div>
                     </div>
                 </div>
@@ -126,7 +126,7 @@
                     <label for="currentPassword">Current Password</label>
                     <div class="input-wrapper">
                         <i class="fa-solid fa-lock input-icon"></i>
-                        <input type="password" id="currentPassword" name="current_password" class="form-control password-control" placeholder="Enter current password" autocomplete="current-password" required>
+                        <input type="password" id="currentPassword" name="current_password" class="form-control password-control" autocomplete="current-password" required>
                         <button type="button" class="btn-toggle-password" data-target="currentPassword" aria-label="Show password" aria-pressed="false"><i class="fa-solid fa-eye"></i></button>
                     </div>
                 </div>
@@ -136,7 +136,7 @@
                         <label for="newPassword">New Password</label>
                         <div class="input-wrapper">
                             <i class="fa-solid fa-key input-icon"></i>
-                            <input type="password" id="newPassword" name="new_password" class="form-control password-control" placeholder="Enter new password" autocomplete="new-password" aria-describedby="passwordChecklist" required>
+                            <input type="password" id="newPassword" name="new_password" class="form-control password-control" autocomplete="new-password" aria-describedby="passwordChecklist" required>
                             <button type="button" class="btn-toggle-password" data-target="newPassword" aria-label="Show password" aria-pressed="false"><i class="fa-solid fa-eye"></i></button>
                         </div>
                     </div>
@@ -144,7 +144,7 @@
                         <label for="confirmPassword">Confirm New Password</label>
                         <div class="input-wrapper">
                             <i class="fa-solid fa-key input-icon"></i>
-                            <input type="password" id="confirmPassword" name="confirm_password" class="form-control password-control" placeholder="Re-enter new password" autocomplete="new-password" aria-describedby="passwordChecklist" required>
+                            <input type="password" id="confirmPassword" name="confirm_password" class="form-control password-control" autocomplete="new-password" aria-describedby="passwordChecklist" required>
                             <button type="button" class="btn-toggle-password" data-target="confirmPassword" aria-label="Show password" aria-pressed="false"><i class="fa-solid fa-eye"></i></button>
                         </div>
                     </div>
