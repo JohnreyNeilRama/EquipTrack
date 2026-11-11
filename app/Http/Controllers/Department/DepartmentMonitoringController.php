@@ -29,12 +29,84 @@ use Illuminate\View\View;
  */
 class DepartmentMonitoringController extends Controller
 {
-    public function index(): View
+    /** Rows per page. */
+    public const PER_PAGE = 25;
+
+    /** Loan rows still out: what the page shows first ("out", the default status filter). */
+    private const OUT = ['borrowed', 'overdue', 'reserved'];
+
+    public function index(Request $request): View
     {
         $dbCategories = EquipmentCategory::orderBy('category_name')->pluck('category_name')->all();
-        $dbMonitoring = $this->buildMonitoringRows();
+        $monitoringPage = $this->monitoringPage($request);
+        $dbMonitoring = $monitoringPage['rows'];
 
-        return view('department.monitoring', compact('dbCategories', 'dbMonitoring'));
+        return view('department.monitoring', compact('dbCategories', 'dbMonitoring', 'monitoringPage'));
+    }
+
+    /**
+     * JSON feed: one page of monitoring rows (query parameters page, search,
+     * role, status, category). Status starts on "out": items reserved, on loan
+     * or overdue.
+     */
+    public function data(Request $request): JsonResponse
+    {
+        return response()->json(['success' => true] + $this->monitoringPage($request));
+    }
+
+    /**
+     * The rows only ever cover the department's equipment and its open loans
+     * (not past ones), so they are built in full, then searched, filtered,
+     * counted and cut into pages here.
+     *
+     * @return array{rows: array, pagination: array{page:int, perPage:int, total:int, lastPage:int}, counts: array<string,int>}
+     */
+    private function monitoringPage(Request $request): array
+    {
+        $rows = $this->buildMonitoringRows();
+        $status = fn (array $row) => strtolower((string) $row['status']);
+
+        $counts = [
+            'total' => count($rows),
+            'available' => count(array_filter($rows, fn ($r) => $status($r) === 'available')),
+            // Out on loan, including overdue ones
+            'borrowed' => count(array_filter($rows, fn ($r) => in_array($status($r), ['borrowed', 'overdue'], true))),
+            'reserved' => count(array_filter($rows, fn ($r) => in_array($status($r), ['reserved', 'on hold'], true))),
+        ];
+
+        $search = mb_strtolower(trim(mb_substr((string) $request->query('search', ''), 0, 100)));
+        $role = mb_strtolower((string) $request->query('role', 'all'));
+        $wanted = mb_strtolower((string) $request->query('status', 'out'));
+        $category = mb_strtolower(trim((string) $request->query('category', 'all')));
+
+        $matches = array_values(array_filter($rows, function (array $row) use ($status, $search, $role, $wanted, $category) {
+            $s = $status($row);
+            $haystack = mb_strtolower("{$row['equipment']} {$row['borrower']} {$row['id_number']} {$row['role']} {$row['status']}");
+
+            return ($search === '' || str_contains($haystack, $search))
+                && ($role === 'all' || str_contains(mb_strtolower((string) $row['role']), $role))
+                && ($category === 'all' || $category === '' || str_contains(mb_strtolower((string) $row['category']), $category))
+                && match ($wanted) {
+                    'all' => true,
+                    'out' => in_array($s, self::OUT, true),
+                    'maintenance' => $s === 'under maintenance' || $s === 'maintenance',
+                    'reserved' => $s === 'reserved' || $s === 'on hold',
+                    default => $s === $wanted,
+                };
+        }));
+
+        // Overdue loans first (most overdue at the top); the rest keep their order.
+        usort($matches, fn (array $a, array $b) => ((int) $b['daysOverdue']) <=> ((int) $a['daysOverdue']));
+
+        $total = count($matches);
+        $lastPage = max(1, (int) ceil($total / self::PER_PAGE));
+        $page = min(max(1, (int) $request->query('page', 1)), $lastPage);
+
+        return [
+            'rows' => array_slice($matches, ($page - 1) * self::PER_PAGE, self::PER_PAGE),
+            'pagination' => ['page' => $page, 'perPage' => self::PER_PAGE, 'total' => $total, 'lastPage' => $lastPage],
+            'counts' => $counts,
+        ];
     }
 
     /**

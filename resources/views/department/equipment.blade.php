@@ -81,7 +81,9 @@
             </div>
 
             <div class="filter-select-item">
-                <select id="filterStatus">
+                {{-- "In Service" (the default) hides Retired equipment. --}}
+                <select id="filterStatus" aria-label="Filter by status">
+                    <option value="inservice" selected>In Service</option>
                     <option value="all">All Statuses</option>
                     <option value="available">Available</option>
                     <option value="unavailable">Unavailable</option>
@@ -709,7 +711,9 @@
 
                     const matchesSearch = haystack.includes(query);
                     const matchesCategory = (category === 'all' || cardCategory.includes(category));
-                    const matchesStatus = (status === 'all' || cardStatus === status);
+                    // "inservice" (the default) hides Retired equipment.
+                    const matchesStatus = status === 'all'
+                        || (status === 'inservice' ? cardStatus !== 'retired' : cardStatus === status);
 
                     if (matchesSearch && matchesCategory && matchesStatus) {
                         card.style.display = 'flex';
@@ -724,7 +728,9 @@
                     const noneAssigned = equipment.length === 0;
                     document.getElementById('emptyStateText').textContent = noneAssigned
                         ? 'No equipment is assigned to your department yet. Use "Add Equipment" to register an item.'
-                        : 'No equipment matches your search or filters.';
+                        : (status === 'inservice' && query === '' && category === 'all'
+                            ? 'All of your equipment is retired. Choose "All Statuses" or "Retired" to see it.'
+                            : 'No equipment matches your search or filters.');
                     emptyStateContainer.style.display = 'block';
                 } else {
                     emptyStateContainer.style.display = 'none';

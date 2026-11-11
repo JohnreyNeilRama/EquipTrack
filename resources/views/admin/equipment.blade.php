@@ -610,6 +610,19 @@
                 </select>
                 <i class="fa-solid fa-chevron-down"></i>
             </div>
+            {{-- "In Service" (the default) hides Retired equipment. --}}
+            <div class="filter-select-item">
+                <select id="filterStatus" aria-label="Filter by status">
+                    <option value="inservice" selected>In Service</option>
+                    <option value="all">All Statuses</option>
+                    <option value="available">Available</option>
+                    <option value="unavailable">Unavailable</option>
+                    <option value="on hold">On Hold</option>
+                    <option value="under maintenance">Under Maintenance</option>
+                    <option value="retired">Retired</option>
+                </select>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
             <div class="filter-card-actions">
                 <button class="btn-add-category" id="addCategoryBtn" style="padding: 0 20px; background-color: var(--card-bg, #ffffff); color: var(--text-main, #0f172a); border: 1px solid var(--border-color, #e2e8f0); font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
                     <i class="fa-solid fa-folder-open" style="color: #385585;"></i> Manage Categories
@@ -856,6 +869,7 @@
         // DOM Elements
         const searchInput = document.getElementById('searchEquipment');
         const filterSelect = document.getElementById('filterCategory');
+        const filterStatusSelect = document.getElementById('filterStatus');
         const grid = document.getElementById('equipmentGrid');
 
         // Equipment Modal
@@ -939,6 +953,7 @@
                 const card = document.createElement('div');
                 card.className = 'eq-card-admin';
                 card.setAttribute('data-category-id', item.category_id || '');
+                card.setAttribute('data-status', String(item.status || 'Available').toLowerCase());
                 card.setAttribute('data-id', item.equipment_id);
 
                 let statusClass = 'status-available';
@@ -1408,25 +1423,51 @@
         function filterEquipment() {
             const query = searchInput.value.toLowerCase().trim();
             const selectedCatId = filterSelect.value;
+            // "inservice" (the default) hides Retired equipment.
+            const selectedStatus = filterStatusSelect ? filterStatusSelect.value : 'all';
             const cards = grid.querySelectorAll('.eq-card-admin');
+            let visibleCount = 0;
 
             cards.forEach(card => {
                 const title = card.querySelector('.eq-card-title').textContent.toLowerCase();
                 const cardCatId = card.getAttribute('data-category-id');
+                const cardStatus = card.getAttribute('data-status') || 'available';
 
                 const matchesSearch = title.includes(query);
                 const matchesCategory = (selectedCatId === 'all' || cardCatId === selectedCatId);
+                const matchesStatus = selectedStatus === 'all'
+                    || (selectedStatus === 'inservice' ? cardStatus !== 'retired' : cardStatus === selectedStatus);
 
-                if (matchesSearch && matchesCategory) {
+                if (matchesSearch && matchesCategory && matchesStatus) {
                     card.style.display = 'flex';
+                    visibleCount++;
                 } else {
                     card.style.display = 'none';
                 }
             });
+
+            // Cards exist but none match: say so (and where Retired items went).
+            let noMatch = grid.querySelector('.eq-no-match');
+            if (cards.length > 0 && visibleCount === 0) {
+                if (!noMatch) {
+                    noMatch = document.createElement('div');
+                    noMatch.className = 'empty-state-container eq-no-match';
+                    noMatch.style.cssText = 'grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 48px 24px; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color);';
+                    grid.appendChild(noMatch);
+                }
+                const onlyRetiredHidden = selectedStatus === 'inservice' && query === '' && selectedCatId === 'all';
+                noMatch.textContent = onlyRetiredHidden
+                    ? 'All equipment is retired. Choose "All Statuses" or "Retired" to see it.'
+                    : 'No equipment matches your search or filters.';
+                noMatch.hidden = false;
+            } else if (noMatch) {
+                noMatch.hidden = true;
+            }
         }
 
         searchInput.addEventListener('input', filterEquipment);
         filterSelect.addEventListener('change', filterEquipment);
+        filterStatusSelect.addEventListener('change', filterEquipment);
 
         // Open Add Modal
         addBtn.addEventListener('click', () => {

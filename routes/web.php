@@ -183,6 +183,7 @@ Route::middleware(['auth:dept', 'auth.session', 'active', 'expire.requests'])->p
     Route::post('/users/decline', [DepartmentUsersController::class, 'decline'])->name('users.decline');
     Route::post('/users/resend-invite', [DepartmentUsersController::class, 'resendInvite'])->middleware('throttle:20,1')->name('users.invite');
     Route::get('/monitoring', [DepartmentMonitoringController::class, 'index'])->name('monitoring');
+    Route::get('/monitoring/data', [DepartmentMonitoringController::class, 'data'])->name('monitoring.data');
     Route::post('/monitoring/remind', [DepartmentMonitoringController::class, 'remind'])->middleware('throttle:30,1')->name('monitoring.remind');
     Route::get('/history', [DepartmentHistoryController::class, 'index'])->name('history');
     Route::get('/history/data', [DepartmentHistoryController::class, 'data'])->name('history.data');

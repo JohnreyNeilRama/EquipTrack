@@ -140,7 +140,9 @@
 
                     <!-- Status Filter Dropdown -->
                     <div class="filter-select-item">
+                        {{-- "Currently Out" (the default): items reserved, on loan or overdue. --}}
                         <select id="filterStatus" aria-label="Filter by status">
+                            <option value="out" selected>Currently Out</option>
                             <option value="all">All Statuses</option>
                             <option value="Available">Available</option>
                             <option value="Borrowed">Borrowed</option>
@@ -322,7 +324,7 @@
             const detailsModal = document.getElementById('detailsModal');
             const closeDetailsBtn = document.getElementById('closeDetailsBtn');
             let currentPage = 1;
-            const pageSize = 10;
+            const pageSize = 25;
 
             // Render Department Selection Cards Grid
             function renderDepartmentGrid() {
@@ -516,7 +518,7 @@
                 const borrowed = deptRequests.filter(r => r.status === 'Borrowed').length;
                 const reserved = deptRequests.filter(r => r.status === 'Reserved').length;
                 const overdue = deptRequests.filter(r => r.status === 'Overdue').length;
-                const maintenance = deptRequests.filter(r => r.status === 'Maintenance').length;
+                const maintenance = deptRequests.filter(r => r.status === 'Maintenance' || r.status === 'Under Maintenance').length;
 
                 document.getElementById('statTotalMonitored').textContent = total;
                 document.getElementById('statAvailable').textContent = available;
@@ -548,8 +550,9 @@
                     // Category filter
                     const matchesCategory = selectedCategory === 'all' || req.category.toLowerCase() === selectedCategory.toLowerCase();
 
-                    // Status filter
-                    const matchesStatus = selectedStatus === 'all' || 
+                    // Status filter ("out": reserved, on loan or overdue)
+                    const matchesStatus = selectedStatus === 'all' ||
+                        (selectedStatus === 'out' && ['Borrowed', 'Overdue', 'Reserved'].includes(req.status)) ||
                         (selectedStatus.toLowerCase() === 'maintenance' && req.status.toLowerCase() === 'under maintenance') ||
                         req.status.toLowerCase() === selectedStatus.toLowerCase();
 
@@ -662,8 +665,11 @@
                 });
                 paginationButtons.appendChild(prevBtn);
 
-                // Page number buttons
-                for (let i = 1; i <= totalPages; i++) {
+                // Up to 5 page numbers around the current page
+                let firstPage = Math.max(1, currentPage - 2);
+                const lastPage = Math.min(totalPages, firstPage + 4);
+                firstPage = Math.max(1, lastPage - 4);
+                for (let i = firstPage; i <= lastPage; i++) {
                     const pageBtn = document.createElement('button');
                     pageBtn.className = `btn-page ${currentPage === i ? 'active' : ''}`;
                     pageBtn.textContent = i;

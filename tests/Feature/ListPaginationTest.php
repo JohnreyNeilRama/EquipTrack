@@ -211,6 +211,55 @@ class ListPaginationTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // Monitoring and Equipment
+    // ------------------------------------------------------------------
+
+    public function test_department_monitoring_opens_on_items_currently_out_25_to_a_page(): void
+    {
+        // 27 items nobody has, plus one on loan and one overdue.
+        for ($i = 1; $i <= 27; $i++) {
+            $this->makeEquipment($this->ccs, ['name' => "Spare Item {$i}"]);
+        }
+        $onLoan = $this->makeLoan($this->student, $this->laptop, now()->addDays(3)->toDateString());
+        $projector = $this->makeEquipment($this->ccs, ['name' => 'Epson Projector']);
+        $overdue = $this->makeLoan($this->student, $projector, now()->subDays(3)->toDateString());
+
+        $feed = fn (array $q = []) => $this->actingAs($this->lab, 'dept')->getJson(route('department.monitoring.data', $q))->assertOk();
+
+        // Default: only the two loans, the overdue one first.
+        $out = $feed();
+        $this->assertSame(['Overdue', 'Borrowed'], array_column($out->json('rows'), 'status'));
+        $this->assertSame(2, $out->json('pagination.total'));
+        $this->assertSame(['total' => 29, 'available' => 27, 'borrowed' => 2, 'reserved' => 0], $out->json('counts'));
+
+        // All Statuses: everything, 25 to a page.
+        $all = $feed(['status' => 'all']);
+        $this->assertCount(25, $all->json('rows'));
+        $this->assertSame(29, $all->json('pagination.total'));
+        $this->assertCount(4, $feed(['status' => 'all', 'page' => 2])->json('rows'));
+
+        $this->assertSame(['Epson Projector'], array_column($feed(['search' => 'epson'])->json('rows'), 'equipment'));
+        $this->assertSame(27, $feed(['status' => 'available'])->json('pagination.total'));
+
+        // The page itself starts the same way.
+        $this->get(route('department.monitoring'))->assertOk()
+            ->assertSee('Currently Out')
+            ->assertViewHas('monitoringPage', fn ($p) => $p['pagination']['total'] === 2);
+    }
+
+    public function test_admin_monitoring_and_both_equipment_pages_hide_finished_items_by_default(): void
+    {
+        $this->actingAs($this->admin, 'admin')->get(route('admin.monitoring'))->assertOk()
+            ->assertSee('<option value="out" selected>Currently Out</option>', false);
+
+        $this->get(route('admin.equipment'))->assertOk()
+            ->assertSee('<option value="inservice" selected>In Service</option>', false);
+
+        $this->actingAs($this->lab, 'dept')->get(route('department.equipment'))->assertOk()
+            ->assertSee('<option value="inservice" selected>In Service</option>', false);
+    }
+
+    // ------------------------------------------------------------------
     // Department History
     // ------------------------------------------------------------------
 

@@ -80,8 +80,10 @@
             </div>
 
             <div class="filter-select-item">
-                <select id="filterStatus">
-                    <option value="all">Status</option>
+                {{-- "Currently Out" (the default): items reserved, on loan or overdue. --}}
+                <select id="filterStatus" aria-label="Filter by status">
+                    <option value="out" selected>Currently Out</option>
+                    <option value="all">All Statuses</option>
                     <option value="borrowed">Borrowed</option>
                     <option value="overdue">Overdue</option>
                     <option value="available">Available</option>
@@ -247,59 +249,65 @@
 
             // Monitoring rows loaded live from the database for this department
             // (one row per active loan, or one row per equipment with no active loan).
+            // One page at a time (25), searched, filtered, sorted (overdue first)
+            // and counted by the server (DepartmentMonitoringController).
             let monitoringData = @json($dbMonitoring);
+            let pagination = @json($monitoringPage['pagination']);
+            let counts = @json($monitoringPage['counts']);
+            const URL_DATA = @json(route('department.monitoring.data'));
+            let loadSeq = 0;
 
             // Pagination state
-            let currentPage = 1;
-            const pageSize = 10;
+            let currentPage = pagination.page;
 
+            // Summary cards: all of the department's equipment and loans.
             function updateSummaryCards() {
-                const totalCount = monitoringData.length;
-                const availableCount = monitoringData.filter(m => m.status.toLowerCase() === 'available').length;
-                // Items currently out on loan (including overdue ones)
-                const borrowedCount = monitoringData.filter(m => ['borrowed', 'overdue'].includes(m.status.toLowerCase())).length;
-                const reservedCount = monitoringData.filter(m => ['reserved', 'on hold'].includes(m.status.toLowerCase())).length;
+                if (sumTotalMonitored) sumTotalMonitored.textContent = counts.total;
+                if (sumAvailable) sumAvailable.textContent = counts.available;
+                if (sumBorrowed) sumBorrowed.textContent = counts.borrowed;
+                if (sumReserved) sumReserved.textContent = counts.reserved;
+            }
 
-                if (sumTotalMonitored) sumTotalMonitored.textContent = totalCount;
-                if (sumAvailable) sumAvailable.textContent = availableCount;
-                if (sumBorrowed) sumBorrowed.textContent = borrowedCount;
-                if (sumReserved) sumReserved.textContent = reservedCount;
+            function filtersInUse() {
+                return searchInput.value.trim() !== '' || filterRoleSelect.value !== 'all'
+                    || filterStatusSelect.value !== 'out' || filterCategorySelect.value !== 'all';
+            }
+
+            // Loads the current page with the current search and filters.
+            // Only the newest answer counts.
+            function loadPage() {
+                const url = new URL(URL_DATA, window.location.origin);
+                url.searchParams.set('page', String(currentPage));
+                url.searchParams.set('role', filterRoleSelect.value);
+                url.searchParams.set('status', filterStatusSelect.value);
+                url.searchParams.set('category', filterCategorySelect.value);
+                const query = searchInput.value.trim();
+                if (query !== '') url.searchParams.set('search', query);
+
+                const seq = ++loadSeq;
+                fetch(url.toString(), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+                    .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
+                    .then(data => {
+                        if (seq !== loadSeq || !data || !data.success) return;
+                        monitoringData = data.rows || [];
+                        pagination = data.pagination || pagination;
+                        counts = data.counts || counts;
+                        renderTable();
+                    })
+                    .catch(err => console.error('Error loading monitoring rows:', err));
             }
 
             function renderTable() {
                 tableBody.innerHTML = '';
 
-                const query = searchInput.value.toLowerCase().trim();
-                const selectedRole = filterRoleSelect.value.toLowerCase();
-                const selectedStatus = filterStatusSelect.value.toLowerCase();
-                const selectedCategory = filterCategorySelect.value.toLowerCase();
+                // The server already searched, filtered, sorted and cut this page.
+                const totalEntries = pagination.total;
+                const totalPages = Math.max(1, pagination.lastPage);
+                currentPage = pagination.page;
 
-                const filtered = monitoringData.filter(item => {
-                    const status = item.status.toLowerCase();
-                    const searchData = `${item.equipment} ${item.borrower} ${item.id_number} ${item.role} ${item.status}`.toLowerCase();
-
-                    const matchesSearch = searchData.includes(query);
-                    const matchesRole = (selectedRole === 'all' || item.role.toLowerCase().includes(selectedRole));
-                    const matchesCategory = (selectedCategory === 'all' || item.category.toLowerCase().includes(selectedCategory));
-                    const matchesStatus = (selectedStatus === 'all' ||
-                        status === selectedStatus ||
-                        (selectedStatus === 'maintenance' && status === 'under maintenance') ||
-                        (selectedStatus === 'reserved' && status === 'on hold'));
-
-                    return matchesSearch && matchesRole && matchesCategory && matchesStatus;
-                });
-
-                // Overdue loans first (most overdue at the top); the rest keep their order
-                filtered.sort((a, b) => (Number(b.daysOverdue) || 0) - (Number(a.daysOverdue) || 0));
-
-                const totalEntries = filtered.length;
-                const totalPages = Math.ceil(totalEntries / pageSize);
-
-                if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
-
-                const startIndex = (currentPage - 1) * pageSize;
-                const endIndex = Math.min(startIndex + pageSize, totalEntries);
-                const pageItems = filtered.slice(startIndex, endIndex);
+                const startIndex = (currentPage - 1) * pagination.perPage;
+                const endIndex = startIndex + monitoringData.length;
+                const pageItems = monitoringData;
 
                 pageItems.forEach(item => {
                     const tr = document.createElement('tr');
@@ -346,9 +354,10 @@
                 // No rows: a message row inside the table (same as the Release
                 // Equipment table), and no pagination bar.
                 if (totalEntries === 0) {
-                    const message = monitoringData.length === 0
+                    const message = counts.total === 0
                         ? 'No equipment is assigned to your department yet.'
-                        : 'No records match your search or filters.';
+                        : (filtersInUse() ? 'No records match your search or filters.'
+                            : 'Nothing is reserved, on loan or overdue right now. Choose "All Statuses" to see all equipment.');
                     tableBody.innerHTML = `
                         <tr class="table-empty-row">
                             <td colspan="6" class="table-empty-cell">
@@ -373,23 +382,24 @@
                     return btn;
                 };
 
-                paginationControls.appendChild(makeBtn('<i class="fa-solid fa-chevron-left"></i>', currentPage <= 1, false, () => {
-                    currentPage--;
-                    renderTable();
-                }));
+                const goTo = (page) => {
+                    currentPage = page;
+                    loadPage();
+                };
 
-                const pagesToShow = Math.max(1, totalPages);
-                for (let i = 1; i <= pagesToShow; i++) {
-                    paginationControls.appendChild(makeBtn(String(i), false, currentPage === i, () => {
-                        currentPage = i;
-                        renderTable();
-                    }));
+                paginationControls.appendChild(makeBtn('<i class="fa-solid fa-chevron-left"></i>', currentPage <= 1, false,
+                    () => goTo(currentPage - 1)));
+
+                // Up to 5 page numbers around the current page.
+                let start = Math.max(1, currentPage - 2);
+                const end = Math.min(Math.max(1, totalPages), start + 4);
+                start = Math.max(1, end - 4);
+                for (let i = start; i <= end; i++) {
+                    paginationControls.appendChild(makeBtn(String(i), false, currentPage === i, () => goTo(i)));
                 }
 
-                paginationControls.appendChild(makeBtn('<i class="fa-solid fa-chevron-right"></i>', currentPage >= totalPages, false, () => {
-                    currentPage++;
-                    renderTable();
-                }));
+                paginationControls.appendChild(makeBtn('<i class="fa-solid fa-chevron-right"></i>', currentPage >= totalPages, false,
+                    () => goTo(currentPage + 1)));
             }
 
             // Equipment: name (one line, "…" when long) with category and
@@ -626,16 +636,19 @@
                 }
             });
 
-            // Search/filters changed: go back to the first page, then re-render
-            function filterTable() {
+            // Search/filters changed: back to the first page, then ask the
+            // server (typing waits a moment).
+            let searchTimer = null;
+            function filterTable(wait) {
                 currentPage = 1;
-                renderTable();
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(loadPage, wait);
             }
 
-            searchInput.addEventListener('input', filterTable);
-            filterRoleSelect.addEventListener('change', filterTable);
-            filterStatusSelect.addEventListener('change', filterTable);
-            filterCategorySelect.addEventListener('change', filterTable);
+            searchInput.addEventListener('input', () => filterTable(300));
+            filterRoleSelect.addEventListener('change', () => filterTable(0));
+            filterStatusSelect.addEventListener('change', () => filterTable(0));
+            filterCategorySelect.addEventListener('change', () => filterTable(0));
 
             // Initial render
             renderTable();
