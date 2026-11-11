@@ -192,7 +192,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const URL_DATA = @json(route('department.history.data'));
-            const REFRESH_MS = 10000;
+            const REFRESH_MS = 30000;
             const PAGE_SIZE = 10;
 
             const tableBody = document.getElementById('historyTableBody');

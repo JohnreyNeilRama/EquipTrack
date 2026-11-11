@@ -269,7 +269,7 @@
     (function () {
         const URL_DATA = @json(route('user.dashboard.data'));
         const URL_LOGIN = @json(route('login'));
-        const REFRESH_MS = 10000;
+        const REFRESH_MS = 30000;
 
         const errorBox = document.getElementById('dashRefreshError');
         let inFlight = false;

@@ -340,7 +340,7 @@
             // Users of the signed-in department, loaded live from the database
             // and refreshed below so the table stays current.
             const URL_DATA = @json(route('department.users.data'));
-            const REFRESH_MS = 15000;
+            const REFRESH_MS = 30000;
             let users = @json($dbUsers);
 
             // active | inactive | pending | invited | unverified (from the server).

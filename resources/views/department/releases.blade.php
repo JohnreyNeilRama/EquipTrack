@@ -498,7 +498,7 @@
         const URL_RELEASE = @json(route('department.releases.release'));
         const URL_NOT_CLAIMED = @json(route('department.releases.not-claimed'));
         const URL_CANCEL = @json(route('department.releases.cancel'));
-        const REFRESH_MS = 15000;
+        const REFRESH_MS = 20000;
 
         const PAGE_SIZE = 10;
 

@@ -1161,7 +1161,7 @@
 
         // New returns appear automatically while the tab is visible; a hidden
         // tab waits, then catches up as soon as it is shown again.
-        setInterval(() => { if (!busy && !document.hidden) loadReturns(); }, 5000);
+        setInterval(() => { if (!busy && !document.hidden) loadReturns(); }, 20000);
         document.addEventListener('visibilitychange', () => {
             if (!busy && !document.hidden) loadReturns();
         });

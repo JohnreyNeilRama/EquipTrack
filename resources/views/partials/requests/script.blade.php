@@ -84,9 +84,9 @@
                 .catch(err => console.error('Error fetching requests:', err));
         }
 
-        // Auto-refresh every 15 seconds while the tab is visible; a hidden tab
+        // Auto-refresh every 20 seconds while the tab is visible; a hidden tab
         // waits, then catches up as soon as it is shown again.
-        setInterval(() => { if (!document.hidden) loadRequests(); }, 15000);
+        setInterval(() => { if (!document.hidden) loadRequests(); }, 20000);
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) loadRequests();
         });

@@ -352,7 +352,7 @@
     });
 
     const URL_DATA = @json(route('department.dashboard.data'));
-    const REFRESH_MS = 10000;
+    const REFRESH_MS = 30000;
 
     let dashboard = @json($dashboard ?? []);
 
