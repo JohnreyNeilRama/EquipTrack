@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditTrail;
-use App\Models\BorrowRequest;
 use App\Models\Department;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
@@ -207,7 +206,7 @@ class AdminEquipmentController extends Controller
             'image' => ['nullable', 'string'],
             'available_qty' => ['required', 'integer', 'min:0'],
             'total_qty' => ['required', 'integer', 'min:0'],
-            'status' => ['required', Rule::in(['Available', 'Unavailable', 'On Hold', 'Under Maintenance'])],
+            'status' => ['required', Rule::in(Equipment::STATUSES)],
             // Required for new equipment. When an edit omits it (older clients),
             // the record keeps its saved classification; a value that is sent
             // must always be one of the two options.
@@ -245,10 +244,17 @@ class AdminEquipmentController extends Controller
             if (!$equipment) {
                 return response()->json(['success' => false, 'message' => 'Equipment not found.'], 404);
             }
+            if ($reason = $this->retireRefusal($equipment, $data['status'])) {
+                return response()->json(['success' => false, 'message' => $reason], 400);
+            }
             $equipment->update([...$data, 'image' => $image]);
             $this->audit($request, 'Updated equipment #' . $equipmentId . ' (' . $data['name'] . ')', 'equipment:' . $equipmentId);
 
             return response()->json(['success' => true, 'message' => 'Equipment details updated successfully!']);
+        }
+
+        if ($data['status'] === Equipment::STATUS_RETIRED) {
+            return response()->json(['success' => false, 'message' => 'New equipment can\'t be registered as Retired. Choose another status.'], 400);
         }
 
         $equipment = Equipment::create([...$data, 'image' => $image]);
@@ -265,17 +271,10 @@ class AdminEquipmentController extends Controller
             return response()->json(['success' => false, 'message' => 'Invalid equipment ID provided.'], 404);
         }
 
-        // FIX vs legacy: that guard queried a nonexistent borrow_request.status column
-        // and silently failed (mysqli exceptions off), letting equipment be deleted
-        // while borrowed. Check the real status columns now.
-        $active = BorrowRequest::where('equipment_id', $equipment->equipment_id)
-            ->whereIn('overall_status', ['Pending', 'Approved'])
-            ->exists();
-        if ($active) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete this equipment because it has active or pending borrow requests.',
-            ], 400);
+        // Equipment that was ever requested keeps its history: it is retired,
+        // not deleted (the database refuses the delete as well).
+        if ($reason = $equipment->deleteBlocker()) {
+            return response()->json(['success' => false, 'message' => $reason], 400);
         }
 
         $imagePath = str_starts_with($equipment->image, '/storage/') ? substr($equipment->image, strlen('/storage/')) : null;
@@ -287,6 +286,16 @@ class AdminEquipmentController extends Controller
         $this->audit($request, 'Deleted equipment #' . $data['equipment_id'], 'equipment:' . $data['equipment_id']);
 
         return response()->json(['success' => true, 'message' => 'Equipment removed from inventory successfully!']);
+    }
+
+    /** Why the item can't be set to Retired now (only checked when it becomes Retired). */
+    private function retireRefusal(Equipment $equipment, string $newStatus): ?string
+    {
+        if ($newStatus !== Equipment::STATUS_RETIRED || $equipment->isRetired()) {
+            return null;
+        }
+
+        return $equipment->retireBlocker();
     }
 
     private function audit(Request $request, string $action, string $entity): void

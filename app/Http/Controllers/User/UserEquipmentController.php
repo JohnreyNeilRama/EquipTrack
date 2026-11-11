@@ -29,7 +29,9 @@ class UserEquipmentController extends Controller
     {
         $dbCategories = EquipmentCategory::orderBy('category_name')->get();
 
+        // Retired equipment is no longer lent, so borrowers don't see it.
         $dbEquipment = Equipment::with(['category', 'department'])
+            ->inService()
             ->orderByDesc('equipment_id')
             ->get();
 

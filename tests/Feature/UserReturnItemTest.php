@@ -157,12 +157,13 @@ class UserReturnItemTest extends TestCase
         $delete()->assertRedirect(route('admin.users'))->assertSessionHas('serverMsgType', 'error');
         $this->assertNotNull($this->user->fresh());
 
-        // Returned and confirmed: the account can be deleted.
+        // Returned and confirmed: still refused, because the account now has
+        // borrowing history that must be kept (deactivate it instead).
         $this->returnItem($requestId)->assertOk();
         $this->confirmReturn($requestId)->assertOk();
 
-        $delete()->assertRedirect(route('admin.users'))->assertSessionHas('serverMsgType', 'success');
-        $this->assertNull($this->user->fresh());
+        $delete()->assertRedirect(route('admin.users'))->assertSessionHas('serverMsgType', 'error');
+        $this->assertNotNull($this->user->fresh());
     }
 
     public function test_borrow_request_starts_as_pending(): void

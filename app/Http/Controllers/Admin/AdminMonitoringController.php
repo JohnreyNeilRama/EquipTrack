@@ -94,6 +94,7 @@ class AdminMonitoringController extends Controller
         $rows = [];
 
         $equipmentList = Equipment::with(['category', 'department'])
+            ->inService()
             ->orderBy('equipment_id')
             ->get();
 

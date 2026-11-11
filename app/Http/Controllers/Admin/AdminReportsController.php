@@ -58,7 +58,7 @@ class AdminReportsController extends Controller
     private const STATUSES = [
         'borrowing' => ['Pending', 'Approved', 'Rejected', 'Cancelled', 'Expired', 'Ready for Pickup', 'Not Claimed', 'Reservation Cancelled', 'Borrowed', 'Overdue', 'Returned'],
         'return' => ['Returned', 'Returned Late', 'Damaged', 'Incomplete', 'Lost'],
-        'inventory' => ['Available', 'Unavailable', 'On Hold', 'Under Maintenance'],
+        'inventory' => Equipment::STATUSES,
         'overdue' => [],
         'activity' => [],
         'utilization' => ['High', 'Moderate', 'Low', 'Not Used'],

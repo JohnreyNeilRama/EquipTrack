@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
+use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
 use App\Models\Department;
 use App\Models\DepartmentAccount;
-use App\Models\Penalty;
 use App\Models\UserAccount;
 use App\Rules\UniqueAccountEmail;
 use App\Services\AdminEmailChange;
@@ -379,6 +379,14 @@ class AdminUsersController extends Controller
         } elseif ($data['user_type'] === 'department') {
             // Strip the 100000 display offset before touching the database.
             $account = DepartmentAccount::findOrFail($data['user_id'] - 100000);
+
+            // A department has only this one account to review its requests,
+            // release its equipment and confirm its returns. Deleting it while
+            // that work is open would leave nobody to finish it.
+            if ($reason = $this->departmentWorkBlocker($account)) {
+                return redirect()->route('admin.users')->with('serverMsg', $reason)->with('serverMsgType', 'error');
+            }
+
             $logEntity = 'department_account:' . $account->dept_acc_id;
             $logAction = 'Deleted department account';
             $logDetails = ($account->full_name ?: 'Department account') . ' (' . $account->email . ')';
@@ -387,31 +395,19 @@ class AdminUsersController extends Controller
         } else {
             $account = UserAccount::findOrFail($data['user_id']);
 
-            // Refuse to delete users who still hold equipment, or have a unit
-            // held for pickup; deleting them would erase the only record of
-            // an open loan and leave the held unit out of stock.
-            $hasOpenLoans = BorrowTransaction::whereHas('request', fn ($q) => $q->where('user_id', $account->user_id))
-                ->whereIn('status', BorrowTransaction::OPEN)
-                ->exists();
-
-            if ($hasOpenLoans) {
+            // Users who ever made a borrow request keep their history (requests,
+            // loans, penalties): they are deactivated, not deleted. The database
+            // refuses the delete too (borrow_request.user_id ON DELETE RESTRICT).
+            if (BorrowRequest::where('user_id', $account->user_id)->exists()) {
                 return redirect()
                     ->route('admin.users')
-                    ->with('serverMsg', 'This user cannot be deleted because they have borrowed equipment that is ready for pickup, active or overdue. Resolve those first, or deactivate the account instead.')
+                    ->with('serverMsg', 'This user cannot be deleted because they have borrowing history, which must be kept for records and reports. Deactivate the account instead: they will no longer be able to sign in.')
                     ->with('serverMsgType', 'error');
             }
 
-            // Deleting would erase the only record of an unsettled penalty.
-            if (Penalty::where('user_id', $account->user_id)->where('status', Penalty::STATUS_PENDING)->exists()) {
-                return redirect()
-                    ->route('admin.users')
-                    ->with('serverMsg', 'This user cannot be deleted because they have an unsettled penalty. Settle or waive it first, or deactivate the account instead.')
-                    ->with('serverMsgType', 'error');
-            }
-
-            // FKs cascade (student/faculty_member/borrow_request/borrow_transaction),
-            // so one authoritative delete removes the account and its completed
-            // history, and fails loudly instead of reporting false success.
+            // Only accounts that never borrowed reach this point; their
+            // student/faculty_member profile and notification read marks
+            // are removed with them (ON DELETE CASCADE).
             $logEntity = 'user_account:' . $account->user_id;
             $logAction = 'Deleted user account';
             $logDetails = ($account->fullName() ?: 'User') . ' (' . $account->email . ')';
@@ -422,6 +418,42 @@ class AdminUsersController extends Controller
         AuditLogger::log($logAction, $logEntity, $logDetails, null, $request);
 
         return redirect()->route('admin.users')->with('serverMsg', $msg)->with('serverMsgType', 'success');
+    }
+
+    /**
+     * Why this department account can't be deleted now, or null when it can:
+     * its department still has requests waiting for review, or units reserved
+     * for pickup, on loan, overdue or waiting for return confirmation.
+     */
+    private function departmentWorkBlocker(DepartmentAccount $account): ?string
+    {
+        $departmentId = (int) $account->department_id;
+        if ($departmentId <= 0) {
+            return null;
+        }
+
+        $ownEquipment = fn ($q) => $q->where('department_id', $departmentId);
+
+        $pending = BorrowRequest::whereHas('equipment', $ownEquipment)
+            ->where('overall_status', 'Pending')
+            ->count();
+
+        $open = BorrowTransaction::whereIn('status', BorrowTransaction::OPEN)
+            ->whereHas('request.equipment', $ownEquipment)
+            ->count();
+
+        if ($pending === 0 && $open === 0) {
+            return null;
+        }
+
+        $work = array_filter([
+            $pending > 0 ? $pending . ' pending ' . ($pending === 1 ? 'request' : 'requests') : null,
+            $open > 0 ? $open . ' ' . ($open === 1 ? 'item' : 'items') . ' reserved, on loan or awaiting return confirmation' : null,
+        ]);
+
+        return 'This department account cannot be deleted because its department still has '
+            . implode(' and ', $work) . ', and it is the only account that can handle them. '
+            . 'Finish that work first, or deactivate the account instead.';
     }
 
     public function updateProfileImage(Request $request): RedirectResponse

@@ -18,3 +18,10 @@ Schedule::command('equiptrack:send-loan-reminders')
     ->everyFifteenMinutes()
     ->timezone(config('app.display_timezone'))
     ->withoutOverlapping();
+
+// Daily backup of the database and uploaded files (config equiptrack.backup).
+// Like the reminders, it needs the scheduler running at that time.
+Schedule::command('equiptrack:backup')
+    ->dailyAt(config('equiptrack.backup.time'))
+    ->timezone(config('app.display_timezone'))
+    ->withoutOverlapping();

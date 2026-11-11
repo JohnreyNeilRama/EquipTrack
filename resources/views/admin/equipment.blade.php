@@ -109,6 +109,7 @@
     .status-unavailable { background-color: #fee2e2; color: #b91c1c; }
     .status-on-hold { background-color: #ffedd5; color: #c2410c; }
     .status-under-maintenance { background-color: #fef3c7; color: #b45309; }
+    .status-retired { background-color: #e2e8f0; color: #475569; }
 
     .eq-class-badge {
         display: inline-block;
@@ -708,6 +709,7 @@
                                         <option value="Unavailable">Unavailable</option>
                                         <option value="On Hold">On Hold</option>
                                         <option value="Under Maintenance">Under Maintenance</option>
+                                        <option value="Retired">Retired (permanently out of use)</option>
                                     </select>
                                     <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                                 </div>
@@ -943,6 +945,7 @@
                 if (item.status === 'Unavailable') statusClass = 'status-unavailable';
                 else if (item.status === 'On Hold') statusClass = 'status-on-hold';
                 else if (item.status === 'Under Maintenance') statusClass = 'status-under-maintenance';
+                else if (item.status === 'Retired') statusClass = 'status-retired';
 
                 const brandModel = (item.brand || '') + (item.model ? ' ' + item.model : '');
                 const categoryName = item.category_name || 'Unassigned';
@@ -1500,7 +1503,7 @@
 
             const ok = await equipConfirm({
                 title: 'Delete this equipment?',
-                message: `"${item.name}" (${item.serial_number}) will be permanently deleted. This cannot be undone.`,
+                message: `"${item.name}" (${item.serial_number}) will be permanently deleted. This cannot be undone. Only equipment that was never requested can be deleted; equipment with borrowing history is kept, so set its status to Retired instead.`,
                 confirmText: 'Delete',
                 tone: 'danger',
             });

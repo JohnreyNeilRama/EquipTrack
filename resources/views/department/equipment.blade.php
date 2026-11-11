@@ -87,6 +87,7 @@
                     <option value="unavailable">Unavailable</option>
                     <option value="on hold">On Hold</option>
                     <option value="under maintenance">Under Maintenance</option>
+                    <option value="retired">Retired</option>
                 </select>
                 <i class="fa-solid fa-chevron-down"></i>
             </div>
@@ -187,6 +188,7 @@
                                         <option value="Unavailable">Unavailable</option>
                                         <option value="On Hold">On Hold</option>
                                         <option value="Under Maintenance">Under Maintenance</option>
+                                        <option value="Retired">Retired (permanently out of use)</option>
                                     </select>
                                     <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                                 </div>
@@ -458,7 +460,8 @@
                 'available': 'status-available',
                 'unavailable': 'status-unavailable',
                 'on hold': 'status-on-hold',
-                'under maintenance': 'status-under-maintenance'
+                'under maintenance': 'status-under-maintenance',
+                'retired': 'status-retired'
             };
 
             let equipment = [];
@@ -486,6 +489,8 @@
             function updateSummaryCards() {
                 let registered = 0, ready = 0, borrowed = 0, outOfService = 0;
                 equipment.forEach(e => {
+                    // Retired equipment is out of the inventory: not counted.
+                    if (String(e.status).toLowerCase() === 'retired') return;
                     const total = parseInt(e.total) || 0;
                     const avail = parseInt(e.available) || 0;
                     registered += total;
@@ -917,7 +922,7 @@
                 if (!item) return;
                 const ok = await equipConfirm({
                     title: 'Delete this equipment?',
-                    message: `"${item.name}" (${item.serial_number}) will be permanently deleted. This cannot be undone.`,
+                    message: `"${item.name}" (${item.serial_number}) will be permanently deleted. This cannot be undone. Only equipment that was never requested can be deleted; equipment with borrowing history is kept, so set its status to Retired instead.`,
                     confirmText: 'Delete',
                     tone: 'danger',
                 });

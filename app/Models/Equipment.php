@@ -14,6 +14,18 @@ class Equipment extends Model
 
     public const CLASSIFICATIONS = [self::CLASS_EXPENSIVE, self::CLASS_NOT_EXPENSIVE];
 
+    public const STATUS_AVAILABLE = 'Available';
+
+    /**
+     * Permanently out of the inventory: hidden from borrowers, left out of
+     * stock counts and alerts, but kept with its borrowing history. Equipment
+     * that was ever requested is retired instead of deleted.
+     */
+    public const STATUS_RETIRED = 'Retired';
+
+    /** Every equipment.status value, in the order the forms list them. */
+    public const STATUSES = [self::STATUS_AVAILABLE, 'Unavailable', 'On Hold', 'Under Maintenance', self::STATUS_RETIRED];
+
     protected $table = 'equipment';
     protected $primaryKey = 'equipment_id';
     public $timestamps = false;
@@ -80,6 +92,65 @@ class Equipment extends Model
         $cap = (int) config('equiptrack.max_units_per_request', 0);
 
         return $cap > 0 ? min($lendable, $cap) : $lendable;
+    }
+
+    public function isRetired(): bool
+    {
+        return $this->status === self::STATUS_RETIRED;
+    }
+
+    /** Equipment still in the inventory (everything except Retired). */
+    public function scopeInService($query)
+    {
+        return $query->where(fn ($q) => $q->whereNull('status')->orWhere('status', '!=', self::STATUS_RETIRED));
+    }
+
+    /**
+     * Whether any borrow request was ever made for this item. Such equipment
+     * cannot be deleted (the database refuses too: ON DELETE RESTRICT), so its
+     * history stays; it is retired instead.
+     */
+    public function hasBorrowHistory(): bool
+    {
+        return BorrowRequest::where('equipment_id', $this->equipment_id)->exists();
+    }
+
+    /** Why this item can't be deleted right now, or null when it can. */
+    public function deleteBlocker(): ?string
+    {
+        if ($this->hasBorrowHistory()) {
+            return $this->name . ' has borrowing history, so it can\'t be deleted. '
+                . 'Set its status to Retired instead: it is hidden from borrowers and its history is kept.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Why this item can't be retired right now, or null when it can: a request
+     * still waiting for review, or a unit reserved, on loan or not yet confirmed
+     * as returned.
+     */
+    public function retireBlocker(): ?string
+    {
+        $pending = BorrowRequest::where('equipment_id', $this->equipment_id)
+            ->where('overall_status', 'Pending')
+            ->exists();
+
+        if ($pending) {
+            return $this->name . ' can\'t be retired while it has pending borrow requests. Approve or reject them first.';
+        }
+
+        $open = BorrowTransaction::whereIn('status', BorrowTransaction::OPEN)
+            ->whereHas('request', fn ($q) => $q->where('equipment_id', $this->equipment_id))
+            ->exists();
+
+        if ($open) {
+            return $this->name . ' can\'t be retired while a unit is reserved for pickup, on loan or overdue. '
+                . 'Wait until it is returned (or the reservation is cancelled) first.';
+        }
+
+        return null;
     }
 
     public function category()

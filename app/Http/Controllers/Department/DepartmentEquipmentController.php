@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditTrail;
-use App\Models\BorrowRequest;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
 use App\Support\EquipmentImage;
@@ -107,7 +106,7 @@ class DepartmentEquipmentController extends Controller
             'image' => ['nullable', 'string'],
             'available_qty' => ['required', 'integer', 'min:0'],
             'total_qty' => ['required', 'integer', 'min:0'],
-            'status' => ['required', Rule::in(['Available', 'Unavailable', 'On Hold', 'Under Maintenance'])],
+            'status' => ['required', Rule::in(Equipment::STATUSES)],
             'category_id' => ['required', 'integer', Rule::exists('equipment_category', 'category_id')],
             'accessories_included' => ['nullable', 'string', 'max:150'],
         ]);
@@ -145,6 +144,18 @@ class DepartmentEquipmentController extends Controller
         }
 
         $image = EquipmentImage::normalize($data['image'] ?? '', $equipmentId ?: null);
+
+        if ($equipment && $data['status'] === Equipment::STATUS_RETIRED && !$equipment->isRetired()
+            && ($reason = $equipment->retireBlocker())) {
+            return response()->json(['success' => false, 'message' => $reason], 400);
+        }
+
+        if (!$equipment && $data['status'] === Equipment::STATUS_RETIRED) {
+            return response()->json([
+                'success' => false,
+                'message' => 'New equipment can\'t be registered as Retired. Choose another status.',
+            ], 400);
+        }
 
         if ($equipment) {
             $equipment->update([
@@ -187,8 +198,9 @@ class DepartmentEquipmentController extends Controller
     }
 
     /**
-     * Removes one of the signed-in department's equipment records. Same guard
-     * as the admin delete: equipment with pending or approved requests stays.
+     * Removes one of the signed-in department's equipment records. Same rule
+     * as the admin delete: only equipment that was never requested can be
+     * deleted; anything with borrowing history is retired instead.
      * Equipment owned by another department is "not found".
      */
     public function destroy(Request $request): JsonResponse
@@ -204,15 +216,10 @@ class DepartmentEquipmentController extends Controller
             return response()->json(['success' => false, 'message' => 'Equipment not found for your department.'], 404);
         }
 
-        $active = BorrowRequest::where('equipment_id', $equipment->equipment_id)
-            ->whereIn('overall_status', ['Pending', 'Approved'])
-            ->exists();
-
-        if ($active) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cannot delete this equipment because it has active or pending borrow requests.',
-            ], 400);
+        // Equipment that was ever requested keeps its history: it is retired,
+        // not deleted (the database refuses the delete as well).
+        if ($reason = $equipment->deleteBlocker()) {
+            return response()->json(['success' => false, 'message' => $reason], 400);
         }
 
         $imagePath = str_starts_with((string) $equipment->image, '/storage/') ? substr($equipment->image, strlen('/storage/')) : null;

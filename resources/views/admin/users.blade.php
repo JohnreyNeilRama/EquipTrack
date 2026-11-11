@@ -1058,7 +1058,9 @@
             const answer = await equipConfirm({
                 title: 'Delete this account?',
                 message: `The account of ${fullName} will be permanently deleted. This cannot be undone.`
-                    + (isAdmin ? ' Enter your password to confirm.' : ''),
+                    + (isAdmin
+                        ? ' Enter your password to confirm.'
+                        : ' Accounts with borrowing history can\'t be deleted; deactivate them instead to keep their records.'),
                 confirmText: 'Delete Account',
                 tone: 'danger',
                 askPassword: isAdmin,

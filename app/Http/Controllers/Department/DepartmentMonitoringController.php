@@ -70,6 +70,7 @@ class DepartmentMonitoringController extends Controller
 
         $equipmentList = Equipment::with('category')
             ->where('department_id', $departmentId)
+            ->inService()
             ->orderBy('equipment_id')
             ->get();
 

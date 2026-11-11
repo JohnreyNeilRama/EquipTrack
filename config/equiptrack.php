@@ -128,4 +128,32 @@ return [
         'admin_stale_proof_days' => (int) env('REMINDER_ADMIN_STALE_PROOF_DAYS', 3),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Backups (php artisan equiptrack:backup)
+    |--------------------------------------------------------------------------
+    |
+    | Each backup is a folder named equiptrack-YYYYMMDD-HHMMSS holding
+    | database.sql (the whole database) and files/ (uploaded pictures and
+    | penalty proofs from storage/app/public and storage/app/private).
+    |
+    | path: where backups are saved. Point it at another drive, a USB drive or
+    |   a cloud-synced folder (Google Drive, OneDrive): a backup kept only on
+    |   the same disk is lost together with it.
+    | keep_days: backups older than this are deleted after each new backup
+    |   (0 = keep everything).
+    | time: when the daily backup runs (HH:MM, Philippine time). The computer
+    |   must be on and the scheduler running at that time.
+    | mysqldump: the mysqldump program. On Laragon it is usually not on the
+    |   PATH, e.g. C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin\mysqldump.exe
+    |
+    */
+
+    'backup' => [
+        'path' => env('BACKUP_PATH', storage_path('app/backups')),
+        'keep_days' => (int) env('BACKUP_KEEP_DAYS', 14),
+        'time' => env('BACKUP_TIME', '19:30'),
+        'mysqldump' => env('BACKUP_MYSQLDUMP', 'mysqldump'),
+    ],
+
 ];

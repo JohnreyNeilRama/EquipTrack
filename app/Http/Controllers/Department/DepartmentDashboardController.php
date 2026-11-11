@@ -124,7 +124,8 @@ class DepartmentDashboardController extends Controller
             }
         }
 
-        $equipmentQuery = Equipment::where('department_id', $departmentId);
+        // Retired equipment is out of the inventory and not counted.
+        $equipmentQuery = Equipment::where('department_id', $departmentId)->inService();
 
         return [
             'totalEquipment' => (clone $equipmentQuery)->count(),

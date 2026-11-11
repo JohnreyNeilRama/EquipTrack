@@ -100,9 +100,10 @@ class AdminDashboardController extends Controller
             // Student/faculty accounts plus department accounts, matching the
             // rows listed on the User Management page.
             'totalUsers' => UserAccount::count() + DepartmentAccount::count(),
-            'totalEquipment' => Equipment::count(),
-            'totalEquipmentUnits' => (int) Equipment::sum('total_qty'),
-            'totalAvailableUnits' => (int) Equipment::sum('available_qty'),
+            // Retired equipment is out of the inventory and not counted.
+            'totalEquipment' => Equipment::inService()->count(),
+            'totalEquipmentUnits' => (int) Equipment::inService()->sum('total_qty'),
+            'totalAvailableUnits' => (int) Equipment::inService()->sum('available_qty'),
             'pendingRequests' => BorrowRequest::where('overall_status', 'Pending')->count(),
             'borrowedEquipment' => $borrowedUnits,
             'overdueItems' => $overdueUnits,
@@ -181,6 +182,7 @@ class AdminDashboardController extends Controller
     private function lowStock(): array
     {
         return Equipment::with('category')
+            ->inService()
             ->where('available_qty', '<=', self::LOW_STOCK_THRESHOLD)
             ->orderBy('available_qty')
             ->orderBy('name')
