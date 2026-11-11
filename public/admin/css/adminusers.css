@@ -288,6 +288,14 @@
     line-height: 1.5;
 }
 
+/* Password rule under the Password field of the Add forms (stays visible while typing) */
+.pw-hint {
+    margin: 6px 0 0;
+    font-size: var(--fs-small);
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
 .dark-theme .btn-action-toggle {
     border-color: #334155;
     color: #94a3b8;
@@ -703,5 +711,26 @@
     }
     .detail-form-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+/* User Details window: its three buttons (Edit Details, Deactivate Account,
+   Close) always stay inside the window. They may shrink and wrap their text
+   instead of pushing past the edge, and on phones they stack full width.
+   !important is needed to override the buttons' inline flex: 1. */
+#userDetailsModal .modal-actions-footer button {
+    min-width: 0;
+}
+
+@media (max-width: 600px) {
+    #userDetailsModal .modal-actions-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    #userDetailsModal .modal-actions-footer button {
+        flex: 0 0 auto !important;
+        width: 100%;
     }
 }

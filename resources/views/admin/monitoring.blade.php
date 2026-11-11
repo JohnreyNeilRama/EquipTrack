@@ -134,7 +134,7 @@
             <div class="filter-card-container" id="monitoringControls" style="display: none;">
                     <!-- Search Bar -->
                     <div class="search-box-right-icon">
-                        <input type="text" id="monitoringSearch" placeholder="Search by equipment, borrower, or ID..." aria-label="Search monitoring">
+                        <input type="text" id="monitoringSearch" placeholder="Search borrower, equipment or ID" aria-label="Search monitoring">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </div>
 

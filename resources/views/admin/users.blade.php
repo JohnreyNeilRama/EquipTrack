@@ -87,7 +87,7 @@
              one line; each menu item keeps its original id (and click handler). --}}
         <div class="filter-card-container users-filter-card">
             <div class="search-box-right-icon">
-                <input type="text" id="searchUsers" placeholder="Search by name, ID or email..." aria-label="Search users">
+                <input type="text" id="searchUsers" placeholder="Search name, ID or email" aria-label="Search users">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
             <div class="filter-select-item">
@@ -180,18 +180,18 @@
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group-flat">
                             <label>First Name</label>
-                            <input type="text" id="studFirstName" name="first_name" class="form-control-flat" required placeholder="Gabriel">
+                            <input type="text" id="studFirstName" name="first_name" class="form-control-flat" required>
                         </div>
                         <div class="form-group-flat">
                             <label>Last Name</label>
-                            <input type="text" id="studLastName" name="last_name" class="form-control-flat" required placeholder="Fernandez">
+                            <input type="text" id="studLastName" name="last_name" class="form-control-flat" required>
                         </div>
                     </div>
 
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group-flat">
                             <label>Student ID Number</label>
-                            <input type="text" id="studIdNumber" name="id_number" class="form-control-flat" required placeholder="e.g., 20230123" pattern="\d{8}" title="Student ID must be exactly 8 digits." maxlength="8" inputmode="numeric">
+                            <input type="text" id="studIdNumber" name="id_number" class="form-control-flat" required placeholder="e.g. 20230123" pattern="\d{8}" title="Student ID must be exactly 8 digits." maxlength="8" inputmode="numeric">
                         </div>
                         <div class="form-group-flat">
                             <label>Year & Level</label>
@@ -220,17 +220,18 @@
 
                     <div class="form-group-flat">
                         <label>Email Address</label>
-                        <input type="email" id="studEmail" name="email" class="form-control-flat" required placeholder="gabriel.fernandez@example.com">
+                        <input type="email" id="studEmail" name="email" class="form-control-flat" required placeholder="name@example.com">
                     </div>
 
                     <div class="form-group-flat">
                         <label>Home Address</label>
-                        <input type="text" id="studAddress" name="address" class="form-control-flat" required placeholder="123 University Ave, Tech City">
+                        <input type="text" id="studAddress" name="address" class="form-control-flat" required placeholder="Street, barangay, city">
                     </div>
 
                     <div class="form-group-flat">
                         <label>Password</label>
-                        <input type="password" id="studPassword" name="password" class="form-control-flat" required placeholder="••••••••" minlength="8" title="At least 8 characters, with letters and numbers.">
+                        <input type="password" id="studPassword" name="password" class="form-control-flat" required minlength="8" title="At least 8 characters, with letters and numbers." aria-describedby="studPasswordHint">
+                        <p class="pw-hint" id="studPasswordHint">At least 8 characters, with letters and numbers.</p>
                     </div>
 
                     <button type="submit" class="btn-submit-request" style="margin-top: 10px;">
@@ -260,28 +261,28 @@
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group-flat">
                             <label for="facFirstName">First Name</label>
-                            <input type="text" id="facFirstName" name="first_name" class="form-control-flat" required maxlength="50" placeholder="Dennis" value="{{ $facultyOld ? old('first_name') : '' }}">
+                            <input type="text" id="facFirstName" name="first_name" class="form-control-flat" required maxlength="50" value="{{ $facultyOld ? old('first_name') : '' }}">
                         </div>
                         <div class="form-group-flat">
                             <label for="facLastName">Last Name</label>
-                            <input type="text" id="facLastName" name="last_name" class="form-control-flat" required maxlength="50" placeholder="Durano" value="{{ $facultyOld ? old('last_name') : '' }}">
+                            <input type="text" id="facLastName" name="last_name" class="form-control-flat" required maxlength="50" value="{{ $facultyOld ? old('last_name') : '' }}">
                         </div>
                     </div>
 
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group-flat">
                             <label for="facIdNumber">Faculty ID Number</label>
-                            <input type="text" id="facIdNumber" name="faculty_id_number" class="form-control-flat" required maxlength="20" pattern="[A-Za-z0-9\-]+" title="Letters, numbers and hyphens only." placeholder="e.g., T-00987" value="{{ $facultyOld ? old('faculty_id_number') : '' }}">
+                            <input type="text" id="facIdNumber" name="faculty_id_number" class="form-control-flat" required maxlength="20" pattern="[A-Za-z0-9\-]+" title="Letters, numbers and hyphens only." placeholder="e.g. T-00987" value="{{ $facultyOld ? old('faculty_id_number') : '' }}">
                         </div>
                         <div class="form-group-flat">
                             <label for="facLicense">Teaching License No.</label>
-                            <input type="text" id="facLicense" name="teaching_license_no" class="form-control-flat" required maxlength="30" pattern="[A-Za-z0-9\-]+" title="Letters, numbers and hyphens only." placeholder="e.g., 1234567" value="{{ $facultyOld ? old('teaching_license_no') : '' }}">
+                            <input type="text" id="facLicense" name="teaching_license_no" class="form-control-flat" required maxlength="30" pattern="[A-Za-z0-9\-]+" title="Letters, numbers and hyphens only." placeholder="e.g. 1234567" value="{{ $facultyOld ? old('teaching_license_no') : '' }}">
                         </div>
                     </div>
 
                     <div class="form-group-flat">
                         <label for="facEducation">Highest Educational Attainment <span class="label-optional">(optional)</span></label>
-                        <input type="text" id="facEducation" name="highest_educational_attainment" class="form-control-flat" maxlength="100" placeholder="e.g., Master of Information Technology" value="{{ $facultyOld ? old('highest_educational_attainment') : '' }}">
+                        <input type="text" id="facEducation" name="highest_educational_attainment" class="form-control-flat" maxlength="100" placeholder="e.g. Master of Information Technology" value="{{ $facultyOld ? old('highest_educational_attainment') : '' }}">
                     </div>
 
                     <div class="form-group-flat">
@@ -298,17 +299,18 @@
 
                     <div class="form-group-flat">
                         <label for="facEmail">Email Address</label>
-                        <input type="email" id="facEmail" name="email" class="form-control-flat" required maxlength="100" placeholder="dennis.durano@example.com" value="{{ $facultyOld ? old('email') : '' }}">
+                        <input type="email" id="facEmail" name="email" class="form-control-flat" required maxlength="100" placeholder="name@example.com" value="{{ $facultyOld ? old('email') : '' }}">
                     </div>
 
                     <div class="form-group-flat">
                         <label for="facAddress">Home Address</label>
-                        <input type="text" id="facAddress" name="address" class="form-control-flat" required maxlength="150" placeholder="123 University Ave, Tech City" value="{{ $facultyOld ? old('address') : '' }}">
+                        <input type="text" id="facAddress" name="address" class="form-control-flat" required maxlength="150" placeholder="Street, barangay, city" value="{{ $facultyOld ? old('address') : '' }}">
                     </div>
 
                     <div class="form-group-flat">
                         <label for="facPassword">Password</label>
-                        <input type="password" id="facPassword" name="password" class="form-control-flat" required placeholder="••••••••" minlength="8" autocomplete="new-password" title="At least 8 characters, with letters and numbers.">
+                        <input type="password" id="facPassword" name="password" class="form-control-flat" required minlength="8" autocomplete="new-password" title="At least 8 characters, with letters and numbers." aria-describedby="facPasswordHint">
+                        <p class="pw-hint" id="facPasswordHint">At least 8 characters, with letters and numbers.</p>
                     </div>
 
                     <button type="submit" class="btn-submit-request" style="margin-top: 10px;">
@@ -338,22 +340,23 @@
 
                     <div class="form-group-flat">
                         <label for="admName">Full Name</label>
-                        <input type="text" id="admName" name="name" class="form-control-flat" required maxlength="100" placeholder="e.g., Maria Santos" value="{{ $adminOld ? old('name') : '' }}">
+                        <input type="text" id="admName" name="name" class="form-control-flat" required maxlength="100" value="{{ $adminOld ? old('name') : '' }}">
                     </div>
 
                     <div class="form-group-flat">
                         <label for="admEmployeeId">Employee ID <span class="label-optional">(optional)</span></label>
-                        <input type="text" id="admEmployeeId" name="employee_id" class="form-control-flat" maxlength="50" placeholder="e.g., ADM-0002" value="{{ $adminOld ? old('employee_id') : '' }}">
+                        <input type="text" id="admEmployeeId" name="employee_id" class="form-control-flat" maxlength="50" placeholder="e.g. ADM-0002" value="{{ $adminOld ? old('employee_id') : '' }}">
                     </div>
 
                     <div class="form-group-flat">
                         <label for="admEmail">Email Address</label>
-                        <input type="email" id="admEmail" name="email" class="form-control-flat" required maxlength="100" placeholder="admin@example.com" value="{{ $adminOld ? old('email') : '' }}">
+                        <input type="email" id="admEmail" name="email" class="form-control-flat" required maxlength="100" placeholder="name@example.com" value="{{ $adminOld ? old('email') : '' }}">
                     </div>
 
                     <div class="form-group-flat">
                         <label for="admPassword">Password</label>
-                        <input type="password" id="admPassword" name="password" class="form-control-flat" required minlength="8" autocomplete="new-password" placeholder="••••••••" title="At least 8 characters, with letters and numbers.">
+                        <input type="password" id="admPassword" name="password" class="form-control-flat" required minlength="8" autocomplete="new-password" title="At least 8 characters, with letters and numbers." aria-describedby="admPasswordHint">
+                        <p class="pw-hint" id="admPasswordHint">At least 8 characters, with letters and numbers.</p>
                     </div>
 
                     <button type="submit" class="btn-submit-request" style="margin-top: 10px;">
@@ -503,17 +506,17 @@
                     @csrf
                     <div class="form-group-flat">
                         <label>Full Name <span style="color: #ef4444;">*</span></label>
-                        <input type="text" id="deptFullName" name="full_name" class="form-control-flat" required placeholder="e.g., Dr. Jane Doe" value="{{ $deptOld ? old('full_name') : '' }}">
+                        <input type="text" id="deptFullName" name="full_name" class="form-control-flat" required value="{{ $deptOld ? old('full_name') : '' }}">
                     </div>
 
                     <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group-flat">
                             <label>Employee ID <span style="color: #ef4444;">*</span></label>
-                            <input type="text" id="deptEmployeeId" name="employee_id" class="form-control-flat" required placeholder="e.g., EMP-2026-001" value="{{ $deptOld ? old('employee_id') : '' }}">
+                            <input type="text" id="deptEmployeeId" name="employee_id" class="form-control-flat" required placeholder="e.g. EMP-2026-001" value="{{ $deptOld ? old('employee_id') : '' }}">
                         </div>
                         <div class="form-group-flat">
                             <label>Email Address <span style="color: #ef4444;">*</span></label>
-                            <input type="email" id="deptEmail" name="email" class="form-control-flat" required placeholder="e.g., jane.doe@equiptrack.edu" value="{{ $deptOld ? old('email') : '' }}">
+                            <input type="email" id="deptEmail" name="email" class="form-control-flat" required placeholder="name@example.com" value="{{ $deptOld ? old('email') : '' }}">
                         </div>
                     </div>
 
@@ -547,16 +550,16 @@
                         <legend>New department</legend>
                         <div class="form-group-flat">
                             <label for="newDepartmentName">Department Name <span style="color: #ef4444;">*</span></label>
-                            <input type="text" id="newDepartmentName" name="new_department_name" class="form-control-flat" maxlength="255" placeholder="e.g., College of Engineering" value="{{ $deptNewOld ? old('new_department_name') : '' }}" @disabled(!$deptNewOld) @required($deptNewOld)>
+                            <input type="text" id="newDepartmentName" name="new_department_name" class="form-control-flat" maxlength="255" placeholder="e.g. Computer Engineering" value="{{ $deptNewOld ? old('new_department_name') : '' }}" @disabled(!$deptNewOld) @required($deptNewOld)>
                         </div>
                         <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                             <div class="form-group-flat">
                                 <label for="newDepartmentCode">Department Code <span style="color: #ef4444;">*</span></label>
-                                <input type="text" id="newDepartmentCode" name="new_department_code" class="form-control-flat" maxlength="50" pattern="[A-Za-z0-9\-]+" title="Letters, numbers and hyphens only." placeholder="e.g., COE" value="{{ $deptNewOld ? old('new_department_code') : '' }}" @disabled(!$deptNewOld) @required($deptNewOld) style="text-transform: uppercase;">
+                                <input type="text" id="newDepartmentCode" name="new_department_code" class="form-control-flat" maxlength="50" pattern="[A-Za-z0-9\-]+" title="Letters, numbers and hyphens only." placeholder="e.g. CPE" value="{{ $deptNewOld ? old('new_department_code') : '' }}" @disabled(!$deptNewOld) @required($deptNewOld) style="text-transform: uppercase;">
                             </div>
                             <div class="form-group-flat">
                                 <label for="newDepartmentCollege">College <span class="label-optional">(optional)</span></label>
-                                <input type="text" id="newDepartmentCollege" name="new_department_college" class="form-control-flat" maxlength="255" placeholder="e.g., College of Engineering" value="{{ $deptNewOld ? old('new_department_college') : '' }}" @disabled(!$deptNewOld)>
+                                <input type="text" id="newDepartmentCollege" name="new_department_college" class="form-control-flat" maxlength="255" placeholder="e.g. College of Engineering" value="{{ $deptNewOld ? old('new_department_college') : '' }}" @disabled(!$deptNewOld)>
                             </div>
                         </div>
                     </fieldset>
@@ -567,7 +570,8 @@
 
                     <div class="form-group-flat">
                         <label>Password <span style="color: #ef4444;">*</span></label>
-                        <input type="password" id="deptPassword" name="password" class="form-control-flat" required placeholder="••••••••" minlength="8" title="At least 8 characters, with letters and numbers.">
+                        <input type="password" id="deptPassword" name="password" class="form-control-flat" required minlength="8" title="At least 8 characters, with letters and numbers." aria-describedby="deptPasswordHint">
+                        <p class="pw-hint" id="deptPasswordHint">At least 8 characters, with letters and numbers.</p>
                     </div>
 
                     <button type="submit" class="btn-submit-request" style="margin-top: 10px;">

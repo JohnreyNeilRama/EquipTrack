@@ -78,7 +78,7 @@
                 <div class="filter-toolbar">
                     <div class="search-box">
                         <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                        <input type="text" id="auditSearchInput" placeholder="Search by user, module, action, or details..." maxlength="100">
+                        <input type="text" id="auditSearchInput" placeholder="Search user, action or details" maxlength="100">
                     </div>
                     <div class="filter-dropdowns">
                         <select id="filterAction" class="filter-select">

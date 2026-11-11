@@ -28,7 +28,7 @@
         <p class="et-confirm-message" id="etConfirmMessage"></p>
         <div class="et-confirm-password" id="etConfirmPasswordGroup" hidden>
             <label for="etConfirmPassword">Your password</label>
-            <input type="password" id="etConfirmPassword" autocomplete="current-password" placeholder="Enter your password">
+            <input type="password" id="etConfirmPassword" autocomplete="current-password">
             <p class="et-confirm-password-hint" id="etConfirmPasswordHint" hidden>Enter your password to continue.</p>
         </div>
         <div class="et-confirm-actions">
@@ -42,7 +42,10 @@
     .et-confirm {
         position: fixed;
         inset: 0;
-        z-index: 5000;
+        /* Above every page window (.modal-overlay uses 9999) and toast
+           (up to 10001), so it also opens on top of an open form such as
+           Edit Administrator Account. */
+        z-index: 10002;
         display: flex;
         align-items: center;
         justify-content: center;
