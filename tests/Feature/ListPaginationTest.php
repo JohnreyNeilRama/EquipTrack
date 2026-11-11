@@ -153,6 +153,64 @@ class ListPaginationTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // Users (Department and Admin)
+    // ------------------------------------------------------------------
+
+    public function test_department_users_come_25_to_a_page_and_hide_deactivated_accounts(): void
+    {
+        for ($i = 1; $i <= 27; $i++) {
+            $this->makeStudent($this->ccs, "s{$i}@example.com", ['first_name' => 'Student' . $i, 'id_number' => sprintf('2026%04d', $i)]);
+        }
+        $gone = $this->makeStudent($this->ccs, 'gone@example.com', ['first_name' => 'Gone', 'status' => 'Deactivated']);
+
+        $feed = fn (array $q = []) => $this->actingAs($this->lab, 'dept')->getJson(route('department.users.data', $q))->assertOk();
+
+        // 27 students + the setUp student and faculty member in use.
+        $first = $feed();
+        $this->assertCount(25, $first->json('users'));
+        $this->assertSame(29, $first->json('pagination.total'));
+        $this->assertNotContains($gone->user_id, array_column($first->json('users'), 'id'));
+        $this->assertSame(['total' => 30, 'students' => 29, 'faculty' => 1, 'active' => 29], $first->json('counts'));
+
+        $this->assertCount(4, $feed(['page' => 2])->json('users'));
+        $this->assertSame(30, $feed(['status' => 'all'])->json('pagination.total'));
+        $this->assertSame([$gone->user_id], array_column($feed(['status' => 'inactive'])->json('users'), 'id'));
+        $this->assertSame([$this->faculty->user_id], array_column($feed(['role' => 'faculty'])->json('users'), 'id'));
+        $this->assertSame([$this->student->user_id], array_column($feed(['search' => 'dela juan'])->json('users'), 'id'));
+    }
+
+    public function test_admin_users_mix_every_account_type_sorted_by_name_25_to_a_page(): void
+    {
+        for ($i = 1; $i <= 26; $i++) {
+            $this->makeStudent($this->ccs, "s{$i}@example.com", ['first_name' => 'Zed' . $i, 'id_number' => sprintf('2026%04d', $i)]);
+        }
+        $this->makeStudent($this->ccs, 'gone@example.com', ['first_name' => 'Aaron', 'status' => 'Deactivated']);
+
+        $feed = fn (array $q = []) => $this->actingAs($this->admin, 'admin')->getJson(route('admin.users.data', $q))->assertOk();
+
+        // 26 + Juan + Ramon (students/faculty), 1 Lab Personnel, 1 Admin in use.
+        $first = $feed();
+        $this->assertCount(25, $first->json('users'));
+        $this->assertSame(30, $first->json('pagination.total'));
+        $this->assertSame(['total' => 31, 'students' => 28, 'faculty' => 1, 'departments' => 1, 'active' => 30, 'deactivated' => 1], $first->json('counts'));
+
+        // Alphabetical across account types; the deactivated "Aaron" is hidden.
+        $names = array_map(fn ($u) => trim($u['first_name'] . ' ' . $u['last_name']), $first->json('users'));
+        $this->assertSame($names, collect($names)->sortBy(fn ($n) => mb_strtolower($n), SORT_STRING)->values()->all());
+        $this->assertNotContains('Aaron Dela Cruz', $names);
+
+        $this->assertCount(5, $feed(['page' => 2])->json('users'));
+        $this->assertSame('Aaron', $feed(['status' => 'inactive'])->json('users.0.first_name'));
+        $this->assertSame(['department'], array_column($feed(['role' => 'department'])->json('users'), 'db_type'));
+        $this->assertSame(['admin'], array_column($feed(['role' => 'administrator'])->json('users'), 'db_type'));
+        $this->assertSame(['ramon@example.com'], array_column($feed(['search' => 'ramon@'])->json('users'), 'email'));
+
+        // The page itself starts on the first page of accounts in use.
+        $this->get(route('admin.users'))->assertOk()
+            ->assertViewHas('usersPage', fn ($p) => $p['pagination']['total'] === 30 && count($p['users']) === 25);
+    }
+
+    // ------------------------------------------------------------------
     // Department History
     // ------------------------------------------------------------------
 

@@ -105,6 +105,7 @@ Route::middleware(['auth:admin', 'auth.session', 'active', 'expire.requests'])->
     Route::get('/requests/data', [AdminRequestsController::class, 'data'])->name('requests.data');
     Route::post('/requests/update-status', [AdminRequestsController::class, 'updateStatus'])->name('requests.update');
     Route::get('/users', [AdminUsersController::class, 'index'])->name('users');
+    Route::get('/users/data', [AdminUsersController::class, 'data'])->name('users.data');
     Route::post('/users/student', [AdminUsersController::class, 'addStudent'])->name('users.student');
     Route::post('/users/faculty', [AdminUsersController::class, 'addFaculty'])->name('users.faculty');
     Route::post('/users/update', [AdminUsersController::class, 'updateUser'])->name('users.update');

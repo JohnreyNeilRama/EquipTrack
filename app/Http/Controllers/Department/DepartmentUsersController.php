@@ -9,6 +9,7 @@ use App\Services\AuditLogger;
 use App\Services\UserAccountCreator;
 use App\Services\UserAccountEditor;
 use App\Services\UserInvites;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -22,18 +23,33 @@ use Illuminate\View\View;
  */
 class DepartmentUsersController extends Controller
 {
-    public function index(): View
+    /** Rows per page on the Users page. */
+    public const PER_PAGE = 25;
+
+    /**
+     * Status filter values: "inuse" (the default) hides deactivated accounts;
+     * the others match UserAccount::accountState().
+     */
+    public const STATUS_FILTERS = ['inuse', 'all', 'active', 'pending', 'invited', 'unverified', 'inactive'];
+
+    public function index(Request $request): View
     {
+        $page = $this->usersPage($request);
+
         return view('department.users', [
-            'dbUsers' => $this->rows(),
+            'dbUsers' => $page['users'],
+            'usersPage' => $page,
             'departmentName' => auth('dept')->user()->department?->department_name ?? 'Your department',
         ]);
     }
 
-    /** JSON feed the page polls so the table stays current. */
-    public function data(): JsonResponse
+    /**
+     * JSON feed the page polls so the table stays current: one page of the
+     * department's users (query parameters page, search, role, status).
+     */
+    public function data(Request $request): JsonResponse
     {
-        return response()->json(['success' => true, 'users' => $this->rows()]);
+        return response()->json(['success' => true] + $this->usersPage($request));
     }
 
     /*
@@ -342,20 +358,112 @@ class DepartmentUsersController extends Controller
         return response()->json(['success' => false, 'message' => 'That account is not in your department.'], 404);
     }
 
-    /** @return array<int, array<string, mixed>> */
+    /**
+     * Snapshot sent back after an action (add, edit, approve…): the newest
+     * PER_PAGE accounts of every status. The page itself then reloads the page
+     * it shows, with its own search and filters (usersPage).
+     *
+     * @return array<int, array<string, mixed>>
+     */
     private function rows(): array
+    {
+        return $this->usersPage(new Request(['status' => 'all']))['users'];
+    }
+
+    /**
+     * One page of the department's Students and Faculty, searched and filtered
+     * in the database, plus the summary card counts for the whole department.
+     *
+     * @return array{users: array, pagination: array{page:int, perPage:int, total:int, lastPage:int}, counts: array<string,int>}
+     */
+    private function usersPage(Request $request): array
     {
         $departmentId = auth('dept')->user()->department_id;
 
         // An account that isn't assigned to a department has no users in scope.
         if (!$departmentId) {
-            return [];
+            return [
+                'users' => [],
+                'pagination' => ['page' => 1, 'perPage' => self::PER_PAGE, 'total' => 0, 'lastPage' => 1],
+                'counts' => ['total' => 0, 'students' => 0, 'faculty' => 0, 'active' => 0],
+            ];
         }
 
-        return UserAccount::with(['student', 'facultyMember', 'department'])
-            ->where('department_id', $departmentId)
-            ->orderByDesc('user_id')
-            ->get()
+        $scope = UserAccount::query()->where('department_id', $departmentId);
+
+        $query = (clone $scope);
+        $status = strtolower((string) $request->query('status', 'inuse'));
+        self::applyState($query, in_array($status, self::STATUS_FILTERS, true) ? $status : 'inuse');
+
+        $role = strtolower((string) $request->query('role', 'all'));
+        if (in_array($role, ['student', 'faculty'], true)) {
+            $query->where('role', ucfirst($role));
+        }
+
+        $search = trim(mb_substr((string) $request->query('search', ''), 0, 100));
+        foreach ($search === '' ? [] : preg_split('/\s+/', $search) as $word) {
+            $like = '%' . str_replace(['%', '_'], '', $word) . '%';
+            if ($like === '%%') {
+                continue;
+            }
+            $query->where(fn ($q) => $q->where('email', 'like', $like)
+                ->orWhereHas('student', fn ($s) => $s->where('first_name', 'like', $like)
+                    ->orWhere('last_name', 'like', $like)
+                    ->orWhere('id_number', 'like', $like)
+                    ->orWhere('year_level', 'like', $like))
+                ->orWhereHas('facultyMember', fn ($f) => $f->where('first_name', 'like', $like)
+                    ->orWhere('last_name', 'like', $like)
+                    ->orWhere('faculty_id_number', 'like', $like)
+                    ->orWhere('highest_educational_attainment', 'like', $like)));
+        }
+
+        $total = (clone $query)->count();
+        $lastPage = max(1, (int) ceil($total / self::PER_PAGE));
+        $page = min(max(1, (int) $request->query('page', 1)), $lastPage);
+
+        $activeOnly = (clone $scope);
+        self::applyState($activeOnly, 'active');
+
+        return [
+            'users' => $this->formatRows($query->with(['student', 'facultyMember', 'department'])
+                ->orderByDesc('user_id')
+                ->forPage($page, self::PER_PAGE)
+                ->get()),
+            'pagination' => ['page' => $page, 'perPage' => self::PER_PAGE, 'total' => $total, 'lastPage' => $lastPage],
+            'counts' => [
+                'total' => (clone $scope)->count(),
+                'students' => (clone $scope)->where('role', 'Student')->count(),
+                'faculty' => (clone $scope)->where('role', 'Faculty')->count(),
+                'active' => $activeOnly->count(),
+            ],
+        ];
+    }
+
+    /**
+     * The same states as UserAccount::accountState(), as database conditions,
+     * plus "inuse" (every state but inactive) and "all".
+     */
+    private static function applyState(Builder $query, string $state): void
+    {
+        $deactivated = fn ($q) => $q->where('status', UserAccount::STATUS_DEACTIVATED);
+        $notDeactivated = fn ($q) => $q->where(fn ($w) => $w->whereNull('status')->orWhere('status', '!=', UserAccount::STATUS_DEACTIVATED));
+        $notPending = fn ($q) => $q->where(fn ($w) => $w->whereNull('status')->orWhere('status', '!=', UserAccount::STATUS_PENDING_APPROVAL));
+
+        match ($state) {
+            'all' => null,
+            'inuse' => $notDeactivated($query),
+            'inactive' => $deactivated($query),
+            'pending' => $notDeactivated($query->where('status', UserAccount::STATUS_PENDING_APPROVAL)),
+            'invited' => $notPending($notDeactivated($query))->whereNull('email_verified_at')->whereNotNull('invited_at'),
+            'unverified' => $notPending($notDeactivated($query))->whereNull('email_verified_at')->whereNull('invited_at'),
+            default => $notPending($notDeactivated($query))->whereNotNull('email_verified_at'), // active
+        };
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function formatRows($accounts): array
+    {
+        return $accounts
             ->map(function (UserAccount $account) {
                 $isStudent = strtolower((string) $account->role) === 'student';
                 $profile = $isStudent ? $account->student : $account->facultyMember;

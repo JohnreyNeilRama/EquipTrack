@@ -97,9 +97,9 @@ class DepartmentUsersTest extends TestCase
         return $account;
     }
 
-    private function feed(DepartmentAccount $as): array
+    private function feed(DepartmentAccount $as, array $query = []): array
     {
-        $response = $this->actingAs($as, 'dept')->getJson(route('department.users.data'));
+        $response = $this->actingAs($as, 'dept')->getJson(route('department.users.data', $query));
         $response->assertOk()->assertJson(['success' => true]);
 
         return $response->json('users');
@@ -155,15 +155,20 @@ class DepartmentUsersTest extends TestCase
         $this->assertSame('N/A', $this->feed($this->ccsLab)[0]['attainment']);
     }
 
-    public function test_deactivated_accounts_are_shown_as_inactive(): void
+    public function test_deactivated_accounts_are_hidden_by_default_and_shown_as_inactive(): void
     {
         $this->makeStudent($this->ccs, 'juan@example.com', 'Juan', '20200001', '3rd Year', 'Active');
         $this->makeStudent($this->ccs, 'pedro@example.com', 'Pedro', '20200003', '2nd Year', 'Deactivated');
 
-        $byName = collect($this->feed($this->ccsLab))->keyBy('fullName');
+        // Default ("In Use"): only accounts in use.
+        $this->assertSame(['Juan Dela Cruz'], array_column($this->feed($this->ccsLab), 'fullName'));
 
+        // All Statuses: deactivated accounts too, marked Inactive.
+        $byName = collect($this->feed($this->ccsLab, ['status' => 'all']))->keyBy('fullName');
         $this->assertSame('Active', $byName['Juan Dela Cruz']['status']);
         $this->assertSame('Inactive', $byName['Pedro Dela Cruz']['status']);
+
+        $this->assertSame(['Pedro Dela Cruz'], array_column($this->feed($this->ccsLab, ['status' => 'inactive']), 'fullName'));
     }
 
     public function test_a_department_account_without_a_department_sees_no_users(): void

@@ -17,6 +17,7 @@ use App\Services\UserAccountEditor;
 use App\Services\UserInvites;
 use App\Support\AdminReauth;
 use App\Support\ProfileImage;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -31,16 +32,24 @@ class AdminUsersController extends Controller
     /** Admin rows carry this offset on the page, like department rows carry 100000. */
     private const ADMIN_ID_OFFSET = 200000;
 
-    public function index(): View
+    /** First page of accounts in use (deactivated ones are behind the Status filter). */
+    public function index(Request $request): View
     {
-        $dbUsers = $this->fetchDbUsers();
+        $usersPage = $this->usersPage($request);
+        $dbUsers = $usersPage['users'];
         $departmentsList = Department::orderBy('department_name')->get();
         // department_id => dept_acc_id: departments that already have their
         // one Department Account (the account forms can't pick them).
         $departmentAccountIds = DepartmentAccount::whereNotNull('department_id')
             ->pluck('dept_acc_id', 'department_id')->all();
 
-        return view('admin.users', compact('dbUsers', 'departmentsList', 'departmentAccountIds'));
+        return view('admin.users', compact('dbUsers', 'usersPage', 'departmentsList', 'departmentAccountIds'));
+    }
+
+    /** One page of accounts (query parameters page, search, role, status). */
+    public function data(Request $request): JsonResponse
+    {
+        return response()->json(['success' => true] + $this->usersPage($request));
     }
 
     public function addStudent(Request $request): RedirectResponse
@@ -582,12 +591,148 @@ class AdminUsersController extends Controller
             ->with('serverMsgType', 'success');
     }
 
-    private function fetchDbUsers(): array
+    /** Rows per page on the Users page. */
+    public const PER_PAGE = 25;
+
+    /**
+     * Status filter values: "inuse" (the default) hides deactivated accounts;
+     * the others match UserAccount::accountState() (Department and Admin
+     * accounts are only ever active or inactive).
+     */
+    public const STATUS_FILTERS = ['inuse', 'all', 'active', 'pending', 'invited', 'unverified', 'inactive'];
+
+    private const ROLE_FILTERS = ['all', 'student', 'teacher', 'department', 'administrator'];
+
+    /**
+     * One page of every account (Students, Faculty, Department and Admin),
+     * sorted by name, with search, role and status filters, plus the summary
+     * card counts for all accounts.
+     *
+     * The list mixes three tables and sorts them together by name, so it is
+     * searched, filtered and sorted from a light index of every account (a few
+     * columns each); full details are built only for the page shown.
+     *
+     * @return array{users: array, pagination: array{page:int, perPage:int, total:int, lastPage:int}, counts: array<string,int>}
+     */
+    private function usersPage(Request $request): array
+    {
+        $index = $this->accountIndex();
+
+        $counts = [
+            'total' => count($index),
+            'students' => count(array_filter($index, fn ($e) => $e['role'] === 'student')),
+            'faculty' => count(array_filter($index, fn ($e) => $e['role'] === 'teacher')),
+            'departments' => count(array_filter($index, fn ($e) => $e['role'] === 'department')),
+            'active' => count(array_filter($index, fn ($e) => $e['state'] === 'active')),
+            'deactivated' => count(array_filter($index, fn ($e) => $e['state'] === 'inactive')),
+        ];
+
+        $status = strtolower((string) $request->query('status', 'inuse'));
+        $status = in_array($status, self::STATUS_FILTERS, true) ? $status : 'inuse';
+        $role = strtolower((string) $request->query('role', 'all'));
+        $role = in_array($role, self::ROLE_FILTERS, true) ? $role : 'all';
+        $search = mb_strtolower(trim(mb_substr((string) $request->query('search', ''), 0, 100)));
+
+        $matches = array_values(array_filter($index, fn (array $e) => match ($status) {
+            'all' => true,
+            'inuse' => $e['state'] !== 'inactive',
+            default => $e['state'] === $status,
+        } && ($role === 'all' || $e['role'] === $role)
+          && ($search === '' || str_contains($e['name'], $search) || str_contains($e['idNumber'], $search) || str_contains($e['email'], $search))));
+
+        // Alphabetical by name, as the page always listed them.
+        usort($matches, fn (array $a, array $b) => strcmp($a['name'], $b['name']) ?: strcmp($a['key'], $b['key']));
+
+        $total = count($matches);
+        $lastPage = max(1, (int) ceil($total / self::PER_PAGE));
+        $page = min(max(1, (int) $request->query('page', 1)), $lastPage);
+        $pageEntries = array_slice($matches, ($page - 1) * self::PER_PAGE, self::PER_PAGE);
+
+        $ids = fn (string $type) => array_column(array_filter($pageEntries, fn ($e) => $e['type'] === $type), 'id');
+        $rows = collect($this->fetchDbUsers($ids('user'), $ids('department'), $ids('admin')))
+            ->keyBy(fn (array $row) => $row['db_type'] . ':' . $row['id']);
+
+        return [
+            'users' => array_values(array_filter(array_map(fn (array $e) => $rows->get($e['key']), $pageEntries))),
+            'pagination' => ['page' => $page, 'perPage' => self::PER_PAGE, 'total' => $total, 'lastPage' => $lastPage],
+            'counts' => $counts,
+        ];
+    }
+
+    /**
+     * Name, ID number, email, role and state of every account, lower-cased
+     * for searching and sorting (the same values the table shows).
+     *
+     * @return array<int, array{type:string, id:int, key:string, name:string, idNumber:string, email:string, role:string, state:string}>
+     */
+    private function accountIndex(): array
+    {
+        $index = [];
+        $lower = fn ($value) => mb_strtolower(trim((string) $value));
+
+        $users = UserAccount::query()
+            ->select(['user_id', 'role', 'email', 'status', 'email_verified_at', 'invited_at'])
+            ->with(['student:user_id,first_name,last_name,id_number', 'facultyMember:user_id,first_name,last_name,faculty_id_number'])
+            ->get();
+
+        foreach ($users as $user) {
+            $isStudent = strtolower((string) $user->role) === 'student';
+            $profile = $isStudent ? $user->student : $user->facultyMember;
+            $name = trim(($profile?->first_name ?? '') . ' ' . ($profile?->last_name ?? ''));
+            $idNumber = $isStudent ? ($profile?->id_number ?? '') : ($profile?->faculty_id_number ?? '');
+
+            $index[] = [
+                'type' => 'user',
+                'id' => (int) $user->user_id,
+                'key' => 'user_account:' . $user->user_id,
+                'name' => $lower($name !== '' ? $name : ucfirst(explode('@', (string) $user->email)[0])),
+                'idNumber' => $lower($idNumber !== '' ? $idNumber : 'USR-' . sprintf('%04d', $user->user_id)),
+                'email' => $lower($user->email),
+                'role' => $isStudent ? 'student' : 'teacher',
+                'state' => $user->accountState(),
+            ];
+        }
+
+        foreach (DepartmentAccount::get(['dept_acc_id', 'full_name', 'employee_id', 'email', 'status']) as $row) {
+            $index[] = [
+                'type' => 'department',
+                'id' => (int) $row->dept_acc_id,
+                'key' => 'department:' . (100000 + (int) $row->dept_acc_id),
+                'name' => $lower($row->full_name ?: 'Department Account'),
+                'idNumber' => $lower($row->employee_id ?: ('EMP-' . $row->dept_acc_id)),
+                'email' => $lower($row->email ?: 'dept@equiptrack.edu'),
+                'role' => 'department',
+                'state' => strcasecmp((string) $row->status, 'Deactivated') === 0 ? 'inactive' : 'active',
+            ];
+        }
+
+        foreach (Admin::get(['admin_id', 'name', 'employee_id', 'email', 'username', 'status']) as $row) {
+            $index[] = [
+                'type' => 'admin',
+                'id' => (int) $row->admin_id,
+                'key' => 'admin:' . (self::ADMIN_ID_OFFSET + (int) $row->admin_id),
+                'name' => $lower($row->name ?: 'Administrator'),
+                'idNumber' => $lower($row->employee_id ?: ('ADM-' . sprintf('%04d', $row->admin_id))),
+                'email' => $lower($row->email ?: $row->username),
+                'role' => 'administrator',
+                'state' => strcasecmp((string) $row->status, 'Deactivated') === 0 ? 'inactive' : 'active',
+            ];
+        }
+
+        return $index;
+    }
+
+    /**
+     * Full table rows. With id lists, only those accounts (user_ids,
+     * dept_acc_ids, admin_ids); without, every account.
+     */
+    private function fetchDbUsers(?array $userIds = null, ?array $deptIds = null, ?array $adminIds = null): array
     {
         $dbUsers = [];
 
         // 1. Students & Faculty
         $rows = UserAccount::with(['student', 'facultyMember', 'department'])
+            ->when($userIds !== null, fn ($q) => $q->whereIn('user_id', $userIds))
             ->orderByDesc('user_id')->get();
 
         foreach ($rows as $row) {
@@ -635,6 +780,7 @@ class AdminUsersController extends Controller
 
         // 2. Department accounts
         $deptRows = DepartmentAccount::with('department')
+            ->when($deptIds !== null, fn ($q) => $q->whereIn('dept_acc_id', $deptIds))
             ->orderByDesc('dept_acc_id')->get();
 
         foreach ($deptRows as $row) {
@@ -680,7 +826,7 @@ class AdminUsersController extends Controller
 
         // 3. Administrators
         $currentAdminId = (int) auth('admin')->id();
-        foreach (Admin::orderBy('admin_id')->get() as $row) {
+        foreach (Admin::when($adminIds !== null, fn ($q) => $q->whereIn('admin_id', $adminIds))->orderBy('admin_id')->get() as $row) {
             $email = $row->email ?: $row->username;
             $dbUsers[] = [
                 'id' => self::ADMIN_ID_OFFSET + (int) $row->admin_id,

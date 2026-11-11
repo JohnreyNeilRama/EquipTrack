@@ -100,6 +100,19 @@
                 </select>
                 <i class="fa-solid fa-chevron-down"></i>
             </div>
+            {{-- "In Use" (the default) hides deactivated accounts. --}}
+            <div class="filter-select-item">
+                <select id="filterStatus" aria-label="Filter by status">
+                    <option value="inuse" selected>In Use</option>
+                    <option value="all">All Statuses</option>
+                    <option value="active">Active</option>
+                    <option value="pending">Pending Approval</option>
+                    <option value="invited">Invite Sent</option>
+                    <option value="unverified">Email Not Verified</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
             <div class="filter-card-actions">
                 <div class="add-account-menu" id="addAccountMenu">
                     <button type="button" class="btn-add-account" id="addAccountToggle"
@@ -724,6 +737,7 @@
         // DOM Elements
         const searchInput = document.getElementById('searchUsers');
         const filterRole = document.getElementById('filterRole');
+        const filterStatus = document.getElementById('filterStatus');
         const tableBody = document.getElementById('usersTableBody');
         const emptyState = document.getElementById('usersEmptyState');
 
@@ -777,6 +791,13 @@
         // Initial users loaded directly from database tables
         let users = @json($dbUsers, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 
+        // One page at a time (25), searched, filtered, sorted and counted by
+        // the server for every account (AdminUsersController::usersPage).
+        const URL_USERS_DATA = @json(route('admin.users.data'));
+        let pagination = @json($usersPage['pagination']);
+        let counts = @json($usersPage['counts']);
+        let loadSeq = 0;
+
         // Re-show validation/operation errors on the relevant modal
         @if ($errors->any())
             @php
@@ -804,46 +825,18 @@
             );
         @endif
 
-        // Pagination state
-        let currentPage = 1;
-        const pageSize = 5;
-        let filteredUsers = [];
+        // Pagination state (the server cuts the pages)
+        let currentPage = pagination.page;
 
-        // Render table based on current page, search, filter
+        // Render the page the server sent (already searched, filtered and sorted)
         function renderUsersTable() {
-            const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
-            const role = filterRole ? filterRole.value : 'all';
+            const totalEntries = pagination.total;
+            const totalPages = Math.max(1, pagination.lastPage);
+            currentPage = pagination.page;
 
-            filteredUsers = users.filter(user => {
-                if (!user) return false;
-                const firstName = user.first_name || '';
-                const lastName = user.last_name || '';
-                const fullName = `${firstName} ${lastName}`.trim().toLowerCase();
-                const idNum = (user.id_number || '').toLowerCase();
-                const email = (user.email || '').toLowerCase();
-                const userRole = (user.role || '').toLowerCase();
-
-                const matchesSearch = fullName.includes(query) ||
-                                      idNum.includes(query) ||
-                                      email.includes(query);
-                const matchesRole = role === 'all' || userRole === role || (role === 'department' && user.db_type === 'department');
-                return matchesSearch && matchesRole;
-            });
-
-            filteredUsers.sort((a, b) => {
-                const valA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
-                const valB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
-                return valA.localeCompare(valB);
-            });
-
-            const totalEntries = filteredUsers.length;
-            const totalPages = Math.ceil(totalEntries / pageSize);
-
-            if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
-
-            const startIndex = (currentPage - 1) * pageSize;
-            const endIndex = Math.min(startIndex + pageSize, totalEntries);
-            const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+            const startIndex = (currentPage - 1) * pagination.perPage;
+            const endIndex = startIndex + users.length;
+            const paginatedUsers = users;
 
             tableBody.innerHTML = '';
 
@@ -910,12 +903,13 @@
 
         // Update Summary Stats Section Cards dynamically
         function updateSummaryStats() {
-            const totalUsers = users.length;
-            const students = users.filter(u => u.role.toLowerCase() === 'student').length;
-            const faculty = users.filter(u => u.role.toLowerCase() === 'teacher' || u.role.toLowerCase() === 'faculty' || u.role.toLowerCase() === 'faculty member').length;
-            const departments = users.filter(u => u.db_type === 'department' || u.role.toLowerCase().includes('department')).length;
-            const active = users.filter(u => rowState(u) === 'active').length;
-            const deactivated = users.filter(u => rowState(u) === 'inactive').length;
+            // Every account, not just the page shown (counted by the server).
+            const totalUsers = counts.total;
+            const students = counts.students;
+            const faculty = counts.faculty;
+            const departments = counts.departments;
+            const active = counts.active;
+            const deactivated = counts.deactivated;
 
             const statTotalUsers = document.getElementById('statTotalUsers');
             const statStudents = document.getElementById('statStudents');
@@ -939,32 +933,33 @@
             const prevBtn = document.createElement('button');
             prevBtn.className = 'btn-page';
             prevBtn.innerHTML = '<i class="fa-solid fa-angle-left"></i>';
+            const goTo = (page) => {
+                currentPage = page;
+                loadUsers();
+            };
+            prevBtn.setAttribute('aria-label', 'Previous page');
             prevBtn.disabled = currentPage === 1;
-            prevBtn.addEventListener('click', () => {
-                currentPage--;
-                renderUsersTable();
-            });
+            prevBtn.addEventListener('click', () => goTo(currentPage - 1));
             paginationButtons.appendChild(prevBtn);
 
-            for (let i = 1; i <= totalPages; i++) {
+            // Up to 5 page numbers around the current page.
+            let start = Math.max(1, currentPage - 2);
+            const end = Math.min(totalPages, start + 4);
+            start = Math.max(1, end - 4);
+            for (let i = start; i <= end; i++) {
                 const pageBtn = document.createElement('button');
                 pageBtn.className = `btn-page ${currentPage === i ? 'active' : ''}`;
                 pageBtn.textContent = i;
-                pageBtn.addEventListener('click', () => {
-                    currentPage = i;
-                    renderUsersTable();
-                });
+                pageBtn.addEventListener('click', () => goTo(i));
                 paginationButtons.appendChild(pageBtn);
             }
 
             const nextBtn = document.createElement('button');
             nextBtn.className = 'btn-page';
             nextBtn.innerHTML = '<i class="fa-solid fa-angle-right"></i>';
-            nextBtn.disabled = currentPage === totalPages;
-            nextBtn.addEventListener('click', () => {
-                currentPage++;
-                renderUsersTable();
-            });
+            nextBtn.setAttribute('aria-label', 'Next page');
+            nextBtn.disabled = currentPage >= totalPages;
+            nextBtn.addEventListener('click', () => goTo(currentPage + 1));
             paginationButtons.appendChild(nextBtn);
         }
 
@@ -1273,16 +1268,39 @@
             }
         });
 
-        // Listeners for inputs
-        searchInput.addEventListener('input', () => {
-            currentPage = 1;
-            renderUsersTable();
-        });
+        // Loads the current page with the current search and filters from
+        // the server. Only the newest answer counts.
+        function loadUsers() {
+            const url = new URL(URL_USERS_DATA, window.location.origin);
+            url.searchParams.set('page', String(currentPage));
+            url.searchParams.set('role', filterRole.value);
+            url.searchParams.set('status', filterStatus.value);
+            const query = searchInput.value.trim();
+            if (query !== '') url.searchParams.set('search', query);
 
-        filterRole.addEventListener('change', () => {
+            const seq = ++loadSeq;
+            fetch(url.toString(), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+                .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
+                .then(data => {
+                    if (seq !== loadSeq || !data || !data.success) return;
+                    users = data.users || [];
+                    pagination = data.pagination || pagination;
+                    counts = data.counts || counts;
+                    renderUsersTable();
+                })
+                .catch(err => console.error('Error loading users:', err));
+        }
+
+        // Listeners for inputs: a new search or filter starts at page 1.
+        let searchTimer = null;
+        const onFiltersChanged = (wait) => {
             currentPage = 1;
-            renderUsersTable();
-        });
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(loadUsers, wait);
+        };
+        searchInput.addEventListener('input', () => onFiltersChanged(300));
+        filterRole.addEventListener('change', () => onFiltersChanged(0));
+        filterStatus.addEventListener('change', () => onFiltersChanged(0));
 
         // Open/Close Modals
         addStudentBtn.addEventListener('click', () => {

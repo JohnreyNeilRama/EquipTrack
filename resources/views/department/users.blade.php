@@ -82,8 +82,10 @@
             </div>
 
             <div class="filter-select-item">
-                <select id="filterStatus">
-                    <option value="all">Status</option>
+                {{-- "In Use" (the default) hides deactivated accounts. --}}
+                <select id="filterStatus" aria-label="Filter by status">
+                    <option value="inuse" selected>In Use</option>
+                    <option value="all">All Statuses</option>
                     <option value="active">Active</option>
                     <option value="pending">Pending Approval</option>
                     <option value="invited">Invite Sent</option>
@@ -321,11 +323,14 @@
             const paginationInfo = document.getElementById('paginationInfo');
             const paginationControls = document.getElementById('paginationControls');
 
-            // Pagination (same as the Monitoring and History pages): 10 per page.
-            // The background refresh keeps the current page; a new search or
-            // filter goes back to page 1.
-            let currentPage = 1;
-            const pageSize = 10;
+            // Pagination: 25 per page, cut on the server, which also searches,
+            // filters and counts every user of the department
+            // (DepartmentUsersController). The background refresh keeps the
+            // current page; a new search or filter goes back to page 1.
+            let pagination = @json($usersPage['pagination']);
+            let counts = @json($usersPage['counts']);
+            let currentPage = pagination.page;
+            let loadSeq = 0;
 
             // Summary metrics
             const sumTotalUsers = document.getElementById('sumTotalUsers');
@@ -354,11 +359,12 @@
                 unverified: 'This person has not verified their email address yet, so they cannot use EquipTrack. You can send them a new verification link.',
             };
 
+            // Summary cards: every user of the department (counted by the server).
             function updateSummaryCards() {
-                sumTotalUsers.textContent = users.length;
-                sumStudents.textContent = users.filter(u => u.userType.toLowerCase().includes('student')).length;
-                sumFaculty.textContent = users.filter(u => u.userType.toLowerCase().includes('faculty')).length;
-                sumActive.textContent = users.filter(u => userState(u) === 'active').length;
+                sumTotalUsers.textContent = counts.total;
+                sumStudents.textContent = counts.students;
+                sumFaculty.textContent = counts.faculty;
+                sumActive.textContent = counts.active;
             }
 
             function renderTable() {
@@ -535,11 +541,10 @@
                     .then(res => res.json().catch(() => ({})).then(data => ({ ok: res.ok && data.success, status: res.status, data })));
             }
 
-            function applyServerUsers(data) {
-                if (data && Array.isArray(data.users)) {
-                    users = data.users;
-                    renderTable();
-                }
+            // After an action (add, edit, approve…): reload the page shown,
+            // keeping its search and filters.
+            function applyServerUsers() {
+                refreshUsers();
             }
 
             function openUserForm(mode, user = null) {
@@ -735,38 +740,16 @@
             });
 
             function filterTable() {
-                const query = searchInput.value.toLowerCase().trim();
-                const selectedRole = filterRoleSelect.value.toLowerCase();
-                const selectedStatus = filterStatusSelect.value.toLowerCase();
+                // The server already searched, filtered and cut this page.
+                const pageRows = Array.from(tableBody.querySelectorAll('tr[data-search]'));
+                const visibleCount = pagination.total;
+                const totalPages = Math.max(1, pagination.lastPage);
+                currentPage = pagination.page;
 
-                // User rows only (not the empty-table message row)
-                const rows = Array.from(tableBody.querySelectorAll('tr[data-search]'));
+                const startIndex = (currentPage - 1) * pagination.perPage;
+                const endIndex = startIndex + pageRows.length;
 
-                const matched = rows.filter(row => {
-                    const searchData = row.getAttribute('data-search');
-                    const rowUserType = row.getAttribute('data-usertype');
-                    const rowStatus = row.getAttribute('data-status');
-
-                    const matchesSearch = searchData.includes(query);
-                    const matchesRole = (selectedRole === 'all' || rowUserType.includes(selectedRole));
-                    const matchesStatus = (selectedStatus === 'all' || rowStatus === selectedStatus);
-                    return matchesSearch && matchesRole && matchesStatus;
-                });
-
-                const visibleCount = matched.length;
-                const totalPages = Math.max(1, Math.ceil(visibleCount / pageSize));
-                if (currentPage > totalPages) currentPage = totalPages;
-
-                const startIndex = (currentPage - 1) * pageSize;
-                const endIndex = Math.min(startIndex + pageSize, visibleCount);
-                const pageRows = matched.slice(startIndex, endIndex);
-
-                // Only the current page's rows are shown (rows are hidden, not removed).
-                rows.forEach(row => {
-                    row.style.display = 'none';
-                    row.classList.remove('last-visible-row');
-                });
-                pageRows.forEach(row => { row.style.display = ''; });
+                pageRows.forEach(row => row.classList.remove('last-visible-row'));
 
                 // Mark the last visible row so the table's footer line doesn't
                 // double up with that row's bottom line.
@@ -786,9 +769,12 @@
                 const emptyRow = tableBody.querySelector('tr.users-empty-row');
                 if (emptyRow) emptyRow.remove();
                 if (visibleCount === 0) {
-                    const message = users.length === 0
+                    const filtersInUse = searchInput.value.trim() !== ''
+                        || filterRoleSelect.value !== 'all' || filterStatusSelect.value !== 'inuse';
+                    const message = counts.total === 0
                         ? 'No users are registered under your department yet.'
-                        : 'No users match your search or filters.';
+                        : (filtersInUse ? 'No users match your search or filters.'
+                            : 'No accounts in use. Choose "All Statuses" to see deactivated ones.');
                     const tr = document.createElement('tr');
                     tr.className = 'users-empty-row';
                     tr.innerHTML = `
@@ -817,50 +803,70 @@
                     return btn;
                 };
 
-                paginationControls.appendChild(makeBtn('<i class="fa-solid fa-chevron-left"></i>', currentPage <= 1, false, () => {
-                    currentPage--;
-                    filterTable();
-                }, 'Previous page'));
+                const goTo = (page) => {
+                    currentPage = page;
+                    refreshUsers();
+                };
 
-                for (let i = 1; i <= totalPages; i++) {
-                    paginationControls.appendChild(makeBtn(String(i), false, currentPage === i, () => {
-                        currentPage = i;
-                        filterTable();
-                    }, 'Page ' + i));
+                paginationControls.appendChild(makeBtn('<i class="fa-solid fa-chevron-left"></i>', currentPage <= 1, false,
+                    () => goTo(currentPage - 1), 'Previous page'));
+
+                // Up to 5 page numbers around the current page.
+                let start = Math.max(1, currentPage - 2);
+                const end = Math.min(totalPages, start + 4);
+                start = Math.max(1, end - 4);
+                for (let i = start; i <= end; i++) {
+                    paginationControls.appendChild(makeBtn(String(i), false, currentPage === i, () => goTo(i), 'Page ' + i));
                 }
 
-                paginationControls.appendChild(makeBtn('<i class="fa-solid fa-chevron-right"></i>', currentPage >= totalPages, false, () => {
-                    currentPage++;
-                    filterTable();
-                }, 'Next page'));
+                paginationControls.appendChild(makeBtn('<i class="fa-solid fa-chevron-right"></i>', currentPage >= totalPages, false,
+                    () => goTo(currentPage + 1), 'Next page'));
             }
 
-            // A new search or filter starts again from the first page.
-            function applyFilters() {
+            // A new search or filter starts again from the first page
+            // (typing waits a moment before asking the server).
+            let searchTimer = null;
+            function applyFilters(wait) {
                 currentPage = 1;
-                filterTable();
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(refreshUsers, wait);
             }
 
-            // Reload the department's users so new, edited and deactivated
-            // accounts show up without a manual page refresh.
+            // The feed address for the current page, search and filters.
+            function dataUrl() {
+                const url = new URL(URL_DATA, window.location.origin);
+                url.searchParams.set('page', String(currentPage));
+                url.searchParams.set('role', filterRoleSelect.value);
+                url.searchParams.set('status', filterStatusSelect.value);
+                const query = searchInput.value.trim();
+                if (query !== '') url.searchParams.set('search', query);
+                return url.toString();
+            }
+
+            // Reload this page of users so new, edited and deactivated accounts
+            // show up without a manual page refresh. Only the newest answer counts.
             function refreshUsers() {
-                fetch(URL_DATA, {
+                const seq = ++loadSeq;
+                fetch(dataUrl(), {
                     headers: { 'Accept': 'application/json' },
                     credentials: 'same-origin'
                 })
                     .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
                     .then(data => {
+                        if (seq !== loadSeq) return;
                         if (data && data.success && Array.isArray(data.users)) {
                             users = data.users;
+                            pagination = data.pagination || pagination;
+                            counts = data.counts || counts;
                             renderTable();
                         }
                     })
                     .catch(err => console.error('Error refreshing users:', err));
             }
 
-            searchInput.addEventListener('input', applyFilters);
-            filterRoleSelect.addEventListener('change', applyFilters);
-            filterStatusSelect.addEventListener('change', applyFilters);
+            searchInput.addEventListener('input', () => applyFilters(300));
+            filterRoleSelect.addEventListener('change', () => applyFilters(0));
+            filterStatusSelect.addEventListener('change', () => applyFilters(0));
 
             // Initial render, then keep it current.
             renderTable();
