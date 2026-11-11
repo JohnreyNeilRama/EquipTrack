@@ -18,6 +18,12 @@
     instead of true:
         const password = await equipConfirm({ ..., askPassword: true });
         if (!password) return;
+
+    With askText: { label, placeholder, maxLength } the window asks for a
+    written answer (e.g. a reason) and resolves with the trimmed text, or
+    false when cancelled:
+        const reason = await equipConfirm({ ..., askText: { label: 'Reason' } });
+        if (!reason) return;
 --}}
 <div class="et-confirm" id="etConfirm" role="alertdialog" aria-modal="true" aria-labelledby="etConfirmTitle" aria-describedby="etConfirmMessage" hidden>
     <div class="et-confirm-box">
@@ -30,6 +36,11 @@
             <label for="etConfirmPassword">Your password</label>
             <input type="password" id="etConfirmPassword" autocomplete="current-password">
             <p class="et-confirm-password-hint" id="etConfirmPasswordHint" hidden>Enter your password to continue.</p>
+        </div>
+        <div class="et-confirm-password et-confirm-text" id="etConfirmTextGroup" hidden>
+            <label for="etConfirmText" id="etConfirmTextLabel">Reason</label>
+            <textarea id="etConfirmText" rows="3"></textarea>
+            <p class="et-confirm-password-hint" id="etConfirmTextHint" hidden>Please fill this in to continue.</p>
         </div>
         <div class="et-confirm-actions">
             <button type="button" class="et-confirm-cancel" id="etConfirmCancel">Cancel</button>
@@ -143,6 +154,29 @@
         font-family: inherit;
     }
 
+    .et-confirm-text textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px 12px;
+        border: 1px solid var(--border-color, #cbd5e1);
+        border-radius: 10px;
+        background: var(--card-bg, #ffffff);
+        color: var(--text-main, #0f172a);
+        font-size: 14px;
+        font-family: inherit;
+        resize: vertical;
+    }
+
+    .et-confirm-text textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+    }
+
+    .et-confirm-text textarea.is-invalid {
+        border-color: #dc2626;
+    }
+
     .et-confirm-password input:focus {
         outline: none;
         border-color: #3b82f6;
@@ -249,10 +283,15 @@
         const passwordGroup = document.getElementById('etConfirmPasswordGroup');
         const passwordInput = document.getElementById('etConfirmPassword');
         const passwordHint = document.getElementById('etConfirmPasswordHint');
+        const textGroup = document.getElementById('etConfirmTextGroup');
+        const textLabel = document.getElementById('etConfirmTextLabel');
+        const textInput = document.getElementById('etConfirmText');
+        const textHint = document.getElementById('etConfirmTextHint');
         const ICONS = { primary: 'fa-circle-question', success: 'fa-circle-check', danger: 'fa-triangle-exclamation' };
         let settle = null;
         let returnFocus = null;
         let wantsPassword = false;
+        let wantsText = false;
 
         function close(answer) {
             if (!settle) return;
@@ -264,7 +303,9 @@
             // Never keep a typed password in the page.
             const password = passwordInput.value;
             passwordInput.value = '';
-            done(answer && wantsPassword ? password : answer);
+            const text = textInput.value.trim();
+            textInput.value = '';
+            done(answer && wantsPassword ? password : (answer && wantsText ? text : answer));
         }
 
         function confirmAnswer() {
@@ -274,10 +315,16 @@
                 passwordInput.focus();
                 return;
             }
+            if (wantsText && textInput.value.trim() === '') {
+                textHint.hidden = false;
+                textInput.classList.add('is-invalid');
+                textInput.focus();
+                return;
+            }
             close(true);
         }
 
-        window.equipConfirm = function ({ title: heading = 'Are you sure?', message: text = '', confirmText = 'OK', cancelText = 'Cancel', tone = 'primary', askPassword = false } = {}) {
+        window.equipConfirm = function ({ title: heading = 'Are you sure?', message: text = '', confirmText = 'OK', cancelText = 'Cancel', tone = 'primary', askPassword = false, askText = null } = {}) {
             if (settle) close(false);
             tone = ICONS[tone] ? tone : 'primary';
 
@@ -296,12 +343,23 @@
             passwordHint.hidden = true;
             passwordInput.classList.remove('is-invalid');
 
+            wantsText = !!askText && !wantsPassword;
+            textGroup.hidden = !wantsText;
+            textInput.value = '';
+            textHint.hidden = true;
+            textInput.classList.remove('is-invalid');
+            if (wantsText) {
+                textLabel.textContent = askText.label || 'Reason';
+                textInput.placeholder = askText.placeholder || '';
+                textInput.maxLength = askText.maxLength || 500;
+            }
+
             returnFocus = document.activeElement;
             dialog.hidden = false;
             requestAnimationFrame(() => dialog.classList.add('is-open'));
             // Deletes start on Cancel so a stray Enter never deletes anything;
             // with a password field, typing the password comes first.
-            (wantsPassword ? passwordInput : (tone === 'danger' ? cancel : ok)).focus();
+            (wantsPassword ? passwordInput : (wantsText ? textInput : (tone === 'danger' ? cancel : ok))).focus();
 
             return new Promise(resolve => { settle = resolve; });
         };
@@ -309,6 +367,10 @@
         ok.addEventListener('click', confirmAnswer);
         cancel.addEventListener('click', () => close(false));
         dialog.addEventListener('click', e => { if (e.target === dialog) close(false); });
+        textInput.addEventListener('input', () => {
+            textHint.hidden = true;
+            textInput.classList.remove('is-invalid');
+        });
         passwordInput.addEventListener('input', () => {
             passwordHint.hidden = true;
             passwordInput.classList.remove('is-invalid');
@@ -325,7 +387,7 @@
             } else if (e.key === 'Tab') {
                 // Keep keyboard focus inside the window.
                 e.preventDefault();
-                const stops = wantsPassword ? [passwordInput, cancel, ok] : [cancel, ok];
+                const stops = wantsPassword ? [passwordInput, cancel, ok] : (wantsText ? [textInput, cancel, ok] : [cancel, ok]);
                 const at = stops.indexOf(document.activeElement);
                 const step = e.shiftKey ? -1 : 1;
                 stops[(at + step + stops.length) % stops.length].focus();

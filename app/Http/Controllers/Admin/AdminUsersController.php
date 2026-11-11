@@ -14,6 +14,7 @@ use App\Services\AdminEmailChange;
 use App\Services\AuditLogger;
 use App\Services\UserAccountCreator;
 use App\Services\UserAccountEditor;
+use App\Services\UserInvites;
 use App\Support\AdminReauth;
 use App\Support\ProfileImage;
 use Illuminate\Http\RedirectResponse;
@@ -73,11 +74,53 @@ class AdminUsersController extends Controller
 
         $deptId = (int) Department::where('department_name', $data['department'])->value('department_id');
 
-        UserAccountCreator::create($role, $data, $deptId, AuditLogger::actorFor('admin', auth('admin')->user()), $request);
+        $account = UserAccountCreator::create($role, $data, $deptId, AuditLogger::actorFor('admin', auth('admin')->user()), $request);
+        $inviteError = UserInvites::send($account, auth('admin')->user(), $request);
 
         return redirect()
             ->route('admin.users')
-            ->with('serverMsg', "{$role} account for '{$data['first_name']} {$data['last_name']}' created successfully!")
+            ->with('serverMsg', $inviteError
+                ? "{$role} account for '{$data['first_name']} {$data['last_name']}' was created. " . $inviteError
+                : "{$role} account for '{$data['first_name']} {$data['last_name']}' created. An invite to set their password was emailed to {$account->email}.")
+            ->with('serverMsgType', $inviteError ? 'error' : 'success');
+    }
+
+    /**
+     * Resend: a new invite for a Student/Faculty account added by staff that
+     * hasn't been set up yet, or a new verification link for a self-registered
+     * account whose email isn't verified.
+     */
+    public function resendInvite(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['user_id' => ['required', 'integer', 'min:1']]);
+        $account = UserAccount::find($data['user_id']);
+
+        if (!$account) {
+            return redirect()->route('admin.users')->with('serverMsg', 'That account no longer exists.')->with('serverMsgType', 'error');
+        }
+
+        if (!$account->hasVerifiedEmail() && !$account->invited_at) {
+            try {
+                $account->sendEmailVerificationNotification();
+            } catch (\Throwable $e) {
+                report($e);
+
+                return redirect()->route('admin.users')
+                    ->with('serverMsg', 'The verification email could not be sent. Check the mail settings and try again.')
+                    ->with('serverMsgType', 'error');
+            }
+
+            return redirect()->route('admin.users')
+                ->with('serverMsg', 'A new verification link was sent to ' . $account->email . '.')
+                ->with('serverMsgType', 'success');
+        }
+
+        if ($error = UserInvites::send($account, auth('admin')->user(), $request)) {
+            return redirect()->route('admin.users')->with('serverMsg', $error)->with('serverMsgType', 'error');
+        }
+
+        return redirect()->route('admin.users')
+            ->with('serverMsg', 'A new invite was sent to ' . $account->email . '.')
             ->with('serverMsgType', 'success');
     }
 
@@ -330,6 +373,15 @@ class AdminUsersController extends Controller
                 ->update(['status' => $data['new_status']]);
         } else {
             $account = UserAccount::find($data['target_user_id']);
+
+            // Self-registered Faculty are approved by their own department
+            // (Lab Personnel), not activated here.
+            if ($account?->isPendingApproval()) {
+                return redirect()->route('admin.users')
+                    ->with('serverMsg', 'This Faculty account is waiting for approval by its department. Its Lab Personnel approve or decline it on their Users page.')
+                    ->with('serverMsgType', 'error');
+            }
+
             $entity = $account ? 'user_account:' . $account->user_id : '';
             $name = $account ? ($account->fullName() ?: $account->email) : '';
             UserAccount::where('user_id', $data['target_user_id'])
@@ -442,13 +494,19 @@ class AdminUsersController extends Controller
             ->whereHas('request.equipment', $ownEquipment)
             ->count();
 
-        if ($pending === 0 && $open === 0) {
+        // Self-registered Faculty that only this account can approve.
+        $faculty = UserAccount::where('department_id', $departmentId)
+            ->where('status', UserAccount::STATUS_PENDING_APPROVAL)
+            ->count();
+
+        if ($pending === 0 && $open === 0 && $faculty === 0) {
             return null;
         }
 
         $work = array_filter([
             $pending > 0 ? $pending . ' pending ' . ($pending === 1 ? 'request' : 'requests') : null,
             $open > 0 ? $open . ' ' . ($open === 1 ? 'item' : 'items') . ' reserved, on loan or awaiting return confirmation' : null,
+            $faculty > 0 ? $faculty . ' Faculty ' . ($faculty === 1 ? 'account' : 'accounts') . ' waiting for approval' : null,
         ]);
 
         return 'This department account cannot be deleted because its department still has '
@@ -561,7 +619,9 @@ class AdminUsersController extends Controller
                 'email' => $row->email,
                 'address' => $address,
                 'department' => $departmentName,
-                'status' => $row->status ?: 'Active',
+                // Active | Inactive | Pending Approval | Invite Sent | Email Not Verified
+                'status' => $row->accountStateLabel(),
+                'state' => $row->accountState(),
                 'username' => explode('@', $row->email)[0],
                 'created_at' => $row->date_created ? Carbon::parse($row->date_created)->format('M j, Y, g:i A') : 'Database Record',
                 // last_online is saved by the app in UTC; date_created comes from the database

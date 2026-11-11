@@ -28,6 +28,7 @@ trait CreatesEquipTrackRecords
     protected function makeStudent(Department $department, string $email = 'student@example.com', array $profile = [], string $password = 'Study2026'): UserAccount
     {
         $account = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Student',
             'email' => $email,
             'password' => Hash::make($password),
@@ -50,6 +51,7 @@ trait CreatesEquipTrackRecords
     protected function makeFaculty(Department $department, string $email = 'faculty@example.com', array $profile = []): UserAccount
     {
         $account = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Faculty',
             'email' => $email,
             'password' => Hash::make('Teach2026'),

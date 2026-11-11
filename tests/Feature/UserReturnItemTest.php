@@ -58,6 +58,7 @@ class UserReturnItemTest extends TestCase
         ]);
 
         $this->user = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Student',
             'email' => 'student@example.com',
             'password' => Hash::make('password'),
@@ -311,6 +312,7 @@ class UserReturnItemTest extends TestCase
         $this->approve($requestId);
 
         $otherUser = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Student',
             'email' => 'other@example.com',
             'password' => Hash::make('password'),

@@ -85,6 +85,9 @@
                 <select id="filterStatus">
                     <option value="all">Status</option>
                     <option value="active">Active</option>
+                    <option value="pending">Pending Approval</option>
+                    <option value="invited">Invite Sent</option>
+                    <option value="unverified">Email Not Verified</option>
                     <option value="inactive">Inactive</option>
                 </select>
                 <i class="fa-solid fa-chevron-down"></i>
@@ -203,8 +206,13 @@
                     <input type="text" id="modalAddress" class="detail-form-control" readonly>
                 </div>
 
+                <p class="modal-state-note" id="modalStateNote" hidden></p>
+
                 <div class="modal-actions-footer">
                     <button type="button" class="btn-modal-edit" id="modalEditDetailsBtn"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i> Edit Details</button>
+                    <button type="button" class="btn-modal-resend" id="modalResendBtn" hidden>Resend Invite</button>
+                    <button type="button" class="btn-modal-approve" id="modalApproveBtn" hidden><i class="fa-solid fa-check" aria-hidden="true"></i> Approve</button>
+                    <button type="button" class="btn-modal-status" id="modalDeclineBtn" hidden>Decline</button>
                     <button type="button" class="btn-modal-status" id="modalStatusBtn">Deactivate Account</button>
                     <button type="button" class="btn-modal-close" id="modalCloseDetailsBtn">Close</button>
                 </div>
@@ -283,11 +291,7 @@
                     <input type="text" id="ufAddress" name="address" class="form-control-flat" required maxlength="150" placeholder="Street, barangay, city">
                 </div>
 
-                <div class="form-group-flat" data-for="add">
-                    <label for="ufPassword">Password</label>
-                    <input type="password" id="ufPassword" name="password" class="form-control-flat" required minlength="8" autocomplete="new-password" aria-describedby="ufPasswordHint">
-                    <p class="uf-hint" id="ufPasswordHint">At least 8 characters, with letters and numbers.</p>
-                </div>
+                <p class="uf-hint" data-for="add">We'll email them a link to set their own password. Opening it also confirms their email address.</p>
 
                 <p class="uf-error" id="ufError" role="alert" hidden></p>
             </form>
@@ -339,11 +343,22 @@
             const REFRESH_MS = 15000;
             let users = @json($dbUsers);
 
+            // active | inactive | pending | invited | unverified (from the server).
+            function userState(user) {
+                return user.state || (String(user.status).toLowerCase() === 'active' ? 'active' : 'inactive');
+            }
+
+            const STATE_NOTES = {
+                pending: 'This teacher registered themselves. Approve the account if they are faculty of your department, or decline it with a reason. They are emailed either way.',
+                invited: 'Waiting for this person to set their password from the invite email. If they did not get it (or the address was wrong), fix the email with Edit Details, then resend the invite.',
+                unverified: 'This person has not verified their email address yet, so they cannot use EquipTrack. You can send them a new verification link.',
+            };
+
             function updateSummaryCards() {
                 sumTotalUsers.textContent = users.length;
                 sumStudents.textContent = users.filter(u => u.userType.toLowerCase().includes('student')).length;
                 sumFaculty.textContent = users.filter(u => u.userType.toLowerCase().includes('faculty')).length;
-                sumActive.textContent = users.filter(u => u.status.toLowerCase() === 'active').length;
+                sumActive.textContent = users.filter(u => userState(u) === 'active').length;
             }
 
             function renderTable() {
@@ -353,10 +368,10 @@
                     const tr = document.createElement('tr');
                     const isStudent = user.userType.toLowerCase().includes('student');
                     const badgeClass = isStudent ? 'student' : 'faculty';
-                    const statusClass = user.status.toLowerCase() === 'active' ? 'active' : 'inactive';
+                    const statusClass = userState(user);
 
                     tr.setAttribute('data-usertype', user.userType.toLowerCase());
-                    tr.setAttribute('data-status', user.status.toLowerCase());
+                    tr.setAttribute('data-status', userState(user));
                     tr.setAttribute('data-search', `${user.fullName} ${user.idNumber} ${user.userType} ${user.attainment}`.toLowerCase());
 
                     tr.innerHTML = `
@@ -431,7 +446,7 @@
 
                 const statusBadge = document.getElementById('modalStatusBadge');
                 statusBadge.textContent = user.status;
-                statusBadge.className = 'status-badge status-' + user.status.toLowerCase();
+                statusBadge.className = 'status-badge status-' + userState(user);
 
                 document.getElementById('modalFullName').value = user.fullName;
                 document.getElementById('modalStudentId').value = user.idNumber || 'N/A';
@@ -445,12 +460,23 @@
                 document.getElementById('modalAddress').value = user.address || 'N/A';
 
                 // Activate / Deactivate follows the account's current status.
+                // A Faculty account waiting for approval gets Approve / Decline
+                // instead; one not set up yet gets Resend Invite / Resend Email.
                 activeUserId = Number(user.id);
+                const state = userState(user);
                 const statusBtn = document.getElementById('modalStatusBtn');
-                const isActive = user.status.toLowerCase() === 'active';
+                const isActive = state !== 'inactive';
                 statusBtn.textContent = isActive ? 'Deactivate Account' : 'Activate Account';
                 statusBtn.classList.toggle('is-activate', !isActive);
                 statusBtn.disabled = false;
+                statusBtn.hidden = state === 'pending';
+                document.getElementById('modalApproveBtn').hidden = state !== 'pending';
+                document.getElementById('modalDeclineBtn').hidden = state !== 'pending';
+                const resendBtn = document.getElementById('modalResendBtn');
+                resendBtn.hidden = state !== 'invited' && state !== 'unverified';
+                resendBtn.textContent = state === 'invited' ? 'Resend Invite' : 'Resend Verification Email';
+                document.getElementById('modalStateNote').hidden = !STATE_NOTES[state];
+                document.getElementById('modalStateNote').textContent = STATE_NOTES[state] || '';
 
                 viewUserModal.classList.add('show');
             };
@@ -465,6 +491,9 @@
                 faculty: @json(route('department.users.faculty')),
                 update: @json(route('department.users.update')),
                 status: @json(route('department.users.status')),
+                approve: @json(route('department.users.approve')),
+                decline: @json(route('department.users.decline')),
+                invite: @json(route('department.users.invite')),
             };
             const userFormModal = document.getElementById('userFormModal');
             const userForm = document.getElementById('userForm');
@@ -524,7 +553,7 @@
                 document.getElementById('ufTitle').textContent = mode === 'edit' ? `Edit ${typeLabel} Account` : `Add ${typeLabel}`;
                 document.getElementById('ufSubtitle').textContent = mode === 'edit'
                     ? `Update the account details of ${user.fullName}.`
-                    : `The account is added to your department.`;
+                    : `The account is added to your department, and they are emailed a link to set their password.`;
                 ufNote.hidden = mode !== 'edit';
                 ufNote.textContent = "Passwords aren't changed here. The account owner can use Change Password on their profile, or Forgot Password on the login page.";
                 ufSubmitBtn.textContent = mode === 'edit' ? 'Save Changes' : 'Create Account';
@@ -571,15 +600,6 @@
             userForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 ufError.hidden = true;
-
-                // Quick checks; the server checks everything again.
-                if (formMode !== 'edit') {
-                    const pw = document.getElementById('ufPassword').value;
-                    if (pw.length < 8 || !/[A-Za-z]/.test(pw) || !/\d/.test(pw)) {
-                        showFormError('The password must be at least 8 characters and include a letter and a number.');
-                        return;
-                    }
-                }
 
                 ufSubmitBtn.disabled = true;
                 const label = ufSubmitBtn.textContent;
@@ -628,6 +648,57 @@
                     })
                     .catch(() => showToast('Could not reach the server. Check your connection and try again.', 'error'))
                     .finally(() => { statusBtn.disabled = false; });
+            });
+
+            // Approve / Decline a self-registered Faculty account, Resend invite or verification.
+            function accountAction(url, fields, button) {
+                const formData = new FormData();
+                Object.entries(fields).forEach(([k, v]) => formData.append(k, v));
+                button.disabled = true;
+                return post(url, formData)
+                    .then(({ ok, data }) => {
+                        if (!ok) {
+                            showToast(firstError(data, 'That could not be done. Please try again.'), 'error');
+                            if (data && data.users) applyServerUsers(data);
+                            return;
+                        }
+                        applyServerUsers(data);
+                        viewUserModal.classList.remove('show');
+                        showToast(data.message || 'Done.');
+                    })
+                    .catch(() => showToast('Could not reach the server. Check your connection and try again.', 'error'))
+                    .finally(() => { button.disabled = false; });
+            }
+
+            document.getElementById('modalApproveBtn').addEventListener('click', async (e) => {
+                const user = users.find(u => Number(u.id) === activeUserId);
+                if (!user) return;
+                const ok = await equipConfirm({
+                    title: 'Approve this Faculty account?',
+                    message: `${user.fullName} (${user.email}) will be able to borrow equipment once their email is verified. They will be emailed.`,
+                    confirmText: 'Approve',
+                    tone: 'success',
+                });
+                if (ok) accountAction(URLS.approve, { user_id: user.id }, e.currentTarget);
+            });
+
+            document.getElementById('modalDeclineBtn').addEventListener('click', async (e) => {
+                const button = e.currentTarget;
+                const user = users.find(u => Number(u.id) === activeUserId);
+                if (!user) return;
+                const reason = await equipConfirm({
+                    title: 'Decline this registration?',
+                    message: `${user.fullName}'s account will be removed and they will be emailed the reason below. They can register again.`,
+                    confirmText: 'Decline',
+                    tone: 'danger',
+                    askText: { label: 'Reason (sent to the applicant)', placeholder: 'e.g. Not a faculty member of this department.', maxLength: 500 },
+                });
+                if (reason) accountAction(URLS.decline, { user_id: user.id, reason }, button);
+            });
+
+            document.getElementById('modalResendBtn').addEventListener('click', (e) => {
+                const user = users.find(u => Number(u.id) === activeUserId);
+                if (user) accountAction(URLS.invite, { user_id: user.id }, e.currentTarget);
             });
 
             document.addEventListener('keydown', (e) => {

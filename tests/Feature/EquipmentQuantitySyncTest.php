@@ -50,6 +50,7 @@ class EquipmentQuantitySyncTest extends TestCase
         $this->category = EquipmentCategory::create(['category_name' => 'Laptop']);
 
         $this->user = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Student',
             'email' => 'student@example.com',
             'password' => Hash::make('password'),

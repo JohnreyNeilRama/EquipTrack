@@ -50,6 +50,7 @@ class AuthFormRateLimitTest extends TestCase
     {
         foreach (range(1, 6) as $i) {
             UserAccount::create([
+                'email_verified_at' => now(),
                 'role' => 'Student',
                 'email' => "student{$i}@example.com",
                 'password' => Hash::make('Secret123'),

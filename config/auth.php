@@ -122,6 +122,15 @@ return [
             'expire' => 30,
             'throttle' => 60,
         ],
+        // Invites for Student & Faculty accounts added by staff: the link lets
+        // the owner set their first password (which also confirms the email).
+        // Valid for 7 days; a new invite to the same address needs a 60-second wait.
+        'user_invites' => [
+            'provider' => 'user_accounts',
+            'table' => 'user_invite_tokens',
+            'expire' => 10080,
+            'throttle' => 60,
+        ],
         // System administrators
         'admins' => [
             'provider' => 'admins',

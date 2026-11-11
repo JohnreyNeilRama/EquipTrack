@@ -53,6 +53,7 @@ class DepartmentUsersTest extends TestCase
     private function makeStudent(Department $department, string $email, string $first, string $idNumber, string $yearLevel = '3rd Year', string $status = 'Active'): UserAccount
     {
         $account = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Student',
             'email' => $email,
             'password' => Hash::make('password'),
@@ -75,6 +76,7 @@ class DepartmentUsersTest extends TestCase
     private function makeFaculty(Department $department, string $email, string $first, string $idNumber, ?string $attainment = 'Master of Science'): UserAccount
     {
         $account = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Faculty',
             'email' => $email,
             'password' => Hash::make('password'),

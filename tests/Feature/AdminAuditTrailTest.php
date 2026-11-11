@@ -40,6 +40,7 @@ class AdminAuditTrailTest extends TestCase
     private function makeUser(string $email = 'juan@example.com', string $first = 'Juan', string $last = 'Dela Cruz'): UserAccount
     {
         $user = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Student',
             'email' => $email,
             'password' => Hash::make('password'),
@@ -196,7 +197,7 @@ class AdminAuditTrailTest extends TestCase
             'email' => 'ana@example.com',
             'address' => 'Cebu City',
             'password' => 'secret12',
-        ])->assertRedirect('/login?registered=1');
+        ])->assertRedirect(route('verification.notice'));
 
         $account = UserAccount::where('email', 'ana@example.com')->firstOrFail();
 

@@ -746,3 +746,26 @@
         max-width: 96px;
     }
 }
+
+/* Account set-up states (email verification, invites, Faculty approval) */
+.users-table .status-badge.pending {
+    background-color: #fef3c7;
+    color: #b45309;
+}
+
+.users-table .status-badge.invited,
+.users-table .status-badge.unverified {
+    background-color: #e0e7ff;
+    color: #385585;
+}
+
+.dark-theme .users-table .status-badge.pending {
+    background-color: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+}
+
+.dark-theme .users-table .status-badge.invited,
+.dark-theme .users-table .status-badge.unverified {
+    background-color: rgba(147, 197, 253, 0.15);
+    color: #93c5fd;
+}

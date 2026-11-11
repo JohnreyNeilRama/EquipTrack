@@ -525,8 +525,42 @@ body {
     border: 1px solid #fecaca;
 }
 
+.auth-alert.is-info {
+    color: #1e3a5f;
+    background: #eff4fa;
+    border: 1px solid #c7d6ea;
+}
+
+.auth-alert.is-info i {
+    color: var(--primary);
+}
+
 .auth-alert[hidden] {
     display: none;
+}
+
+/* ---------- Verify Email / Waiting for Approval pages ---------- */
+.auth-help {
+    margin: 0 0 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.link-button {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-weight: 600;
+    color: var(--primary);
+    cursor: pointer;
+}
+
+.link-button:hover,
+.link-button:focus-visible {
+    color: var(--primary-dark);
+    text-decoration: underline;
 }
 
 /* ---------- Reset Password page ---------- */

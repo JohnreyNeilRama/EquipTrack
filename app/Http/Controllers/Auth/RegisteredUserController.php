@@ -81,11 +81,14 @@ class RegisteredUserController extends Controller
         $role = $data['role'] === 'teacher' ? 'Faculty' : 'Student';
 
         $account = DB::transaction(function () use ($data, $role, $yearLevelMap) {
+            // The email is unconfirmed until the verification link is opened.
+            // Self-registered Faculty also wait for their department's approval.
             $account = UserAccount::create([
                 'role' => $role,
                 'email' => $data['email'],
                 'password' => Hash::make($data['password']),
                 'department_id' => (int) $data['department_id'],
+                'status' => $role === 'Faculty' ? UserAccount::STATUS_PENDING_APPROVAL : UserAccount::STATUS_ACTIVE,
             ]);
 
             if ($role === 'Student') {
@@ -119,6 +122,28 @@ class RegisteredUserController extends Controller
             $request,
         );
 
-        return redirect('/login?registered=1');
+        $sent = true;
+        try {
+            $account->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            // Mail server down or misconfigured: the account is kept, and the
+            // "check your email" page has a Resend button.
+            report($e);
+            $sent = false;
+        }
+
+        // Signed in straight away, on the "check your email" page.
+        foreach (['admin', 'dept'] as $other) {
+            auth($other)->logout();
+        }
+        auth('user')->login($account);
+        $request->session()->regenerate();
+
+        return redirect()->route('verification.notice')->with(
+            $sent ? 'status' : 'error',
+            $sent
+                ? 'Your account was created. We sent a verification link to ' . $account->email . '.'
+                : "Your account was created, but we couldn't send the verification email just now. Use Resend below.",
+        );
     }
 }

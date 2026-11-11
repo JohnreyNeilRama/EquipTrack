@@ -57,6 +57,7 @@ class AdminReportsTest extends TestCase
     private function makeUser(string $email, string $first, string $last, string $idNumber): UserAccount
     {
         $user = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Student',
             'email' => $email,
             'password' => Hash::make('password'),

@@ -317,3 +317,87 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Account set-up states (email verification, invites, Faculty approval) */
+#viewUserModal .status-badge.status-pending {
+    background-color: rgba(245, 158, 11, 0.12);
+    color: #b45309;
+}
+
+#viewUserModal .status-badge.status-invited,
+#viewUserModal .status-badge.status-unverified {
+    background-color: rgba(56, 85, 133, 0.1);
+    color: #385585;
+}
+
+.dark-theme #viewUserModal .status-badge.status-pending {
+    background-color: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+}
+
+.dark-theme #viewUserModal .status-badge.status-invited,
+.dark-theme #viewUserModal .status-badge.status-unverified {
+    background-color: rgba(147, 197, 253, 0.15);
+    color: #93c5fd;
+}
+
+#viewUserModal .modal-state-note {
+    margin: 0 0 16px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #eff4fa;
+    color: #1e3a5f;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.dark-theme #viewUserModal .modal-state-note {
+    background: rgba(147, 197, 253, 0.1);
+    color: #cbd5e1;
+}
+
+#viewUserModal .modal-state-note[hidden],
+#viewUserModal .modal-actions-footer [hidden] {
+    display: none !important;
+}
+
+#viewUserModal .btn-modal-approve,
+#viewUserModal .btn-modal-resend {
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+#viewUserModal .btn-modal-approve {
+    background: #059669;
+    color: #ffffff;
+}
+
+#viewUserModal .btn-modal-approve:hover {
+    background: #047857;
+}
+
+#viewUserModal .btn-modal-resend {
+    background: transparent;
+    border-color: #385585;
+    color: #385585;
+}
+
+#viewUserModal .btn-modal-resend:hover {
+    background: rgba(56, 85, 133, 0.08);
+}
+
+.dark-theme #viewUserModal .btn-modal-resend {
+    border-color: #93c5fd;
+    color: #93c5fd;
+}
+
+#viewUserModal .btn-modal-approve:disabled,
+#viewUserModal .btn-modal-resend:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}

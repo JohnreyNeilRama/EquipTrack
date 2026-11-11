@@ -52,6 +52,7 @@ class UserDashboardTest extends TestCase
     private function makeStudent(string $email, string $idNumber, string $firstName): UserAccount
     {
         $account = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Student',
             'email' => $email,
             'password' => Hash::make('password'),

@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
 use App\Models\UserAccount;
+use App\Notifications\FacultyApprovalNotification;
 use App\Services\AuditLogger;
 use App\Services\UserAccountCreator;
 use App\Services\UserAccountEditor;
+use App\Services\UserInvites;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -94,6 +96,14 @@ class DepartmentUsersController extends Controller
             return $this->notInDepartment();
         }
 
+        // A Faculty account waiting for approval is approved or declined, not activated.
+        if ($account->isPendingApproval()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This Faculty account is waiting for approval. Use Approve or Decline instead.',
+            ], 400);
+        }
+
         // Only a real change is an event; repeating the same status is not logged.
         if (strcasecmp((string) ($account->status ?: 'Active'), $data['status']) !== 0) {
             $account->update(['status' => $data['status']]);
@@ -114,6 +124,165 @@ class DepartmentUsersController extends Controller
         ]);
     }
 
+    /**
+     * Approves a self-registered Faculty member of this department: they can
+     * borrow from now on (once their email is verified) and get an email.
+     */
+    public function approve(Request $request): JsonResponse
+    {
+        $account = $this->pendingFaculty($request);
+        if ($account instanceof JsonResponse) {
+            return $account;
+        }
+
+        $account->update(['status' => UserAccount::STATUS_ACTIVE]);
+        $name = $account->fullName() ?: $account->email;
+
+        AuditLogger::log(
+            'Approved faculty account',
+            'user_account:' . $account->user_id,
+            $name . ' (' . $account->email . ')',
+            AuditLogger::actorFor('dept', auth('dept')->user()),
+            $request,
+        );
+
+        $emailed = $this->notifyDecision($account, new FacultyApprovalNotification(true, $name, $this->departmentName()));
+
+        return response()->json([
+            'success' => true,
+            'message' => $name . "'s Faculty account is approved." . ($emailed ? ' They were emailed.' : ' (The email to tell them could not be sent.)'),
+            'users' => $this->rows(),
+        ]);
+    }
+
+    /**
+     * Declines a self-registered Faculty member of this department with a
+     * reason: they are emailed, and the account is removed (it never borrowed
+     * anything), so the address can register again with the right details.
+     */
+    public function decline(Request $request): JsonResponse
+    {
+        $request->validate(
+            ['reason' => ['required', 'string', 'max:500']],
+            ['reason.required' => 'Give a reason; it is included in the email to the applicant.'],
+        );
+
+        $account = $this->pendingFaculty($request);
+        if ($account instanceof JsonResponse) {
+            return $account;
+        }
+
+        $name = $account->fullName() ?: $account->email;
+        $reason = trim((string) $request->input('reason'));
+
+        // Emailed before the account is removed (the notification needs its address).
+        $emailed = $this->notifyDecision($account, new FacultyApprovalNotification(false, $name, $this->departmentName(), $reason));
+
+        AuditLogger::log(
+            'Declined faculty account',
+            'user_account:' . $account->user_id,
+            $name . ' (' . $account->email . '). Reason: ' . $reason,
+            AuditLogger::actorFor('dept', auth('dept')->user()),
+            $request,
+        );
+
+        $account->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => $name . "'s registration was declined and removed." . ($emailed ? ' They were emailed the reason.' : ' (The email to tell them could not be sent.)'),
+            'users' => $this->rows(),
+        ]);
+    }
+
+    /** Emails a new "set your password" invite to an account added by staff. */
+    public function resendInvite(Request $request): JsonResponse
+    {
+        $request->validate(['user_id' => ['required', 'integer', 'min:1']]);
+
+        $departmentId = $this->departmentId();
+        if (!$departmentId) {
+            return $this->noDepartment();
+        }
+
+        $account = $this->scopedAccount((int) $request->input('user_id'), $departmentId);
+        if (!$account) {
+            return $this->notInDepartment();
+        }
+
+        // Self-registered accounts get the verification email instead.
+        if (!$account->hasVerifiedEmail() && !$account->invited_at) {
+            return $this->resendVerification($account);
+        }
+
+        if ($error = UserInvites::send($account, auth('dept')->user(), $request)) {
+            return response()->json(['success' => false, 'message' => $error], 400);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'A new invite was sent to ' . $account->email . '.',
+            'users' => $this->rows(),
+        ]);
+    }
+
+    private function resendVerification(UserAccount $account): JsonResponse
+    {
+        try {
+            $account->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json(['success' => false, 'message' => 'The verification email could not be sent. Check the mail settings and try again.'], 400);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'A new verification link was sent to ' . $account->email . '.',
+            'users' => $this->rows(),
+        ]);
+    }
+
+    /** The Faculty account of this department waiting for approval, or the error response. */
+    private function pendingFaculty(Request $request): UserAccount|JsonResponse
+    {
+        $request->validate(['user_id' => ['required', 'integer', 'min:1']]);
+
+        $departmentId = $this->departmentId();
+        if (!$departmentId) {
+            return $this->noDepartment();
+        }
+
+        $account = $this->scopedAccount((int) $request->input('user_id'), $departmentId);
+        if (!$account) {
+            return $this->notInDepartment();
+        }
+
+        if (!$account->isPendingApproval()) {
+            return response()->json(['success' => false, 'message' => 'This account is not waiting for approval.', 'users' => $this->rows()], 400);
+        }
+
+        return $account;
+    }
+
+    private function notifyDecision(UserAccount $account, FacultyApprovalNotification $notification): bool
+    {
+        try {
+            $account->notify($notification);
+
+            return true;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return false;
+        }
+    }
+
+    private function departmentName(): string
+    {
+        return auth('dept')->user()->department?->department_name ?: 'Your department';
+    }
+
     private function addUserAccount(Request $request, string $role): JsonResponse
     {
         $departmentId = $this->departmentId();
@@ -126,11 +295,14 @@ class DepartmentUsersController extends Controller
             UserAccountCreator::messages(),
         );
 
-        UserAccountCreator::create($role, $data, $departmentId, AuditLogger::actorFor('dept', auth('dept')->user()), $request);
+        $account = UserAccountCreator::create($role, $data, $departmentId, AuditLogger::actorFor('dept', auth('dept')->user()), $request);
+        $inviteError = UserInvites::send($account, auth('dept')->user(), $request);
 
         return response()->json([
             'success' => true,
-            'message' => "{$role} account for '{$data['first_name']} {$data['last_name']}' created successfully!",
+            'message' => $inviteError
+                ? "{$role} account for '{$data['first_name']} {$data['last_name']}' was created. " . $inviteError
+                : "{$role} account for '{$data['first_name']} {$data['last_name']}' created. An invite to set their password was emailed to {$account->email}.",
             'users' => $this->rows(),
         ]);
     }
@@ -198,8 +370,10 @@ class DepartmentUsersController extends Controller
                     'idNumber' => $idNumber,
                     'userType' => $isStudent ? 'Student' : 'Faculty Member',
                     'attainment' => trim((string) $attainment) !== '' ? $attainment : 'N/A',
-                    // Anything other than Active (e.g. Deactivated) counts as Inactive.
-                    'status' => strcasecmp((string) ($account->status ?: 'Active'), 'Active') === 0 ? 'Active' : 'Inactive',
+                    // Active | Inactive | Pending Approval | Invite Sent | Email Not Verified
+                    'status' => $account->accountStateLabel(),
+                    'state' => $account->accountState(),
+                    'emailVerified' => $account->hasVerifiedEmail(),
                     'dateRegistered' => $account->date_created
                         ? Carbon::parse($account->date_created)->format('M d, Y')
                         : '—',

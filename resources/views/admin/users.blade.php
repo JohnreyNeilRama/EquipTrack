@@ -228,11 +228,7 @@
                         <input type="text" id="studAddress" name="address" class="form-control-flat" required placeholder="Street, barangay, city">
                     </div>
 
-                    <div class="form-group-flat">
-                        <label>Password</label>
-                        <input type="password" id="studPassword" name="password" class="form-control-flat" required minlength="8" title="At least 8 characters, with letters and numbers." aria-describedby="studPasswordHint">
-                        <p class="pw-hint" id="studPasswordHint">At least 8 characters, with letters and numbers.</p>
-                    </div>
+                    <p class="pw-hint">We'll email them a link to set their own password. Opening it also confirms their email address.</p>
 
                     <button type="submit" class="btn-submit-request" style="margin-top: 10px;">
                         Create Student Account
@@ -307,11 +303,7 @@
                         <input type="text" id="facAddress" name="address" class="form-control-flat" required maxlength="150" placeholder="Street, barangay, city" value="{{ $facultyOld ? old('address') : '' }}">
                     </div>
 
-                    <div class="form-group-flat">
-                        <label for="facPassword">Password</label>
-                        <input type="password" id="facPassword" name="password" class="form-control-flat" required minlength="8" autocomplete="new-password" title="At least 8 characters, with letters and numbers." aria-describedby="facPasswordHint">
-                        <p class="pw-hint" id="facPasswordHint">At least 8 characters, with letters and numbers.</p>
-                    </div>
+                    <p class="pw-hint">We'll email them a link to set their own password. Opening it also confirms their email address.</p>
 
                     <button type="submit" class="btn-submit-request" style="margin-top: 10px;">
                         Create Faculty Account
@@ -663,9 +655,13 @@
                     <input type="text" id="modalAddress" class="detail-form-control" readonly>
                 </div>
 
+                {{-- Account set-up state (Pending Approval, Invite Sent, Email Not Verified) --}}
+                <p class="modal-state-note" id="modalStateNote" hidden></p>
+
                 {{-- Modal Actions Footer --}}
                 <div class="modal-actions-footer" style="display: flex; gap: 12px; align-items: center;">
                     <button type="button" id="modalEditDetailsBtn" class="btn-modal-edit" style="flex: 1;"><i class="fa-regular fa-pen-to-square"></i> Edit Details</button>
+                    <button type="button" id="modalResendBtn" class="btn-modal-resend" style="flex: 1;" hidden>Resend Invite</button>
                     <button type="button" id="modalToggleStatusBtn" class="btn-modal-toggle-status" style="flex: 1; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: background 0.2s ease, transform 0.1s ease;">Deactivate Account</button>
                     <button type="button" class="btn-modal-close" style="flex: 1;" id="modalCloseDetailsBtn">Close</button>
                 </div>
@@ -680,6 +676,20 @@
         const CSRF_TOKEN = @json(csrf_token());
         const URL_TOGGLE = @json(route('admin.users.toggle'));
         const URL_DELETE = @json(route('admin.users.delete'));
+        const URL_INVITE = @json(route('admin.users.invite'));
+
+        // active | inactive | pending | invited | unverified. Student and Faculty
+        // rows come with it; Admin and Department rows only have Active/Deactivated.
+        function rowState(user) {
+            if (user.state) return user.state;
+            return String(user.status).toLowerCase() === 'active' ? 'active' : 'inactive';
+        }
+
+        const STATE_NOTES = {
+            pending: 'This teacher registered themselves and is waiting for approval by the Lab Personnel of their department (on their Users page).',
+            invited: 'Waiting for this person to set their password from the invite email. If the address was wrong, fix it with Edit Details, then resend the invite.',
+            unverified: 'This person has not verified their email address yet, so they cannot use EquipTrack.',
+        };
         // department_id => dept_acc_id of the department's one Department Account
         const DEPT_ACCOUNT_IDS = @json((object) $departmentAccountIds);
         const URL_IMAGE = @json(route('admin.users.image'));
@@ -862,8 +872,11 @@
                     if (user.role.toLowerCase() === 'teacher') {
                         roleLabel = 'Faculty Member';
                     }
-                    const statusClass = 'status-' + user.status.toLowerCase();
-                    const toggleText = user.status.toLowerCase() === 'active' ? 'Deactivate' : 'Activate';
+                    const state = rowState(user);
+                    const statusClass = 'status-' + state;
+                    const toggleText = state === 'inactive' ? 'Activate' : 'Deactivate';
+                    // Waiting for department approval: not activated or deactivated here.
+                    const toggleLock = state === 'pending' ? ' disabled title="Approved or declined by its department."' : '';
                     const fullName = user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
                     // Your own admin account: no Deactivate/Delete here (use Profile; another admin can do it).
                     const selfLock = user.is_self ? ' disabled title="You can\'t deactivate or delete your own account."' : '';
@@ -881,7 +894,7 @@
                         <td><span class="status-badge ${statusClass}">${escapeHTML(user.status)}</span></td>
                         <td class="action-cell" style="text-align: center;">
                             <div class="action-buttons" style="justify-content: center; gap: 8px;">
-                                <button class="btn-action-toggle" onclick="toggleUserStatus(${user.id})"${selfLock}>${toggleText}</button>
+                                <button class="btn-action-toggle" onclick="toggleUserStatus(${user.id})"${selfLock || toggleLock}>${toggleText}</button>
                                 <button class="btn-action-delete" onclick="deleteUser(${user.id})" aria-label="Delete ${escapeHTML(fullName)}"${selfLock}><i class="fa-regular fa-trash-can"></i></button>
                             </div>
                         </td>
@@ -901,8 +914,8 @@
             const students = users.filter(u => u.role.toLowerCase() === 'student').length;
             const faculty = users.filter(u => u.role.toLowerCase() === 'teacher' || u.role.toLowerCase() === 'faculty' || u.role.toLowerCase() === 'faculty member').length;
             const departments = users.filter(u => u.db_type === 'department' || u.role.toLowerCase().includes('department')).length;
-            const active = users.filter(u => u.status.toLowerCase() === 'active').length;
-            const deactivated = users.filter(u => u.status.toLowerCase() === 'inactive' || u.status.toLowerCase() === 'deactivated').length;
+            const active = users.filter(u => rowState(u) === 'active').length;
+            const deactivated = users.filter(u => rowState(u) === 'inactive').length;
 
             const statTotalUsers = document.getElementById('statTotalUsers');
             const statStudents = document.getElementById('statStudents');
@@ -960,7 +973,7 @@
             const user = users.find(u => u.id === id);
             if (!user) return;
 
-            const newStatus = user.status.toLowerCase() === 'active' ? 'Deactivated' : 'Active';
+            const newStatus = rowState(user) === 'inactive' ? 'Active' : 'Deactivated';
             const fields = {
                 target_user_id: user.id,
                 target_user_type: user.db_type,
@@ -1112,9 +1125,16 @@
             modalUserName.title = fullName || '';
             modalUserRole.textContent = roleLabel;
 
-            const statusClass = 'status-' + user.status.toLowerCase();
+            const state = rowState(user);
             modalStatusBadge.textContent = user.status;
-            modalStatusBadge.className = 'status-badge ' + statusClass;
+            modalStatusBadge.className = 'status-badge status-' + state;
+
+            const stateNote = document.getElementById('modalStateNote');
+            stateNote.textContent = STATE_NOTES[state] || '';
+            stateNote.hidden = !STATE_NOTES[state];
+            const resendBtn = document.getElementById('modalResendBtn');
+            resendBtn.hidden = state !== 'invited' && state !== 'unverified';
+            resendBtn.textContent = state === 'invited' ? 'Resend Invite' : 'Resend Verification Email';
 
             modalFullName.value = fullName;
             modalStudentId.value = user.id_number || 'N/A';
@@ -1136,9 +1156,10 @@
 
             const modalToggle = document.getElementById('modalToggleStatusBtn');
             if (modalToggle) {
-                modalToggle.textContent = user.status.toLowerCase() === 'active' ? 'Deactivate Account' : 'Activate Account';
-                modalToggle.disabled = !!user.is_self;
-                modalToggle.title = user.is_self ? "You can't deactivate your own account." : '';
+                modalToggle.textContent = state === 'inactive' ? 'Activate Account' : 'Deactivate Account';
+                modalToggle.disabled = !!user.is_self || state === 'pending';
+                modalToggle.title = user.is_self ? "You can't deactivate your own account."
+                    : (state === 'pending' ? 'Approved or declined by its department.' : '');
             }
 
             userDetailsModal.classList.add('show');
@@ -1147,6 +1168,13 @@
         // Details-modal toggle button (dead in legacy — wired to the same action as row buttons)
         document.getElementById('modalToggleStatusBtn').addEventListener('click', () => {
             if (activeModalUser) toggleUserStatus(activeModalUser.id);
+        });
+
+        // Resend invite (account added by staff) or verification email (self-registered).
+        document.getElementById('modalResendBtn').addEventListener('click', () => {
+            if (activeModalUser && activeModalUser.db_type === 'user_account') {
+                postForm(URL_INVITE, { user_id: activeModalUser.id });
+            }
         });
 
         // Admin Profile Picture Upload Event Listeners
@@ -1210,19 +1238,12 @@
         facultyForm.addEventListener('submit', (e) => {
             const idNumber = document.getElementById('facIdNumber').value.trim();
             const email = document.getElementById('facEmail').value.trim();
-            const password = document.getElementById('facPassword').value;
 
             if (!/^[A-Za-z0-9-]+$/.test(idNumber)) {
                 e.preventDefault();
                 showNotification('Validation Error', 'The faculty ID number may contain only letters, numbers and hyphens.', 'error');
                 return;
             }
-            if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
-                e.preventDefault();
-                showNotification('Validation Error', 'The password must be at least 8 characters and include a letter and a number.', 'error');
-                return;
-            }
-
             const exists = users.some(u =>
                 (u.email && u.email.toLowerCase() === email.toLowerCase()) ||
                 (u.id_number && u.id_number.toLowerCase() === idNumber.toLowerCase())

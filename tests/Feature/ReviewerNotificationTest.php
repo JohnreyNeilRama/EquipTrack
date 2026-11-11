@@ -59,6 +59,7 @@ class ReviewerNotificationTest extends TestCase
         $this->cbaLab = $this->makeDeptAccount('cba.lab@example.com', 'Ben Reyes', $this->cba);
 
         $this->student = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Student',
             'email' => 'student@example.com',
             'password' => Hash::make('password'),

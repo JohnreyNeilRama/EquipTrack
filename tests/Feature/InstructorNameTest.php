@@ -55,6 +55,7 @@ class InstructorNameTest extends TestCase
         ]);
 
         $this->user = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Student',
             'email' => 'student@example.com',
             'password' => Hash::make('password'),
@@ -164,6 +165,7 @@ class InstructorNameTest extends TestCase
     private function facultyUser(): UserAccount
     {
         $faculty = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Faculty',
             'email' => 'faculty@example.com',
             'password' => Hash::make('password'),

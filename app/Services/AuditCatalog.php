@@ -27,6 +27,9 @@ class AuditCatalog
         ['label' => 'Blocked Login', 'module' => 'Authentication', 'prefixes' => ['Blocked login' => 'Blocked sign-in']],
         ['label' => 'Requested Password Reset', 'module' => 'Authentication', 'prefixes' => ['Requested password reset' => 'Password reset']],
         ['label' => 'Reset Password', 'module' => 'Authentication', 'prefixes' => ['Reset password via email link' => 'Password']],
+        // Email verification and invites (Students & Faculty)
+        ['label' => 'Verified Email', 'module' => 'Authentication', 'prefixes' => ['Verified email address' => 'Email address']],
+        ['label' => 'Set Password from Invite', 'module' => 'Authentication', 'prefixes' => ['Set password from invite' => 'Password']],
 
         // Equipment management
         ['label' => 'Added Equipment', 'module' => 'Equipment Management', 'prefixes' => ['Registered equipment' => 'Equipment']],
@@ -90,6 +93,9 @@ class AuditCatalog
         // After "Added User", so "Added department account" stays an account.
         ['label' => 'Added Department', 'module' => 'Users', 'prefixes' => ['Created department' => 'Department']],
         ['label' => 'Updated User', 'module' => 'Users', 'prefixes' => ['Updated user' => 'User']],
+        ['label' => 'Sent Invite', 'module' => 'Users', 'prefixes' => ['Sent account invite' => 'Account invite']],
+        ['label' => 'Approved Faculty', 'module' => 'Users', 'prefixes' => ['Approved faculty account' => 'Faculty account']],
+        ['label' => 'Declined Faculty', 'module' => 'Users', 'prefixes' => ['Declined faculty account' => 'Faculty account']],
         ['label' => 'Activated User', 'module' => 'Users', 'prefixes' => ['Activated user account' => 'Account']],
         ['label' => 'Deactivated User', 'module' => 'Users', 'prefixes' => ['Deactivated user account' => 'Account']],
         ['label' => 'Deleted User', 'module' => 'Users', 'prefixes' => [

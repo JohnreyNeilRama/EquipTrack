@@ -7,6 +7,7 @@ use App\Models\BorrowTransaction;
 use App\Models\Equipment;
 use App\Models\PenaltySubmission;
 use App\Models\StaffNotificationRead;
+use App\Models\UserAccount;
 use App\Support\LoanReminders;
 use App\Support\LoanTime;
 use Illuminate\Database\QueryException;
@@ -172,6 +173,7 @@ class ReviewerNotificationService
             array_push($notifications, ...$this->pendingReturnNotifications($departmentId));
             array_push($notifications, ...$this->dueTodayNotifications($departmentId));
             array_push($notifications, ...$this->departmentOverdueNotifications($departmentId));
+            array_push($notifications, ...$this->facultyApprovalNotifications($departmentId));
         } else {
             array_push($notifications, ...$this->escalationNotifications());
             array_push($notifications, ...$this->waitingTooLongNotifications());
@@ -183,6 +185,31 @@ class ReviewerNotificationService
             ->sortByDesc(fn (array $n) => $n['at']->getTimestamp())
             ->take(self::LIMIT)
             ->values()
+            ->all();
+    }
+
+    /**
+     * Self-registered Faculty of this department waiting for approval (Lab
+     * Personnel only): one notice per account until it is approved or declined.
+     */
+    private function facultyApprovalNotifications(?int $departmentId): array
+    {
+        if (!$departmentId) {
+            return [];
+        }
+
+        return UserAccount::with('facultyMember')
+            ->where('department_id', $departmentId)
+            ->where('status', UserAccount::STATUS_PENDING_APPROVAL)
+            ->get()
+            ->map(fn (UserAccount $account) => [
+                'key' => 'faculty-' . $account->user_id . '-pending',
+                'type' => 'request',
+                'title' => 'Faculty account waiting for approval',
+                'message' => ($account->fullName() ?: $account->email) . ' registered as a teacher in your department. Approve or decline it on the Users page.',
+                'url' => route('department.users'),
+                'at' => $account->date_created ? Carbon::parse($account->date_created) : now(),
+            ])
             ->all();
     }
 

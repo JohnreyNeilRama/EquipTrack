@@ -72,6 +72,7 @@ class DepartmentDashboardTest extends TestCase
         $this->category = EquipmentCategory::create(['category_name' => 'Laptops']);
 
         $this->userA = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Student',
             'email' => 'studentA@example.com',
             'password' => Hash::make('password'),
@@ -89,6 +90,7 @@ class DepartmentDashboardTest extends TestCase
         ]);
 
         $this->userB = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Student',
             'email' => 'studentB@example.com',
             'password' => Hash::make('password'),

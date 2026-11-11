@@ -7,6 +7,7 @@ use App\Services\AuditLogger;
 use App\Services\PasswordResetAccounts;
 use App\Support\LoginLockout;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -99,7 +100,15 @@ class NewPasswordController extends Controller
                 $account->forceFill([
                     'password' => Hash::make($password),
                     'remember_token' => Str::random(60),
-                ])->save();
+                ]);
+
+                // The link reached this inbox, so the address is confirmed too
+                // (Students & Faculty; e.g. an invite that expired).
+                if ($account instanceof MustVerifyEmail && !$account->hasVerifiedEmail()) {
+                    $account->forceFill(['email_verified_at' => now()]);
+                }
+
+                $account->save();
 
                 event(new PasswordReset($account));
             },

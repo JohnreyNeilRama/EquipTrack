@@ -77,6 +77,7 @@ class PenaltyProofTest extends TestCase
     private function makeStudent(string $email, string $id, string $first): UserAccount
     {
         $user = UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Student',
             'email' => $email,
             'password' => Hash::make('password'),

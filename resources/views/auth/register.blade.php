@@ -69,6 +69,15 @@
                         </div>
                     @endif
 
+                    {{-- What happens after signing up (the script shows the Faculty line for teachers). --}}
+                    <div class="auth-alert is-info" role="note">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>
+                            We'll email you a link to verify your email address.
+                            <span id="facultyApprovalNote" hidden>Teacher accounts are then approved by your department before you can borrow equipment.</span>
+                        </span>
+                    </div>
+
                     <form action="/register" method="POST" class="register-form login-form" novalidate>
                         @csrf
                         <input type="hidden" id="selected_role" name="role" value="{{ old('role', '') }}">
@@ -260,6 +269,8 @@
         if (selectedRoleInput) {
             selectedRoleInput.value = role;
         }
+        const facultyApprovalNote = document.getElementById('facultyApprovalNote');
+        if (facultyApprovalNote) facultyApprovalNote.hidden = role !== 'teacher';
 
         if (role === 'student') {
             if (registerTitle) registerTitle.textContent = 'Register as a Student';

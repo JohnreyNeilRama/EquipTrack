@@ -30,6 +30,7 @@ class LoginLockoutTest extends TestCase
     private function student(string $email = 'student@example.com'): UserAccount
     {
         return UserAccount::create([
+            'email_verified_at' => now(),
             'role' => 'Student',
             'email' => $email,
             'password' => Hash::make('Secret123'),

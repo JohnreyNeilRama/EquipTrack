@@ -27,7 +27,7 @@
                 @if ($registered)
                     <div class="auth-alert is-success" role="status">
                         <i class="fa-solid fa-circle-check"></i>
-                        <span>Account created successfully! Please log in below.</span>
+                        <span>Account created! Check your email for the verification link, then log in below.</span>
                     </div>
                 @endif
 

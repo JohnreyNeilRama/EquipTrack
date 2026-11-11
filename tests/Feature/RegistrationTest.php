@@ -43,7 +43,7 @@ class RegistrationTest extends TestCase
 
     public function test_a_student_registers(): void
     {
-        $this->register(['role' => 'student', 'id_number' => '20260001'])->assertRedirect('/login?registered=1');
+        $this->register(['role' => 'student', 'id_number' => '20260001'])->assertRedirect(route('verification.notice'));
 
         $account = UserAccount::where('email', 'ana@example.com')->firstOrFail();
         $this->assertSame('Student', $account->role);
@@ -64,7 +64,7 @@ class RegistrationTest extends TestCase
 
     public function test_a_faculty_member_registers_with_an_upper_case_id(): void
     {
-        $this->register(['role' => 'teacher', 'id_number' => ' t-1001 '])->assertRedirect('/login?registered=1');
+        $this->register(['role' => 'teacher', 'id_number' => ' t-1001 '])->assertRedirect(route('verification.notice'));
 
         $account = UserAccount::where('email', 'ana@example.com')->firstOrFail();
         $this->assertSame('Faculty', $account->role);

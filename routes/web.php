@@ -10,10 +10,13 @@ use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AdminReportsController;
 use App\Http\Controllers\Admin\AdminRequestsController;
 use App\Http\Controllers\Admin\AdminUsersController;
+use App\Http\Controllers\Auth\AccountSetupController;
 use App\Http\Controllers\Auth\AdminEmailChangeController;
+use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\PendingApprovalController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\Department\DepartmentDashboardController;
@@ -62,6 +65,23 @@ Route::post('/account/email-change/undo', [AdminEmailChangeController::class, 'u
 Route::get('/reset-password/{token}', [NewPasswordController::class, 'show'])->name('password.reset');
 Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.store');
 
+// Email verification link (self-registered Students & Faculty). Signed and
+// expiring; works whether or not the person is signed in.
+Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+    ->whereNumber('id')->middleware('throttle:12,1')->name('verification.verify');
+// Invite link for accounts added by staff: choose a password (confirms the email too).
+Route::get('/account/setup/{token}', [AccountSetupController::class, 'show'])->name('account.setup');
+Route::post('/account/setup', [AccountSetupController::class, 'store'])->name('account.setup.store');
+
+// Signed-in Students & Faculty who still have a step to finish: verify their
+// email, or (self-registered Faculty) wait for their department's approval.
+Route::middleware(['auth:user', 'auth.session', 'active'])->group(function () {
+    Route::get('/email/verify', [EmailVerificationController::class, 'notice'])->name('verification.notice');
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
+        ->middleware('throttle:6,1')->name('verification.send');
+    Route::get('/account/pending', PendingApprovalController::class)->name('account.pending');
+});
+
 // auth.session signs a session out once its account's password changes
 // elsewhere (Change Password or a reset); the session that made the change
 // stays signed in.
@@ -91,6 +111,7 @@ Route::middleware(['auth:admin', 'auth.session', 'active', 'expire.requests'])->
     Route::post('/users/department', [AdminUsersController::class, 'addDepartment'])->name('users.department');
     Route::post('/users/admin', [AdminUsersController::class, 'addAdmin'])->name('users.admin');
     Route::post('/users/toggle-status', [AdminUsersController::class, 'toggleStatus'])->name('users.toggle');
+    Route::post('/users/resend-invite', [AdminUsersController::class, 'resendInvite'])->middleware('throttle:20,1')->name('users.invite');
     Route::post('/users/delete', [AdminUsersController::class, 'delete'])->name('users.delete');
     Route::post('/users/profile-image', [AdminUsersController::class, 'updateProfileImage'])->name('users.image');
     Route::get('/monitoring', [AdminMonitoringController::class, 'index'])->name('monitoring');
@@ -156,6 +177,10 @@ Route::middleware(['auth:dept', 'auth.session', 'active', 'expire.requests'])->p
     Route::post('/users/faculty', [DepartmentUsersController::class, 'addFaculty'])->name('users.faculty');
     Route::post('/users/update', [DepartmentUsersController::class, 'update'])->name('users.update');
     Route::post('/users/status', [DepartmentUsersController::class, 'setStatus'])->name('users.status');
+    // Self-registered Faculty of this department wait for this approval.
+    Route::post('/users/approve', [DepartmentUsersController::class, 'approve'])->name('users.approve');
+    Route::post('/users/decline', [DepartmentUsersController::class, 'decline'])->name('users.decline');
+    Route::post('/users/resend-invite', [DepartmentUsersController::class, 'resendInvite'])->middleware('throttle:20,1')->name('users.invite');
     Route::get('/monitoring', [DepartmentMonitoringController::class, 'index'])->name('monitoring');
     Route::post('/monitoring/remind', [DepartmentMonitoringController::class, 'remind'])->middleware('throttle:30,1')->name('monitoring.remind');
     Route::get('/history', [DepartmentHistoryController::class, 'index'])->name('history');
@@ -165,7 +190,9 @@ Route::middleware(['auth:dept', 'auth.session', 'active', 'expire.requests'])->p
 });
 
 // User (Student / Faculty)
-Route::middleware(['auth:user', 'auth.session', 'active', 'expire.requests'])->prefix('user')->name('user.')->group(function () {
+// "verified": the email must be confirmed; "approved": self-registered Faculty
+// must be approved by their department.
+Route::middleware(['auth:user', 'auth.session', 'active', 'verified', 'approved', 'expire.requests'])->prefix('user')->name('user.')->group(function () {
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [UserDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [UserProfileController::class, 'show'])->name('profile');

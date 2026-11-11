@@ -69,8 +69,10 @@ class DepartmentUserManagementTest extends TestCase
         $this->assertSame($this->ccsLab->dept_acc_id, (int) $audit->dept_acc_id);
         $this->assertSame('Added User', AuditCatalog::classify($audit->action, $audit->affected_entity)['label']);
 
-        $this->app['auth']->forgetGuards();
-        $this->post('/login', ['email' => 'ana@example.com', 'password' => 'Study2026'])->assertRedirect(route('user.dashboard'));
+        // Staff don't set a password: Ana is emailed an invite to set her own.
+        $this->assertNotNull($ana->invited_at);
+        $this->assertFalse($ana->hasVerifiedEmail());
+        $this->assertSame('Invite Sent', collect($response->json('users'))->firstWhere('email', 'ana@example.com')['status']);
     }
 
     public function test_lab_personnel_add_a_faculty_member_with_ids_in_capitals(): void
@@ -91,7 +93,6 @@ class DepartmentUserManagementTest extends TestCase
         $cases = [
             "another student's ID" => ['department.users.student', ['id_number' => '20209999', 'email' => 'x1@example.com'], 'Another student already has this student ID.'],
             "Lab Personnel's email" => ['department.users.student', ['id_number' => '20260002', 'email' => 'ccj.lab@example.com'], 'already used by another EquipTrack account'],
-            'a weak password' => ['department.users.student', ['id_number' => '20260003', 'email' => 'x2@example.com', 'password' => 'short'], 'at least 8 characters'],
             'a year level that is not offered' => ['department.users.student', ['id_number' => '20260004', 'email' => 'x3@example.com', 'year_level' => '9th Year'], 'invalid'],
             // Same capitals: MySQL/MariaDB also match other capitalisations, the SQLite test database does not.
             "another faculty member's license" => ['department.users.faculty', ['faculty_id_number' => 'T-20261', 'teaching_license_no' => 'TL-T-012412', 'email' => 'x4@example.com'], 'already has this teaching license number'],

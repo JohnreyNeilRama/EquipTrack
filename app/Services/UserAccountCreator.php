@@ -9,12 +9,16 @@ use App\Rules\UniqueAccountEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 /**
  * Creating Student and Faculty accounts, shared by the Admin Users page and the
  * department Users page so both apply the same rules.
+ *
+ * Staff don't set a password. After create(), the caller emails an invite
+ * (UserInvites::send) so the owner chooses their own password, which also
+ * confirms the email address.
  *
  * The department is not part of these rules: the Admin picks one, while
  * Laboratory Personnel always add users to their own department. Callers pass
@@ -63,11 +67,15 @@ class UserAccountCreator
     public static function create(string $role, array $data, int $departmentId, array $actor, ?Request $request = null): UserAccount
     {
         $account = DB::transaction(function () use ($role, $data, $departmentId) {
+            // Staff don't choose the password: it stays an unusable random one
+            // until the owner sets theirs from the invite email (UserInvites),
+            // which also confirms the email address.
             $account = UserAccount::create([
                 'role' => $role,
                 'email' => $data['email'],
-                'password' => Hash::make($data['password']),
+                'password' => Hash::make(Str::random(40)),
                 'department_id' => $departmentId,
+                'status' => UserAccount::STATUS_ACTIVE,
             ]);
 
             $profile = [
@@ -111,7 +119,6 @@ class UserAccountCreator
             'last_name' => ['required', 'string', 'max:50'],
             'email' => ['required', 'email', 'max:100', Rule::unique('user_account', 'email'), new UniqueAccountEmail()],
             'address' => ['required', 'string', 'max:150'],
-            'password' => ['required', 'string', Password::defaults()],
         ];
     }
 }
