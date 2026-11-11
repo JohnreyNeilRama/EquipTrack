@@ -94,6 +94,7 @@ class AuditCatalog
         ['label' => 'Added Department', 'module' => 'Users', 'prefixes' => ['Created department' => 'Department']],
         ['label' => 'Updated User', 'module' => 'Users', 'prefixes' => ['Updated user' => 'User']],
         ['label' => 'Sent Invite', 'module' => 'Users', 'prefixes' => ['Sent account invite' => 'Account invite']],
+        ['label' => 'Handed Over Account', 'module' => 'Users', 'prefixes' => ['Handed over department account' => 'Department account']],
         ['label' => 'Approved Faculty', 'module' => 'Users', 'prefixes' => ['Approved faculty account' => 'Faculty account']],
         ['label' => 'Declined Faculty', 'module' => 'Users', 'prefixes' => ['Declined faculty account' => 'Faculty account']],
         ['label' => 'Activated User', 'module' => 'Users', 'prefixes' => ['Activated user account' => 'Account']],

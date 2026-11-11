@@ -231,6 +231,15 @@ class AdminUsersController extends Controller
 
         $data = $request->validate(UserAccountEditor::rules($account), UserAccountEditor::messages());
 
+        // "A new person now holds this account" (Department accounts only): the
+        // invite it sends can't be used on a deactivated account.
+        $newHolder = $account instanceof DepartmentAccount && $request->boolean('new_holder');
+        if ($newHolder && strcasecmp((string) $account->status, 'Deactivated') === 0) {
+            return redirect()->route('admin.users')
+                ->with('serverMsg', 'Activate this department account first, then mark the new person as holding it.')
+                ->with('serverMsgType', 'error');
+        }
+
         // Changing an Administrator's email needs the password of the Admin
         // making the change, and the old address is told with an undo link.
         $oldAdminEmail = $account instanceof Admin ? (string) ($account->email ?: $account->username) : null;
@@ -250,11 +259,51 @@ class AdminUsersController extends Controller
             AdminEmailChange::notifyOldAddress($account, $oldAdminEmail, $data['email'], auth('admin')->user(), $request);
         }
 
+        $message = $changed
+            ? 'Account details updated. Changed: ' . implode(', ', $changed) . '.'
+            : 'No changes to save.';
+
+        if ($newHolder) {
+            $inviteError = $this->handOverDepartmentAccount($account->fresh(), $request);
+
+            return redirect()->route('admin.users')
+                ->with('serverMsg', ($changed ? $message . ' ' : '')
+                    . 'The previous password no longer works. '
+                    . ($inviteError ?? 'A link to set a new password was emailed to ' . $account->fresh()->email . '.'))
+                ->with('serverMsgType', $inviteError ? 'error' : 'success');
+        }
+
         return redirect()->route('admin.users')
-            ->with('serverMsg', $changed
-                ? 'Account details updated. Changed: ' . implode(', ', $changed) . '.'
-                : 'No changes to save.')
+            ->with('serverMsg', $message)
             ->with('serverMsgType', 'success');
+    }
+
+    /**
+     * A new Lab Personnel member takes over a Department account: the old
+     * password is replaced with an unusable one (and the "remember me" token,
+     * so every device signed in to it is signed out by auth.session), the
+     * account goes back to waiting for its invite, and the current email is
+     * sent a link to set a new password (UserInvites). Returns why the email
+     * wasn't sent, or null.
+     */
+    private function handOverDepartmentAccount(DepartmentAccount $account, Request $request): ?string
+    {
+        $account->forceFill([
+            'password' => Hash::make(Str::random(40)),
+            'remember_token' => Str::random(60),
+            'email_verified_at' => null,
+            'invited_at' => now(),
+        ])->save();
+
+        AuditLogger::log(
+            'Handed over department account',
+            'department_account:' . $account->dept_acc_id,
+            ($account->full_name ?: 'Department account') . ' (' . $account->email . '): previous password replaced, set-password link sent',
+            AuditLogger::actorFor('admin', auth('admin')->user()),
+            $request,
+        );
+
+        return UserInvites::send($account, auth('admin')->user(), $request);
     }
 
     /**

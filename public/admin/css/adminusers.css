@@ -847,3 +847,29 @@
 .dark-theme .btn-modal-decline {
     color: #f87171;
 }
+
+/* Edit Details (Department accounts): "A new person now holds this account" */
+.new-holder-option {
+    padding: 12px 14px;
+    border: 1px dashed var(--border-color, #cbd5e1);
+    border-radius: 10px;
+}
+
+.new-holder-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.new-holder-label input {
+    width: 18px;
+    height: 18px;
+    accent-color: #385585;
+    flex-shrink: 0;
+}
+
+.new-holder-option .pw-hint {
+    margin: 8px 0 0;
+}

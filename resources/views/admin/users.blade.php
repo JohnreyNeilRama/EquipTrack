@@ -474,6 +474,16 @@
                         <input type="email" id="editEmail" name="email" class="form-control-flat" required maxlength="100">
                     </div>
 
+                    {{-- Department accounts: the Lab Personnel member changed. The old password
+                         stops working and the email above gets a link to set a new one. --}}
+                    <div class="form-group-flat new-holder-option" data-for="dept">
+                        <label class="new-holder-label" for="editNewHolder">
+                            <input type="checkbox" id="editNewHolder" name="new_holder" value="1">
+                            <span>A new person now holds this account</span>
+                        </label>
+                        <p class="pw-hint">The current password stops working (the previous person is signed out), and the email address above is sent a link to set a new password. Leave this unticked when you only correct details.</p>
+                    </div>
+
                     <div class="form-group-flat" data-for="student faculty">
                         <label for="editAddress">Home Address</label>
                         <input type="text" id="editAddress" name="address" class="form-control-flat" required maxlength="150">
@@ -1015,6 +1025,8 @@
 
             document.getElementById('editUserId').value = user.id;
             document.getElementById('editUserType').value = user.db_type;
+            // Starts unticked every time: only for a real change of Lab Personnel.
+            document.getElementById('editNewHolder').checked = false;
 
             // One Department Account per department: a Department Account can't
             // be moved to a department that already has another one. Students

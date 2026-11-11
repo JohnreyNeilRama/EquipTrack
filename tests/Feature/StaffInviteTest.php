@@ -150,6 +150,58 @@ class StaffInviteTest extends TestCase
         Notification::assertSentOnDemandTimes(AdminEmailChangedNotification::class, 0);
     }
 
+    public function test_a_new_lab_personnel_member_takes_over_the_department_account(): void
+    {
+        $old = $this->makeLabPersonnel($this->ccs, 'old.lab@example.com', 'Old Custodian');
+        $edit = fn (array $extra) => $this->actingAs($this->admin, 'admin')->post(route('admin.users.update'), [
+            'user_id' => $old->dept_acc_id + 100000,
+            'user_type' => 'department',
+            'full_name' => 'New Custodian',
+            'employee_id' => 'EMP-NEW',
+            'department_id' => $this->ccs->department_id,
+            'email' => 'new.lab@example.com',
+        ] + $extra);
+
+        // Only correcting details: the password keeps working, no invite.
+        $edit([])->assertSessionHas('serverMsgType', 'success');
+        $this->assertTrue($old->fresh()->isSetUp());
+        Notification::assertNothingSent();
+
+        // A new person: the old password stops working and the new email gets the link.
+        $edit(['new_holder' => '1'])
+            ->assertSessionHas('serverMsg', fn ($m) => str_contains($m, 'previous password no longer works') && str_contains($m, 'new.lab@example.com'));
+
+        $lab = $old->fresh();
+        $this->assertTrue($lab->hasPendingInvite());
+        $this->app['auth']->forgetGuards();
+        $this->post('/login', ['email' => 'new.lab@example.com', 'password' => 'Lab2026pass'])->assertSessionHasErrors('email');
+        $this->assertDatabaseHas('audit_trail', ['action' => 'Handed over department account', 'affected_entity' => 'department_account:' . $lab->dept_acc_id]);
+
+        $token = $this->inviteToken($lab);
+        $this->post(route('account.setup.store'), [
+            'token' => $token, 'email' => 'new.lab@example.com', 'password' => 'NewLab2026', 'password_confirmation' => 'NewLab2026',
+        ])->assertRedirect(route('login'));
+        $this->post('/login', ['email' => 'new.lab@example.com', 'password' => 'NewLab2026'])->assertRedirect(route('department.dashboard'));
+    }
+
+    public function test_a_deactivated_department_account_must_be_activated_before_a_handover(): void
+    {
+        $old = $this->makeLabPersonnel($this->ccs, 'old.lab@example.com', 'Old Custodian', ['status' => 'Deactivated']);
+
+        $this->actingAs($this->admin, 'admin')->post(route('admin.users.update'), [
+            'user_id' => $old->dept_acc_id + 100000,
+            'user_type' => 'department',
+            'full_name' => 'New Custodian',
+            'employee_id' => 'EMP-NEW',
+            'department_id' => $this->ccs->department_id,
+            'email' => 'new.lab@example.com',
+            'new_holder' => '1',
+        ])->assertSessionHas('serverMsg', fn ($m) => str_contains($m, 'Activate this department account first'));
+
+        $this->assertSame('old.lab@example.com', $old->fresh()->email);
+        Notification::assertNothingSent();
+    }
+
     public function test_existing_staff_accounts_are_already_set_up(): void
     {
         $this->assertTrue($this->admin->isSetUp());
