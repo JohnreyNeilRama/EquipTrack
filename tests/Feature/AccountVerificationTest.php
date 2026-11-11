@@ -186,6 +186,41 @@ class AccountVerificationTest extends TestCase
         $this->assertSame(UserAccount::STATUS_PENDING_APPROVAL, $ramon->fresh()->status);
     }
 
+    public function test_a_teachers_details_can_be_edited_only_after_approval(): void
+    {
+        $ramon = $this->makeFaculty($this->ccs, 'ramon@example.com', ['first_name' => 'Ramon']);
+        $ramon->update(['status' => UserAccount::STATUS_PENDING_APPROVAL]);
+
+        $edit = fn () => $this->actingAs($this->ccsLab, 'dept')->postJson(route('department.users.update'), [
+            'user_id' => $ramon->user_id,
+            'first_name' => 'Changed',
+            'last_name' => 'Reyes',
+            'faculty_id_number' => 'T-' . $ramon->user_id,
+            'teaching_license_no' => 'PRC-' . $ramon->user_id,
+            'email' => 'ramon@example.com',
+            'address' => 'Cebu City',
+        ]);
+
+        // Pending: refused, nothing saved.
+        $edit()->assertForbidden()->assertJsonPath('success', false);
+        $this->assertSame('Ramon', $ramon->fresh('facultyMember')->facultyMember->first_name);
+
+        // Approved: editing works.
+        $this->postJson(route('department.users.approve'), ['user_id' => $ramon->user_id])->assertOk();
+        $edit()->assertOk();
+        $this->assertSame('Changed', $ramon->fresh('facultyMember')->facultyMember->first_name);
+    }
+
+    public function test_a_declined_registration_cannot_be_edited(): void
+    {
+        $ramon = $this->makeFaculty($this->ccs, 'ramon@example.com');
+        $ramon->update(['status' => UserAccount::STATUS_PENDING_APPROVAL]);
+
+        $this->actingAs($this->ccsLab, 'dept')->postJson(route('department.users.decline'), ['user_id' => $ramon->user_id, 'reason' => 'Not faculty.'])->assertOk();
+
+        $this->postJson(route('department.users.update'), ['user_id' => $ramon->user_id, 'first_name' => 'Changed'])->assertNotFound();
+    }
+
     public function test_declining_needs_a_reason_and_removes_the_registration(): void
     {
         $ramon = $this->makeFaculty($this->ccs, 'ramon@example.com');

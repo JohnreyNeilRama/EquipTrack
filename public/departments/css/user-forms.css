@@ -313,6 +313,14 @@
     cursor: progress;
 }
 
+/* Edit Details while a Faculty registration waits for approval: unavailable, not loading. */
+#viewUserModal .modal-actions-footer .btn-modal-edit:disabled,
+#viewUserModal .modal-actions-footer .btn-modal-edit:disabled:hover {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background-color: #385585;
+}
+
 .dark-theme #viewUserModal .modal-actions-footer .btn-modal-edit {
     background-color: var(--primary-sidebar);
 }

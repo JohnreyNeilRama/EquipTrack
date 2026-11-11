@@ -66,6 +66,16 @@ class DepartmentUsersController extends Controller
             return $this->notInDepartment();
         }
 
+        // A self-registered Faculty account is reviewed as submitted: its details
+        // can be edited only after it is approved. (A declined registration is
+        // removed, so it can't be edited either.)
+        if ($account->isPendingApproval()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This Faculty account is waiting for approval, so its details can\'t be edited yet. Approve it first, or decline it.',
+            ], 403);
+        }
+
         // The department stays the Lab Personnel's own (no moving users elsewhere).
         $request->merge(['department_id' => $departmentId]);
         $data = $request->validate(UserAccountEditor::rules($account), UserAccountEditor::messages());

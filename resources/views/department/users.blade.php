@@ -349,7 +349,7 @@
             }
 
             const STATE_NOTES = {
-                pending: 'This teacher registered themselves. Approve the account if they are faculty of your department, or decline it with a reason. They are emailed either way.',
+                pending: 'This teacher registered themselves. Approve the account if they are faculty of your department, or decline it with a reason. They are emailed either way. Editing is unavailable until the account is approved.',
                 invited: 'Waiting for this person to set their password from the invite email. If they did not get it (or the address was wrong), fix the email with Edit Details, then resend the invite.',
                 unverified: 'This person has not verified their email address yet, so they cannot use EquipTrack. You can send them a new verification link.',
             };
@@ -478,6 +478,13 @@
                 document.getElementById('modalStateNote').hidden = !STATE_NOTES[state];
                 document.getElementById('modalStateNote').textContent = STATE_NOTES[state] || '';
 
+                // A registration waiting for approval is reviewed as submitted:
+                // Edit Details unlocks once it is approved (the server refuses too).
+                const editBtn = document.getElementById('modalEditDetailsBtn');
+                editBtn.disabled = state === 'pending';
+                editBtn.title = state === 'pending' ? 'Details can be edited after you approve this account.' : '';
+                editBtn.setAttribute('aria-disabled', state === 'pending' ? 'true' : 'false');
+
                 viewUserModal.classList.add('show');
             };
 
@@ -592,7 +599,7 @@
 
             document.getElementById('modalEditDetailsBtn').addEventListener('click', () => {
                 const user = users.find(u => Number(u.id) === activeUserId);
-                if (!user) return;
+                if (!user || userState(user) === 'pending') return;
                 viewUserModal.classList.remove('show');
                 openUserForm('edit', user);
             });
