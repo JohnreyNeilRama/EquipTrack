@@ -678,6 +678,9 @@
             }
 
             document.getElementById('modalApproveBtn').addEventListener('click', async (e) => {
+                // Kept before the confirm window: once the click has finished
+                // (after the await), the browser resets e.currentTarget to null.
+                const button = e.currentTarget;
                 const user = users.find(u => Number(u.id) === activeUserId);
                 if (!user) return;
                 const ok = await equipConfirm({
@@ -686,7 +689,7 @@
                     confirmText: 'Approve',
                     tone: 'success',
                 });
-                if (ok) accountAction(URLS.approve, { user_id: user.id }, e.currentTarget);
+                if (ok) accountAction(URLS.approve, { user_id: user.id }, button);
             });
 
             document.getElementById('modalDeclineBtn').addEventListener('click', async (e) => {
