@@ -68,7 +68,7 @@
             <div class="equipments-header">
                 <h2 class="section-title">Available Equipments</h2>
                 <div class="search-wrapper">
-                    <input type="text" id="searchInput" placeholder="Search equipment by name, brand, model...">
+                    <input type="text" id="searchInput" placeholder="Search name, brand or model">
                     <i class="fa-solid fa-magnifying-glass search-icon"></i>
                 </div>
             </div>
@@ -236,13 +236,13 @@
                         @if ($askInstructor)
                         <div class="form-horizontal-group">
                             <label class="flat-label" for="borrowInstructor">Instructor Name:</label>
-                            <input type="text" id="borrowInstructor" class="flat-control" maxlength="150" autocomplete="off" placeholder="Enter your instructor's name" required>
+                            <input type="text" id="borrowInstructor" class="flat-control" maxlength="150" autocomplete="off" placeholder="e.g. Prof. Santos" required>
                         </div>
                         @endif
 
                         <div class="form-horizontal-group align-start">
-                            <label class="flat-label">Notes:</label>
-                            <textarea id="borrowNotes" class="flat-control flat-textarea" rows="3" placeholder="Additional notes or instructions (optional)..."></textarea>
+                            <label class="flat-label">Notes (optional):</label>
+                            <textarea id="borrowNotes" class="flat-control flat-textarea" rows="3" placeholder="e.g. Please include an HDMI cable"></textarea>
                         </div>
                     </div>
 

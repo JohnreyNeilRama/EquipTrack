@@ -24,7 +24,7 @@
     {{-- Search and Filter Row --}}
     <div class="search-filter-row">
         <div class="search-wrapper">
-            <input type="text" id="searchRequests" placeholder="Search equipment..." autocomplete="off">
+            <input type="text" id="searchRequests" placeholder="Search equipment" autocomplete="off">
             <i class="fa-solid fa-magnifying-glass search-icon"></i>
         </div>
         <div class="filter-wrapper">

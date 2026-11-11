@@ -15,7 +15,7 @@
         <div class="filters-row">
             <!-- Search bar on the left -->
             <div class="search-wrapper">
-                <input type="text" id="searchHistory" placeholder="Search equipment..." autocomplete="off">
+                <input type="text" id="searchHistory" placeholder="Search equipment" autocomplete="off">
                 <i class="fa-solid fa-magnifying-glass search-icon"></i>
             </div>
             

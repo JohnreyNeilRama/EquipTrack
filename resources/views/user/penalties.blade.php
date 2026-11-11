@@ -91,7 +91,7 @@
                         </div>
                         <div class="pp-field pp-field-wide">
                             <label for="proofNotes">Notes <span class="pp-optional">optional</span></label>
-                            <textarea id="proofNotes" rows="3" maxlength="1000" placeholder="e.g. Replaced with the same model of charger."></textarea>
+                            <textarea id="proofNotes" rows="3" maxlength="1000" placeholder="e.g. Replaced with the same charger model"></textarea>
                         </div>
                     </div>
                 </section>

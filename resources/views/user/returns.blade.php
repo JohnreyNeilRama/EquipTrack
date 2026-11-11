@@ -24,7 +24,7 @@
         <!-- Search Bar Aligned Right -->
         <div class="search-row-right">
             <div class="search-wrapper">
-                <input type="text" id="searchReturns" placeholder="Search equipment..." autocomplete="off">
+                <input type="text" id="searchReturns" placeholder="Search equipment" autocomplete="off">
                 <i class="fa-solid fa-magnifying-glass search-icon"></i>
             </div>
         </div>
@@ -181,8 +181,8 @@
                     <!-- Lower Section: Remarks -->
                     <div class="detail-lower-section">
                         <div class="detail-form-group">
-                            <label class="detail-form-label">Remarks / Return Notes</label>
-                            <textarea id="returnRemarks" class="detail-form-control textarea-control" placeholder="Add any comments on item condition, usage notes, or missing accessories..." rows="2"></textarea>
+                            <label class="detail-form-label">Remarks (optional)</label>
+                            <textarea id="returnRemarks" class="detail-form-control textarea-control" placeholder="e.g. Works fine; charger included" rows="2"></textarea>
                         </div>
                         <div class="modal-form-actions">
                             <button type="button" class="btn-modal-cancel" id="cancelReturnBtn">Cancel</button>
