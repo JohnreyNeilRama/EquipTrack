@@ -952,16 +952,35 @@
         }
 
         // Toggle User Status — FIX vs legacy: now POSTs so it persists
-        window.toggleUserStatus = function(id) {
+        window.toggleUserStatus = async function(id) {
             const user = users.find(u => u.id === id);
             if (!user) return;
 
             const newStatus = user.status.toLowerCase() === 'active' ? 'Deactivated' : 'Active';
-            postForm(URL_TOGGLE, {
+            const fields = {
                 target_user_id: user.id,
                 target_user_type: user.db_type,
                 new_status: newStatus,
-            });
+            };
+
+            // Activating or deactivating an Administrator needs your password.
+            if (user.db_type === 'admin') {
+                const fullName = user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
+                const deactivating = newStatus === 'Deactivated';
+                const password = await equipConfirm({
+                    title: deactivating ? 'Deactivate this administrator?' : 'Activate this administrator?',
+                    message: deactivating
+                        ? `${fullName} will be signed out and won't be able to sign in until the account is activated again. Enter your password to confirm.`
+                        : `${fullName} will be able to sign in again. Enter your password to confirm.`,
+                    confirmText: deactivating ? 'Deactivate' : 'Activate',
+                    tone: deactivating ? 'danger' : 'primary',
+                    askPassword: true,
+                });
+                if (!password) return;
+                fields.current_password = password;
+            }
+
+            postForm(URL_TOGGLE, fields);
         };
 
         // Edit User: shows the fields for the account's type and fills in its
@@ -1030,17 +1049,23 @@
             if (!user) return;
 
             const fullName = user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name;
-            const ok = await equipConfirm({
+            const isAdmin = user.db_type === 'admin';
+            // Deleting an Administrator also needs your password.
+            const answer = await equipConfirm({
                 title: 'Delete this account?',
-                message: `The account of ${fullName} will be permanently deleted. This cannot be undone.`,
+                message: `The account of ${fullName} will be permanently deleted. This cannot be undone.`
+                    + (isAdmin ? ' Enter your password to confirm.' : ''),
                 confirmText: 'Delete Account',
                 tone: 'danger',
+                askPassword: isAdmin,
             });
-            if (ok) {
-                postForm(URL_DELETE, {
+            if (answer) {
+                const fields = {
                     user_id: user.id,
                     user_type: user.db_type,
-                });
+                };
+                if (isAdmin) fields.current_password = answer;
+                postForm(URL_DELETE, fields);
             }
         };
 
@@ -1269,13 +1294,38 @@
         });
 
         // Quick checks before sending; the server checks everything again.
-        editUserForm.addEventListener('submit', (e) => {
+        editUserForm.addEventListener('submit', async (e) => {
             const id = Number(document.getElementById('editUserId').value);
             const email = document.getElementById('editEmail').value.trim().toLowerCase();
             const taken = users.some(u => u.id !== id && (u.email || '').toLowerCase() === email);
             if (taken) {
                 e.preventDefault();
                 showNotification('Validation Error', 'Another account already uses this email address.', 'error');
+                return;
+            }
+
+            // Changing an Administrator's email needs your password; the old
+            // address is then emailed a link to undo the change.
+            const user = users.find(u => u.id === id);
+            const previous = ((user && user.edit && user.edit.email) || (user && user.email) || '').toLowerCase();
+            if (user && user.db_type === 'admin' && email !== previous) {
+                e.preventDefault();
+                const password = await equipConfirm({
+                    title: 'Change this administrator\'s email?',
+                    message: `Password resets will go to ${email}. The old address will be emailed a link to undo the change. Enter your password to confirm.`,
+                    confirmText: 'Change Email',
+                    tone: 'primary',
+                    askPassword: true,
+                });
+                if (!password) return;
+
+                editUserForm.querySelector('input[name="current_password"]')?.remove();
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'current_password';
+                input.value = password;
+                editUserForm.appendChild(input);
+                editUserForm.submit();
             }
         });
 

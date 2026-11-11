@@ -106,6 +106,10 @@ class AuditCatalog
         ]],
         ['label' => 'Changed Password', 'module' => 'Profile', 'prefixes' => ['Changed password' => 'Password']],
 
+        // Admin email-change protection (alert to the old address + undo link)
+        ['label' => 'Undid Email Change', 'module' => 'Authentication', 'prefixes' => ['Undid email change' => 'Email change']],
+        ['label' => 'Email Change Alert Failed', 'module' => 'Authentication', 'prefixes' => ['Email change alert failed' => 'Email change alert']],
+
         // Reports
         ['label' => 'Generated Report', 'module' => 'Reports', 'prefixes' => ['Generated report' => 'Report']],
         ['label' => 'Exported Report', 'module' => 'Reports', 'prefixes' => ['Exported report' => 'Report']],

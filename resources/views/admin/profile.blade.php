@@ -277,7 +277,7 @@
             setFormReadOnly(true);
         });
 
-        personalInfoForm.addEventListener('submit', (e) => {
+        personalInfoForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             // Enter in a read-only field must not save anything.
             if (btnSaveEdit.style.display === 'none') return;
@@ -292,11 +292,26 @@
             if (!fullName) { fullNameInput.focus(); return showToast('Please enter your full name.', 'error'); }
             if (!email || !emailInput.checkValidity()) { emailInput.focus(); return showToast('Please enter a valid email address.', 'error'); }
 
+            // Changing your email needs your current password; the old address
+            // is then emailed a link to undo the change.
+            let currentPassword = '';
+            if (email.toLowerCase() !== String(initialFormState['admin_email'] || '').toLowerCase()) {
+                currentPassword = await equipConfirm({
+                    title: 'Change your email?',
+                    message: `Password resets will go to ${email}. Your current address will be emailed a link to undo the change. Enter your current password to confirm.`,
+                    confirmText: 'Change Email',
+                    tone: 'primary',
+                    askPassword: true,
+                });
+                if (!currentPassword) return;
+            }
+
             const formData = new FormData();
             formData.append('_token', CSRF_TOKEN);
             formData.append('admin_full_name', fullName);
             formData.append('admin_email', email);
             formData.append('admin_employee_id', employeeId);
+            if (currentPassword) formData.append('current_password', currentPassword);
 
             btnSaveEdit.disabled = true;
             btnSaveEdit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';

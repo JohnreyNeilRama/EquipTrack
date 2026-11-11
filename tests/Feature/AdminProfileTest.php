@@ -59,6 +59,7 @@ class AdminProfileTest extends TestCase
             'admin_full_name' => 'Head Admin',
             'admin_email' => 'head@example.com',
             'admin_employee_id' => 'ADM-0042',
+            'current_password' => 'Admin2026', // changing the email needs the current password
         ])->assertOk()->assertJson(['success' => true]);
 
         $this->admin->refresh();

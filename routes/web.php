@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AdminReportsController;
 use App\Http\Controllers\Admin\AdminRequestsController;
 use App\Http\Controllers\Admin\AdminUsersController;
+use App\Http\Controllers\Auth\AdminEmailChangeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -54,6 +55,10 @@ Route::post('/register', [RegisteredUserController::class, 'store'])->middleware
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 Route::get('/forgot-password', [PasswordResetLinkController::class, 'show'])->name('password.request');
 Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
+// "This wasn't me" link from the email-change alert sent to an Admin's old
+// address (signed and expiring; see App\Services\AdminEmailChange).
+Route::get('/account/email-change/undo', [AdminEmailChangeController::class, 'show'])->middleware('throttle:30,1')->name('account.email-change.undo');
+Route::post('/account/email-change/undo', [AdminEmailChangeController::class, 'undo'])->middleware('throttle:10,1');
 Route::get('/reset-password/{token}', [NewPasswordController::class, 'show'])->name('password.reset');
 Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.store');
 

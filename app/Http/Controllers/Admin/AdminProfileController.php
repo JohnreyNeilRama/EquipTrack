@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Rules\UniqueAccountEmail;
 use App\Services\AccountPassword;
+use App\Services\AdminEmailChange;
 use App\Services\AuditLogger;
 use App\Support\ProfileImage;
 use Illuminate\Http\JsonResponse;
@@ -39,16 +40,26 @@ class AdminProfileController extends Controller
     public function update(Request $request): RedirectResponse|JsonResponse
     {
         $admin = auth('admin')->user();
+        $oldEmail = (string) ($admin->email ?: $admin->username);
+
+        // Changing the email needs the current password, so someone using a
+        // session left signed in cannot redirect password resets to themselves.
+        $emailChanging = strcasecmp(trim((string) $request->input('admin_email')), $oldEmail) !== 0;
+        $passwordRules = AccountPassword::rules('admin', optional: true);
+        if ($emailChanging) {
+            $passwordRules['current_password'] = ['required', 'string', 'current_password:admin'];
+        }
 
         $data = $request->validate([
             'admin_full_name' => ['required', 'string', 'max:100'],
             'admin_email' => ['required', 'email', 'max:100', Rule::unique('admin', 'email')->ignore($admin->admin_id, 'admin_id'), UniqueAccountEmail::except(UniqueAccountEmail::ADMIN, $admin->admin_id)],
             'admin_employee_id' => ['nullable', 'string', 'max:50'],
             // Optional Change Password fields, checked by the shared rules.
-            ...AccountPassword::rules('admin', optional: true),
+            ...$passwordRules,
         ], [
             'admin_email.unique' => 'Another admin already uses that email/username.',
             ...AccountPassword::messages(),
+            'current_password.required' => $emailChanging ? 'Enter your current password to change your email.' : 'Enter your current password.',
         ]);
 
         $update = [
@@ -88,6 +99,10 @@ class AdminProfileController extends Controller
         $entity = 'admin:' . $admin->admin_id;
         if ($changed) {
             AuditLogger::log('Updated profile', $entity, 'Changed: ' . implode(', ', $changed), AuditLogger::actorFor('admin', $admin), $request);
+        }
+        // The old address is told at once, with a link to undo the change.
+        if ($emailChanging) {
+            AdminEmailChange::notifyOldAddress($admin, $oldEmail, $data['admin_email'], $admin, $request);
         }
         // The current password was verified by the validation rules above.
         if (!empty($data['new_password'])) {

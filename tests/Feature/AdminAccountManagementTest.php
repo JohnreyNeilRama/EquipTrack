@@ -103,6 +103,7 @@ class AdminAccountManagementTest extends TestCase
             'form_type' => 'edit',
             'user_id' => self::OFFSET + $maria->admin_id,
             'user_type' => 'admin',
+            'current_password' => 'Admin2026', // changing an Admin's email needs your password
         ] + array_merge(UserAccountEditor::values($maria), ['name' => 'Maria L. Santos', 'email' => 'maria.santos@example.com']))
             ->assertSessionHas('serverMsg', 'Account details updated. Changed: Full name, Email.');
 
@@ -136,6 +137,7 @@ class AdminAccountManagementTest extends TestCase
             'target_user_id' => self::OFFSET + $maria->admin_id,
             'target_user_type' => 'admin',
             'new_status' => 'Deactivated',
+            'current_password' => 'Admin2026',
         ])->assertSessionHas('serverMsgType', 'success');
         $this->assertSame('Deactivated', $maria->fresh()->status);
         $this->assertTrue(AuditTrail::where('affected_entity', 'admin:' . $maria->admin_id)->where('action', 'Deactivated user account')->exists());
@@ -153,6 +155,7 @@ class AdminAccountManagementTest extends TestCase
             'target_user_id' => self::OFFSET + $maria->admin_id,
             'target_user_type' => 'admin',
             'new_status' => 'Active',
+            'current_password' => 'Admin2026',
         ]);
         $this->assertSame('Active', $maria->fresh()->status);
     }
@@ -176,6 +179,7 @@ class AdminAccountManagementTest extends TestCase
         $this->actingAs($this->me, 'admin')->post(route('admin.users.delete'), [
             'user_id' => self::OFFSET + $maria->admin_id,
             'user_type' => 'admin',
+            'current_password' => 'Admin2026',
         ])->assertSessionHas('serverMsg', 'Administrator account deleted successfully.');
 
         $this->assertNull(Admin::find($maria->admin_id));

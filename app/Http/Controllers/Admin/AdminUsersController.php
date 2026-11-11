@@ -10,9 +10,11 @@ use App\Models\DepartmentAccount;
 use App\Models\Penalty;
 use App\Models\UserAccount;
 use App\Rules\UniqueAccountEmail;
+use App\Services\AdminEmailChange;
 use App\Services\AuditLogger;
 use App\Services\UserAccountCreator;
 use App\Services\UserAccountEditor;
+use App\Support\AdminReauth;
 use App\Support\ProfileImage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -105,7 +107,22 @@ class AdminUsersController extends Controller
 
         $data = $request->validate(UserAccountEditor::rules($account), UserAccountEditor::messages());
 
+        // Changing an Administrator's email needs the password of the Admin
+        // making the change, and the old address is told with an undo link.
+        $oldAdminEmail = $account instanceof Admin ? (string) ($account->email ?: $account->username) : null;
+        $adminEmailChanging = $account instanceof Admin && strcasecmp(trim((string) ($data['email'] ?? $oldAdminEmail)), $oldAdminEmail) !== 0;
+        if ($adminEmailChanging && ($reason = AdminReauth::failure($request))) {
+            return redirect()->route('admin.users')
+                ->withErrors(['current_password' => $reason])
+                // Re-show what was typed, but never the password.
+                ->withInput($request->except('current_password'));
+        }
+
         $changed = UserAccountEditor::update($account, $data, AuditLogger::actorFor('admin', auth('admin')->user()), $request);
+
+        if ($adminEmailChanging) {
+            AdminEmailChange::notifyOldAddress($account, $oldAdminEmail, $data['email'], auth('admin')->user(), $request);
+        }
 
         return redirect()->route('admin.users')
             ->with('serverMsg', $changed
@@ -295,6 +312,11 @@ class AdminUsersController extends Controller
             if ($data['new_status'] === 'Deactivated' && ($reason = $this->adminSafeguard($account, 'deactivate'))) {
                 return redirect()->route('admin.users')->with('serverMsg', $reason)->with('serverMsgType', 'error');
             }
+            // Activating or deactivating an Administrator needs the password
+            // of the Admin making the change.
+            if ($reason = AdminReauth::failure($request)) {
+                return redirect()->route('admin.users')->with('serverMsg', $reason)->with('serverMsgType', 'error');
+            }
             $entity = 'admin:' . $account->admin_id;
             $name = $account->name ?: $account->email;
             $previous = $account->status;
@@ -341,6 +363,10 @@ class AdminUsersController extends Controller
         if ($data['user_type'] === 'admin') {
             $account = Admin::findOrFail($data['user_id'] - self::ADMIN_ID_OFFSET);
             if ($reason = $this->adminSafeguard($account, 'delete')) {
+                return redirect()->route('admin.users')->with('serverMsg', $reason)->with('serverMsgType', 'error');
+            }
+            // Deleting an Administrator needs the password of the Admin making the change.
+            if ($reason = AdminReauth::failure($request)) {
                 return redirect()->route('admin.users')->with('serverMsg', $reason)->with('serverMsgType', 'error');
             }
             // Records this admin reviewed or recorded keep their history
