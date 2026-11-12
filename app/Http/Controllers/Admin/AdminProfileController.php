@@ -98,7 +98,7 @@ class AdminProfileController extends Controller
 
         $entity = 'admin:' . $admin->admin_id;
         if ($changed) {
-            AuditLogger::log('Updated profile', $entity, 'Changed: ' . implode(', ', $changed), AuditLogger::actorFor('admin', $admin), $request);
+            AuditLogger::log('Updated profile', $entity, 'Changed: ' . implode(', ', $changed) . AuditLogger::emailChangeNote($oldEmail, $data['admin_email']), AuditLogger::actorFor('admin', $admin), $request);
         }
         // The old address is told at once, with a link to undo the change.
         if ($emailChanging) {

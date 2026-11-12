@@ -84,6 +84,19 @@ class AuditLogger
         return $changed;
     }
 
+    /**
+     * " · Email: old@… → new@…" when the email changed, else "". Kept in the
+     * audit trail so staff can see which address to restore if an account
+     * was taken over.
+     */
+    public static function emailChangeNote(?string $old, ?string $new): string
+    {
+        $old = trim((string) $old);
+        $new = trim((string) $new);
+
+        return strcasecmp($old, $new) !== 0 ? ' · Email: ' . $old . ' → ' . $new : '';
+    }
+
     /** The audit_trail actor column for an authenticated account of the given guard. */
     public static function actorFor(string $guard, $account): array
     {

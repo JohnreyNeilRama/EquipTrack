@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Rules\UniqueAccountEmail;
 use App\Services\AccountPassword;
+use App\Services\AdminEmailChange;
 use App\Services\AuditLogger;
 use App\Support\ProfileImage;
 use Illuminate\Http\JsonResponse;
@@ -37,14 +38,22 @@ class UserProfileController extends Controller
     {
         $account = auth('user')->user();
 
+        // Changing the email needs the current password (someone using a
+        // browser left signed in can't take the account over), and the old
+        // address is then told, with an undo link (AdminEmailChange).
+        $oldEmail = (string) $account->email;
+        $emailChanging = strcasecmp(trim((string) $request->input('email')), $oldEmail) !== 0;
+
         $data = $request->validate([
             'first_name' => ['required', 'string', 'max:50'],
             'last_name' => ['nullable', 'string', 'max:50'],
             'email' => ['required', 'email', 'max:100', Rule::unique('user_account', 'email')->ignore($account->user_id, 'user_id'), UniqueAccountEmail::except(UniqueAccountEmail::USER, $account->user_id)],
             'year_level' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string', 'max:150'],
-        ], [
+        ] + ($emailChanging ? ['current_password' => ['required', 'string', 'current_password:user']] : []), [
             'email.unique' => 'That email address is already in use by another account.',
+            'current_password.required' => 'Enter your current password to change your email.',
+            'current_password.current_password' => 'Current password is incorrect.',
         ]);
 
         $isStudent = $account->role === 'Student';
@@ -90,10 +99,19 @@ class UserProfileController extends Controller
         $account->unsetRelation('student')->unsetRelation('facultyMember');
 
         if ($changed) {
-            AuditLogger::log('Updated profile', 'user_account:' . $account->user_id, 'Changed: ' . implode(', ', $changed), AuditLogger::actorFor('user', $account), $request);
+            AuditLogger::log('Updated profile', 'user_account:' . $account->user_id, 'Changed: ' . implode(', ', $changed) . AuditLogger::emailChangeNote($oldEmail, $data['email']), AuditLogger::actorFor('user', $account), $request);
         }
 
-        return response()->json(['success' => true, 'message' => 'Personal information updated successfully!']);
+        if ($emailChanging) {
+            AdminEmailChange::notifyOldAddress($account, $oldEmail, $data['email'], null, $request);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $emailChanging
+                ? 'Personal information updated. We sent a verification link to your new email, and told your old email about the change.'
+                : 'Personal information updated successfully!',
+        ]);
     }
 
     /** Change Password section of the profile page. */

@@ -762,3 +762,15 @@
 .dark-theme .btn-save:disabled {
     background-color: #2563eb;
 }
+
+/* Current Password box, shown only while the email is being changed */
+#emailPasswordGroup[hidden] {
+    display: none !important;
+}
+
+.email-change-hint {
+    margin: 6px 0 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text-muted, #64748b);
+}

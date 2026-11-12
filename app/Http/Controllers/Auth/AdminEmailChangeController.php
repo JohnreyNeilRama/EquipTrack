@@ -34,6 +34,8 @@ class AdminEmailChangeController extends Controller
             'state' => $error ? 'failed' : 'done',
             'message' => $error,
             'oldEmail' => $change['old'],
+            'accountType' => $change['type'],
+            'helpFrom' => $change['helpFrom'],
         ]);
     }
 
@@ -47,6 +49,8 @@ class AdminEmailChangeController extends Controller
             'oldEmail' => $change['old'] ?? null,
             'newEmail' => $change ? AdminEmailChange::mask($change['new']) : null,
             'action' => $request->fullUrl(),
+            'accountType' => $change['type'] ?? 'Administrator',
+            'helpFrom' => $change['helpFrom'] ?? 'an EquipTrack administrator',
         ]);
     }
 

@@ -251,12 +251,25 @@ class AdminUsersController extends Controller
                 ->withInput($request->except('current_password'));
         }
 
+        // Student, Faculty and Department accounts: the old address is told
+        // about an email change too (with an undo link), when it was really the
+        // owner's: the account was set up, and it isn't being handed over.
+        $oldEmail = (string) $account->email;
+        $ownerAddress = !$newHolder && match (true) {
+            $account instanceof UserAccount => $account->hasVerifiedEmail(),
+            $account instanceof DepartmentAccount => $account->isSetUp(),
+            default => false,
+        };
+
         $changed = UserAccountEditor::update($account, $data, AuditLogger::actorFor('admin', auth('admin')->user()), $request);
 
         // An Admin still waiting for their invite never used the old address
         // (often a typo being fixed): no takeover alert; resend the invite instead.
         if ($adminEmailChanging && $account->isSetUp()) {
             AdminEmailChange::notifyOldAddress($account, $oldAdminEmail, $data['email'], auth('admin')->user(), $request);
+        }
+        if ($ownerAddress) {
+            AdminEmailChange::notifyOldAddress($account, $oldEmail, $data['email'], auth('admin')->user(), $request);
         }
 
         $message = $changed

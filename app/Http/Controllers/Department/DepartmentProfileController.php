@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\DepartmentAccount;
 use App\Rules\UniqueAccountEmail;
 use App\Services\AccountPassword;
+use App\Services\AdminEmailChange;
 use App\Services\AuditLogger;
 use App\Support\ProfileImage;
 use Illuminate\Http\JsonResponse;
@@ -34,6 +35,16 @@ class DepartmentProfileController extends Controller
     {
         $account = auth('dept')->user();
 
+        // Changing the email needs the current password, and the old address
+        // is then told, with an undo link (AdminEmailChange). The Change
+        // Password fields below share the same current_password field.
+        $oldEmail = (string) $account->email;
+        $emailChanging = strcasecmp(trim((string) $request->input('email')), $oldEmail) !== 0;
+        $passwordRules = AccountPassword::rules('dept', optional: true);
+        if ($emailChanging) {
+            $passwordRules['current_password'] = ['required', 'string', 'current_password:dept'];
+        }
+
         $data = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
             'email' => [
@@ -47,9 +58,12 @@ class DepartmentProfileController extends Controller
                     ->ignore($account->dept_acc_id, 'dept_acc_id')
                     ->where(fn ($q) => $q->where('employee_id', '!=', '')),
             ],
-            // Optional Change Password fields, checked by the shared rules.
-            ...AccountPassword::rules('dept', optional: true),
-        ], AccountPassword::messages());
+            // Optional Change Password fields, checked by the shared rules
+            // (the current password becomes required when the email changes).
+            ...$passwordRules,
+        ], [
+            'current_password.required' => $emailChanging ? 'Enter your current password to change your email.' : 'Enter your current password.',
+        ] + AccountPassword::messages());
 
         $update = [
             'full_name' => $data['full_name'],
@@ -69,7 +83,10 @@ class DepartmentProfileController extends Controller
 
         $entity = 'department_account:' . $account->dept_acc_id;
         if ($changed) {
-            AuditLogger::log('Updated profile', $entity, 'Changed: ' . implode(', ', $changed), AuditLogger::actorFor('dept', $account), $request);
+            AuditLogger::log('Updated profile', $entity, 'Changed: ' . implode(', ', $changed) . AuditLogger::emailChangeNote($oldEmail, $data['email']), AuditLogger::actorFor('dept', $account), $request);
+        }
+        if ($emailChanging) {
+            AdminEmailChange::notifyOldAddress($account, $oldEmail, $data['email'], null, $request);
         }
         // The current password was verified by the validation rules above.
         if (!empty($data['new_password'])) {

@@ -153,23 +153,25 @@ class StaffInviteTest extends TestCase
     public function test_a_new_lab_personnel_member_takes_over_the_department_account(): void
     {
         $old = $this->makeLabPersonnel($this->ccs, 'old.lab@example.com', 'Old Custodian');
-        $edit = fn (array $extra) => $this->actingAs($this->admin, 'admin')->post(route('admin.users.update'), [
+        $edit = fn (array $extra) => $this->actingAs($this->admin, 'admin')->post(route('admin.users.update'), $extra + [
             'user_id' => $old->dept_acc_id + 100000,
             'user_type' => 'department',
             'full_name' => 'New Custodian',
             'employee_id' => 'EMP-NEW',
             'department_id' => $this->ccs->department_id,
             'email' => 'new.lab@example.com',
-        ] + $extra);
+        ]);
 
-        // Only correcting details: the password keeps working, no invite.
-        $edit([])->assertSessionHas('serverMsgType', 'success');
+        // Only correcting details (same email): the password keeps working, nothing is sent.
+        $edit(['email' => 'old.lab@example.com', 'full_name' => 'Old Custodian Jr.'])->assertSessionHas('serverMsgType', 'success');
         $this->assertTrue($old->fresh()->isSetUp());
         Notification::assertNothingSent();
 
         // A new person: the old password stops working and the new email gets the link.
         $edit(['new_holder' => '1'])
             ->assertSessionHas('serverMsg', fn ($m) => str_contains($m, 'previous password no longer works') && str_contains($m, 'new.lab@example.com'));
+        // The previous holder's address gets no "undo" link: they must not take the account back.
+        Notification::assertSentOnDemandTimes(AdminEmailChangedNotification::class, 0);
 
         $lab = $old->fresh();
         $this->assertTrue($lab->hasPendingInvite());

@@ -227,7 +227,7 @@ class UserAccountEditor
         AuditLogger::log(
             'Updated user account',
             $entity,
-            $name . ' (' . $after['email'] . ') · Changed: ' . implode(', ', $changed),
+            $name . ' (' . $after['email'] . ') · Changed: ' . implode(', ', $changed) . AuditLogger::emailChangeNote($before['email'] ?? null, $after['email'] ?? null),
             $actor,
             $request,
         );

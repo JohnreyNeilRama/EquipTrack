@@ -22,7 +22,7 @@
                 @if ($state === 'confirm')
                     <div class="login-header">
                         <h1>Undo the email change?</h1>
-                        <p>The email on your Administrator account was changed to <strong>{{ $newEmail }}</strong>.</p>
+                        <p>The email on your {{ $accountType ?? 'Administrator' }} account was changed to <strong>{{ $newEmail }}</strong>.</p>
                     </div>
 
                     <div class="auth-alert is-error" role="note">
@@ -40,12 +40,12 @@
                 @elseif ($state === 'done')
                     <div class="login-header">
                         <h1>Your email is back</h1>
-                        <p><strong>{{ $oldEmail }}</strong> is the email on your Administrator account again, and every device using it has been signed out.</p>
+                        <p><strong>{{ $oldEmail }}</strong> is the email on your {{ $accountType ?? 'Administrator' }} account again, and every device using it has been signed out.</p>
                     </div>
 
                     <div class="auth-alert is-success" role="status">
                         <i class="fa-solid fa-circle-check"></i>
-                        <span>Now set a new password: use Forgot Password with {{ $oldEmail }}. If the account was deactivated, ask another administrator to activate it first.</span>
+                        <span>Now set a new password: use Forgot Password with {{ $oldEmail }}. If the account was deactivated, ask {{ $helpFrom ?? 'another EquipTrack administrator' }} to activate it first.</span>
                     </div>
 
                     <a href="{{ route('password.request', ['email' => $oldEmail]) }}" class="login-btn" style="display:flex; align-items:center; justify-content:center; text-decoration:none;">Set a new password</a>
@@ -65,7 +65,7 @@
 
                     <div class="auth-alert is-error" role="alert">
                         <i class="fa-solid fa-circle-exclamation"></i>
-                        <span>If someone else controls your account, ask another EquipTrack administrator to restore it.</span>
+                        <span>If someone else controls your account, ask {{ $helpFrom ?? 'another EquipTrack administrator' }} to restore it.</span>
                     </div>
 
                     <a href="{{ route('login') }}" class="login-btn" style="display:flex; align-items:center; justify-content:center; text-decoration:none;">Back to Login</a>

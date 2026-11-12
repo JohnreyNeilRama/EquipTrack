@@ -75,6 +75,17 @@
                     </div>
                 </div>
 
+                {{-- Shown only while the email is being changed: the server needs the
+                     current password for that (AdminEmailChange protection). --}}
+                <div class="form-group" id="emailPasswordGroup" hidden>
+                    <label for="emailCurrentPassword">Current Password</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <input type="password" id="emailCurrentPassword" name="current_password" class="form-control" autocomplete="current-password" disabled>
+                    </div>
+                    <p class="email-change-hint">Needed to change your email. We'll send a verification link to the new address and tell your old address about the change.</p>
+                </div>
+
                 <div class="form-group">
                     <label>Year Level</label>
                     <div class="input-wrapper">
@@ -265,6 +276,21 @@
             });
         }
 
+
+        // Changing the email needs the current password: the box appears only
+        // while the email differs from the saved one.
+        const emailPasswordGroup = document.getElementById('emailPasswordGroup');
+        const emailPasswordInput = document.getElementById('emailCurrentPassword');
+        function syncEmailPassword() {
+            const field = personalInfoForm.querySelector('input[name="email"]');
+            const saved = String(initialFormState.email || '').trim().toLowerCase();
+            const changing = !!field && field.value.trim().toLowerCase() !== saved;
+            emailPasswordGroup.hidden = !changing;
+            emailPasswordInput.disabled = !changing;
+            if (!changing) emailPasswordInput.value = '';
+        }
+        personalInfoForm.querySelector('input[name="email"]').addEventListener('input', syncEmailPassword);
+
         if (btnCancelEdit) {
             btnCancelEdit.addEventListener('click', () => {
                 const inputs = personalInfoForm.querySelectorAll('.form-control');
@@ -274,22 +300,31 @@
                     }
                 });
                 setFormReadOnly(true);
+                syncEmailPassword();
             });
         }
 
         if (personalInfoForm) {
             personalInfoForm.addEventListener('submit', function(e) {
                 e.preventDefault();
+                if (!emailPasswordGroup.hidden && emailPasswordInput.value === '') {
+                    emailPasswordInput.focus();
+                    showToast('Enter your current password to change your email.', false);
+                    return;
+                }
                 const formData = new FormData(personalInfoForm);
                 formData.append('_token', CSRF_TOKEN);
                 fetch(URL_UPDATE, {
                     method: 'POST',
+                    headers: { 'Accept': 'application/json' },
                     body: formData
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
+                        emailPasswordInput.value = '';
                         captureFormState();
+                        syncEmailPassword();
                         setFormReadOnly(true);
                         showToast(data.message || 'Personal information updated successfully!');
 

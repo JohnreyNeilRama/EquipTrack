@@ -55,17 +55,32 @@ class DepartmentProfileTest extends TestCase
 
     public function test_saving_profile_information_no_longer_needs_the_password_fields(): void
     {
+        // Same email: no password needed for the other details.
         $this->actingAs($this->lab, 'dept')->postJson(route('department.profile.update'), [
             'full_name' => 'Ana Santos',
-            'email' => 'ana@example.com',
+            'email' => $this->lab->email,
             'employee_id' => 'EMP-002',
         ])->assertOk()->assertJson(['success' => true]);
 
         $this->lab->refresh();
         $this->assertSame('Ana Santos', $this->lab->full_name);
-        $this->assertSame('ana@example.com', $this->lab->email);
         $this->assertSame('EMP-002', $this->lab->employee_id);
         $this->assertTrue(Hash::check('Lab2026pass', $this->lab->password));
+    }
+
+    public function test_changing_the_email_needs_the_current_password(): void
+    {
+        $save = fn (array $extra = []) => $this->actingAs($this->lab, 'dept')->postJson(route('department.profile.update'), [
+            'full_name' => $this->lab->full_name,
+            'email' => 'ana@example.com',
+        ] + $extra);
+
+        $save()->assertUnprocessable()->assertJsonValidationErrors(['current_password' => 'Enter your current password to change your email.']);
+        $save(['current_password' => 'wrong-pass1'])->assertUnprocessable()->assertJsonValidationErrors('current_password');
+        $this->assertNotSame('ana@example.com', $this->lab->fresh()->email);
+
+        $save(['current_password' => 'Lab2026pass'])->assertOk();
+        $this->assertSame('ana@example.com', $this->lab->fresh()->email);
     }
 
     public function test_save_password_changes_the_password_and_is_audited(): void

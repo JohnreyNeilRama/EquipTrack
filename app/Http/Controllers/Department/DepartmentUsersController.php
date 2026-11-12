@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
 use App\Models\UserAccount;
+use App\Services\AdminEmailChange;
 use App\Services\AuditLogger;
 use App\Services\FacultyApproval;
 use App\Services\UserAccountCreator;
@@ -96,7 +97,16 @@ class DepartmentUsersController extends Controller
         $request->merge(['department_id' => $departmentId]);
         $data = $request->validate(UserAccountEditor::rules($account), UserAccountEditor::messages());
 
+        // A verified owner's old address is told about an email change, with
+        // an undo link (AdminEmailChange); not an address never confirmed.
+        $oldEmail = (string) $account->email;
+        $ownerAddress = $account->hasVerifiedEmail();
+
         $changed = UserAccountEditor::update($account, $data, AuditLogger::actorFor('dept', auth('dept')->user()), $request);
+
+        if ($ownerAddress) {
+            AdminEmailChange::notifyOldAddress($account, $oldEmail, $data['email'], auth('dept')->user(), $request);
+        }
 
         return response()->json([
             'success' => true,

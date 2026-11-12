@@ -561,7 +561,8 @@ class AdminAuditTrailTest extends TestCase
         $this->assertDatabaseHas('audit_trail', [
             'dept_acc_id' => $lab->dept_acc_id,
             'action' => 'Updated profile',
-            'details' => 'Changed: Email',
+            // The old and new addresses are kept, so staff know what to restore.
+            'details' => 'Changed: Email · Email: lab@example.com → ana@example.com',
         ]);
         $this->assertDatabaseHas('audit_trail', ['dept_acc_id' => $lab->dept_acc_id, 'action' => 'Changed password']);
 
