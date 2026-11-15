@@ -88,7 +88,8 @@ class AdminAccountManagementTest extends TestCase
         $this->assertTrue($maria->fresh()->isSetUp());
 
         $this->post('/login', ['email' => 'maria@example.com', 'password' => 'Admin2026'])
-            ->assertRedirect(route('admin.dashboard'));
+            ->assertRedirect(route('login.code'));
+        $this->enterAdminSignInCode($maria)->assertRedirect(route('admin.dashboard'));
 
         $this->assertNotNull(Admin::where('email', 'maria@example.com')->value('last_online'));
     }

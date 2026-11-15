@@ -8,6 +8,10 @@ Hi {!! $name !!},
 {!! $paragraph !!}
 
 @endforeach
+@if (!empty($code))
+{!! $code !!}
+
+@endif
 @if (!empty($buttonUrl))
 {!! $buttonLabel !!}:
 {!! $buttonUrl !!}

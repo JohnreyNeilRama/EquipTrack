@@ -1,10 +1,11 @@
-{{-- Account emails for Students and Faculty (HTML): verify your email, invite
-     to set a password, Faculty approval decision. Same look as the password
+{{-- Account emails (HTML): verify your email, invite to set a password,
+     Faculty approval decision, the Admin sign-in code. Same look as the password
      reset email: tables and inline styles, because email apps ignore <style>
      blocks. Colors follow EquipTrack's theme: sidebar #2A3F63, primary #385585.
 
      Variables: $title, $preview, $heading, $name, $paragraphs (list of plain
-     strings), optional $buttonLabel + $buttonUrl, optional $note (shaded box),
+     strings), optional $code (one-time code, shown large), optional $buttonLabel +
+     $buttonUrl, optional $note (shaded box),
      optional $footnote (small grey line). --}}
 <!DOCTYPE html>
 <html lang="en">
@@ -35,6 +36,15 @@
                             @foreach ($paragraphs as $paragraph)
                                 <p style="margin:0 0 {{ $loop->last ? '24' : '14' }}px; font-size:15px; line-height:24px;">{{ $paragraph }}</p>
                             @endforeach
+
+                            @if (!empty($code))
+                                {{-- One-time code (Admin sign-in): large, spaced, easy to copy --}}
+                                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 24px;">
+                                    <tr>
+                                        <td align="center" style="padding:14px 28px; border:1px solid #CBD5E1; border-radius:10px; background-color:#F8FAFC; font-family:'Courier New', Courier, monospace; font-size:30px; line-height:36px; font-weight:bold; letter-spacing:8px; color:#2A3F63;">{{ $code }}</td>
+                                    </tr>
+                                </table>
+                            @endif
 
                             @if (!empty($buttonUrl))
                                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 24px;">

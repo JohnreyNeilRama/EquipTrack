@@ -49,6 +49,13 @@ Route::get('/avatar', AvatarController::class)->middleware('throttle:600,1')->na
 Route::view('/', 'landing')->name('landing');
 Route::get('/login', [LoginController::class, 'show'])->name('login');
 Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:6,1');
+// Admin sign-in code (two-step sign-in, App\Support\AdminTwoFactor). Own
+// per-visitor limits (the third value), so typing the password and then the
+// code doesn't use up the login form's 6 tries a minute.
+Route::get('/login/code', [LoginController::class, 'codeForm'])->name('login.code');
+Route::post('/login/code', [LoginController::class, 'verifyCode'])->middleware('throttle:10,1,login-code')->name('login.code.verify');
+Route::post('/login/code/resend', [LoginController::class, 'resendCode'])->middleware('throttle:3,1,login-code-resend')->name('login.code.resend');
+Route::post('/login/code/cancel', [LoginController::class, 'cancelCode'])->name('login.code.cancel');
 Route::get('/register', [RegisteredUserController::class, 'show'])->name('register');
 Route::post('/register', [RegisteredUserController::class, 'store'])->middleware('throttle:10,1');
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');

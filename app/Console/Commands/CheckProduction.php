@@ -73,6 +73,13 @@ class CheckProduction extends Command
             required: false,
         );
 
+        $this->check(
+            'Admins sign in with an emailed code',
+            (bool) config('equiptrack.admin_two_factor'),
+            'recommended: ADMIN_TWO_FACTOR=true (off only while email is broken)',
+            required: false,
+        );
+
         $mailHost = strtolower((string) config('mail.mailers.smtp.host'));
         $from = strtolower((string) config('mail.from.address'));
         $this->check(

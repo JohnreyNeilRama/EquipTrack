@@ -13,6 +13,7 @@ use App\Models\UserAccount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 /**
@@ -115,7 +116,10 @@ class AdminAuditTrailTest extends TestCase
 
     public function test_admin_login_is_recorded_once_and_shown_on_the_page(): void
     {
-        $this->post('/login', ['email' => 'admin', 'password' => 'password'])->assertRedirect();
+        Notification::fake();
+        $this->post('/login', ['email' => 'admin', 'password' => 'password'])->assertRedirect(route('login.code'));
+        $this->assertSame(0, AuditTrail::where('action', 'Login')->count(), 'Not signed in before the code.');
+        $this->enterAdminSignInCode($this->admin)->assertRedirect(route('admin.dashboard'));
 
         $this->assertDatabaseHas('audit_trail', [
             'admin_id' => $this->admin->admin_id,
@@ -129,7 +133,7 @@ class AdminAuditTrailTest extends TestCase
         $this->assertSame('Administrator', $login['role']);
         $this->assertSame('Authentication', $login['module']);
         $this->assertSame('Administrator account', $login['entity']);
-        $this->assertSame('Signed in as Administrator', $login['note']);
+        $this->assertSame('Signed in as Administrator with an emailed code', $login['note']);
         $this->assertSame('127.0.0.1', $login['ip']);
         $this->assertNotSame('—', $login['date']);
     }

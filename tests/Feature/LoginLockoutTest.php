@@ -8,6 +8,7 @@ use App\Support\LoginLockout;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
@@ -126,7 +127,8 @@ class LoginLockoutTest extends TestCase
 
     public function test_admin_sign_in_clears_both_username_and_email_counts(): void
     {
-        Admin::create([
+        Notification::fake();
+        $admin = Admin::create([
             'name' => 'System Admin',
             'username' => 'admin',
             'email' => 'admin@example.com',
@@ -135,12 +137,14 @@ class LoginLockoutTest extends TestCase
         $this->failTimes('admin', LoginLockout::MAX_FAILURES - 1);
         $this->failTimes('admin@example.com', LoginLockout::MAX_FAILURES - 1);
 
-        $this->attempt('admin@example.com', 'Secret123')->assertRedirect(route('admin.dashboard'));
+        // Cleared once the sign-in is complete (password and emailed code).
+        $this->attempt('admin@example.com', 'Secret123')->assertRedirect(route('login.code'));
+        $this->enterAdminSignInCode($admin)->assertRedirect(route('admin.dashboard'));
         auth('admin')->logout();
 
         // Both counters started again: 9 more failures on the username still don't lock it.
         $this->failTimes('admin', LoginLockout::MAX_FAILURES - 1);
-        $this->attempt('admin', 'Secret123')->assertRedirect(route('admin.dashboard'));
+        $this->attempt('admin', 'Secret123')->assertRedirect(route('login.code'));
     }
 
     public function test_a_deactivated_account_with_the_right_password_is_not_counted_as_a_failure(): void

@@ -2,10 +2,14 @@
 
 namespace Tests;
 
+use App\Models\Admin;
 use App\Models\BorrowTransaction;
+use App\Notifications\AdminSignInCodeNotification;
 use Illuminate\Contracts\Auth\Authenticatable as UserContract;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Testing\TestResponse;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -47,6 +51,23 @@ abstract class TestCase extends BaseTestCase
         }
 
         return parent::actingAs($user, $guard);
+    }
+
+    /**
+     * Second step of an Admin sign-in: enters the code from the latest
+     * sign-in email (App\Support\AdminTwoFactor). Notifications must be faked
+     * before the password step.
+     */
+    protected function enterAdminSignInCode(Admin $admin): TestResponse
+    {
+        $code = null;
+        Notification::assertSentTo($admin, AdminSignInCodeNotification::class, function (AdminSignInCodeNotification $n) use (&$code) {
+            $code = $n->code;   // the last one sent wins
+
+            return true;
+        });
+
+        return $this->post(route('login.code.verify'), ['code' => $code]);
     }
 
     /**

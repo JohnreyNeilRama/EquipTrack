@@ -127,6 +127,7 @@ The suite covers every role's pages and rules and runs against an in-memory SQLi
 
 - Every response carries protective headers ([SecurityHeaders](app/Http/Middleware/SecurityHeaders.php)); script files only load from EquipTrack itself.
 - Lab Personnel only see and change their own department's records. Which department a record belongs to is defined once ([BelongsToDepartment](app/Models/Concerns/BelongsToDepartment.php)); Department pages start their queries from [DepartmentScope](app/Support/DepartmentScope.php), and a test sweeps every Department page and action to check it.
+- Admins sign in in two steps: password, then a 6-digit code emailed to them (valid 10 minutes, 5 tries). Turn it off with `ADMIN_TWO_FACTOR=false` only if email stops working.
 - Sign-in locks after repeated failures, and sensitive Admin actions ask for the password again.
 - Changing an account's email needs the current password and sends an undo link to the old address.
 - Every important action is written to the audit trail through one class, [AuditLogger](app/Services/AuditLogger.php). Use it for any new action rather than writing audit rows directly.

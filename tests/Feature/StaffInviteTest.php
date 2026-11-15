@@ -128,7 +128,8 @@ class StaffInviteTest extends TestCase
         $this->assertTrue($maria->fresh()->isSetUp());
 
         // She can also sign in with her username (the same as her email).
-        $this->post('/login', ['email' => 'maria@example.com', 'password' => 'Admin2026'])->assertRedirect(route('admin.dashboard'));
+        $this->post('/login', ['email' => 'maria@example.com', 'password' => 'Admin2026'])->assertRedirect(route('login.code'));
+        $this->enterAdminSignInCode($maria)->assertRedirect(route('admin.dashboard'));
     }
 
     public function test_fixing_a_pending_admins_mistyped_email_sends_no_takeover_alert(): void
