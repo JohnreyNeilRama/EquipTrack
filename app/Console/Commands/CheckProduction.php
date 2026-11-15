@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use Dotenv\Dotenv;
 use Illuminate\Console\Command;
+use Illuminate\Console\Scheduling\CallbackEvent;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -114,6 +116,19 @@ class CheckProduction extends Command
                 "make {$label} writable by the web server",
             );
         }
+
+        // Schedule::command() starts each task as a separate program, which
+        // needs proc_open; where the host switches it off, those tasks fail
+        // every time (routes/console.php runs them inside PHP instead).
+        $needPrograms = collect($this->laravel->make(Schedule::class)->events())
+            ->reject(fn ($event) => $event instanceof CallbackEvent)
+            ->map(fn ($event) => $event->description ?: preg_replace('/^.*artisan"?\s+/', '', (string) $event->command))
+            ->values();
+        $this->check(
+            'Scheduled tasks can run on this server',
+            $needPrograms->isEmpty() || BackupEquipTrack::canRunPrograms(),
+            'PHP may not start programs (proc_open is off), so these would fail: ' . $needPrograms->implode(', '),
+        );
 
         $this->check(
             'Config is cached',

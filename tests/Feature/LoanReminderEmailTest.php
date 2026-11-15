@@ -308,7 +308,7 @@ class LoanReminderEmailTest extends TestCase
     public function test_reminders_are_checked_every_15_minutes_in_philippine_time(): void
     {
         $event = collect(app(Schedule::class)->events())
-            ->first(fn ($e) => str_contains((string) $e->command, 'equiptrack:send-loan-reminders'));
+            ->first(fn ($e) => $e->description === 'equiptrack:send-loan-reminders');
 
         $this->assertNotNull($event);
         $this->assertSame('*/15 * * * *', $event->expression);
