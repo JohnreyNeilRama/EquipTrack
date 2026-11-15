@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToDepartment;
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -15,7 +16,14 @@ use Illuminate\Notifications\Notifiable;
  */
 class UserAccount extends Authenticatable implements MustVerifyEmail
 {
+    use BelongsToDepartment;
     use Notifiable;
+
+    /** Which department owns the record: see BelongsToDepartment. */
+    protected static function departmentPath(): string
+    {
+        return '';
+    }
 
     public const STATUS_ACTIVE = 'Active';
 

@@ -3,7 +3,7 @@
 @section('title', 'EquipTrack - Undo Email Change')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('ccs/login.css') }}?v={{ filemtime(public_path('ccs/login.css')) }}">
+<link rel="stylesheet" href="{{ asset('css/login.css') }}?v={{ filemtime(public_path('css/login.css')) }}">
 @endpush
 
 @section('content')

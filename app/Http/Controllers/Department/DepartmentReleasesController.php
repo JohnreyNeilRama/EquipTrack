@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditTrail;
+use App\Support\DepartmentScope;
+use App\Services\AuditLogger;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
 use App\Support\LoanTime;
@@ -153,12 +154,11 @@ class DepartmentReleasesController extends Controller
         $dept = auth('dept')->user();
 
         $result = DB::transaction(function () use ($request, $transactionId, $apply, $dept) {
-            $transaction = BorrowTransaction::where('transaction_id', $transactionId)
-                ->whereHas('request.equipment', fn ($query) => $query->where('department_id', $dept->department_id))
+            $transaction = DepartmentScope::loans()->whereKey($transactionId)
                 ->lockForUpdate()
                 ->first();
 
-            if (!$dept->department_id || !$transaction) {
+            if (!$transaction) {
                 return ['code' => 404, 'message' => 'Loan not found for your department.'];
             }
 
@@ -177,13 +177,7 @@ class DepartmentReleasesController extends Controller
                 return ['code' => 400, 'message' => $outcome['error']];
             }
 
-            AuditTrail::create([
-                'dept_acc_id' => $dept->dept_acc_id,
-                'action' => mb_substr($outcome['action'], 0, 100),
-                'ip_address' => $request->ip() ?? '127.0.0.1',
-                'affected_entity' => 'borrow_request:' . $borrow->request_id,
-                'details' => $outcome['details'] !== null ? mb_substr($outcome['details'], 0, 255) : null,
-            ]);
+            AuditLogger::log($outcome['action'], 'borrow_request:' . $borrow->request_id, $outcome['details'], AuditLogger::actorFor('dept', $dept), $request);
 
             return ['code' => 200, 'message' => $outcome['message']];
         });
@@ -205,7 +199,7 @@ class DepartmentReleasesController extends Controller
      */
     private function fetchReleases(): array
     {
-        $departmentId = auth('dept')->user()->department_id;
+        $departmentId = DepartmentScope::id();
 
         if (!$departmentId) {
             return [];
@@ -226,7 +220,7 @@ class DepartmentReleasesController extends Controller
         ])
             ->whereHas('request', fn ($query) => $query
                 ->where('overall_status', 'Approved')
-                ->whereHas('equipment', fn ($equipment) => $equipment->where('department_id', $departmentId)))
+                ->forDepartment($departmentId))
             ->where(fn ($query) => $query
                 ->where('status', BorrowTransaction::STATUS_READY)
                 ->orWhere(fn ($q) => $q->whereNotNull('released_by')->where('released_at', '>=', $since))

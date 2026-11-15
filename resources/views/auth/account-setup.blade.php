@@ -3,7 +3,7 @@
 @section('title', 'EquipTrack - Set Your Password')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('ccs/login.css') }}?v={{ filemtime(public_path('ccs/login.css')) }}">
+<link rel="stylesheet" href="{{ asset('css/login.css') }}?v={{ filemtime(public_path('css/login.css')) }}">
 @endpush
 
 {{-- Set Your Password: the page the invite email links to (Auth\AccountSetupController).

@@ -5,7 +5,7 @@
 @push('css')
 @include('partials.penalties.styles')
 <style>
-    /* Search + filters card: ccs/filter-card.css; filter widths: partials/penalties/styles */
+    /* Search + filters card: css/filter-card.css; filter widths: partials/penalties/styles */
 
     /* Fixed column widths (same approach as the Release Equipment and Return
        Confirmation tables): the columns keep the same size whatever the rows

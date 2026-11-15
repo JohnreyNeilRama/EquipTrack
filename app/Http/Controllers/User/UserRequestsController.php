@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditTrail;
+use App\Services\AuditLogger;
 use App\Models\BorrowRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -59,16 +59,13 @@ class UserRequestsController extends Controller
                 'cancelled_at' => now(),
             ]);
 
-            AuditTrail::create([
-                'user_id' => $userId,
-                'action' => mb_substr(
-                    'Cancelled borrow request #' . $borrow->request_id . ' for ' . ($borrow->equipment?->name ?? 'equipment'),
-                    0,
-                    100
-                ),
-                'ip_address' => $request->ip() ?? '127.0.0.1',
-                'affected_entity' => 'borrow_request:' . $borrow->request_id,
-            ]);
+            AuditLogger::log(
+                'Cancelled borrow request #' . $borrow->request_id . ' for ' . ($borrow->equipment?->name ?? 'equipment'),
+                'borrow_request:' . $borrow->request_id,
+                null,
+                ['user_id' => $userId],
+                $request,
+            );
 
             return ['code' => 200];
         });

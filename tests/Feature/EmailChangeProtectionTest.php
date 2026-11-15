@@ -2,8 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\DepartmentAccount;
-use App\Models\UserAccount;
 use App\Notifications\AdminEmailChangedNotification;
 use App\Notifications\VerifyEmailNotification;
 use App\Services\AdminEmailChange;

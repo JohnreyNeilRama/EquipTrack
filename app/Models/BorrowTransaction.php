@@ -2,12 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToDepartment;
 use App\Support\LoanTime;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 class BorrowTransaction extends Model
 {
+    use BelongsToDepartment;
+
+    /** Which department owns the record: see BelongsToDepartment. */
+    protected static function departmentPath(): string
+    {
+        return 'request.equipment';
+    }
+
     /** Approved; the unit is held for the borrower but not handed over yet. */
     public const STATUS_READY = 'Ready for Pickup';
 

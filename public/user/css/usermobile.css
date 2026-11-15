@@ -1,7 +1,7 @@
 /* ==========================================================================
    EquipTrack — Student / Faculty pages on phones (User account only)
    --------------------------------------------------------------------------
-   Loaded last by layouts/user.blade.php, after ccs/mobile-shell.css (the
+   Loaded last by layouts/user.blade.php, after css/mobile-shell.css (the
    slide-in menu and compact top bar shared with the Department account).
    Desktop and tablet (above 768px) are unchanged: every rule except the
    hidden-by-default page name sits inside the phone media query.

@@ -404,9 +404,16 @@ class AdminAuditController extends Controller
             return [$log->user->fullName() ?: $log->user->email, $log->user->role ?: 'User'];
         }
 
+        $label = AuditCatalog::classify((string) $log->action)['label'];
+
         // A sign-in that didn't succeed: nobody was signed in.
-        if (in_array(AuditCatalog::classify((string) $log->action)['label'], AuditCatalog::SIGN_IN_PROBLEMS, true)) {
+        if (in_array($label, AuditCatalog::SIGN_IN_PROBLEMS, true)) {
             return ['Not signed in', 'Visitor'];
+        }
+
+        // Scheduled jobs (e.g. the nightly cleanup) act as EquipTrack itself.
+        if (in_array($label, AuditCatalog::SYSTEM_ACTIONS, true)) {
+            return ['EquipTrack', 'System'];
         }
 
         // Every actor column is empty: the account was deleted after acting.

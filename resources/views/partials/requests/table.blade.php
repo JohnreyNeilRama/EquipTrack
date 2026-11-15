@@ -4,7 +4,7 @@
      name instead of in its own column (pair it with the script's option);
      $tableClass is a class hook for page styles. The search and filters
      (Status, and Student / Faculty Member role) sit in the shared filter card
-     (ccs/filter-card.css). --}}
+     (css/filter-card.css). --}}
         <div class="filter-card-container">
             <div class="search-box-right-icon">
                 <input type="text" id="searchRequests" placeholder="Search user or equipment" aria-label="Search requests">

@@ -3,8 +3,7 @@
 namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\PenaltyPageController;
-use App\Models\BorrowTransaction;
-use App\Models\Penalty;
+use App\Support\DepartmentScope;
 use App\Services\AuditLogger;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -18,12 +17,7 @@ class DepartmentPenaltiesController extends PenaltyPageController
 {
     protected function scope(): Builder
     {
-        $departmentId = (int) auth('dept')->user()->department_id;
-
-        // An account without a department has nothing in scope.
-        return $departmentId
-            ? Penalty::query()->forDepartment($departmentId)
-            : Penalty::query()->whereRaw('1 = 0');
+        return DepartmentScope::penalties();
     }
 
     protected function actor(): array
@@ -44,10 +38,6 @@ class DepartmentPenaltiesController extends PenaltyPageController
     /** Loans of equipment owned by this department; none without a department. */
     protected function loanScope(): Builder
     {
-        $departmentId = (int) auth('dept')->user()->department_id;
-
-        return $departmentId
-            ? BorrowTransaction::query()->whereHas('request.equipment', fn ($q) => $q->where('department_id', $departmentId))
-            : BorrowTransaction::query()->whereRaw('1 = 0');
+        return DepartmentScope::loans();
     }
 }

@@ -109,7 +109,7 @@
     {{-- Full-size proof image --}}
     <div class="pp-lightbox" id="lightbox" hidden>
         <button type="button" class="pp-lightbox-close" id="closeLightbox" aria-label="Close">&times;</button>
-        <img src="" alt="" id="lightboxImg">
+        <img src="" alt="Full-size proof photo" id="lightboxImg">
     </div>
 
     <div class="pp-toast" id="ppToast" role="status" hidden></div>

@@ -6,7 +6,7 @@
 @include('partials.requests.styles')
 <link rel="stylesheet" href="{{ asset('departments/css/requests.css') }}">
 {{-- Damage & Penalty Record view (same design as the Return Confirmation form) --}}
-<link rel="stylesheet" href="{{ asset('ccs/penalty-record.css') }}?v={{ filemtime(public_path('ccs/penalty-record.css')) }}">
+<link rel="stylesheet" href="{{ asset('css/penalty-record.css') }}?v={{ filemtime(public_path('css/penalty-record.css')) }}">
 <style>
     .penalties-header {
         display: flex;
@@ -43,7 +43,7 @@
     .summary-card-icon.icon-orange { background-color: #fef3c7; color: #d97706; }
     .dark-theme .summary-card-icon.icon-orange { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; }
 
-    /* Filters (the card itself is ccs/filter-card.css): each box is as wide as
+    /* Filters (the card itself is css/filter-card.css): each box is as wide as
        its longest option needs ("Proof under review", "Late Return", a
        department name), so the arrow never sits on the text; anything longer
        ends in "…" before the arrow. Phones stack everything full width. */
@@ -173,7 +173,7 @@
        Edit / Settle / Waive / Add form. Same modal shell as the rest of the
        admin (modal-overlay, modal-inner-card); inside it: a header, a
        scrolling body and a footer that stays in view. The record view itself
-       is styled by public/ccs/penalty-record.css.
+       is styled by public/css/penalty-record.css.
        ------------------------------------------------------------------ */
     .eq-modal-card.penalty-form-card { max-width: 520px !important; width: calc(100% - 32px) !important; }
 

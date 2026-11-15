@@ -1,6 +1,6 @@
 // User and Department pages on phones: opens and closes the slide-in menu
 // (the sidebar). Above 768px the menu button is hidden and nothing changes.
-// Styles: ccs/mobile-shell.css.
+// Styles: css/mobile-shell.css.
 (function () {
     const body = document.body;
     const openBtn = document.getElementById('mobileMenuBtn');

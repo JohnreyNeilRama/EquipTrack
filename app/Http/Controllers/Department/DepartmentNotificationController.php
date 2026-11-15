@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\StaffNotificationController;
 use App\Services\ReviewerNotificationService;
+use App\Support\DepartmentScope;
 
 /** Lab Personnel (department) notification bell: Reservation Status Alerts, new requests and returns to confirm. */
 class DepartmentNotificationController extends StaffNotificationController
@@ -15,7 +16,7 @@ class DepartmentNotificationController extends StaffNotificationController
         return [
             ReviewerNotificationService::DEPT,
             (int) $dept->dept_acc_id,
-            $dept->department_id ? (int) $dept->department_id : null,
+            DepartmentScope::id(),
         ];
     }
 }

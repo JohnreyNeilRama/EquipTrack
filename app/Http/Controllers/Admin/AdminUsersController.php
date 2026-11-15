@@ -686,18 +686,16 @@ class AdminUsersController extends Controller
             return null;
         }
 
-        $ownEquipment = fn ($q) => $q->where('department_id', $departmentId);
-
-        $pending = BorrowRequest::whereHas('equipment', $ownEquipment)
+        $pending = BorrowRequest::forDepartment($departmentId)
             ->where('overall_status', 'Pending')
             ->count();
 
-        $open = BorrowTransaction::whereIn('status', BorrowTransaction::OPEN)
-            ->whereHas('request.equipment', $ownEquipment)
+        $open = BorrowTransaction::forDepartment($departmentId)
+            ->whereIn('status', BorrowTransaction::OPEN)
             ->count();
 
         // Self-registered Faculty that only this account can approve.
-        $faculty = UserAccount::where('department_id', $departmentId)
+        $faculty = UserAccount::forDepartment($departmentId)
             ->where('status', UserAccount::STATUS_PENDING_APPROVAL)
             ->count();
 

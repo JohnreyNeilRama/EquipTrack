@@ -3,8 +3,8 @@
 @section('title', 'EquipTrack - Register')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('ccs/login.css') }}?v={{ filemtime(public_path('ccs/login.css')) }}">
-<link rel="stylesheet" href="{{ asset('ccs/register.css') }}?v={{ filemtime(public_path('ccs/register.css')) }}">
+<link rel="stylesheet" href="{{ asset('css/login.css') }}?v={{ filemtime(public_path('css/login.css')) }}">
+<link rel="stylesheet" href="{{ asset('css/register.css') }}?v={{ filemtime(public_path('css/register.css')) }}">
 @endpush
 
 @section('content')

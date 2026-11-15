@@ -26,6 +26,30 @@ class ReportPdf
     private const FOOTER_SIZE_PT = 6.0;
 
     /**
+     * Keeps a report small enough for DomPDF, which builds the whole document
+     * in memory: only the first $limit rows are listed, with a note saying
+     * so. The total and the status counts at the top still cover every row.
+     * $limit <= 0 lists everything.
+     */
+    public static function capRows(array $report, int $limit): array
+    {
+        if ($limit <= 0 || count($report['rows']) <= $limit) {
+            return $report;
+        }
+
+        $statusColumn = collect($report['columns'])->firstWhere('kind', 'status');
+        if ($statusColumn) {
+            $report['breakdown'] = collect($report['rows'])->groupBy($statusColumn['key'])->map->count()->sortDesc()->all();
+        }
+
+        $report['rows'] = array_slice($report['rows'], 0, $limit);
+        $report['note'] = 'Only the first ' . number_format($limit) . ' of ' . number_format((int) $report['total'])
+            . ' records are listed. Narrow the dates or filters, or use Export CSV for every record.';
+
+        return $report;
+    }
+
+    /**
      * @param  array  $report  title, columns, rows, total and optional note
      *                         (the shape admin/reports-print.blade.php reads);
      *                         a column may set pdfWidth (a % of the table)

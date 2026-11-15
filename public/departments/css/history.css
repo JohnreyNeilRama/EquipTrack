@@ -74,7 +74,7 @@
     color: var(--danger-color, #ef4444);
 }
 
-/* Page title + subtitle: ccs/page-header.css */
+/* Page title + subtitle: css/page-header.css */
 
 /* Quick Stats Summary Section */
 .history-summary-section {
@@ -166,7 +166,7 @@
     color: #64748b;
 }
 
-/* Search + filters card: ccs/filter-card.css */
+/* Search + filters card: css/filter-card.css */
 
 /* History Data Table Styling Matching Reference Layout */
 .history-table-container {

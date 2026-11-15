@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditTrail;
+use App\Support\DepartmentScope;
+use App\Services\AuditLogger;
 use App\Models\BorrowRequest;
 use App\Services\RequestTableRows;
 use Illuminate\Database\Eloquent\Builder;
@@ -67,9 +68,8 @@ class DepartmentRequestsController extends Controller
 
         $dept = auth('dept')->user();
 
-        $borrow = BorrowRequest::with(['equipment'])
-            ->where('request_id', $data['request_id'])
-            ->whereHas('equipment', fn ($query) => $query->where('department_id', $dept->department_id))
+        $borrow = DepartmentScope::requests()->with(['equipment'])
+            ->whereKey($data['request_id'])
             ->first();
 
         if (!$borrow || !$borrow->equipment) {
@@ -165,14 +165,8 @@ class DepartmentRequestsController extends Controller
                     ? 'Expensive equipment: awaiting admin approval.'
                     : null);
 
-            AuditTrail::create([
-                'dept_acc_id' => $dept->dept_acc_id,
-                'action' => mb_substr($action, 0, 100),
-                'ip_address' => $request->ip() ?? '127.0.0.1',
-                'affected_entity' => 'borrow_request:' . $locked->request_id,
-                // The reason is kept whole here; `action` is capped at 100 characters.
-                'details' => $details,
-            ]);
+            // The reason is kept whole in the details; `action` is capped at 100 characters.
+            AuditLogger::log($action, 'borrow_request:' . $locked->request_id, $details, AuditLogger::actorFor('dept', $dept), $request);
 
             return ['code' => 200, 'overall' => $overall];
         });
@@ -206,13 +200,6 @@ class DepartmentRequestsController extends Controller
      */
     private function scope(): Builder
     {
-        $departmentId = auth('dept')->user()->department_id;
-
-        // An account without a department has no requests in scope.
-        if (!$departmentId) {
-            return BorrowRequest::query()->whereRaw('1 = 0');
-        }
-
-        return BorrowRequest::query()->whereHas('equipment', fn ($query) => $query->where('department_id', $departmentId));
+        return DepartmentScope::requests();
     }
 }

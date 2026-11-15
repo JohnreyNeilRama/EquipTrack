@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToDepartment;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -10,6 +11,14 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Penalty extends Model
 {
+    use BelongsToDepartment;
+
+    /** Which department owns the record: see BelongsToDepartment. */
+    protected static function departmentPath(): string
+    {
+        return 'transaction.request.equipment';
+    }
+
     public const TYPE_LATE = 'Late Return';
 
     public const TYPE_DAMAGED = 'Damaged';
@@ -96,12 +105,6 @@ class Penalty extends Model
     public function isPending(): bool
     {
         return $this->status === self::STATUS_PENDING;
-    }
-
-    /** Penalties on equipment owned by the given department. */
-    public function scopeForDepartment($query, int $departmentId)
-    {
-        return $query->whereHas('transaction.request.equipment', fn ($q) => $q->where('department_id', $departmentId));
     }
 
     /**

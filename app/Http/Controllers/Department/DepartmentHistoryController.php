@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
+use App\Support\DepartmentScope;
 use App\Models\BorrowTransaction;
 use App\Models\EquipmentCategory;
 use App\Support\LoanTime;
@@ -60,7 +61,7 @@ class DepartmentHistoryController extends Controller
      */
     private function historyPage(Request $request): array
     {
-        $departmentId = auth('dept')->user()->department_id;
+        $departmentId = DepartmentScope::id();
         $empty = [
             'history' => [],
             'pagination' => ['page' => 1, 'perPage' => self::PER_PAGE, 'total' => 0, 'lastPage' => 1],
@@ -73,7 +74,7 @@ class DepartmentHistoryController extends Controller
 
         $scope = BorrowTransaction::query()
             ->where('status', 'Returned')
-            ->whereHas('request.equipment', fn ($query) => $query->where('department_id', $departmentId));
+            ->forDepartment($departmentId);
 
         // Status of every record, from the few columns it depends on.
         $statuses = (clone $scope)

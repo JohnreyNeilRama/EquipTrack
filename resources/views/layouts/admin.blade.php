@@ -33,23 +33,23 @@
     <title>@yield('title', 'EquipTrack - Admin')</title>
     <link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}?v={{ filemtime(public_path('images/favicon.png')) }}">
     <link rel="apple-touch-icon" href="{{ asset('images/favicon.png') }}?v={{ filemtime(public_path('images/favicon.png')) }}">
-    <link rel="stylesheet" href="{{ asset('ccs/global.css') }}?v={{ filemtime(public_path('ccs/global.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/global.css') }}?v={{ filemtime(public_path('css/global.css')) }}">
     <link rel="stylesheet" href="{{ asset('user/css/usernotifications.css') }}">
     @stack('css')
     {{-- Page title + subtitle, the same position and sizes as the Department pages --}}
-    <link rel="stylesheet" href="{{ asset('ccs/page-header.css') }}?v={{ filemtime(public_path('ccs/page-header.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/page-header.css') }}?v={{ filemtime(public_path('css/page-header.css')) }}">
     {{-- Search + filters card above every table (same as the Department pages) --}}
-    <link rel="stylesheet" href="{{ asset('ccs/filter-card.css') }}?v={{ filemtime(public_path('ccs/filter-card.css')) }}">
-    <link rel="stylesheet" href="{{ asset('ccs/navbar.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/filter-card.css') }}?v={{ filemtime(public_path('css/filter-card.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/navbar.css') }}">
     {{-- Phones: slide-in menu, full-width pages and compact top bar (shared
          with the User and Department layouts), the staff pages' phone rules
          (tables as cards, search and filter cards; shared with Department),
          then the Admin pages' own phone fixes --}}
-    <link rel="stylesheet" href="{{ asset('ccs/mobile-shell.css') }}?v={{ filemtime(public_path('ccs/mobile-shell.css')) }}">
-    <link rel="stylesheet" href="{{ asset('ccs/mobile-staff.css') }}?v={{ filemtime(public_path('ccs/mobile-staff.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/mobile-shell.css') }}?v={{ filemtime(public_path('css/mobile-shell.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/mobile-staff.css') }}?v={{ filemtime(public_path('css/mobile-staff.css')) }}">
     <link rel="stylesheet" href="{{ asset('admin/css/adminmobile.css') }}?v={{ filemtime(public_path('admin/css/adminmobile.css')) }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('vendor/fontawesome/css/all.min.css') }}?v=6.4.0">
     <script>
         // Check for saved theme preference immediately to prevent flash of light theme
         (function() {
@@ -118,6 +118,7 @@
                 <div class="notif-wrapper" id="notifWrapper"
                      data-feed-url="{{ route('admin.notifications') }}"
                      data-read-url="{{ route('admin.notifications.read') }}"
+                     data-login-url="{{ route('login') }}"
                      data-csrf="{{ csrf_token() }}">
                     <div class="icon-btn notification" id="notifBtn" title="Notifications" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
                         <i class="fa-solid fa-bell"></i>
@@ -193,7 +194,7 @@
     @include('partials.confirm-dialog')
     @stack('scripts')
     {{-- Phones: labels each table cell with its column name, so tables can
-         show as cards (ccs/mobile-staff.css). Loaded after the page scripts;
+         show as cards (css/mobile-staff.css). Loaded after the page scripts;
          it also labels rows the page draws later. --}}
     <script src="{{ asset('js/table-cards.js') }}?v={{ filemtime(public_path('js/table-cards.js')) }}"></script>
 </body>

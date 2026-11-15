@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditTrail;
+use App\Services\AuditLogger;
 use App\Models\BorrowRequest;
 use App\Services\RequestTableRows;
 use Illuminate\Http\JsonResponse;
@@ -175,14 +175,8 @@ class AdminRequestsController extends Controller
                     ? 'Expensive equipment: awaiting department approval.'
                     : null);
 
-            AuditTrail::create([
-                'admin_id' => $admin->admin_id,
-                'action' => mb_substr($action, 0, 100),
-                'ip_address' => $request->ip() ?? '127.0.0.1',
-                'affected_entity' => 'borrow_request:' . $locked->request_id,
-                // The reason is kept whole here; `action` is capped at 100 characters.
-                'details' => $details,
-            ]);
+            // The reason is kept whole in the details; `action` is capped at 100 characters.
+            AuditLogger::log($action, 'borrow_request:' . $locked->request_id, $details, AuditLogger::actorFor('admin', $admin), $request);
 
             return ['code' => 200, 'overall' => $overall];
         });

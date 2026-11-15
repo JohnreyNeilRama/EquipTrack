@@ -134,7 +134,7 @@ class ReviewerNotificationService
                 return [];
             }
 
-            $query->whereHas('equipment', fn ($e) => $e->where('department_id', $departmentId));
+            $query->forDepartment($departmentId);
         }
 
         $notifications = [];
@@ -199,7 +199,7 @@ class ReviewerNotificationService
         }
 
         return UserAccount::with('facultyMember')
-            ->where('department_id', $departmentId)
+            ->forDepartment($departmentId)
             ->where('status', UserAccount::STATUS_PENDING_APPROVAL)
             ->get()
             ->map(fn (UserAccount $account) => [
@@ -230,7 +230,7 @@ class ReviewerNotificationService
                 ->where('equipment_classification', Equipment::CLASS_EXPENSIVE);
         } else {
             $query->where('dept_status', 'Pending')
-                ->whereHas('equipment', fn ($e) => $e->where('department_id', $departmentId));
+                ->forDepartment($departmentId);
         }
 
         return $query->get()->map(function (BorrowRequest $row) use ($type) {
@@ -270,7 +270,7 @@ class ReviewerNotificationService
         return BorrowTransaction::with(['request.equipment', 'request.user.student', 'request.user.facultyMember'])
             ->where('status', BorrowTransaction::STATUS_READY)
             ->whereDate('borrow_date', '<=', $today->toDateString())
-            ->whereHas('request.equipment', fn ($e) => $e->where('department_id', $departmentId))
+            ->forDepartment($departmentId)
             ->get()
             ->map(function (BorrowTransaction $transaction) use ($today, $tz) {
                 $user = $transaction->request?->user;
@@ -306,7 +306,7 @@ class ReviewerNotificationService
     {
         return BorrowTransaction::with(['request.equipment', 'request.user.student', 'request.user.facultyMember'])
             ->where('return_status', BorrowTransaction::RETURN_PENDING)
-            ->whereHas('request.equipment', fn ($e) => $e->where('department_id', $departmentId))
+            ->forDepartment($departmentId)
             ->get()
             ->map(function (BorrowTransaction $transaction) {
                 $user = $transaction->request?->user;
@@ -336,7 +336,7 @@ class ReviewerNotificationService
             ->where('status', PenaltySubmission::STATUS_REVIEW);
 
         if ($type === self::DEPT) {
-            $query->whereHas('penalty.transaction.request.equipment', fn ($e) => $e->where('department_id', $departmentId));
+            $query->forDepartment($departmentId);
         }
 
         return $query->get()->map(function (PenaltySubmission $submission) use ($type) {
@@ -374,7 +374,7 @@ class ReviewerNotificationService
             ->whereHas('request', fn ($q) => $q->where('overall_status', 'Approved'));
 
         if ($departmentId !== null) {
-            $query->whereHas('request.equipment', fn ($e) => $e->where('department_id', $departmentId));
+            $query->forDepartment($departmentId);
         }
 
         return $query->get()->filter(fn (BorrowTransaction $loan) => LoanReminders::isOut($loan))->values();

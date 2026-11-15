@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
 use App\Models\Department;
-use App\Models\DepartmentAccount;
 use App\Rules\UniqueAccountEmail;
 use App\Services\AccountPassword;
 use App\Services\AdminEmailChange;

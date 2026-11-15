@@ -6,9 +6,12 @@
 @php
     $columns = $report['columns'];
     $statusColumn = collect($columns)->firstWhere('kind', 'status');
-    $breakdown = $statusColumn
-        ? collect($report['rows'])->groupBy($statusColumn['key'])->map->count()->sortDesc()
-        : collect();
+    // A capped PDF passes the counts of every row (AdminReportsController::pdf).
+    $breakdown = isset($report['breakdown'])
+        ? collect($report['breakdown'])
+        : ($statusColumn
+            ? collect($report['rows'])->groupBy($statusColumn['key'])->map->count()->sortDesc()
+            : collect());
     // DomPDF won't split a word, so one long word (a name typed without
     // spaces) widens its column and squeezes the others. A soft hyphen every
     // 15 characters lets it wrap; it only shows where the line breaks.

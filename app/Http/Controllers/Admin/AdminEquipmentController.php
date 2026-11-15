@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditTrail;
+use App\Services\AuditLogger;
 use App\Models\Department;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
@@ -300,11 +300,6 @@ class AdminEquipmentController extends Controller
 
     private function audit(Request $request, string $action, string $entity): void
     {
-        AuditTrail::create([
-            'admin_id' => auth('admin')->user()->admin_id,
-            'action' => mb_substr($action, 0, 100),
-            'ip_address' => $request->ip() ?? '127.0.0.1',
-            'affected_entity' => mb_substr($entity, 0, 100),
-        ]);
+        AuditLogger::log($action, $entity, null, AuditLogger::actorFor('admin', auth('admin')->user()), $request);
     }
 }

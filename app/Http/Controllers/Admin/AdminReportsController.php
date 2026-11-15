@@ -178,6 +178,10 @@ class AdminReportsController extends Controller
     {
         $filename = 'equiptrack-' . $filters['type'] . '-report-' . now(self::REPORT_TIMEZONE)->format('Y-m-d') . '.pdf';
 
+        // DomPDF holds the whole document in memory, so a very large report
+        // (an all-time range) could exhaust it: list only the first rows.
+        $report = ReportPdf::capRows($report, (int) config('equiptrack.report_pdf_limit'));
+
         return ReportPdf::download($report, $filtersText, $generatedAt, $generatedBy, $filename);
     }
 

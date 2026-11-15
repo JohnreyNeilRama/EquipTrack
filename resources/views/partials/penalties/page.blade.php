@@ -51,7 +51,7 @@
             </div>
         </div>
 
-        {{-- Search + filters card (ccs/filter-card.css), the same on both pages.
+        {{-- Search + filters card (css/filter-card.css), the same on both pages.
              Admin filters by department; Lab Personnel by Student / Faculty Member. --}}
         <div class="filter-card-container penalties-filter-card">
                 <div class="search-box-right-icon">

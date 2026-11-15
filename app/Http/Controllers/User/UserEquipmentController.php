@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditTrail;
+use App\Services\AuditLogger;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
 use App\Models\Equipment;
@@ -234,14 +234,13 @@ class UserEquipmentController extends Controller
                 'due_date' => $to->format('Y-m-d H:i:s'),
             ]);
 
-            // Legacy code inserted audit rows with columns that don't exist on the
-            // live table (timestamp/missing ip_address); write to the real schema.
-            AuditTrail::create([
-                'user_id' => $userId,
-                'action' => 'Submitted borrow request #' . $borrow->request_id . ' for ' . $equipment->name,
-                'ip_address' => $request->ip() ?? '127.0.0.1',
-                'affected_entity' => 'borrow_request:' . $borrow->request_id,
-            ]);
+            AuditLogger::log(
+                'Submitted borrow request #' . $borrow->request_id . ' for ' . $equipment->name,
+                'borrow_request:' . $borrow->request_id,
+                null,
+                ['user_id' => $userId],
+                $request,
+            );
 
             return [
                 'code' => 200,

@@ -9,7 +9,7 @@
    button in the top bar, see js/mobile-nav.js), the page uses the full
    screen width, and the top bar is compact. The pages' own phone rules
    (tables, filters, text) are in user/css/usermobile.css (User),
-   ccs/mobile-staff.css (Department and Admin) and
+   css/mobile-staff.css (Department and Admin) and
    admin/css/adminmobile.css (Admin only).
    ========================================================================== */
 

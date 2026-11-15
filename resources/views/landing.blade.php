@@ -4,7 +4,7 @@
 
 @push('css')
 <meta name="description" content="EquipTrack is a centralized platform for requesting, approving, borrowing, and returning school equipment.">
-<link rel="stylesheet" href="{{ asset('ccs/landing.css') }}?v={{ filemtime(public_path('ccs/landing.css')) }}">
+<link rel="stylesheet" href="{{ asset('css/landing.css') }}?v={{ filemtime(public_path('css/landing.css')) }}">
 @endpush
 
 @section('content')

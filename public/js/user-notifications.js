@@ -1,4 +1,4 @@
-// Notification bell for Students / Faculty.
+// Notification bell for every signed-in page (User, Department and Admin layouts).
 // Loads the signed-in user's notifications from the server (request status and
 // overdue reminders), shows an unread badge, and records what has been read.
 // Runs after admin-shell.js; it only touches the #notifWrapper markup that the
@@ -17,7 +17,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const FEED_URL = wrapper.dataset.feedUrl;
     const READ_URL = wrapper.dataset.readUrl;
     const CSRF_TOKEN = wrapper.dataset.csrf;
+    const LOGIN_URL = wrapper.dataset.loginUrl || '/login';
     const REFRESH_MS = 30000;
+
+    let timer = null;
+    let signedOut = false;
+
+    // The session ended (signed out elsewhere, "Undo email change", session
+    // expired, account deactivated): stop checking and go to the login page
+    // instead of failing quietly every 30 seconds.
+    function leave(url) {
+        if (signedOut) return;
+        signedOut = true;
+        clearInterval(timer);
+        window.location.href = url || LOGIN_URL;
+    }
+
+    function isLoginPage(url) {
+        try {
+            return new URL(url, window.location.href).pathname === new URL(LOGIN_URL, window.location.href).pathname;
+        } catch (e) {
+            return false;
+        }
+    }
 
     const ICONS = {
         approved: 'fa-circle-check',
@@ -87,11 +109,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function refresh() {
+        if (signedOut) return Promise.resolve();
+
         return fetch(FEED_URL, {
             headers: { 'Accept': 'application/json' },
             credentials: 'same-origin'
         })
-            .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
+            .then(res => {
+                // 401 = no longer signed in, 419 = the page's session expired;
+                // a deactivated account is redirected to the login page.
+                if (res.status === 401 || res.status === 419) return leave();
+                if (res.redirected && isLoginPage(res.url)) return leave(res.url);
+                return res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status));
+            })
             .then(data => {
                 if (data && data.success) {
                     notifications = data.notifications || [];
@@ -174,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load, then stay current without a manual reload.
     refresh();
-    setInterval(() => { if (!document.hidden) refresh(); }, REFRESH_MS);
+    timer = setInterval(() => { if (!document.hidden) refresh(); }, REFRESH_MS);
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') refresh();
     });

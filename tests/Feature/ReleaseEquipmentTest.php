@@ -9,7 +9,6 @@ use App\Models\Department;
 use App\Models\DepartmentAccount;
 use App\Models\Equipment;
 use App\Models\UserAccount;
-use App\Notifications\LoanReminderNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;

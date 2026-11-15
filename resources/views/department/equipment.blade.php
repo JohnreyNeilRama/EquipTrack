@@ -805,7 +805,9 @@
                 submitBtn.textContent = "Add Item";
                 setClassificationLocked(false);
 
-                showPreview("https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60");
+                // Start with no photo (as on Admin Equipment); a stock picture here
+                // would be saved as the new item's photo.
+                resetUploader();
                 openFormModal();
             });
 

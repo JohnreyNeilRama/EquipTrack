@@ -2,10 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToDepartment;
 use Illuminate\Database\Eloquent\Model;
 
 class Equipment extends Model
 {
+    use BelongsToDepartment;
+
+    /** Which department owns the record: see BelongsToDepartment. */
+    protected static function departmentPath(): string
+    {
+        return '';
+    }
+
     /** Requests need both the admin's and the department's approval. */
     public const CLASS_EXPENSIVE = 'Expensive';
 

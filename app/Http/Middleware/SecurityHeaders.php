@@ -18,9 +18,12 @@ use Symfony\Component\HttpFoundation\Response;
  *   full addresses with IDs and filters.
  * - Permissions-Policy: camera, microphone, location and payment features
  *   are switched off (EquipTrack uses none of them).
- * - Content-Security-Policy (limited): forms only submit to EquipTrack, no
- *   <base> tag or plugin tricks. Scripts and styles are not restricted,
- *   because the pages use inline scripts and fonts from cdnjs/Google.
+ * - Content-Security-Policy: forms only submit to EquipTrack, no <base> tag
+ *   or plugin tricks, and script files only load from EquipTrack itself
+ *   (Chart.js and Font Awesome are hosted in public/vendor). Inline scripts
+ *   and onclick handlers are still allowed because the pages rely on them,
+ *   so this stops an injected <script src="other-site"> but not injected
+ *   inline code. Styles are not restricted (inline styles, Google Fonts).
  * - Strict-Transport-Security (live server over HTTPS only): browsers
  *   remember to use HTTPS for a year.
  *
@@ -33,7 +36,7 @@ class SecurityHeaders
         'X-Content-Type-Options' => 'nosniff',
         'Referrer-Policy' => 'strict-origin-when-cross-origin',
         'Permissions-Policy' => 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
-        'Content-Security-Policy' => "frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'",
+        'Content-Security-Policy' => "frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self' 'unsafe-inline'",
     ];
 
     public function handle(Request $request, Closure $next): Response

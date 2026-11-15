@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToDepartment;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -11,6 +12,14 @@ use Illuminate\Database\Eloquent\Model;
  */
 class PenaltySubmission extends Model
 {
+    use BelongsToDepartment;
+
+    /** Which department owns the record: see BelongsToDepartment. */
+    protected static function departmentPath(): string
+    {
+        return 'penalty.transaction.request.equipment';
+    }
+
     public const TYPE_PAYMENT = 'Payment';
 
     public const TYPE_REPLACEMENT = 'Replacement';

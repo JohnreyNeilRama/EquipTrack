@@ -27,8 +27,28 @@ class SecurityHeadersTest extends TestCase
         $this->assertStringContainsString("frame-ancestors 'self'", $csp);
         $this->assertStringContainsString("form-action 'self'", $csp);
         $this->assertStringContainsString("object-src 'none'", $csp);
-        // Scripts and styles are deliberately not restricted (inline scripts, CDN fonts).
-        $this->assertStringNotContainsString('script-src', $csp);
+        // Script files only from EquipTrack itself; inline scripts still allowed.
+        $this->assertStringContainsString("script-src 'self' 'unsafe-inline'", $csp);
+        // Styles are deliberately not restricted (inline styles, Google Fonts).
+        $this->assertStringNotContainsString('style-src', $csp);
+    }
+
+    public function test_pages_load_chart_js_and_font_awesome_from_equiptrack_not_a_cdn(): void
+    {
+        $this->assertFileExists(public_path('vendor/chartjs/chart.umd.js'));
+        $this->assertFileExists(public_path('vendor/fontawesome/css/all.min.css'));
+        $this->assertFileExists(public_path('vendor/fontawesome/webfonts/fa-solid-900.woff2'));
+
+        $this->get('/login')->assertOk()
+            ->assertSee('vendor/fontawesome/css/all.min.css')
+            ->assertDontSee('cdnjs.cloudflare.com')
+            ->assertDontSee('cdn.jsdelivr.net');
+
+        $this->actingAs($this->admin(), 'admin')->get(route('admin.reports'))->assertOk()
+            ->assertSee('vendor/chartjs/chart.umd.js')
+            ->assertSee('vendor/fontawesome/css/all.min.css')
+            ->assertDontSee('cdnjs.cloudflare.com')
+            ->assertDontSee('cdn.jsdelivr.net');
     }
 
     private function admin(): Admin

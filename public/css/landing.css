@@ -1,6 +1,6 @@
 /* ==========================================================================
    EquipTrack — Landing Page
-   Theme tokens are copied from public/ccs/global.css so this page matches
+   Theme tokens are copied from public/css/global.css so this page matches
    the rest of the system exactly. Kept self-contained (not @import'd) so
    dashboard-only rules in global.css (sidebar, tables, etc.) can't leak in.
    ========================================================================== */

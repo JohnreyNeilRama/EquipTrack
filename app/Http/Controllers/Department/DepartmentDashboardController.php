@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
+use App\Support\DepartmentScope;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
 use App\Models\Equipment;
@@ -48,14 +49,14 @@ class DepartmentDashboardController extends Controller
      */
     private function reviewableRequests(): array
     {
-        $departmentId = $this->departmentId();
+        $departmentId = DepartmentScope::id();
 
         if (!$departmentId) {
             return [];
         }
 
         return RequestTableRows::fetch(
-            BorrowRequest::query()->whereHas('equipment', fn ($query) => $query->where('department_id', $departmentId)),
+            BorrowRequest::query()->forDepartment($departmentId),
             fn () => true,
         );
     }
@@ -68,7 +69,7 @@ class DepartmentDashboardController extends Controller
 
     private function buildDashboard(): array
     {
-        $departmentId = $this->departmentId();
+        $departmentId = DepartmentScope::id();
 
         if (!$departmentId) {
             // Account without a department: valid, simply empty.
@@ -98,14 +99,6 @@ class DepartmentDashboardController extends Controller
         ];
     }
 
-    /** Department the signed-in department account belongs to. */
-    private function departmentId(): ?int
-    {
-        $departmentId = auth('dept')->user()?->department_id;
-
-        return $departmentId ? (int) $departmentId : null;
-    }
-
     /**
      * Quick Stats cards scoped to this department.
      */
@@ -125,13 +118,13 @@ class DepartmentDashboardController extends Controller
         }
 
         // Retired equipment is out of the inventory and not counted.
-        $equipmentQuery = Equipment::where('department_id', $departmentId)->inService();
+        $equipmentQuery = Equipment::forDepartment($departmentId)->inService();
 
         return [
             'totalEquipment' => (clone $equipmentQuery)->count(),
             'totalEquipmentUnits' => (int) (clone $equipmentQuery)->sum('total_qty'),
             'availableUnits' => (int) (clone $equipmentQuery)->sum('available_qty'),
-            'pendingRequests' => BorrowRequest::whereHas('equipment', fn ($query) => $query->where('department_id', $departmentId))
+            'pendingRequests' => BorrowRequest::forDepartment($departmentId)
                 ->where('dept_status', 'Pending')
                 ->where(function ($query) {
                     $query->whereNull('overall_status')
@@ -140,7 +133,7 @@ class DepartmentDashboardController extends Controller
                 ->count(),
             'borrowedEquipment' => $borrowedUnits,
             'overdueItems' => $overdueUnits,
-            'departmentUsers' => UserAccount::where('department_id', $departmentId)->count(),
+            'departmentUsers' => UserAccount::forDepartment($departmentId)->count(),
         ];
     }
 
@@ -152,7 +145,7 @@ class DepartmentDashboardController extends Controller
         return BorrowTransaction::with(['request.user.student', 'request.user.facultyMember', 'request.equipment'])
             ->onLoan()
             ->whereHas('request', fn ($query) => $query->where('overall_status', 'Approved'))
-            ->whereHas('request.equipment', fn ($query) => $query->where('department_id', $departmentId))
+            ->forDepartment($departmentId)
             ->orderBy('transaction_id')
             ->get();
     }

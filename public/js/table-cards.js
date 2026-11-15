@@ -1,5 +1,5 @@
 // Department and Admin pages on phones: tables show each row as a card (see
-// ccs/mobile-staff.css). This labels every cell with its column
+// css/mobile-staff.css). This labels every cell with its column
 // name (data-label) and marks the card's parts:
 //   cell-head    first column (ID or name): the card's title
 //   cell-status  the Status column: a badge next to the title

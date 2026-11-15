@@ -2,7 +2,7 @@
    EquipTrack — Department and Admin pages on phones (staff accounts)
    --------------------------------------------------------------------------
    Loaded by layouts/department.blade.php and layouts/admin.blade.php after
-   ccs/mobile-shell.css (the slide-in menu and compact top bar shared with
+   css/mobile-shell.css (the slide-in menu and compact top bar shared with
    the User account). Same standards as the User pages on phones
    (user/css/usermobile.css): tables as cards, aligned search and filter
    cards, one text scale. Admin-only phone fixes are in

@@ -21,7 +21,7 @@ body {
 }
 
 /* Page Header & Subtitle Styling: the same position as the shared page
-   heading (ccs/page-header.css): 10px below the navbar, 24px to the content */
+   heading (css/page-header.css): 10px below the navbar, 24px to the content */
 .audit-header-section {
     margin: 10px 0 24px 0;
 }

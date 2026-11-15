@@ -130,7 +130,7 @@
                 </div>
             </div>
 
-            <!-- Search + filters card (ccs/filter-card.css); shown once a department is picked -->
+            <!-- Search + filters card (css/filter-card.css); shown once a department is picked -->
             <div class="filter-card-container" id="monitoringControls" style="display: none;">
                     <!-- Search Bar -->
                     <div class="search-box-right-icon">
@@ -734,8 +734,9 @@
                 document.getElementById('modalBorrowerRole').textContent = req.role || '—';
                 document.getElementById('modalBorrowerId').textContent = req.id_number || 'N/A';
 
-                document.getElementById('modalEqImg').src = req.img || "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60";
-                
+                // No photo on file: the EquipTrack logo, as on the borrower's Equipment page.
+                document.getElementById('modalEqImg').src = req.img || "{{ asset('images/EquipTrack_logo.png') }}";
+
                 const statusBadge = document.getElementById('modalStatusBadge');
                 statusBadge.textContent = req.status;
                 statusBadge.className = 'status-badge status-' + req.status.toLowerCase().replace(/\s+/g, '-');

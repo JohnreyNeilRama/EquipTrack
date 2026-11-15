@@ -1,8 +1,8 @@
 /* ==========================================================================
    EquipTrack — Admin pages on phones (Admin account only)
    --------------------------------------------------------------------------
-   Loaded last by layouts/admin.blade.php, after ccs/mobile-shell.css (menu
-   and top bar) and ccs/mobile-staff.css (tables as cards, search and filter
+   Loaded last by layouts/admin.blade.php, after css/mobile-shell.css (menu
+   and top bar) and css/mobile-staff.css (tables as cards, search and filter
    cards, text sizes; shared with the Department account). Only the Admin
    pages' own layouts are adjusted here. Desktop and tablet (above 768px)
    are unchanged: everything is inside the phone media query.
@@ -240,7 +240,7 @@
     }
 
     /* Page titles on Reports and Audit Trail (other pages use the shared
-       page header, sized in ccs/mobile-staff.css) */
+       page header, sized in css/mobile-staff.css) */
     .audit-page-title,
     .reports-page .reports-page-title {
         font-size: 18px;

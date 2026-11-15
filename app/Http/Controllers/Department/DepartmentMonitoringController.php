@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
+use App\Support\DepartmentScope;
 use App\Models\BorrowTransaction;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
@@ -11,7 +12,6 @@ use App\Support\LoanReminders;
 use App\Support\LoanTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 /**
@@ -119,11 +119,9 @@ class DepartmentMonitoringController extends Controller
         $dept = auth('dept')->user();
 
         // Only loans of this department's own equipment.
-        $loan = BorrowTransaction::whereKey($data['transaction_id'])
-            ->whereHas('request.equipment', fn ($e) => $e->where('department_id', $dept->department_id))
-            ->first();
+        $loan = DepartmentScope::loans()->whereKey($data['transaction_id'])->first();
 
-        if (!$loan || !$dept->department_id) {
+        if (!$loan) {
             return response()->json(['success' => false, 'message' => 'Loan not found.'], 404);
         }
 
@@ -134,14 +132,14 @@ class DepartmentMonitoringController extends Controller
 
     private function buildMonitoringRows(): array
     {
-        $departmentId = auth('dept')->user()->department_id;
+        $departmentId = DepartmentScope::id();
 
         if (!$departmentId) {
             return [];
         }
 
         $equipmentList = Equipment::with('category')
-            ->where('department_id', $departmentId)
+            ->forDepartment($departmentId)
             ->inService()
             ->orderBy('equipment_id')
             ->get();
@@ -160,7 +158,7 @@ class DepartmentMonitoringController extends Controller
             ->whereIn('status', BorrowTransaction::OPEN)
             ->whereHas('request', function ($query) use ($departmentId) {
                 $query->where('overall_status', 'Approved')
-                    ->whereHas('equipment', fn ($equipment) => $equipment->where('department_id', $departmentId));
+                    ->forDepartment($departmentId);
             })
             ->orderBy('transaction_id')
             ->get()

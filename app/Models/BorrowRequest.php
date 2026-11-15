@@ -2,12 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToDepartment;
 use App\Services\EquipmentAvailability;
 use App\Support\LoanTime;
 use Illuminate\Database\Eloquent\Model;
 
 class BorrowRequest extends Model
 {
+    use BelongsToDepartment;
+
+    /** Which department owns the record: see BelongsToDepartment. */
+    protected static function departmentPath(): string
+    {
+        return 'equipment';
+    }
+
     public const PARTY_ADMIN = 'admin';
 
     public const PARTY_DEPT = 'dept';

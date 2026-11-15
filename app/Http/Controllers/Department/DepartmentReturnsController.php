@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditTrail;
+use App\Support\DepartmentScope;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
 use App\Models\Penalty;
@@ -208,12 +208,11 @@ class DepartmentReturnsController extends Controller
     private function runReview(Request $request, int $transactionId, callable $apply, $dept): array
     {
         return DB::transaction(function () use ($request, $transactionId, $apply, $dept) {
-            $transaction = BorrowTransaction::where('transaction_id', $transactionId)
-                ->whereHas('request.equipment', fn ($query) => $query->where('department_id', $dept->department_id))
+            $transaction = DepartmentScope::loans()->whereKey($transactionId)
                 ->lockForUpdate()
                 ->first();
 
-            if (!$dept->department_id || !$transaction) {
+            if (!$transaction) {
                 return ['code' => 404, 'message' => 'Return not found for your department.'];
             }
 
@@ -229,13 +228,7 @@ class DepartmentReturnsController extends Controller
                 return ['code' => $outcome['code'] ?? 400, 'message' => $outcome['error']];
             }
 
-            AuditTrail::create([
-                'dept_acc_id' => $dept->dept_acc_id,
-                'action' => mb_substr($outcome['action'], 0, 100),
-                'ip_address' => $request->ip() ?? '127.0.0.1',
-                'affected_entity' => 'borrow_request:' . $borrow->request_id,
-                'details' => $outcome['details'] !== null ? mb_substr($outcome['details'], 0, 255) : null,
-            ]);
+            AuditLogger::log($outcome['action'], 'borrow_request:' . $borrow->request_id, $outcome['details'], AuditLogger::actorFor('dept', $dept), $request);
 
             return ['code' => 200, 'message' => $outcome['message']];
         });
@@ -244,7 +237,7 @@ class DepartmentReturnsController extends Controller
     /** Every submitted return for this department's equipment, pending ones first. */
     private function fetchReturns(): array
     {
-        $departmentId = auth('dept')->user()->department_id;
+        $departmentId = DepartmentScope::id();
 
         if (!$departmentId) {
             return [];
@@ -259,7 +252,7 @@ class DepartmentReturnsController extends Controller
             'penalties',
         ])
             ->whereNotNull('return_status')
-            ->whereHas('request.equipment', fn ($query) => $query->where('department_id', $departmentId))
+            ->forDepartment($departmentId)
             ->get()
             ->sortBy([
                 fn ($a, $b) => (int) !$a->isReturnPending() <=> (int) !$b->isReturnPending(),

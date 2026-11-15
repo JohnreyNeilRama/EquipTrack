@@ -39,11 +39,7 @@ use App\Http\Controllers\User\UserPenaltiesController;
 use App\Http\Controllers\User\UserProfileController;
 use App\Http\Controllers\User\UserRequestsController;
 use App\Http\Controllers\User\UserReturnsController;
-use App\Models\EquipmentCategory;
 use Illuminate\Support\Facades\Route;
-
-// Categories shared by mock pages (department lists, filters).
-$catNames = fn () => ['dbCategories' => EquipmentCategory::orderBy('category_name')->pluck('category_name')->all()];
 
 // Initials picture for accounts and departments without an uploaded picture
 // (drawn here instead of by an outside website; see App\Support\Avatar).
@@ -87,7 +83,7 @@ Route::middleware(['auth:user', 'auth.session', 'active'])->group(function () {
 // stays signed in.
 
 // Admin
-Route::middleware(['auth:admin', 'auth.session', 'active', 'expire.requests'])->prefix('admin')->name('admin.')->group(function () use ($catNames) {
+Route::middleware(['auth:admin', 'auth.session', 'active', 'expire.requests'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [AdminDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [AdminProfileController::class, 'show'])->name('profile');
@@ -141,7 +137,7 @@ Route::middleware(['auth:admin', 'auth.session', 'active', 'expire.requests'])->
 });
 
 // Department
-Route::middleware(['auth:dept', 'auth.session', 'active', 'expire.requests'])->prefix('department')->name('department.')->group(function () use ($catNames) {
+Route::middleware(['auth:dept', 'auth.session', 'active', 'expire.requests'])->prefix('department')->name('department.')->group(function () {
     Route::get('/dashboard', [DepartmentDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [DepartmentDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [DepartmentProfileController::class, 'show'])->name('profile');

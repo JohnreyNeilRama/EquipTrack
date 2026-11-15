@@ -2,7 +2,7 @@
    EquipTrack - User Dashboard
    --------------------------------------------------------------------------
    The shell (sidebar, top bar, theme variables, dark-mode overrides) is
-   provided by ccs/global.css. This file only styles the dashboard content and
+   provided by css/global.css. This file only styles the dashboard content and
    uses the theme variables from there, so light and dark mode follow the rest
    of the app.
 

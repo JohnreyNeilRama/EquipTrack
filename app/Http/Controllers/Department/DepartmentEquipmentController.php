@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditTrail;
+use App\Support\DepartmentScope;
+use App\Services\AuditLogger;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
 use App\Support\EquipmentImage;
@@ -43,14 +44,14 @@ class DepartmentEquipmentController extends Controller
     /** JSON feed for the card grid: only the signed-in department's equipment. */
     public function data(): JsonResponse
     {
-        $departmentId = $this->departmentId();
+        $departmentId = DepartmentScope::id();
 
         if (!$departmentId) {
             return response()->json(['success' => true, 'equipment' => []]);
         }
 
         $items = Equipment::with('category')
-            ->where('department_id', $departmentId)
+            ->forDepartment($departmentId)
             ->orderByDesc('equipment_id')
             ->get()
             ->map(function (Equipment $e) {
@@ -81,7 +82,7 @@ class DepartmentEquipmentController extends Controller
      */
     public function save(Request $request): JsonResponse
     {
-        $departmentId = $this->departmentId();
+        $departmentId = DepartmentScope::id();
 
         if (!$departmentId) {
             return response()->json([
@@ -115,7 +116,7 @@ class DepartmentEquipmentController extends Controller
 
         // Scoped lookup: equipment owned by another department is "not found".
         $equipment = $equipmentId > 0
-            ? Equipment::where('department_id', $departmentId)->where('equipment_id', $equipmentId)->first()
+            ? DepartmentScope::equipment()->whereKey($equipmentId)->first()
             : null;
 
         if ($equipmentId > 0 && !$equipment) {
@@ -207,9 +208,9 @@ class DepartmentEquipmentController extends Controller
     {
         $data = $request->validate(['equipment_id' => ['required', 'integer', 'min:1']]);
 
-        $departmentId = $this->departmentId();
+        $departmentId = DepartmentScope::id();
         $equipment = $departmentId
-            ? Equipment::where('department_id', $departmentId)->where('equipment_id', $data['equipment_id'])->first()
+            ? DepartmentScope::equipment()->whereKey($data['equipment_id'])->first()
             : null;
 
         if (!$equipment) {
@@ -236,22 +237,9 @@ class DepartmentEquipmentController extends Controller
         return response()->json(['success' => true, 'message' => 'Equipment removed from inventory successfully!']);
     }
 
-    /** Department the signed-in department account belongs to. */
-    private function departmentId(): ?int
-    {
-        $departmentId = auth('dept')->user()?->department_id;
-
-        return $departmentId ? (int) $departmentId : null;
-    }
-
     private function audit(Request $request, string $action, string $entity): void
     {
-        AuditTrail::create([
-            'dept_acc_id' => auth('dept')->user()?->dept_acc_id,
-            'action' => mb_substr($action, 0, 100),
-            'ip_address' => $request->ip() ?? '127.0.0.1',
-            'affected_entity' => mb_substr($entity, 0, 100),
-        ]);
+        AuditLogger::log($action, $entity, null, AuditLogger::actorFor('dept', auth('dept')->user()), $request);
     }
 
 }

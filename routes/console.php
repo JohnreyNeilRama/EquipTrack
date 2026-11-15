@@ -25,3 +25,11 @@ Schedule::command('equiptrack:backup')
     ->dailyAt(config('equiptrack.backup.time'))
     ->timezone(config('app.display_timezone'))
     ->withoutOverlapping();
+
+// Daily cleanup of old audit entries (archived to CSV first) and proof files
+// of long-closed penalties (config equiptrack.retention). Runs after the
+// backup, so everything it removes is in that night's backup.
+Schedule::command('equiptrack:prune-old-records')
+    ->dailyAt(config('equiptrack.retention.time'))
+    ->timezone(config('app.display_timezone'))
+    ->withoutOverlapping();

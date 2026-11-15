@@ -160,4 +160,41 @@ return [
         'method' => env('BACKUP_METHOD', 'auto'),
     ],
 
+    /*
+    | Admin Reports "Export PDF" lists at most this many rows: the PDF is built
+    | in memory and a very large one can crash. The totals still count every
+    | row; Export CSV and Print have no limit. 0 = no limit.
+    */
+    'report_pdf_limit' => (int) env('REPORT_PDF_LIMIT', 1000),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Keeping old records (php artisan equiptrack:prune-old-records)
+    |--------------------------------------------------------------------------
+    |
+    | So the database and storage don't grow forever, a daily job clears out
+    | records nobody needs on screen any more.
+    |
+    | audit_keep_days: audit trail entries older than this are first saved to
+    |   a CSV file in archive_path, then removed from the database. The CSV
+    |   opens in Excel and keeps who did what, when and from where.
+    |   0 = keep every entry in the database.
+    | proof_keep_days: photos and receipts uploaded as penalty proof are
+    |   deleted this many days after the penalty was Settled or Waived. The
+    |   proof details (type, reference number, amount, who reviewed it) stay.
+    |   Pending penalties are never touched. 0 = keep every file.
+    | archive_path: where the audit CSV files go. Inside storage/app/private,
+    |   so the daily backup copies them and the website never serves them.
+    | time: when the job runs (HH:MM, Philippine time); after the backup, so
+    |   everything removed is still in that night's backup.
+    |
+    */
+
+    'retention' => [
+        'audit_keep_days' => (int) env('AUDIT_KEEP_DAYS', 730),
+        'proof_keep_days' => (int) env('PROOF_KEEP_DAYS', 365),
+        'archive_path' => env('ARCHIVE_PATH', storage_path('app/private/archives')),
+        'time' => env('PRUNE_TIME', '20:00'),
+    ],
+
 ];

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Department;
 
 use App\Http\Controllers\Controller;
+use App\Support\DepartmentScope;
 use App\Models\UserAccount;
 use App\Services\AdminEmailChange;
 use App\Services\AuditLogger;
@@ -73,7 +74,7 @@ class DepartmentUsersController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        $departmentId = $this->departmentId();
+        $departmentId = DepartmentScope::id();
         if (!$departmentId) {
             return $this->noDepartment();
         }
@@ -122,7 +123,7 @@ class DepartmentUsersController extends Controller
             'status' => ['required', 'in:Active,Deactivated'],
         ]);
 
-        $departmentId = $this->departmentId();
+        $departmentId = DepartmentScope::id();
         if (!$departmentId) {
             return $this->noDepartment();
         }
@@ -207,7 +208,7 @@ class DepartmentUsersController extends Controller
     {
         $request->validate(['user_id' => ['required', 'integer', 'min:1']]);
 
-        $departmentId = $this->departmentId();
+        $departmentId = DepartmentScope::id();
         if (!$departmentId) {
             return $this->noDepartment();
         }
@@ -255,7 +256,7 @@ class DepartmentUsersController extends Controller
     {
         $request->validate(['user_id' => ['required', 'integer', 'min:1']]);
 
-        $departmentId = $this->departmentId();
+        $departmentId = DepartmentScope::id();
         if (!$departmentId) {
             return $this->noDepartment();
         }
@@ -274,7 +275,7 @@ class DepartmentUsersController extends Controller
 
     private function addUserAccount(Request $request, string $role): JsonResponse
     {
-        $departmentId = $this->departmentId();
+        $departmentId = DepartmentScope::id();
         if (!$departmentId) {
             return $this->noDepartment();
         }
@@ -296,17 +297,12 @@ class DepartmentUsersController extends Controller
         ]);
     }
 
-    private function departmentId(): ?int
-    {
-        return auth('dept')->user()->department_id ?: null;
-    }
-
     /** A Student or Faculty account of this department, or null. */
     private function scopedAccount(int $userId, int $departmentId): ?UserAccount
     {
         return UserAccount::with(['student', 'facultyMember'])
             ->where('user_id', $userId)
-            ->where('department_id', $departmentId)
+            ->forDepartment($departmentId)
             ->whereIn('role', ['Student', 'Faculty'])
             ->first();
     }
@@ -341,7 +337,7 @@ class DepartmentUsersController extends Controller
      */
     private function usersPage(Request $request): array
     {
-        $departmentId = auth('dept')->user()->department_id;
+        $departmentId = DepartmentScope::id();
 
         // An account that isn't assigned to a department has no users in scope.
         if (!$departmentId) {
@@ -352,7 +348,7 @@ class DepartmentUsersController extends Controller
             ];
         }
 
-        $scope = UserAccount::query()->where('department_id', $departmentId);
+        $scope = DepartmentScope::users();
 
         $query = (clone $scope);
         $status = strtolower((string) $request->query('status', 'inuse'));

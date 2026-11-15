@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditTrail;
+use App\Services\AuditLogger;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
 use Illuminate\Http\JsonResponse;
@@ -128,18 +128,14 @@ class UserReturnsController extends Controller
                 ]);
             }
 
-            AuditTrail::create([
-                'user_id' => $userId,
-                'action' => mb_substr(
-                    'Submitted return for borrow request #' . $borrow->request_id . ' for '
-                        . ($borrow->equipment?->name ?? 'equipment') . ' (' . $data['condition'] . ' condition)',
-                    0,
-                    100
-                ),
-                'ip_address' => $request->ip() ?? '127.0.0.1',
-                'affected_entity' => 'borrow_request:' . $borrow->request_id,
-                'details' => $remarks !== '' ? mb_substr($remarks, 0, 255) : null,
-            ]);
+            AuditLogger::log(
+                'Submitted return for borrow request #' . $borrow->request_id . ' for '
+                    . ($borrow->equipment?->name ?? 'equipment') . ' (' . $data['condition'] . ' condition)',
+                'borrow_request:' . $borrow->request_id,
+                $remarks,
+                ['user_id' => $userId],
+                $request,
+            );
 
             return ['code' => 200];
         });

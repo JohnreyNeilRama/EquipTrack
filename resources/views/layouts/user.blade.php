@@ -35,20 +35,20 @@
     <title>@yield('title', 'EquipTrack')</title>
     <link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}?v={{ filemtime(public_path('images/favicon.png')) }}">
     <link rel="apple-touch-icon" href="{{ asset('images/favicon.png') }}?v={{ filemtime(public_path('images/favicon.png')) }}">
-    <link rel="stylesheet" href="{{ asset('ccs/global.css') }}?v={{ filemtime(public_path('ccs/global.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/global.css') }}?v={{ filemtime(public_path('css/global.css')) }}">
     <link rel="stylesheet" href="{{ asset('user/css/usernotifications.css') }}">
     @stack('css')
     {{-- Shared top navbar (same file as the Admin and Department layouts).
          Loaded after the page stylesheets so every Student / Faculty page gets
          the exact same bar: fixed height, reserved scrollbar gutter, and a
          capped name width, whatever the page content is. --}}
-    <link rel="stylesheet" href="{{ asset('ccs/navbar.css') }}?v={{ filemtime(public_path('ccs/navbar.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/navbar.css') }}?v={{ filemtime(public_path('css/navbar.css')) }}">
     {{-- Phones: slide-in menu, full-width pages and compact top bar (shared
          with the Department layout), then the User pages' own phone rules --}}
-    <link rel="stylesheet" href="{{ asset('ccs/mobile-shell.css') }}?v={{ filemtime(public_path('ccs/mobile-shell.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/mobile-shell.css') }}?v={{ filemtime(public_path('css/mobile-shell.css')) }}">
     <link rel="stylesheet" href="{{ asset('user/css/usermobile.css') }}?v={{ filemtime(public_path('user/css/usermobile.css')) }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('vendor/fontawesome/css/all.min.css') }}?v=6.4.0">
     <script>
         (function() {
             if (localStorage.getItem('dashboard-theme') === 'dark') {
@@ -108,6 +108,7 @@
                 <div class="notif-wrapper" id="notifWrapper"
                      data-feed-url="{{ route('user.notifications') }}"
                      data-read-url="{{ route('user.notifications.read') }}"
+                     data-login-url="{{ route('login') }}"
                      data-csrf="{{ csrf_token() }}">
                     <div class="icon-btn notification" id="notifBtn" title="Notifications" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false">
                         <i class="fa-solid fa-bell"></i>

@@ -123,7 +123,12 @@ class AuditCatalog
 
         // Audit trail
         ['label' => 'Exported Audit Log', 'module' => 'Audit Trail', 'prefixes' => ['Exported audit log' => 'Audit log']],
+        // The daily cleanup (equiptrack:prune-old-records); no account is the actor
+        ['label' => 'Cleared Old Records', 'module' => 'Audit Trail', 'prefixes' => ['Cleared old records' => 'Old records cleared']],
     ];
+
+    /** Actions EquipTrack does on its own schedule: recorded with no actor. */
+    public const SYSTEM_ACTIONS = ['Cleared Old Records'];
 
     /** Action labels offered by the Action filter. */
     public static function actions(): array

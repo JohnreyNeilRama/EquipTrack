@@ -595,7 +595,7 @@
         </div>
 
         {{-- Controls bar --}}
-        {{-- Search + filters card (ccs/filter-card.css) --}}
+        {{-- Search + filters card (css/filter-card.css) --}}
         <div class="filter-card-container">
             <div class="search-box-right-icon">
                 <input type="text" id="searchEquipment" placeholder="Search equipment" aria-label="Search equipment">
