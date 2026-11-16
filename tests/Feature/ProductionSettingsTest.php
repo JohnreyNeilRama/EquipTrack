@@ -88,6 +88,16 @@ class ProductionSettingsTest extends TestCase
             'mail.from.address' => 'no-reply@equiptrack.example',
         ]);
 
+        // A live server has run `php artisan storage:link`; a fresh copy of the
+        // code (GitHub's test run, a new teammate) hasn't. Make the link for
+        // this check when it's missing, and take it away again afterwards.
+        $link = public_path('storage');
+        $madeLink = false;
+        if (!file_exists($link)) {
+            $this->artisan('storage:link')->assertExitCode(0);
+            $madeLink = true;
+        }
+
         try {
             $this->artisan('equiptrack:check-production')
                 ->expectsOutputToContain('All required production settings are in place.')
@@ -95,6 +105,9 @@ class ProductionSettingsTest extends TestCase
         } finally {
             @unlink($dir . DIRECTORY_SEPARATOR . '.env');
             @rmdir($dir);
+            if ($madeLink) {
+                is_link($link) ? @unlink($link) : @rmdir($link);
+            }
         }
     }
 

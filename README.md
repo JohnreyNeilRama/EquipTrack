@@ -1,5 +1,7 @@
 # EquipTrack
 
+[![Tests](https://github.com/JohnreyNeilRama/EquipTrack/actions/workflows/tests.yml/badge.svg)](https://github.com/JohnreyNeilRama/EquipTrack/actions/workflows/tests.yml)
+
 EquipTrack is a laboratory equipment borrowing system for a school. Students and teachers reserve equipment online, the owning department approves and hands it over, and the system follows each item until it is returned — with reminders, penalties and a full audit trail.
 
 It is a Laravel 13 application (PHP 8.3+) with server-rendered Blade pages. There is no JavaScript build step: styles, scripts, Chart.js and Font Awesome are plain files under `public/`.
@@ -107,6 +109,8 @@ php artisan test
 ```
 
 The suite covers every role's pages and rules and runs against an in-memory SQLite database, so it never touches your real data.
+
+GitHub also runs it on every push to `main` ([.github/workflows/tests.yml](.github/workflows/tests.yml)): the result shows as a green check or a red X next to each commit, and on the Tests badge above. Update the live site only after the check is green.
 
 ## Where things are
 

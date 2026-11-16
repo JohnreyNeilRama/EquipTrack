@@ -1,0 +1,59 @@
+# Runs EquipTrack's automated tests on GitHub every time code is pushed to
+# main (and on pull requests). The result shows as a green check or a red X
+# next to the commit on GitHub, and GitHub emails you when a run fails.
+#
+# Habit: push -> wait for the green check -> then update the live site.
+#
+# The tests use their own in-memory SQLite database (phpunit.xml), so they
+# never touch the live site, its database or its .env.
+
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:   # "Run workflow" button on the Actions tab
+
+# A newer push to the same branch cancels a run that is still going.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: PHP 8.3
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.3 (same version as the live server)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, dom, fileinfo, gd, intl, bcmath, pdo_sqlite, sqlite3
+          coverage: none
+
+      - name: Reuse downloaded libraries from earlier runs
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install libraries
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Prepare settings for the tests
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run the tests
+        run: php artisan test
