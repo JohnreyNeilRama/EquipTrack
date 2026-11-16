@@ -190,6 +190,8 @@
                             </ul>
                         </fieldset>
 
+                        @include('partials.privacy-consent')
+
                         <p class="auth-alert is-error" id="clientError" role="alert" hidden></p>
 
                         <button type="submit" class="login-btn register-btn" id="registerBtn">
@@ -386,7 +388,7 @@
                 const label = registerForm.querySelector('label[for="' + invalid.id + '"]');
                 const name = label ? label.textContent.trim() : 'This field';
                 const message = invalid.validity.valueMissing
-                    ? name + ' is required.'
+                    ? (invalid.dataset.requiredMessage || name + ' is required.')
                     : (invalid.title || invalid.validationMessage);
                 if (clientError) {
                     clientError.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> <span></span>';

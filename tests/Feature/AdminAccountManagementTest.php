@@ -83,6 +83,7 @@ class AdminAccountManagementTest extends TestCase
         $this->post('/login', ['email' => 'maria@example.com', 'password' => 'Admin2026'])->assertSessionHasErrors('email');
 
         $this->post(route('account.setup.store'), [
+            'privacy' => '1',
             'token' => $token, 'email' => 'maria@example.com', 'password' => 'Admin2026', 'password_confirmation' => 'Admin2026',
         ])->assertRedirect(route('login'));
         $this->assertTrue($maria->fresh()->isSetUp());

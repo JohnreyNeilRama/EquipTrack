@@ -19,6 +19,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\PendingApprovalController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\AvatarController;
+use App\Http\Controllers\PrivacyController;
 use App\Http\Controllers\Department\DepartmentDashboardController;
 
 use App\Http\Controllers\Department\DepartmentEquipmentController;
@@ -76,6 +77,13 @@ Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 've
 Route::get('/account/setup/{token}', [AccountSetupController::class, 'show'])->name('account.setup');
 Route::post('/account/setup', [AccountSetupController::class, 'store'])->name('account.setup.store');
 
+// Privacy Notice (Data Privacy Act of 2012): public, and the one-time "please
+// agree" page for signed-in accounts that haven't agreed to the current
+// version (the controller sends visitors who aren't signed in to the login page).
+Route::get('/privacy', [PrivacyController::class, 'notice'])->name('privacy');
+Route::get('/privacy/accept', [PrivacyController::class, 'acceptForm'])->name('privacy.accept');
+Route::post('/privacy/accept', [PrivacyController::class, 'accept'])->middleware('throttle:10,1,privacy')->name('privacy.accept.store');
+
 // Signed-in Students & Faculty who still have a step to finish: verify their
 // email, or (self-registered Faculty) wait for their department's approval.
 Route::middleware(['auth:user', 'auth.session', 'active'])->group(function () {
@@ -90,7 +98,7 @@ Route::middleware(['auth:user', 'auth.session', 'active'])->group(function () {
 // stays signed in.
 
 // Admin
-Route::middleware(['auth:admin', 'auth.session', 'active', 'expire.requests'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth:admin', 'auth.session', 'active', 'privacy', 'expire.requests'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [AdminDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [AdminProfileController::class, 'show'])->name('profile');
@@ -144,7 +152,7 @@ Route::middleware(['auth:admin', 'auth.session', 'active', 'expire.requests'])->
 });
 
 // Department
-Route::middleware(['auth:dept', 'auth.session', 'active', 'expire.requests'])->prefix('department')->name('department.')->group(function () {
+Route::middleware(['auth:dept', 'auth.session', 'active', 'privacy', 'expire.requests'])->prefix('department')->name('department.')->group(function () {
     Route::get('/dashboard', [DepartmentDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [DepartmentDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [DepartmentProfileController::class, 'show'])->name('profile');
@@ -200,7 +208,7 @@ Route::middleware(['auth:dept', 'auth.session', 'active', 'expire.requests'])->p
 // User (Student / Faculty)
 // "verified": the email must be confirmed; "approved": self-registered Faculty
 // must be approved by their department.
-Route::middleware(['auth:user', 'auth.session', 'active', 'verified', 'approved', 'expire.requests'])->prefix('user')->name('user.')->group(function () {
+Route::middleware(['auth:user', 'auth.session', 'active', 'verified', 'approved', 'privacy', 'expire.requests'])->prefix('user')->name('user.')->group(function () {
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [UserDashboardController::class, 'data'])->name('dashboard.data');
     Route::get('/profile', [UserProfileController::class, 'show'])->name('profile');

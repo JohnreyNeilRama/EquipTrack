@@ -78,6 +78,7 @@ class StaffInviteTest extends TestCase
         $this->app['auth']->forgetGuards();
         $this->get(route('account.setup', ['token' => $token, 'email' => 'ferrer@example.com']))->assertOk()->assertSee('Dr. Christian Ferrer');
         $this->post(route('account.setup.store'), [
+            'privacy' => '1',
             'token' => $token, 'email' => 'ferrer@example.com', 'password' => 'Lab2026pass', 'password_confirmation' => 'Lab2026pass',
         ])->assertRedirect(route('login'));
 
@@ -123,6 +124,7 @@ class StaffInviteTest extends TestCase
         $this->post('/login', ['email' => 'maria@example.com', 'password' => 'Admin2026'])->assertSessionHasErrors('email');
 
         $this->post(route('account.setup.store'), [
+            'privacy' => '1',
             'token' => $token, 'email' => 'maria@example.com', 'password' => 'Admin2026', 'password_confirmation' => 'Admin2026',
         ])->assertRedirect(route('login'));
         $this->assertTrue($maria->fresh()->isSetUp());
@@ -182,6 +184,7 @@ class StaffInviteTest extends TestCase
 
         $token = $this->inviteToken($lab);
         $this->post(route('account.setup.store'), [
+            'privacy' => '1',
             'token' => $token, 'email' => 'new.lab@example.com', 'password' => 'NewLab2026', 'password_confirmation' => 'NewLab2026',
         ])->assertRedirect(route('login'));
         $this->post('/login', ['email' => 'new.lab@example.com', 'password' => 'NewLab2026'])->assertRedirect(route('department.dashboard'));

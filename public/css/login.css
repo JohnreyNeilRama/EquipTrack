@@ -691,3 +691,31 @@ body {
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* "I agree to the Privacy Notice" (partials/privacy-consent): the
+   Remember-me checkbox, with room for two lines of text and a link. */
+.privacy-consent {
+    align-items: flex-start;
+    margin: 4px 0 16px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.privacy-consent .checkmark {
+    top: 1px;
+}
+
+.privacy-consent a {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.privacy-links {
+    margin-top: 14px;
+    text-align: center;
+    font-size: 13px;
+}
+
+.privacy-links a {
+    color: var(--text-muted);
+}

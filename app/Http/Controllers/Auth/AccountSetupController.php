@@ -10,6 +10,7 @@ use App\Services\AuditLogger;
 use App\Services\PasswordResetAccounts;
 use App\Services\UserInvites;
 use App\Support\LoginLockout;
+use App\Support\PrivacyConsent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -62,7 +63,10 @@ class AccountSetupController extends Controller
             'token' => ['required', 'string'],
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string', PasswordRule::defaults(), 'confirmed'],
+            // Data Privacy Act: agreement to the Privacy Notice (/privacy)
+            'privacy' => ['accepted'],
         ], [
+            'privacy.accepted' => 'Please agree to the Privacy Notice to set up your account.',
             'password.required' => 'Choose a password.',
             'password.min' => 'Your password must be at least :min characters.',
             'password.letters' => 'Your password must include at least one letter.',
@@ -108,6 +112,7 @@ class AccountSetupController extends Controller
             AuditLogger::actorFor($found['guard'], $account),
             $request,
         );
+        PrivacyConsent::record($found['guard'], $account->fresh(), 'when setting up the account from an invite', $request);
 
         return redirect()->route('login')
             ->with('status', 'Your password is set and your email is confirmed. Log in with your new password.');

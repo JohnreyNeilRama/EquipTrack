@@ -153,6 +153,8 @@
                     <button type="submit" class="btn-save" id="btnUpdatePassword"><i class="fa-solid fa-key"></i> Save Password</button>
                 </div>
             </form>
+
+            @include('partials.privacy-profile-note')
         </div>
     </div>
 

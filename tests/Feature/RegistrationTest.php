@@ -31,6 +31,7 @@ class RegistrationTest extends TestCase
     private function register(array $input)
     {
         return $this->from('/register')->post('/register', $input + [
+            'privacy' => '1',
             'first_name' => 'Ana',
             'last_name' => 'Santos',
             'year_level' => '1',

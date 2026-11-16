@@ -5,6 +5,9 @@ namespace Tests;
 use App\Models\Admin;
 use App\Models\BorrowTransaction;
 use App\Notifications\AdminSignInCodeNotification;
+use App\Support\PrivacyConsent;
+use App\Models\DepartmentAccount;
+use App\Models\UserAccount;
 use Illuminate\Contracts\Auth\Authenticatable as UserContract;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Carbon;
@@ -50,8 +53,21 @@ abstract class TestCase extends BaseTestCase
             $this->app['session']->forget('password_hash_' . $guard);
         }
 
+        // Signed-in pages need agreement to the Privacy Notice (privacy
+        // middleware). Test accounts are treated as having agreed, like any
+        // real account after the one-time question; tests about that
+        // question turn this off with $autoAcceptPrivacy = false.
+        if ($this->autoAcceptPrivacy
+            && ($user instanceof UserAccount || $user instanceof Admin || $user instanceof DepartmentAccount)
+            && (int) $user->privacy_version < PrivacyConsent::version()) {
+            $user->forceFill(['privacy_accepted_at' => now(), 'privacy_version' => PrivacyConsent::version()])->saveQuietly();
+        }
+
         return parent::actingAs($user, $guard);
     }
+
+    /** See actingAs(): treat signed-in test accounts as having agreed to the Privacy Notice. */
+    protected bool $autoAcceptPrivacy = true;
 
     /**
      * Second step of an Admin sign-in: enters the code from the latest

@@ -369,6 +369,7 @@ class AccountVerificationTest extends TestCase
         $this->get(route('account.setup', ['token' => $token, 'email' => 'ana@example.com']))->assertOk()->assertSee('Set Password');
 
         $this->post(route('account.setup.store'), [
+            'privacy' => '1',
             'token' => $token, 'email' => 'ana@example.com', 'password' => 'Study2026', 'password_confirmation' => 'Study2026',
         ])->assertRedirect(route('login'));
 
@@ -427,6 +428,7 @@ class AccountVerificationTest extends TestCase
         $this->app['auth']->forgetGuards();
 
         $this->post(route('account.setup.store'), [
+            'privacy' => '1',
             'token' => $token, 'email' => 'ana@example.com', 'password' => 'Study2026', 'password_confirmation' => 'Study2026',
         ])->assertSessionHas('link_invalid');
 
@@ -447,6 +449,7 @@ class AccountVerificationTest extends TestCase
     private function register(string $role, string $id)
     {
         return $this->post('/register', [
+            'privacy' => '1',
             'role' => $role,
             'id_number' => $id,
             'first_name' => 'Ana',

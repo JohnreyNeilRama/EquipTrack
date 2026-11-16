@@ -297,7 +297,7 @@
             </div>
 
             <div class="footer-bottom">
-                <span>&copy; 2026 EquipTrack System. All rights reserved.</span>
+                <span>&copy; 2026 EquipTrack System. All rights reserved. &middot; <a href="{{ route('privacy') }}">Privacy Notice</a></span>
                 <span>University of Cebu, Main Campus</span>
             </div>
         </div>

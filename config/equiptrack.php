@@ -176,6 +176,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Privacy Notice (/privacy, Data Privacy Act of 2012, RA 10173)
+    |--------------------------------------------------------------------------
+    |
+    | version / updated: raise the version (and the date) whenever the
+    |   notice's wording changes in a way people should agree to again: every
+    |   account is then asked once more at its next sign-in.
+    | organization: the school responsible for the information, as named in
+    |   the notice.
+    | contact_name / contact_email: the school's Data Protection Officer (or
+    |   the office handling privacy requests). When empty, the notice tells
+    |   people to ask through the EquipTrack Administrator.
+    |
+    */
+
+    'privacy' => [
+        'version' => 1,
+        'updated' => '2026-11-16',
+        'organization' => env('PRIVACY_ORGANIZATION', 'University of Cebu, Main Campus'),
+        'contact_name' => env('PRIVACY_CONTACT_NAME'),
+        'contact_email' => env('PRIVACY_CONTACT_EMAIL'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Keeping old records (php artisan equiptrack:prune-old-records)
     |--------------------------------------------------------------------------
     |

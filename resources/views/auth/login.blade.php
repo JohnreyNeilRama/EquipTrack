@@ -89,6 +89,10 @@
                         Don't have an account? <a href="/register" id="registerLink">Sign up here</a>
                     </div>
                 </form>
+
+                <div class="privacy-links">
+                    <a href="{{ route('privacy') }}">Privacy Notice</a>
+                </div>
             </div>
         </main>
     </div>

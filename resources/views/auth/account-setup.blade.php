@@ -81,6 +81,8 @@
                         <li data-rule="match"><i class="fa-solid fa-circle-check"></i> Passwords match</li>
                     </ul>
 
+                    @include('partials.privacy-consent')
+
                     <p class="auth-alert is-error" id="clientError" role="alert" hidden></p>
 
                     <button type="submit" class="login-btn" id="setupBtn">Set Password</button>
@@ -99,6 +101,7 @@
         const confirmation = document.getElementById('password_confirmation');
         const rules = document.getElementById('passwordRules');
         const clientError = document.getElementById('clientError');
+        const privacyConsent = document.getElementById('privacy');
         const setupBtn = document.getElementById('setupBtn');
 
         // Same policy as the server (Password::defaults in AppServiceProvider).
@@ -139,6 +142,9 @@
             } else if (!RULES.match(pw, confirmation.value)) {
                 message = 'Password and confirm password do not match.';
                 confirmation.focus();
+            } else if (!privacyConsent.checked) {
+                message = privacyConsent.dataset.requiredMessage;
+                privacyConsent.focus();
             }
             if (message) {
                 e.preventDefault();

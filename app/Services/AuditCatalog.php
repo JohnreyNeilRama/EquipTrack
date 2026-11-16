@@ -30,6 +30,8 @@ class AuditCatalog
         // Email verification and invites (Students & Faculty)
         ['label' => 'Verified Email', 'module' => 'Authentication', 'prefixes' => ['Verified email address' => 'Email address']],
         ['label' => 'Set Password from Invite', 'module' => 'Authentication', 'prefixes' => ['Set password from invite' => 'Password']],
+        // Data Privacy Act consent (App\Support\PrivacyConsent)
+        ['label' => 'Accepted Privacy Notice', 'module' => 'Authentication', 'prefixes' => ['Accepted privacy notice' => 'Privacy Notice']],
 
         // Equipment management
         ['label' => 'Added Equipment', 'module' => 'Equipment Management', 'prefixes' => ['Registered equipment' => 'Equipment']],

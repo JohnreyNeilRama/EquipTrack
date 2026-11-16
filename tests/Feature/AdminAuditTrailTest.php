@@ -192,6 +192,7 @@ class AdminAuditTrailTest extends TestCase
         $department = Department::create(['department_name' => 'College of Computer Studies', 'department_code' => 'CCS']);
 
         $this->post('/register', [
+            'privacy' => '1',
             'role' => 'student',
             'department_id' => $department->department_id,
             'first_name' => 'Ana',

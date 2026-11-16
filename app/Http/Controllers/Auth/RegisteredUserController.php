@@ -9,6 +9,7 @@ use App\Models\Student;
 use App\Models\UserAccount;
 use App\Rules\UniqueAccountEmail;
 use App\Services\AuditLogger;
+use App\Support\PrivacyConsent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -67,7 +68,10 @@ class RegisteredUserController extends Controller
             'email' => ['required', 'email', 'max:100', Rule::unique('user_account', 'email'), new UniqueAccountEmail()],
             'address' => ['required', 'string', 'max:150'],
             'password' => ['required', 'string', Password::defaults()],
+            // Data Privacy Act: agreement to the Privacy Notice (/privacy)
+            'privacy' => ['accepted'],
         ], [
+            'privacy.accepted' => 'Please agree to the Privacy Notice to create your account.',
             'id_number.regex' => $isStudent
                 ? 'Student ID must be exactly 8 digits.'
                 : 'The faculty ID number may contain only letters, numbers and hyphens.',
@@ -125,6 +129,7 @@ class RegisteredUserController extends Controller
             ['user_id' => $account->user_id],
             $request,
         );
+        PrivacyConsent::record('user', $account, 'when registering', $request);
 
         $sent = true;
         try {
