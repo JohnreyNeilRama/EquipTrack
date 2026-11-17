@@ -4,9 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\Admin;
 use App\Models\AuditTrail;
-use App\Notifications\AdminSignInCodeNotification;
-use App\Support\AdminTwoFactor;
+use App\Models\DepartmentAccount;
+use App\Notifications\SignInCodeNotification;
 use App\Support\LoginLockout;
+use App\Support\SignInCode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Notification;
@@ -14,10 +15,11 @@ use Tests\Concerns\CreatesEquipTrackRecords;
 use Tests\TestCase;
 
 /**
- * Two-step sign-in for Admin accounts: the right password emails a 6-digit
- * code, and the admin is signed in only after entering it.
+ * Two-step sign-in for Admin and Lab Personnel accounts: the right password
+ * emails a 6-digit code, and the account is signed in only after entering it.
+ * Students and Faculty sign in with their password only.
  */
-class AdminTwoFactorTest extends TestCase
+class SignInCodeTest extends TestCase
 {
     use CreatesEquipTrackRecords;
     use RefreshDatabase;
@@ -39,7 +41,7 @@ class AdminTwoFactorTest extends TestCase
     private function lastCode(): string
     {
         $code = null;
-        Notification::assertSentTo($this->admin, AdminSignInCodeNotification::class, function ($n) use (&$code) {
+        Notification::assertSentTo($this->admin, SignInCodeNotification::class, function ($n) use (&$code) {
             $code = $n->code;
 
             return true;
@@ -117,7 +119,7 @@ class AdminTwoFactorTest extends TestCase
         $this->password();
         $right = $this->lastCode();
 
-        for ($i = 1; $i < AdminTwoFactor::MAX_ATTEMPTS; $i++) {
+        for ($i = 1; $i < SignInCode::MAX_ATTEMPTS; $i++) {
             $this->post(route('login.code.verify'), ['code' => $this->wrongCode()])->assertSessionHasErrors('code');
         }
         $this->post(route('login.code.verify'), ['code' => $this->wrongCode()])
@@ -156,7 +158,7 @@ class AdminTwoFactorTest extends TestCase
         $this->password();
         $code = $this->lastCode();
 
-        $this->travel(AdminTwoFactor::CODE_MINUTES + 1)->minutes();
+        $this->travel(SignInCode::CODE_MINUTES + 1)->minutes();
         $this->post(route('login.code.verify'), ['code' => $code])
             ->assertRedirect(route('login'))
             ->assertSessionHasErrors(['email' => 'Your sign-in code has expired. Sign in again to get a new one.']);
@@ -169,11 +171,11 @@ class AdminTwoFactorTest extends TestCase
         $first = $this->lastCode();
 
         $this->from(route('login.code'))->post(route('login.code.resend'))->assertSessionHasErrors('code');
-        Notification::assertSentToTimes($this->admin, AdminSignInCodeNotification::class, 1);
+        Notification::assertSentToTimes($this->admin, SignInCodeNotification::class, 1);
 
-        $this->travel(AdminTwoFactor::RESEND_SECONDS + 1)->seconds();
+        $this->travel(SignInCode::RESEND_SECONDS + 1)->seconds();
         $this->from(route('login.code'))->post(route('login.code.resend'))->assertSessionHas('status');
-        Notification::assertSentToTimes($this->admin, AdminSignInCodeNotification::class, 2);
+        Notification::assertSentToTimes($this->admin, SignInCodeNotification::class, 2);
         $second = $this->lastCode();
 
         if ($first !== $second) {
@@ -221,27 +223,129 @@ class AdminTwoFactorTest extends TestCase
         $this->get(route('login.code'))->assertRedirect(route('login'));
     }
 
-    public function test_other_accounts_and_a_switched_off_setting_sign_in_with_the_password_only(): void
+    public function test_students_and_faculty_still_sign_in_with_the_password_only(): void
     {
         $department = $this->makeDepartment();
         $this->makeStudent($department, 'student@example.com');
         $this->post('/login', ['email' => 'student@example.com', 'password' => 'Study2026'])->assertRedirect(route('user.dashboard'));
         auth('user')->logout();
 
-        $this->makeLabPersonnel($department, 'lab@example.com');
-        $this->post('/login', ['email' => 'lab@example.com', 'password' => 'Lab2026pass'])->assertRedirect(route('department.dashboard'));
-        auth('dept')->logout();
+        $this->makeFaculty($department, 'faculty@example.com');
+        $this->post('/login', ['email' => 'faculty@example.com', 'password' => 'Teach2026'])->assertRedirect(route('user.dashboard'));
+        auth('user')->logout();
 
         Notification::assertNothingSent();
+    }
 
+    public function test_a_switched_off_setting_signs_admins_in_with_the_password_only(): void
+    {
         config(['equiptrack.admin_two_factor' => false]);
         $this->password()->assertRedirect(route('admin.dashboard'));
         $this->assertAuthenticatedAs($this->admin, 'admin');
+        Notification::assertNothingSent();
+    }
+
+    public function test_lab_personnel_confirm_their_sign_in_with_an_emailed_code(): void
+    {
+        $lab = $this->makeLabPersonnel($this->makeDepartment(), 'lab@example.com');
+
+        $this->post('/login', ['email' => 'lab@example.com', 'password' => 'Lab2026pass'])->assertRedirect(route('login.code'));
+        $this->assertGuest('dept');
+        $this->get(route('department.dashboard'))->assertRedirect(route('login'));
+        $this->get(route('login.code'))->assertOk()->assertSee('la•••@example.com');
+
+        // A wrong code is refused and counts towards the lockout.
+        $code = null;
+        Notification::assertSentTo($lab, SignInCodeNotification::class, function ($n) use (&$code) {
+            $code = $n->code;
+
+            return true;
+        });
+        $this->from(route('login.code'))->post(route('login.code.verify'), ['code' => $code === '000000' ? '111111' : '000000'])
+            ->assertSessionHasErrors(['code' => 'That code is not correct. 4 tries left.']);
+        $this->assertDatabaseHas('audit_trail', [
+            'action' => 'Failed login (wrong sign-in code)',
+            'affected_entity' => 'department_account:' . $lab->dept_acc_id,
+        ]);
+
+        // The right code signs them in.
+        $this->post(route('login.code.verify'), ['code' => $code])->assertRedirect(route('department.dashboard'));
+        $this->assertAuthenticatedAs($lab, 'dept');
+        $this->assertNotNull($lab->fresh()->last_online);
+        $this->assertDatabaseHas('audit_trail', [
+            'dept_acc_id' => $lab->dept_acc_id,
+            'action' => 'Login',
+            'details' => 'Signed in as Department account with an emailed code',
+        ]);
+    }
+
+    public function test_a_lab_personnel_code_is_not_an_admin_code(): void
+    {
+        // The same person can't turn a Lab Personnel code into an Admin sign-in:
+        // the code is tied to the account it was sent to.
+        $lab = $this->makeLabPersonnel($this->makeDepartment(), 'lab@example.com');
+        $this->post('/login', ['email' => 'lab@example.com', 'password' => 'Lab2026pass']);
+        $labCode = null;
+        Notification::assertSentTo($lab, SignInCodeNotification::class, function ($n) use (&$labCode) {
+            $labCode = $n->code;
+
+            return true;
+        });
+
+        $this->post(route('login.code.cancel'));
+        $this->password();
+        if ($labCode !== $this->lastCode()) {
+            $this->post(route('login.code.verify'), ['code' => $labCode])->assertSessionHasErrors('code');
+        }
+        $this->assertGuest('admin');
+        $this->assertGuest('dept');
+    }
+
+    public function test_a_lab_personnel_account_deactivated_while_the_code_was_on_its_way_is_refused(): void
+    {
+        $lab = $this->makeLabPersonnel($this->makeDepartment(), 'lab@example.com');
+        $this->post('/login', ['email' => 'lab@example.com', 'password' => 'Lab2026pass']);
+        $lab->update(['status' => 'Deactivated']);
+
+        $code = null;
+        Notification::assertSentTo($lab, SignInCodeNotification::class, function ($n) use (&$code) {
+            $code = $n->code;
+
+            return true;
+        });
+        $this->post(route('login.code.verify'), ['code' => $code])
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors(['email' => 'This department account has been deactivated by the Administrator.']);
+        $this->assertGuest('dept');
+    }
+
+    public function test_the_lab_personnel_setting_can_be_switched_off_on_its_own(): void
+    {
+        config(['equiptrack.department_two_factor' => false]);
+        $lab = $this->makeLabPersonnel($this->makeDepartment(), 'lab@example.com');
+
+        $this->post('/login', ['email' => 'lab@example.com', 'password' => 'Lab2026pass'])->assertRedirect(route('department.dashboard'));
+        $this->assertAuthenticatedAs($lab, 'dept');
+        Notification::assertNothingSent();
+
+        // Admins still get their code.
+        auth('dept')->logout();
+        $this->password()->assertRedirect(route('login.code'));
+    }
+
+    public function test_the_lab_personnel_email_names_their_account(): void
+    {
+        $lab = $this->makeLabPersonnel($this->makeDepartment(), 'lab@example.com', 'Maria Lopez');
+        $html = (string) (new SignInCodeNotification('482913', 10, '203.0.113.5'))->toMail($lab)->render();
+
+        $this->assertStringContainsString('Hi Maria Lopez', $html);
+        $this->assertStringContainsString('your EquipTrack Lab Personnel account', $html);
+        $this->assertStringContainsString('482913', $html);
     }
 
     public function test_the_email_shows_the_code(): void
     {
-        $mail = (new AdminSignInCodeNotification('482913', 10, '203.0.113.5'))->toMail($this->admin);
+        $mail = (new SignInCodeNotification('482913', 10, '203.0.113.5'))->toMail($this->admin);
         $html = (string) $mail->render();
 
         $this->assertSame('Your EquipTrack sign-in code: 482913', $mail->subject);

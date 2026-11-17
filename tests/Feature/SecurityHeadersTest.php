@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Admin;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -29,26 +30,54 @@ class SecurityHeadersTest extends TestCase
         $this->assertStringContainsString("object-src 'none'", $csp);
         // Script files only from EquipTrack itself; inline scripts still allowed.
         $this->assertStringContainsString("script-src 'self' 'unsafe-inline'", $csp);
-        // Styles are deliberately not restricted (inline styles, Google Fonts).
-        $this->assertStringNotContainsString('style-src', $csp);
+        // Stylesheets and fonts only from EquipTrack itself; inline styles still allowed.
+        $this->assertStringContainsString("style-src 'self' 'unsafe-inline'", $csp);
+        $this->assertStringContainsString("font-src 'self'", $csp);
     }
 
-    public function test_pages_load_chart_js_and_font_awesome_from_equiptrack_not_a_cdn(): void
+    public function test_pages_load_chart_js_font_awesome_and_the_inter_font_from_equiptrack_not_a_cdn(): void
     {
         $this->assertFileExists(public_path('vendor/chartjs/chart.umd.js'));
         $this->assertFileExists(public_path('vendor/fontawesome/css/all.min.css'));
         $this->assertFileExists(public_path('vendor/fontawesome/webfonts/fa-solid-900.woff2'));
+        $this->assertFileExists(public_path('vendor/fonts/inter/inter.css'));
+        $this->assertFileExists(public_path('vendor/fonts/inter/inter-latin-wght-normal.woff2'));
+        $this->assertFileExists(public_path('vendor/fonts/inter/inter-latin-ext-wght-normal.woff2'));
 
-        $this->get('/login')->assertOk()
+        $outside = ['cdnjs.cloudflare.com', 'cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
+
+        $login = $this->get('/login')->assertOk()
             ->assertSee('vendor/fontawesome/css/all.min.css')
-            ->assertDontSee('cdnjs.cloudflare.com')
-            ->assertDontSee('cdn.jsdelivr.net');
-
-        $this->actingAs($this->admin(), 'admin')->get(route('admin.reports'))->assertOk()
+            ->assertSee('vendor/fonts/inter/inter.css');
+        $reports = $this->actingAs($this->admin(), 'admin')->get(route('admin.reports'))->assertOk()
             ->assertSee('vendor/chartjs/chart.umd.js')
             ->assertSee('vendor/fontawesome/css/all.min.css')
-            ->assertDontSee('cdnjs.cloudflare.com')
-            ->assertDontSee('cdn.jsdelivr.net');
+            ->assertSee('vendor/fonts/inter/inter.css');
+
+        foreach ($outside as $host) {
+            $login->assertDontSee($host);
+            $reports->assertDontSee($host);
+        }
+    }
+
+    /** Nothing in the pages or their styles loads from Google Fonts or a CDN again. */
+    public function test_no_page_or_stylesheet_loads_from_another_website(): void
+    {
+        $files = array_merge(
+            File::allFiles(resource_path('views')),
+            File::allFiles(public_path('css')),
+            File::allFiles(public_path('admin')),
+            File::allFiles(public_path('departments')),
+            File::allFiles(public_path('user')),
+        );
+
+        foreach ($files as $file) {
+            $this->assertDoesNotMatchRegularExpression(
+                '#(fonts\.googleapis\.com|fonts\.gstatic\.com|cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|unpkg\.com)#',
+                $file->getContents(),
+                $file->getRelativePathname() . ' loads something from another website; host it in public/vendor instead.',
+            );
+        }
     }
 
     private function admin(): Admin

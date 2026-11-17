@@ -6,8 +6,9 @@
 <link rel="stylesheet" href="{{ asset('css/login.css') }}?v={{ filemtime(public_path('css/login.css')) }}">
 @endpush
 
-{{-- Second sign-in step for Admin accounts: the 6-digit code emailed after
-     the right password (LoginController::codeForm, App\Support\AdminTwoFactor). --}}
+{{-- Second sign-in step for Admin and Lab Personnel accounts: the 6-digit
+     code emailed after the right password (LoginController::codeForm,
+     App\Support\SignInCode). --}}
 @section('content')
     <div class="login-container">
         @include('partials.auth-hero')

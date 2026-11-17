@@ -4,10 +4,10 @@ namespace Tests;
 
 use App\Models\Admin;
 use App\Models\BorrowTransaction;
-use App\Notifications\AdminSignInCodeNotification;
-use App\Support\PrivacyConsent;
 use App\Models\DepartmentAccount;
 use App\Models\UserAccount;
+use App\Notifications\SignInCodeNotification;
+use App\Support\PrivacyConsent;
 use Illuminate\Contracts\Auth\Authenticatable as UserContract;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Carbon;
@@ -70,14 +70,14 @@ abstract class TestCase extends BaseTestCase
     protected bool $autoAcceptPrivacy = true;
 
     /**
-     * Second step of an Admin sign-in: enters the code from the latest
-     * sign-in email (App\Support\AdminTwoFactor). Notifications must be faked
-     * before the password step.
+     * Second step of an Admin or Lab Personnel sign-in: enters the code from
+     * the latest sign-in email (App\Support\SignInCode). Notifications must
+     * be faked before the password step.
      */
-    protected function enterAdminSignInCode(Admin $admin): TestResponse
+    protected function enterSignInCode(Admin|DepartmentAccount $account): TestResponse
     {
         $code = null;
-        Notification::assertSentTo($admin, AdminSignInCodeNotification::class, function (AdminSignInCodeNotification $n) use (&$code) {
+        Notification::assertSentTo($account, SignInCodeNotification::class, function (SignInCodeNotification $n) use (&$code) {
             $code = $n->code;   // the last one sent wins
 
             return true;

@@ -168,11 +168,14 @@ return [
     'report_pdf_limit' => (int) env('REPORT_PDF_LIMIT', 1000),
 
     /*
-    | Two-step sign-in for Admin accounts: after the right password, a 6-digit
-    | code is emailed to the admin and must be entered (App\Support\AdminTwoFactor).
-    | Turn it off only if email can't be sent, or no admin could sign in.
+    | Two-step sign-in for the staff accounts: after the right password, a
+    | 6-digit code is emailed to the account and must be entered
+    | (App\Support\SignInCode). One switch for Admins, one for Lab Personnel
+    | (Department accounts). Turn one off only if email can't be sent, or
+    | nobody with that role could sign in.
     */
     'admin_two_factor' => (bool) env('ADMIN_TWO_FACTOR', true),
+    'department_two_factor' => (bool) env('DEPARTMENT_TWO_FACTOR', true),
 
     /*
     |--------------------------------------------------------------------------

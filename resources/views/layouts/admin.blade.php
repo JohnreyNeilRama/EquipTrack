@@ -48,7 +48,7 @@
     <link rel="stylesheet" href="{{ asset('css/mobile-shell.css') }}?v={{ filemtime(public_path('css/mobile-shell.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/mobile-staff.css') }}?v={{ filemtime(public_path('css/mobile-staff.css')) }}">
     <link rel="stylesheet" href="{{ asset('admin/css/adminmobile.css') }}?v={{ filemtime(public_path('admin/css/adminmobile.css')) }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('vendor/fonts/inter/inter.css') }}?v=5.3.0">
     <link rel="stylesheet" href="{{ asset('vendor/fontawesome/css/all.min.css') }}?v=6.4.0">
     <script>
         // Check for saved theme preference immediately to prevent flash of light theme

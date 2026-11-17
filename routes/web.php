@@ -50,7 +50,7 @@ Route::get('/avatar', AvatarController::class)->middleware('throttle:600,1')->na
 Route::view('/', 'landing')->name('landing');
 Route::get('/login', [LoginController::class, 'show'])->name('login');
 Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:6,1');
-// Admin sign-in code (two-step sign-in, App\Support\AdminTwoFactor). Own
+// Sign-in code for Admin and Lab Personnel (two-step sign-in, App\Support\SignInCode). Own
 // per-visitor limits (the third value), so typing the password and then the
 // code doesn't use up the login form's 6 tries a minute.
 Route::get('/login/code', [LoginController::class, 'codeForm'])->name('login.code');

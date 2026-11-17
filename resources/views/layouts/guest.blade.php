@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}?v={{ filemtime(public_path('images/favicon.png')) }}">
     <link rel="apple-touch-icon" href="{{ asset('images/favicon.png') }}?v={{ filemtime(public_path('images/favicon.png')) }}">
     @stack('css')
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('vendor/fonts/inter/inter.css') }}?v=5.3.0">
     <link rel="stylesheet" href="{{ asset('vendor/fontawesome/css/all.min.css') }}?v=6.4.0">
 </head>
 <body>

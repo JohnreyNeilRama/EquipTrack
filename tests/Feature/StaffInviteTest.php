@@ -86,7 +86,8 @@ class StaffInviteTest extends TestCase
         $this->assertTrue(FacultyApproval::departmentHasActiveAccount($this->ccs->department_id));
         $this->assertDatabaseHas('audit_trail', ['action' => 'Set password from invite', 'affected_entity' => 'department_account:' . $lab->dept_acc_id]);
 
-        $this->post('/login', ['email' => 'ferrer@example.com', 'password' => 'Lab2026pass'])->assertRedirect(route('department.dashboard'));
+        $this->post('/login', ['email' => 'ferrer@example.com', 'password' => 'Lab2026pass'])->assertRedirect(route('login.code'));
+        $this->enterSignInCode($lab)->assertRedirect(route('department.dashboard'));
     }
 
     public function test_the_admin_can_resend_staff_invites_but_not_to_accounts_already_set_up(): void
@@ -131,7 +132,7 @@ class StaffInviteTest extends TestCase
 
         // She can also sign in with her username (the same as her email).
         $this->post('/login', ['email' => 'maria@example.com', 'password' => 'Admin2026'])->assertRedirect(route('login.code'));
-        $this->enterAdminSignInCode($maria)->assertRedirect(route('admin.dashboard'));
+        $this->enterSignInCode($maria)->assertRedirect(route('admin.dashboard'));
     }
 
     public function test_fixing_a_pending_admins_mistyped_email_sends_no_takeover_alert(): void
@@ -187,7 +188,8 @@ class StaffInviteTest extends TestCase
             'privacy' => '1',
             'token' => $token, 'email' => 'new.lab@example.com', 'password' => 'NewLab2026', 'password_confirmation' => 'NewLab2026',
         ])->assertRedirect(route('login'));
-        $this->post('/login', ['email' => 'new.lab@example.com', 'password' => 'NewLab2026'])->assertRedirect(route('department.dashboard'));
+        $this->post('/login', ['email' => 'new.lab@example.com', 'password' => 'NewLab2026'])->assertRedirect(route('login.code'));
+        $this->enterSignInCode($lab->fresh())->assertRedirect(route('department.dashboard'));
     }
 
     public function test_a_deactivated_department_account_must_be_activated_before_a_handover(): void

@@ -119,7 +119,7 @@ class AdminAuditTrailTest extends TestCase
         Notification::fake();
         $this->post('/login', ['email' => 'admin', 'password' => 'password'])->assertRedirect(route('login.code'));
         $this->assertSame(0, AuditTrail::where('action', 'Login')->count(), 'Not signed in before the code.');
-        $this->enterAdminSignInCode($this->admin)->assertRedirect(route('admin.dashboard'));
+        $this->enterSignInCode($this->admin)->assertRedirect(route('admin.dashboard'));
 
         $this->assertDatabaseHas('audit_trail', [
             'admin_id' => $this->admin->admin_id,

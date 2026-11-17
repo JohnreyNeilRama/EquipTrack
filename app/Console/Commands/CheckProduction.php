@@ -82,6 +82,13 @@ class CheckProduction extends Command
             required: false,
         );
 
+        $this->check(
+            'Lab Personnel sign in with an emailed code',
+            (bool) config('equiptrack.department_two_factor'),
+            'recommended: DEPARTMENT_TWO_FACTOR=true (off only while email is broken)',
+            required: false,
+        );
+
         $mailHost = strtolower((string) config('mail.mailers.smtp.host'));
         $from = strtolower((string) config('mail.from.address'));
         $this->check(

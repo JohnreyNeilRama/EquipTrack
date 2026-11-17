@@ -94,7 +94,7 @@
     <h2>5. How we protect it</h2>
     <ul>
         <li>The site is only reachable through a secure, encrypted connection (HTTPS).</li>
-        <li>Passwords are stored scrambled. Repeated wrong passwords lock the account for a while, and Administrators also confirm each sign-in with a code sent to their email.</li>
+        <li>Passwords are stored scrambled. Repeated wrong passwords lock the account for a while, and Administrators and Lab Personnel also confirm each sign-in with a code sent to their email.</li>
         <li>Each person sees only what their role needs, and Lab Personnel only their own department's records.</li>
         <li>Penalty proofs are stored privately and shown only to the people allowed to see them.</li>
         <li>Important actions are recorded in an audit trail, and the system is backed up daily.</li>

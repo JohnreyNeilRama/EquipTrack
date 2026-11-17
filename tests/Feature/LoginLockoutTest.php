@@ -139,7 +139,7 @@ class LoginLockoutTest extends TestCase
 
         // Cleared once the sign-in is complete (password and emailed code).
         $this->attempt('admin@example.com', 'Secret123')->assertRedirect(route('login.code'));
-        $this->enterAdminSignInCode($admin)->assertRedirect(route('admin.dashboard'));
+        $this->enterSignInCode($admin)->assertRedirect(route('admin.dashboard'));
         auth('admin')->logout();
 
         // Both counters started again: 9 more failures on the username still don't lock it.

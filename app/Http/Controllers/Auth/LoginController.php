@@ -7,8 +7,8 @@ use App\Models\Admin;
 use App\Models\DepartmentAccount;
 use App\Models\UserAccount;
 use App\Services\AuditLogger;
-use App\Support\AdminTwoFactor;
 use App\Support\LoginLockout;
+use App\Support\SignInCode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -106,18 +106,8 @@ class LoginController extends Controller
             }
             // Two-step sign-in: the password was right; a code is emailed and
             // the admin is signed in only after entering it (codeForm/verifyCode).
-            if (AdminTwoFactor::enabled()) {
-                try {
-                    AdminTwoFactor::start($request, $admin, $remember);
-                } catch (\Throwable $e) {
-                    report($e);
-
-                    throw ValidationException::withMessages([
-                        'email' => "We couldn't email your sign-in code. Please try again in a few minutes.",
-                    ]);
-                }
-
-                return redirect()->route('login.code');
+            if (SignInCode::enabledFor('admin')) {
+                return $this->askForCode($request, 'admin', $admin, $remember);
             }
 
             $admin->forceFill(['last_online' => now()])->save();
@@ -136,6 +126,11 @@ class LoginController extends Controller
                     'email' => 'This department account has been deactivated by the Administrator.',
                 ]);
             }
+            // Lab Personnel confirm with an emailed code too (see above).
+            if (SignInCode::enabledFor('dept')) {
+                return $this->askForCode($request, 'dept', $dept, $remember);
+            }
+
             $dept->forceFill(['last_online' => now()])->save();
             LoginLockout::clear($input);
 
@@ -202,25 +197,50 @@ class LoginController extends Controller
     }
 
     // ------------------------------------------------------------------
-    // Admin sign-in code (App\Support\AdminTwoFactor)
+    // Sign-in code for Admin and Lab Personnel (App\Support\SignInCode)
     // ------------------------------------------------------------------
 
-    /** "Enter your sign-in code" page, after an Admin's correct password. */
+    /** Emails the code after a correct password and shows the code page. */
+    private function askForCode(Request $request, string $guard, Admin|DepartmentAccount $account, bool $remember): RedirectResponse
+    {
+        try {
+            SignInCode::start($request, $guard, $account, $remember);
+        } catch (\Throwable $e) {
+            report($e);
+
+            throw ValidationException::withMessages([
+                'email' => "We couldn't email your sign-in code. Please try again in a few minutes.",
+            ]);
+        }
+
+        return redirect()->route('login.code');
+    }
+
+    /** Every name the account can sign in with (Admins also have a username). */
+    private static function signInNames(Admin|DepartmentAccount $account): array
+    {
+        return array_values(array_unique(array_filter([
+            mb_strtolower((string) $account->email),
+            $account instanceof Admin ? mb_strtolower((string) $account->username) : null,
+        ])));
+    }
+
+    /** "Enter your sign-in code" page, after a staff account's correct password. */
     public function codeForm(Request $request): View|RedirectResponse
     {
         if ($redirect = $this->alreadyLoggedIn()) {
             return $redirect;
         }
 
-        $admin = AdminTwoFactor::pendingAdmin($request);
-        if (!$admin) {
+        $pending = SignInCode::pending($request);
+        if (!$pending) {
             return redirect()->route('login');
         }
 
-        return view('auth.admin-code', [
-            'email' => self::maskEmail((string) $admin->email),
-            'minutes' => AdminTwoFactor::CODE_MINUTES,
-            'resendWait' => AdminTwoFactor::resendWait($request),
+        return view('auth.sign-in-code', [
+            'email' => self::maskEmail((string) $pending[1]->email),
+            'minutes' => SignInCode::CODE_MINUTES,
+            'resendWait' => SignInCode::resendWait($request),
         ]);
     }
 
@@ -230,42 +250,50 @@ class LoginController extends Controller
             return $redirect;
         }
 
-        $admin = AdminTwoFactor::pendingAdmin($request);
-        if (!$admin) {
+        $pending = SignInCode::pending($request);
+        if (!$pending) {
             return redirect()->route('login');
         }
+        [$guard, $account] = $pending;
 
         $request->validate(['code' => ['required', 'string', 'max:20']], [
             'code.required' => 'Enter the 6-digit code from your email.',
         ]);
 
         // A lockout from wrong passwords or codes also stops the code step.
-        if (LoginLockout::isLocked((string) $admin->email) || LoginLockout::isLocked((string) $admin->username)) {
-            AdminTwoFactor::clear($request);
+        $names = self::signInNames($account);
+        foreach ($names as $name) {
+            if (LoginLockout::isLocked($name)) {
+                SignInCode::clear($request);
 
-            return redirect()->route('login')->withErrors([
-                'email' => 'Too many failed sign-in attempts for this account. Try again in '
-                    . LoginLockout::minutesLeft((string) ($admin->email ?: $admin->username)) . ' minutes.',
-            ]);
+                return redirect()->route('login')->withErrors([
+                    'email' => 'Too many failed sign-in attempts for this account. Try again in '
+                        . LoginLockout::minutesLeft($name) . ' minutes.',
+                ]);
+            }
         }
 
-        $remember = AdminTwoFactor::remember($request);
-        $result = AdminTwoFactor::check($request, (string) $request->input('code'));
+        $remember = SignInCode::remember($request);
+        $result = SignInCode::check($request, (string) $request->input('code'));
 
         if ($result === 'ok') {
             // Deactivated while the code was on its way: still refused.
-            if (strtolower((string) $admin->status) === 'deactivated') {
-                return redirect()->route('login')->withErrors(['email' => 'This administrator account has been deactivated.']);
+            if (strtolower((string) $account->status) === 'deactivated') {
+                return redirect()->route('login')->withErrors([
+                    'email' => $guard === 'admin'
+                        ? 'This administrator account has been deactivated.'
+                        : 'This department account has been deactivated by the Administrator.',
+                ]);
             }
 
-            $admin->forceFill(['last_online' => now()])->save();
-            LoginLockout::clear($admin->username, $admin->email);
+            $account->forceFill(['last_online' => now()])->save();
+            LoginLockout::clear(...$names);
 
-            return $this->logInto('admin', $admin, $remember, 'with an emailed code');
+            return $this->logInto($guard, $account, $remember, 'with an emailed code');
         }
 
         if ($result === 'none' || $result === 'expired') {
-            AdminTwoFactor::clear($request);
+            SignInCode::clear($request);
 
             return redirect()->route('login')->withErrors([
                 'email' => $result === 'expired'
@@ -276,23 +304,23 @@ class LoginController extends Controller
 
         // Wrong code: counts towards the account lockout like a wrong password.
         $justLocked = false;
-        foreach (array_unique(array_filter([mb_strtolower((string) $admin->email), mb_strtolower((string) $admin->username)])) as $name) {
+        foreach ($names as $name) {
             $justLocked = LoginLockout::recordFailure($name) || $justLocked;
         }
-        $this->logSignInProblem('Failed login (wrong sign-in code)', $admin, (string) $admin->email, $request);
+        $this->logSignInProblem('Failed login (wrong sign-in code)', $account, (string) $account->email, $request);
         if ($justLocked) {
-            $this->logSignInProblem('Account locked', $admin, (string) $admin->email, $request);
+            $this->logSignInProblem('Account locked', $account, (string) $account->email, $request);
         }
 
         if ($result === 'too_many' || $justLocked) {
-            AdminTwoFactor::clear($request);
+            SignInCode::clear($request);
 
             return redirect()->route('login')->withErrors([
                 'email' => 'Too many wrong codes. Sign in again to get a new code.',
             ]);
         }
 
-        $left = AdminTwoFactor::attemptsLeft($request);
+        $left = SignInCode::attemptsLeft($request);
 
         return back()->withErrors([
             'code' => 'That code is not correct. ' . $left . ' ' . ($left === 1 ? 'try' : 'tries') . ' left.',
@@ -302,18 +330,18 @@ class LoginController extends Controller
     /** Emails a new code (at most once every RESEND_SECONDS). */
     public function resendCode(Request $request): RedirectResponse
     {
-        $admin = AdminTwoFactor::pendingAdmin($request);
-        if (!$admin) {
+        $pending = SignInCode::pending($request);
+        if (!$pending) {
             return redirect()->route('login');
         }
 
-        $wait = AdminTwoFactor::resendWait($request);
+        $wait = SignInCode::resendWait($request);
         if ($wait > 0) {
             return back()->withErrors(['code' => 'Please wait ' . $wait . ' seconds before asking for a new code.']);
         }
 
         try {
-            AdminTwoFactor::sendCode($request, $admin);
+            SignInCode::sendCode($request, $pending[1]);
         } catch (\Throwable $e) {
             report($e);
 
@@ -326,7 +354,7 @@ class LoginController extends Controller
     /** "Use a different account": drops the waiting sign-in. */
     public function cancelCode(Request $request): RedirectResponse
     {
-        AdminTwoFactor::clear($request);
+        SignInCode::clear($request);
 
         return redirect()->route('login');
     }
