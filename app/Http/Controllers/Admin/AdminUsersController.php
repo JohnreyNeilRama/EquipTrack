@@ -8,6 +8,7 @@ use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
 use App\Models\Department;
 use App\Models\DepartmentAccount;
+use App\Models\Equipment;
 use App\Models\UserAccount;
 use App\Rules\UniqueAccountEmail;
 use App\Services\AdminEmailChange;
@@ -43,8 +44,92 @@ class AdminUsersController extends Controller
         // one Department Account (the account forms can't pick them).
         $departmentAccountIds = DepartmentAccount::whereNotNull('department_id')
             ->pluck('dept_acc_id', 'department_id')->all();
+        $departmentUsage = $this->departmentUsage();
 
-        return view('admin.users', compact('dbUsers', 'usersPage', 'departmentsList', 'departmentAccountIds'));
+        return view('admin.users', compact('dbUsers', 'usersPage', 'departmentsList', 'departmentAccountIds', 'departmentUsage'));
+    }
+
+    /**
+     * department_id => how many Department Accounts, users (students and
+     * faculty) and equipment items belong to it, for the Departments window.
+     * Only a department with none of these can be deleted.
+     */
+    private function departmentUsage(?int $departmentId = null): array
+    {
+        $count = fn ($query) => $query
+            ->when($departmentId !== null, fn ($q) => $q->where('department_id', $departmentId))
+            ->whereNotNull('department_id')
+            ->selectRaw('department_id, COUNT(*) AS total')
+            ->groupBy('department_id')
+            ->pluck('total', 'department_id');
+
+        $accounts = $count(DepartmentAccount::query());
+        $users = $count(UserAccount::query());
+        $equipment = $count(Equipment::query());
+
+        $usage = [];
+        foreach (Department::when($departmentId !== null, fn ($q) => $q->whereKey($departmentId))->pluck('department_id') as $id) {
+            $usage[$id] = [
+                'accounts' => (int) ($accounts[$id] ?? 0),
+                'users' => (int) ($users[$id] ?? 0),
+                'equipment' => (int) ($equipment[$id] ?? 0),
+            ];
+        }
+
+        return $usage;
+    }
+
+    /**
+     * Deletes a department, e.g. a duplicate added by mistake, but only while
+     * nothing belongs to it: no Department Account, no students or faculty and
+     * no equipment (borrowing history always goes through equipment). The
+     * database would otherwise delete its equipment with it and leave its
+     * users without a department, so anything still linked must be moved or
+     * removed first.
+     */
+    public function deleteDepartment(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'department_id' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $result = DB::transaction(function () use ($data) {
+            $department = Department::whereKey($data['department_id'])->lockForUpdate()->first();
+            if (!$department) {
+                return 'That department no longer exists.';
+            }
+
+            $usage = $this->departmentUsage((int) $department->department_id)[$department->department_id];
+            $linked = array_filter([
+                $usage['accounts'] ? 'its Department Account' : null,
+                $usage['users'] ? $usage['users'] . ' ' . Str::plural('student or faculty account', $usage['users']) : null,
+                $usage['equipment'] ? $usage['equipment'] . ' equipment ' . Str::plural('item', $usage['equipment']) : null,
+            ]);
+            if ($linked) {
+                return "'{$department->department_name}' can't be deleted because it still has "
+                    . implode(', ', $linked) . '. Move or remove them first, or correct the department\'s details instead.';
+            }
+
+            $department->delete();
+
+            return $department;
+        });
+
+        if (is_string($result)) {
+            return redirect()->route('admin.users')->with('serverMsg', $result)->with('serverMsgType', 'error');
+        }
+
+        AuditLogger::log(
+            'Deleted department ' . $result->department_code,
+            'department:' . $result->department_id,
+            $result->department_name . ' (' . $result->department_code . ')' . ($result->college ? ', ' . $result->college : ''),
+            AuditLogger::actorFor('admin', auth('admin')->user()),
+            $request,
+        );
+
+        return redirect()->route('admin.users')
+            ->with('serverMsg', "Department '{$result->department_name}' was deleted.")
+            ->with('serverMsgType', 'success');
     }
 
     /** One page of accounts (query parameters page, search, role, status). */
@@ -231,6 +316,12 @@ class AdminUsersController extends Controller
 
         $data = $request->validate(UserAccountEditor::rules($account), UserAccountEditor::messages());
 
+        // Department accounts: the department's own name, code and college
+        // (e.g. a typo made when it was created) are corrected on the same form.
+        $departmentDetails = $account instanceof DepartmentAccount
+            ? $this->validatedDepartmentDetails($request, (int) $data['department_id'])
+            : null;
+
         // "A new person now holds this account" (Department accounts only): the
         // invite it sends can't be used on a deactivated account.
         $newHolder = $account instanceof DepartmentAccount && $request->boolean('new_holder');
@@ -261,7 +352,13 @@ class AdminUsersController extends Controller
             default => false,
         };
 
-        $changed = UserAccountEditor::update($account, $data, AuditLogger::actorFor('admin', auth('admin')->user()), $request);
+        $actor = AuditLogger::actorFor('admin', auth('admin')->user());
+        $changed = DB::transaction(fn () => array_merge(
+            UserAccountEditor::update($account, $data, $actor, $request),
+            $departmentDetails !== null
+                ? $this->updateDepartmentDetails(Department::findOrFail((int) $data['department_id']), $departmentDetails, $actor, $request)
+                : [],
+        ));
 
         // An Admin still waiting for their invite never used the old address
         // (often a typo being fixed): no takeover alert; resend the invite instead.
@@ -289,6 +386,81 @@ class AdminUsersController extends Controller
         return redirect()->route('admin.users')
             ->with('serverMsg', $message)
             ->with('serverMsgType', 'success');
+    }
+
+    /**
+     * The department's name, code and college from the Edit form of its
+     * Department Account, checked like a new department's (the name and code
+     * stay unique, ignoring this department itself). Null when the form did
+     * not send them, so the account alone is saved as before.
+     */
+    private function validatedDepartmentDetails(Request $request, int $departmentId): ?array
+    {
+        if (!$request->hasAny(['department_name', 'department_code', 'department_college'])) {
+            return null;
+        }
+
+        $request->merge([
+            'department_name' => trim((string) $request->input('department_name')),
+            'department_code' => strtoupper(trim((string) $request->input('department_code'))),
+            'department_college' => trim((string) $request->input('department_college')),
+        ]);
+
+        return $request->validate([
+            'department_name' => ['required', 'string', 'max:255', Rule::unique('department', 'department_name')->ignore($departmentId, 'department_id')],
+            'department_code' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9-]+$/', Rule::unique('department', 'department_code')->ignore($departmentId, 'department_id')],
+            'department_college' => ['nullable', 'string', 'max:255'],
+        ], [
+            'department_name.required' => 'Enter the department\'s name.',
+            'department_name.unique' => 'Another department already has this name.',
+            'department_code.required' => 'Enter the department\'s code (e.g., CE).',
+            'department_code.regex' => 'The department code may contain only letters, numbers and hyphens.',
+            'department_code.unique' => 'Another department already has this code.',
+        ]);
+    }
+
+    /**
+     * Saves the department's corrected name, code and college. Only the
+     * department row changes: accounts, users, equipment and borrowing
+     * history point to it by department_id, so every page shows the new
+     * details at once. Returns the labels of what changed.
+     *
+     * @return string[]
+     */
+    private function updateDepartmentDetails(Department $department, array $details, array $actor, Request $request): array
+    {
+        $before = [
+            'department_name' => (string) $department->department_name,
+            'department_code' => (string) $department->department_code,
+            'department_college' => (string) $department->college,
+        ];
+        $changed = AuditLogger::changedFields($before, $details, [
+            'department_name' => 'Department name',
+            'department_code' => 'Department code',
+            'department_college' => 'College',
+        ]);
+
+        if (!$changed) {
+            return [];
+        }
+
+        $department->update([
+            'department_name' => $details['department_name'],
+            'department_code' => $details['department_code'],
+            'college' => ($details['department_college'] ?? '') ?: null,
+        ]);
+
+        $describe = fn (array $v) => $v['department_name'] . ' (' . $v['department_code'] . ')'
+            . ((string) ($v['department_college'] ?? '') !== '' ? ', ' . $v['department_college'] : '');
+        AuditLogger::log(
+            'Updated department ' . $department->department_code,
+            'department:' . $department->department_id,
+            'Changed: ' . implode(', ', $changed) . ' · ' . $describe($before) . ' → ' . $describe($details),
+            $actor,
+            $request,
+        );
+
+        return $changed;
     }
 
     /**

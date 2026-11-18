@@ -94,6 +94,7 @@ class AuditCatalog
         ]],
         // After "Added User", so "Added department account" stays an account.
         ['label' => 'Added Department', 'module' => 'Users', 'prefixes' => ['Created department' => 'Department']],
+        ['label' => 'Updated Department', 'module' => 'Users', 'prefixes' => ['Updated department' => 'Department']],
         ['label' => 'Updated User', 'module' => 'Users', 'prefixes' => ['Updated user' => 'User']],
         ['label' => 'Sent Invite', 'module' => 'Users', 'prefixes' => ['Sent account invite' => 'Account invite']],
         ['label' => 'Handed Over Account', 'module' => 'Users', 'prefixes' => ['Handed over department account' => 'Department account']],
@@ -106,6 +107,8 @@ class AuditCatalog
             'Deleted department account' => 'Department account',
             'Deleted admin account' => 'Admin account',
         ]],
+        // After "Deleted User", so "Deleted department account" stays an account.
+        ['label' => 'Deleted Department', 'module' => 'Users', 'prefixes' => ['Deleted department' => 'Department']],
 
         // Own account (admin, department and user profile pages)
         ['label' => 'Updated Profile', 'module' => 'Profile', 'prefixes' => [

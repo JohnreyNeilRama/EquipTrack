@@ -121,6 +121,7 @@ Route::middleware(['auth:admin', 'auth.session', 'active', 'privacy', 'expire.re
     Route::post('/users/faculty', [AdminUsersController::class, 'addFaculty'])->name('users.faculty');
     Route::post('/users/update', [AdminUsersController::class, 'updateUser'])->name('users.update');
     Route::post('/users/department', [AdminUsersController::class, 'addDepartment'])->name('users.department');
+    Route::post('/users/department/delete', [AdminUsersController::class, 'deleteDepartment'])->name('users.department.delete');
     Route::post('/users/admin', [AdminUsersController::class, 'addAdmin'])->name('users.admin');
     Route::post('/users/toggle-status', [AdminUsersController::class, 'toggleStatus'])->name('users.toggle');
     Route::post('/users/resend-invite', [AdminUsersController::class, 'resendInvite'])->middleware('throttle:20,1')->name('users.invite');

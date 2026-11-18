@@ -137,6 +137,11 @@
                             <i class="fa-solid fa-building" aria-hidden="true"></i>
                             <span><strong>Department</strong><small>New department and its account</small></span>
                         </button>
+                        <div class="add-account-divider" role="separator"></div>
+                        <button type="button" class="add-account-item" id="manageDepartmentsBtn" role="menuitem">
+                            <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+                            <span><strong>Departments</strong><small>View or delete unused departments</small></span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -469,6 +474,27 @@
                         </div>
                     </div>
 
+                    {{-- Department accounts: correct the department's own details (e.g. a
+                         typo made when it was added). Filled from the department picked above. --}}
+                    <fieldset class="new-department-fields" data-for="dept">
+                        <legend>Department details</legend>
+                        <div class="form-group-flat">
+                            <label for="editDepartmentName">Department Name <span style="color: #ef4444;">*</span></label>
+                            <input type="text" id="editDepartmentName" name="department_name" class="form-control-flat" required maxlength="255" placeholder="e.g. Computer Engineering">
+                        </div>
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div class="form-group-flat">
+                                <label for="editDepartmentCode">Department Code <span style="color: #ef4444;">*</span></label>
+                                <input type="text" id="editDepartmentCode" name="department_code" class="form-control-flat" required maxlength="50" pattern="[A-Za-z0-9\-]+" title="Letters, numbers and hyphens only." placeholder="e.g. CPE" style="text-transform: uppercase;">
+                            </div>
+                            <div class="form-group-flat">
+                                <label for="editDepartmentCollege">College <span class="label-optional">(optional)</span></label>
+                                <input type="text" id="editDepartmentCollege" name="department_college" class="form-control-flat" maxlength="255" placeholder="e.g. College of Engineering">
+                            </div>
+                        </div>
+                        <p class="pw-hint" style="margin: -4px 0 14px;">Changes show everywhere in EquipTrack. The department keeps its account, users, equipment and borrowing history.</p>
+                    </fieldset>
+
                     <div class="form-group-flat">
                         <label for="editEmail">Email Address</label>
                         <input type="email" id="editEmail" name="email" class="form-control-flat" required maxlength="100">
@@ -493,6 +519,50 @@
                         Save Changes
                     </button>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Departments: every department with what belongs to it. Only an unused
+         one (e.g. a duplicate added by mistake) can be deleted. --}}
+    <div class="modal-overlay" id="departmentsListModal">
+        <div class="modal-card eq-modal-card" style="max-width: 600px;">
+            <div class="modal-outer-header">
+                <p class="modal-subtitle-top">Departments in EquipTrack</p>
+            </div>
+            <div class="modal-inner-card">
+                <button class="modal-close" id="closeDepartmentsListBtn" aria-label="Close">&times;</button>
+                <h3 class="modal-title-center">Departments</h3>
+                <p class="edit-form-note">A department can be deleted only while nothing belongs to it: no Department Account, students, faculty or equipment. To fix a typo in a department's name, code or college, use Edit Details on its Department Account instead.</p>
+
+                <ul class="dept-list">
+                    @forelse ($departmentsList as $listDept)
+                        @php
+                            $use = $departmentUsage[$listDept->department_id] ?? ['accounts' => 0, 'users' => 0, 'equipment' => 0];
+                            $inUse = array_filter([
+                                $use['accounts'] ? 'Department Account' : null,
+                                $use['users'] ? $use['users'] . ' ' . \Illuminate\Support\Str::plural('user', $use['users']) : null,
+                                $use['equipment'] ? $use['equipment'] . ' equipment' : null,
+                            ]);
+                        @endphp
+                        <li class="dept-list-row">
+                            <div class="dept-list-main">
+                                <strong>{{ $listDept->department_name }}</strong>
+                                <small>{{ $listDept->department_code }}{{ $listDept->college ? ' · ' . $listDept->college : '' }}</small>
+                                <small class="dept-list-usage {{ $inUse ? '' : 'is-unused' }}">{{ $inUse ? 'Has ' . implode(', ', $inUse) : 'Not used' }}</small>
+                            </div>
+                            <button type="button" class="dept-list-delete"
+                                    data-delete-department="{{ $listDept->department_id }}"
+                                    data-name="{{ $listDept->department_name }} ({{ $listDept->department_code }})"
+                                    @disabled($inUse)
+                                    title="{{ $inUse ? 'Can\'t be deleted: it still has ' . implode(', ', $inUse) . '.' : 'Delete this department' }}">
+                                <i class="fa-regular fa-trash-can" aria-hidden="true"></i> Delete
+                            </button>
+                        </li>
+                    @empty
+                        <li class="dept-list-row"><small>No departments yet.</small></li>
+                    @endforelse
+                </ul>
             </div>
         </div>
     </div>
@@ -712,6 +782,15 @@
         };
         // department_id => dept_acc_id of the department's one Department Account
         const DEPT_ACCOUNT_IDS = @json((object) $departmentAccountIds);
+        // department_id => its name, code and college (Edit form of a Department Account).
+        @php
+            $departmentDetails = $departmentsList->mapWithKeys(fn ($d) => [$d->department_id => [
+                'department_name' => (string) $d->department_name,
+                'department_code' => (string) $d->department_code,
+                'department_college' => (string) $d->college,
+            ]])->all();
+        @endphp
+        const DEPARTMENT_DETAILS = @json((object) $departmentDetails);
         const URL_IMAGE = @json(route('admin.users.image'));
 
         // Helper: submit a hidden POST form (same full-page-submit UX as legacy)
@@ -1060,9 +1139,28 @@
                 el.value = value === null ? '' : String(value);
             });
 
+            // Department details: what was typed (after a refused save), else
+            // the saved details of the account's department.
+            if (type === 'dept') {
+                fillDepartmentDetails(typedValues && 'department_name' in typedValues ? typedValues : null);
+            }
+
             editUserModal.classList.add('show');
         }
         window.openEditUserModal = openEditUserModal;
+
+        function fillDepartmentDetails(typed = null) {
+            const saved = DEPARTMENT_DETAILS[document.getElementById('editDepartment').value] || {};
+            const source = typed || saved;
+            document.getElementById('editDepartmentName').value = source.department_name ?? '';
+            document.getElementById('editDepartmentCode').value = source.department_code ?? '';
+            document.getElementById('editDepartmentCollege').value = source.department_college ?? '';
+        }
+
+        // Moving the account to another department shows that department's details.
+        document.getElementById('editDepartment').addEventListener('change', () => {
+            if (document.getElementById('editUserType').value === 'department') fillDepartmentDetails();
+        });
 
         // Delete User Account
         window.deleteUser = async function(id) {
@@ -1477,6 +1575,35 @@
         closeDeptModalBtn.addEventListener('click', () => {
             departmentModal.classList.remove('show');
             departmentForm.reset();
+        });
+
+        // Departments window: delete an unused department after confirming.
+        // The server checks again that nothing belongs to it.
+        const departmentsListModal = document.getElementById('departmentsListModal');
+        const URL_DELETE_DEPARTMENT = @json(route('admin.users.department.delete'));
+        document.getElementById('manageDepartmentsBtn').addEventListener('click', () => {
+            departmentsListModal.classList.add('show');
+        });
+        document.getElementById('closeDepartmentsListBtn').addEventListener('click', () => {
+            departmentsListModal.classList.remove('show');
+        });
+        departmentsListModal.addEventListener('click', async (e) => {
+            if (e.target === departmentsListModal) {
+                departmentsListModal.classList.remove('show');
+                return;
+            }
+            const button = e.target.closest('[data-delete-department]');
+            if (!button || button.disabled) return;
+            const ok = await equipConfirm({
+                title: 'Delete this department?',
+                message: `${button.dataset.name} will be permanently deleted. Nothing belongs to it, so no accounts, equipment or history are affected. This cannot be undone.`,
+                confirmText: 'Delete Department',
+                tone: 'danger',
+            });
+            if (ok) {
+                button.disabled = true;
+                postForm(URL_DELETE_DEPARTMENT, { department_id: button.dataset.deleteDepartment });
+            }
         });
 
         studentModal.addEventListener('click', (e) => {
