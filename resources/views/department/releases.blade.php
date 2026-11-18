@@ -250,16 +250,36 @@
     .view-footer .view-btn-primary:hover { background-color: #2f477a; }
     .view-footer .view-btn-outline { background-color: transparent; color: #dc2626; border-color: #fca5a5; }
     .view-footer .view-btn-outline:hover { background-color: #fef2f2; border-color: #dc2626; }
-    .view-footer .view-btn-text { padding: 0 4px; background: none; color: #dc2626; text-decoration: underline; text-underline-offset: 3px; font-weight: 500; }
-    .view-footer .view-btn-text:hover { color: #b91c1c; }
+    /* Cancel Reservation: a destructive action, so it reads as one (red,
+       with an icon) but stays lighter than the main Release button. It asks
+       for confirmation and a reason first, and is disabled while it runs. */
+    .view-footer .view-btn-danger {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background-color: rgba(239, 68, 68, 0.08);
+        color: #dc2626;
+        border-color: rgba(220, 38, 38, 0.45);
+        white-space: nowrap;
+        transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    }
+    .view-footer .view-btn-danger i { font-size: 0.95em; }
+    .view-footer .view-btn-danger:hover:not(:disabled) { background-color: var(--danger-color); border-color: var(--danger-color); color: #ffffff; }
+    .view-footer .view-btn-danger:active:not(:disabled) { background-color: #dc2626; border-color: #dc2626; }
+    .view-footer .view-btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
+    .view-footer .view-btn-danger:focus-visible { outline: 2px solid #dc2626; outline-offset: 2px; }
     .view-footer .view-btn-close { background-color: transparent; color: var(--text-main); border-color: var(--border-color); }
     .dark-theme .view-footer .view-btn-primary { background-color: #3b82f6; }
-    .dark-theme .view-footer .view-btn-outline,
-    .dark-theme .view-footer .view-btn-text { color: #f87171; }
+    .dark-theme .view-footer .view-btn-outline { color: #f87171; }
+    .dark-theme .view-footer .view-btn-danger { background-color: rgba(248, 113, 113, 0.12); color: #f87171; border-color: rgba(248, 113, 113, 0.45); }
+    .dark-theme .view-footer .view-btn-danger:hover:not(:disabled) { background-color: #dc2626; border-color: #dc2626; color: #ffffff; }
+    .dark-theme .view-footer .view-btn-danger:focus-visible { outline-color: #f87171; }
     @media (max-width: 576px) {
         .view-footer { flex-wrap: wrap; }
         .view-footer .view-footer-end { width: 100%; margin-left: 0; }
         .view-footer .view-footer-end button { flex: 1; }
+        .view-footer .view-btn-danger { width: 100%; }
     }
     .dark-theme .releases-table .rel-btn--wait { background-color: rgba(148, 163, 184, 0.12); color: #94a3b8; border-color: rgba(148, 163, 184, 0.25); }
 </style>
@@ -455,15 +475,8 @@
                         </div>
                     </div>
 
-                    {{-- Cancel Reservation --}}
-                    <div id="cancelFields" style="display: none;">
-                        <p class="release-help">The reservation is closed and the dates are free again. The borrower is not penalized, sees your reason and can request the item again.</p>
-                        <label class="detail-form-label" for="relCancelReason" style="text-align: left;">Reason (shown to the borrower)</label>
-                        <textarea id="relCancelReason" class="detail-form-control textarea-control" rows="3" maxlength="255" placeholder="e.g. Unit under repair; please request another"></textarea>
-                        <div class="form-submit-container" style="margin-top: 20px;">
-                            <button type="submit" class="btn-submit-reject" id="relSubmitCancel" disabled>Cancel Reservation</button>
-                        </div>
-                    </div>
+                    {{-- Cancel Reservation is not here: the View window's button asks
+                         for confirmation and the reason in EquipTrack's own dialog. --}}
 
                     {{-- Not Claimed --}}
                     <div id="notClaimedFields" style="display: none;">
@@ -518,8 +531,7 @@
         const form = document.getElementById('releaseForm');
         const idCheck = document.getElementById('relIdVerified');
         const releaseBtn = document.getElementById('relSubmitRelease');
-        const cancelReason = document.getElementById('relCancelReason');
-        const cancelBtn = document.getElementById('relSubmitCancel');
+        let cancelInFlight = false;
 
         function escapeHTML(value) {
             if (value === null || value === undefined) return '';
@@ -690,8 +702,8 @@
             setText('viewHistoryLabel', history[0]);
             setText('viewHistory', history[1]);
 
-            // Footer: Cancel reservation (quiet, on the left); Not Claimed and
-            // Release on the right, each only when its rules allow it.
+            // Footer: Cancel Reservation (destructive, on the left); Not Claimed
+            // and Release on the right, each only when its rules allow it.
             const footer = document.getElementById('viewFooter');
             if (!r.canAct) {
                 footer.innerHTML = `<div class="view-footer-end"><button type="button" class="view-btn-close" data-view-close>Close</button></div>`;
@@ -700,7 +712,7 @@
                 if (!r.notClaimedBlocked) right.push(`<button type="button" class="view-btn-outline" data-view-action="not-claimed">Not Claimed</button>`);
                 if (!r.releaseBlocked) right.push(`<button type="button" class="view-btn-primary" data-view-action="release">Release</button>`);
                 if (!right.length) right.push(`<button type="button" class="view-btn-close" data-view-close>Close</button>`);
-                footer.innerHTML = `<button type="button" class="view-btn-text" data-view-action="cancel">Cancel reservation</button>`
+                footer.innerHTML = `<button type="button" class="view-btn-danger" data-view-cancel><i class="fa-solid fa-ban" aria-hidden="true"></i><span>Cancel Reservation</span></button>`
                     + `<div class="view-footer-end">${right.join('')}</div>`;
             }
             footer.dataset.id = r.id;
@@ -712,10 +724,75 @@
             viewModal.classList.remove('show');
         }
 
+        // Cancel Reservation: confirm in EquipTrack's own dialog, which also
+        // asks for the reason the borrower will see (the server requires it),
+        // then cancel. The button stays disabled while the request runs.
+        async function cancelReservation(id, button) {
+            const r = releases.find(item => item.id === id);
+            if (!r || !r.canAct || cancelInFlight) return;
+
+            const reason = await equipConfirm({
+                title: 'Cancel this reservation?',
+                message: `${r.equipment} for ${r.user} (Request #${r.requestId}) will be cancelled and the reserved dates freed. The borrower is not penalized, sees your reason and can request the item again.`,
+                confirmText: 'Cancel Reservation',
+                cancelText: 'Keep Reservation',
+                tone: 'danger',
+                askText: { label: 'Reason (shown to the borrower)', placeholder: 'e.g. Unit under repair; please request another', maxLength: 255 },
+            });
+            if (!reason) return;
+
+            const label = button.querySelector('span');
+            cancelInFlight = true;
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+            if (label) label.textContent = 'Cancelling…';
+
+            const formData = new FormData();
+            formData.append('_token', CSRF_TOKEN);
+            formData.append('transaction_id', String(r.id));
+            formData.append('reason', reason);
+
+            try {
+                const res = await fetch(URL_CANCEL, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
+                    body: formData,
+                });
+                const data = await res.json().catch(() => ({}));
+
+                if (res.ok && data.success) {
+                    releases = data.releases || releases;
+                    closeView();
+                    render();
+                    showNotification('Reservation Cancelled', data.message, 'success');
+                } else {
+                    const firstError = data.errors ? Object.values(data.errors)[0][0] : null;
+                    const fallback = res.status === 419
+                        ? 'Your session expired. Reload the page and try again.'
+                        : 'The reservation could not be cancelled.';
+                    showNotification('Action Failed', firstError || data.message || fallback, 'error');
+                    closeView();
+                    refresh();
+                }
+            } catch (error) {
+                showNotification('Error', 'Network error occurred. Please try again.', 'error');
+            } finally {
+                cancelInFlight = false;
+                button.disabled = false;
+                button.removeAttribute('aria-busy');
+                if (label) label.textContent = 'Cancel Reservation';
+            }
+        }
+
         document.getElementById('viewFooter').addEventListener('click', event => {
             const footer = event.currentTarget;
             if (event.target.closest('[data-view-close]')) {
                 closeView();
+                return;
+            }
+            const cancel = event.target.closest('[data-view-cancel]');
+            if (cancel) {
+                cancelReservation(parseInt(footer.dataset.id, 10), cancel);
                 return;
             }
             const action = event.target.closest('[data-view-action]');
@@ -741,20 +818,14 @@
             document.getElementById('relEquipment').textContent = `${r.equipment} · ${r.serial}${r.quantity > 1 ? ' · ×' + r.quantity : ''}`;
             document.getElementById('relPickup').textContent = r.pickupDate + (r.pickupNote ? ` (${r.pickupNote})` : '');
             document.getElementById('relDue').textContent = r.dueDate;
-            const cancelling = mode === 'cancel';
-            document.getElementById('releaseModalTitle').textContent = releasing
-                ? 'Release Equipment'
-                : (cancelling ? 'Cancel Reservation' : 'Mark as Not Claimed');
+            document.getElementById('releaseModalTitle').textContent = releasing ? 'Release Equipment' : 'Mark as Not Claimed';
             document.getElementById('releaseModalSubtitle').textContent = releasing
                 ? 'Hand the equipment to the borrower'
-                : (cancelling ? 'The reservation can\'t go ahead' : 'The borrower did not pick up the equipment');
+                : 'The borrower did not pick up the equipment';
             document.getElementById('releaseFields').style.display = releasing ? 'block' : 'none';
-            document.getElementById('cancelFields').style.display = cancelling ? 'block' : 'none';
             document.getElementById('notClaimedFields').style.display = mode === 'not-claimed' ? 'block' : 'none';
             idCheck.checked = false;
             releaseBtn.disabled = true;
-            cancelReason.value = '';
-            cancelBtn.disabled = true;
             document.getElementById('relNote').value = '';
 
             modal.classList.add('show');
@@ -797,11 +868,6 @@
             releaseBtn.disabled = !idCheck.checked;
         });
 
-        // A reason is required: the borrower sees it.
-        cancelReason.addEventListener('input', () => {
-            cancelBtn.disabled = cancelReason.value.trim() === '';
-        });
-
         form.addEventListener('submit', event => {
             event.preventDefault();
 
@@ -812,15 +878,12 @@
             if (mode === 'release') {
                 if (!idCheck.checked) return;
                 formData.append('id_verified', '1');
-            } else if (mode === 'cancel') {
-                if (cancelReason.value.trim() === '') return;
-                formData.append('reason', cancelReason.value.trim());
             } else {
                 formData.append('note', document.getElementById('relNote').value.trim());
             }
 
-            const url = { release: URL_RELEASE, cancel: URL_CANCEL }[mode] || URL_NOT_CLAIMED;
-            const doneTitle = { release: 'Equipment Released', cancel: 'Reservation Cancelled' }[mode] || 'Marked Not Claimed';
+            const url = mode === 'release' ? URL_RELEASE : URL_NOT_CLAIMED;
+            const doneTitle = mode === 'release' ? 'Equipment Released' : 'Marked Not Claimed';
 
             fetch(url, {
                 method: 'POST',

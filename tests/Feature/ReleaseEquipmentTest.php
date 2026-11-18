@@ -100,6 +100,14 @@ class ReleaseEquipmentTest extends TestCase
         ] + $input);
     }
 
+    private function cancelReservation(int $requestId, ?string $reason, ?DepartmentAccount $as = null)
+    {
+        return $this->actingAs($as ?? $this->lab, 'dept')->postJson(route('department.releases.cancel'), array_filter([
+            'transaction_id' => $this->loan($requestId)->transaction_id,
+            'reason' => $reason,
+        ]));
+    }
+
     private function returnItem(int $requestId)
     {
         return $this->actingAs($this->student, 'user')->postJson(route('user.returns.store'), [
@@ -165,6 +173,97 @@ class ReleaseEquipmentTest extends TestCase
         $this->release($requestId)->assertStatus(400)->assertJson(['message' => 'This equipment has already been released.']);
         $this->notClaimed($requestId)->assertStatus(400);
         $this->assertSame(1, (int) $this->equipment->fresh()->available_qty);
+    }
+
+    public function test_lab_personnel_can_cancel_their_own_departments_reservation_with_a_reason(): void
+    {
+        $requestId = $this->approvedRequest('2026-11-03', '2026-11-04');
+        $this->assertSame(2, (int) $this->equipment->fresh()->available_qty);
+
+        // The reason is required (the borrower sees it).
+        $this->cancelReservation($requestId, null)->assertStatus(422)->assertJsonValidationErrors('reason');
+        $this->cancelReservation($requestId, '   ')->assertStatus(422)->assertJsonValidationErrors('reason');
+        $this->assertSame(BorrowTransaction::STATUS_READY, $this->loan($requestId)->status);
+
+        $response = $this->cancelReservation($requestId, '  Projector lamp is broken.  ')
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Reservation cancelled. The borrower has been notified and the reserved dates are free again.',
+            ]);
+
+        // The page's table refreshes from the returned rows.
+        $row = collect($response->json('releases'))->firstWhere('requestId', $requestId);
+        $this->assertSame('Cancelled', $row['status']);
+        $this->assertFalse($row['canAct']);
+        $this->assertSame('Ana Custodian', $row['cancelledBy']);
+
+        $loan = $this->loan($requestId);
+        $this->assertSame(BorrowTransaction::STATUS_CANCELLED, $loan->status);
+        $this->assertSame('Projector lamp is broken.', $loan->cancel_reason);
+        $this->assertSame($this->lab->dept_acc_id, (int) $loan->cancelled_by);
+        $this->assertNotNull($loan->cancelled_at);
+        $this->assertNull($loan->released_at);
+        // The request stays Approved; the loan record says it was cancelled.
+        $this->assertSame('Approved', $loan->request->overall_status);
+        // Nothing was taken from stock before release, so nothing is held any more.
+        $this->assertSame(2, (int) $this->equipment->fresh()->available_qty);
+
+        // Audit Trail, in the "Cancelled Reservation" catalog entry.
+        $audit = AuditTrail::where('dept_acc_id', $this->lab->dept_acc_id)
+            ->where('action', 'like', 'Cancelled reservation for borrow request #' . $requestId . '%')
+            ->first();
+        $this->assertNotNull($audit);
+        $this->assertSame('Reason: Projector lamp is broken.', $audit->details);
+        $this->assertSame('Cancelled Reservation', \App\Services\AuditCatalog::classify($audit->action)['label']);
+
+        // The borrower is told why.
+        $notice = collect($this->actingAs($this->student, 'user')->getJson(route('user.notifications'))->json('notifications'))
+            ->firstWhere('key', 'request-' . $requestId . '-reservation-cancelled');
+        $this->assertSame('Reservation Cancelled', $notice['title']);
+        $this->assertStringContainsString('Reason: Projector lamp is broken.', $notice['message']);
+
+        // Only once.
+        $this->cancelReservation($requestId, 'Again')->assertStatus(400)
+            ->assertJson(['message' => 'This reservation was already cancelled.']);
+    }
+
+    public function test_another_department_cannot_cancel_a_reservation(): void
+    {
+        $requestId = $this->approvedRequest('2026-11-03', '2026-11-04');
+
+        $this->cancelReservation($requestId, 'Not ours', $this->otherLab)
+            ->assertNotFound()
+            ->assertJson(['message' => 'Loan not found for your department.']);
+
+        $this->app['auth']->forgetGuards();
+        $this->postJson(route('department.releases.cancel'), [
+            'transaction_id' => $this->loan($requestId)->transaction_id,
+            'reason' => 'Signed out',
+        ])->assertUnauthorized();
+
+        $loan = $this->loan($requestId);
+        $this->assertSame(BorrowTransaction::STATUS_READY, $loan->status);
+        $this->assertNull($loan->cancelled_at);
+        $this->assertFalse(AuditTrail::where('action', 'like', 'Cancelled reservation%')->exists());
+        $this->assertNull(collect($this->actingAs($this->student, 'user')->getJson(route('user.notifications'))->json('notifications'))
+            ->firstWhere('key', 'request-' . $requestId . '-reservation-cancelled'));
+    }
+
+    public function test_the_cancel_button_confirms_and_asks_for_the_reason(): void
+    {
+        $this->approvedRequest('2026-11-03', '2026-11-04');
+        $html = $this->actingAs($this->lab, 'dept')->get(route('department.releases'))->assertOk()->getContent();
+
+        // EquipTrack's own confirmation dialog (not the browser's confirm()),
+        // which collects the required reason before anything is sent.
+        $this->assertStringContainsString('id="etConfirm"', $html);
+        $this->assertStringContainsString('class="view-btn-danger" data-view-cancel', $html);
+        $this->assertStringContainsString("tone: 'danger'", $html);
+        $this->assertStringContainsString("askText: { label: 'Reason (shown to the borrower)'", $html);
+        $this->assertStringNotContainsString('confirm(', str_replace('equipConfirm(', '', $html));
+        // The old always-disabled-looking submit button is gone.
+        $this->assertStringNotContainsString('id="relSubmitCancel"', $html);
     }
 
     public function test_only_the_owning_department_can_release(): void

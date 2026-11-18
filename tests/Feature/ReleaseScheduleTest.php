@@ -235,7 +235,7 @@ class ReleaseScheduleTest extends TestCase
         $this->readyLoan('2026-11-12', '2026-11-12');
         $html = $this->actingAs($this->lab, 'dept')->get(route('department.releases'))->assertOk()->getContent();
 
-        $this->assertStringContainsString('id="cancelFields"', $html);
+        $this->assertStringContainsString('data-view-cancel', $html);
         $this->assertStringContainsString('<option value="Cancelled">Cancelled</option>', $html);
         $this->assertStringContainsString('Not Claimed / Cancelled (last 30 days)', $html);
         $this->assertStringContainsString(json_encode(route('department.releases.cancel')), $html);
@@ -249,7 +249,7 @@ class ReleaseScheduleTest extends TestCase
         // The View window, with Not Claimed and Cancel reservation in its footer.
         $this->assertStringContainsString('id="viewModal"', $html);
         $this->assertStringContainsString('data-view-action="not-claimed"', $html);
-        $this->assertStringContainsString('data-view-action="cancel"', $html);
+        $this->assertStringContainsString('data-view-cancel', $html);
         // The table itself only offers Release and View.
         $this->assertStringContainsString('data-view="${r.id}"', $html);
         $this->assertStringNotContainsString('data-not-claimed="${r.id}"', $html);
