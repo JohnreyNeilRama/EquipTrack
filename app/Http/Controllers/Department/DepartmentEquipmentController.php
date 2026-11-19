@@ -7,10 +7,14 @@ use App\Support\DepartmentScope;
 use App\Services\AuditLogger;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
+use App\Models\EquipmentUnit;
+use App\Services\EquipmentUnitForm;
 use App\Support\EquipmentImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -50,7 +54,7 @@ class DepartmentEquipmentController extends Controller
             return response()->json(['success' => true, 'equipment' => []]);
         }
 
-        $items = Equipment::with('category')
+        $items = Equipment::with(['category', 'units' => fn ($q) => $q->withExists('transactions as was_lent')])
             ->forDepartment($departmentId)
             ->orderByDesc('equipment_id')
             ->get()
@@ -61,6 +65,9 @@ class DepartmentEquipmentController extends Controller
                     'brand' => $e->brand,
                     'model' => $e->model,
                     'serial_number' => $e->serial_number,
+                    // Its units' serial numbers (else codes), and every one for search.
+                    'unit_labels' => $e->unitLabels(),
+                    'unit_search' => $e->unitSearchText(),
                     'imgUrl' => $e->image,
                     'available' => (int) $e->available_qty,
                     'total' => (int) $e->total_qty,
@@ -69,6 +76,7 @@ class DepartmentEquipmentController extends Controller
                     'categoryId' => $e->category_id,
                     'accessories' => $e->accessories_included,
                     'classification' => $e->classification ?: 'Not Expensive',
+                    'units' => EquipmentUnit::forForm($e->units),
                 ];
             });
 
@@ -92,25 +100,28 @@ class DepartmentEquipmentController extends Controller
         }
 
         $isNew = (int) $request->input('equipment_id', 0) <= 0;
+        // The window sends its units (EquipmentUnitForm); older clients send
+        // one serial number and typed quantities instead.
+        $unitMode = $request->boolean('units_mode') || $request->has('units');
 
         $data = $request->validate([
             'equipment_id' => ['nullable', 'integer', 'min:1'],
             'name' => ['required', 'string', 'max:100'],
             'brand' => ['required', 'string', 'max:50'],
             'model' => ['nullable', 'string', 'max:50'],
-            'serial_number' => ['required', 'string', 'max:50'],
+            'serial_number' => [Rule::requiredIf(!$unitMode), 'nullable', 'string', 'max:50'],
             // Chosen when the department registers equipment, so an Expensive
             // item goes to Admin Review too. On edits it is ignored: only the
             // admin changes the classification of existing equipment, so a
             // department can never downgrade an item to skip Admin Review.
             'classification' => [Rule::requiredIf($isNew), 'nullable', 'string', Rule::in(Equipment::CLASSIFICATIONS)],
             'image' => ['nullable', 'string'],
-            'available_qty' => ['required', 'integer', 'min:0'],
-            'total_qty' => ['required', 'integer', 'min:0'],
+            'available_qty' => [Rule::requiredIf(!$unitMode), 'integer', 'min:0'],
+            'total_qty' => [Rule::requiredIf(!$unitMode), 'integer', 'min:0'],
             'status' => ['required', Rule::in(Equipment::STATUSES)],
             'category_id' => ['required', 'integer', Rule::exists('equipment_category', 'category_id')],
             'accessories_included' => ['nullable', 'string', 'max:150'],
-        ]);
+        ] + EquipmentUnitForm::rules(), EquipmentUnitForm::messages());
 
         $equipmentId = (int) ($data['equipment_id'] ?? 0);
 
@@ -126,22 +137,29 @@ class DepartmentEquipmentController extends Controller
             ], 404);
         }
 
-        if ($data['available_qty'] > $data['total_qty']) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Available Quantity cannot be greater than Total Quantity.',
-            ], 400);
-        }
+        $plan = null;
+        if ($unitMode) {
+            // Department accounts can't change an item's classification, so
+            // an edit is checked against the saved one.
+            $classification = $equipment ? ($equipment->classification ?: Equipment::CLASS_NOT_EXPENSIVE) : $data['classification'];
+            $plan = EquipmentUnitForm::check($data, $equipment, $classification);
+            if (is_string($plan)) {
+                return response()->json(['success' => false, 'message' => $plan], 400);
+            }
+        } else {
+            if ($data['available_qty'] > $data['total_qty']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Available Quantity cannot be greater than Total Quantity.',
+                ], 400);
+            }
 
-        $dupe = Equipment::whereRaw('LOWER(serial_number) = ?', [strtolower($data['serial_number'])])
-            ->when($equipmentId > 0, fn ($q) => $q->where('equipment_id', '!=', $equipmentId))
-            ->exists();
-
-        if ($dupe) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Serial Number "' . e($data['serial_number']) . '" is already registered to another equipment item.',
-            ], 400);
+            if (EquipmentUnitForm::serialTaken($data['serial_number'], $equipmentId ?: null)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Serial Number "' . e($data['serial_number']) . '" is already registered to another equipment item.',
+                ], 400);
+            }
         }
 
         $image = EquipmentImage::normalize($data['image'] ?? '', $equipmentId ?: null);
@@ -159,41 +177,50 @@ class DepartmentEquipmentController extends Controller
         }
 
         if ($equipment) {
-            $equipment->update([
-                'name' => $data['name'],
-                'brand' => $data['brand'],
-                // Left out by older clients: keep the saved value.
-                'model' => array_key_exists('model', $data) ? $data['model'] : $equipment->model,
-                'serial_number' => $data['serial_number'],
-                'image' => $image,
-                'available_qty' => $data['available_qty'],
-                'total_qty' => $data['total_qty'],
-                'status' => $data['status'],
-                'category_id' => $data['category_id'],
-                'accessories_included' => array_key_exists('accessories_included', $data) ? $data['accessories_included'] : $equipment->accessories_included,
-            ]);
+            $summary = DB::transaction(function () use ($equipment, $data, $image, $unitMode, $plan) {
+                $equipment->update([
+                    'name' => $data['name'],
+                    'brand' => $data['brand'],
+                    // Left out by older clients: keep the saved value.
+                    'model' => array_key_exists('model', $data) ? $data['model'] : $equipment->model,
+                    'image' => $image,
+                    'status' => $data['status'],
+                    'category_id' => $data['category_id'],
+                    'accessories_included' => array_key_exists('accessories_included', $data) ? $data['accessories_included'] : $equipment->accessories_included,
+                ] + ($unitMode ? [] : [
+                    'serial_number' => $data['serial_number'],
+                    'available_qty' => $data['available_qty'],
+                    'total_qty' => $data['total_qty'],
+                ]));
 
-            $this->audit($request, 'Updated equipment #' . $equipment->equipment_id . ' (' . $data['name'] . ')', 'equipment:' . $equipment->equipment_id);
+                return $unitMode ? EquipmentUnitForm::apply($equipment, $plan) : null;
+            });
+
+            $this->audit($request, 'Updated equipment #' . $equipment->equipment_id . ' (' . $data['name'] . ')', 'equipment:' . $equipment->equipment_id, $summary);
 
             return response()->json(['success' => true, 'message' => 'Equipment details updated successfully!']);
         }
 
-        $equipment = Equipment::create([
-            'name' => $data['name'],
-            'brand' => $data['brand'],
-            'model' => $data['model'] ?? null,
-            'classification' => $data['classification'],
-            'serial_number' => $data['serial_number'],
-            'image' => $image,
-            'available_qty' => $data['available_qty'],
-            'total_qty' => $data['total_qty'],
-            'status' => $data['status'],
-            'category_id' => $data['category_id'],
-            'accessories_included' => $data['accessories_included'] ?? null,
-            'department_id' => $departmentId,
-        ]);
+        [$equipment, $summary] = DB::transaction(function () use ($data, $image, $unitMode, $plan, $departmentId) {
+            $equipment = Equipment::create([
+                'name' => $data['name'],
+                'brand' => $data['brand'],
+                'model' => $data['model'] ?? null,
+                'classification' => $data['classification'],
+                'image' => $image,
+                'status' => $data['status'],
+                'category_id' => $data['category_id'],
+                'accessories_included' => $data['accessories_included'] ?? null,
+                'department_id' => $departmentId,
+            ] + ($unitMode
+                // Units come from the window: the item starts with none.
+                ? ['available_qty' => 0, 'total_qty' => 0]
+                : ['serial_number' => $data['serial_number'], 'available_qty' => $data['available_qty'], 'total_qty' => $data['total_qty']]));
 
-        $this->audit($request, 'Registered equipment #' . $equipment->equipment_id . ' (' . $data['name'] . ')', 'equipment:' . $equipment->equipment_id);
+            return [$equipment, $unitMode ? EquipmentUnitForm::apply($equipment, $plan) : null];
+        });
+
+        $this->audit($request, 'Registered equipment #' . $equipment->equipment_id . ' (' . $data['name'] . ')', 'equipment:' . $equipment->equipment_id, $summary);
 
         return response()->json(['success' => true, 'message' => 'Equipment registered successfully!']);
     }
@@ -237,9 +264,9 @@ class DepartmentEquipmentController extends Controller
         return response()->json(['success' => true, 'message' => 'Equipment removed from inventory successfully!']);
     }
 
-    private function audit(Request $request, string $action, string $entity): void
+    private function audit(Request $request, string $action, string $entity, ?string $details = null): void
     {
-        AuditLogger::log($action, $entity, null, AuditLogger::actorFor('dept', auth('dept')->user()), $request);
+        AuditLogger::log($action, $entity, $details, AuditLogger::actorFor('dept', auth('dept')->user()), $request);
     }
 
 }

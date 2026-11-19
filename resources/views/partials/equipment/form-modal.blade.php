@@ -114,11 +114,6 @@
                             <input type="text" id="eqFormModel" name="model" class="form-control-flat" maxlength="50" placeholder="e.g. Latitude 5420">
                         </div>
                     </div>
-                    <div class="form-group-flat">
-                        <label for="eqFormSerial">Serial Number <span class="req" aria-hidden="true">*</span></label>
-                        <input type="text" id="eqFormSerial" name="serial_number" class="form-control-flat mono" required maxlength="50" placeholder="e.g. SN-DELL-98765" aria-describedby="eqSerialHint">
-                        <p class="form-hint" id="eqSerialHint">Must be unique across all equipment.</p>
-                    </div>
                 </section>
 
                 @isset($departments)
@@ -158,19 +153,31 @@
                     </section>
                 @endisset
 
+                {{-- Units: one row per physical unit. Quantities are counted from them. --}}
                 <section class="eq-form-section" aria-labelledby="eqStockHeading">
-                    <h4 class="eq-form-section-title" id="eqStockHeading">Inventory</h4>
-                    <div class="form-row-flat">
-                        <div class="form-group-flat">
-                            <label for="eqFormAvail">Available Quantity <span class="req" aria-hidden="true">*</span></label>
-                            <input type="number" id="eqFormAvail" name="available_qty" class="form-control-flat" min="0" required value="1" inputmode="numeric" aria-describedby="eqQtyHint">
+                    <input type="hidden" name="units_mode" value="1">
+                    <div class="eq-units-head">
+                        <h4 class="eq-form-section-title" id="eqStockHeading">Units <span class="req" aria-hidden="true">*</span></h4>
+                        <span class="eq-units-summary" id="eqUnitsSummary" aria-live="polite"></span>
+                    </div>
+                    <p class="form-hint" id="eqUnitsHint"></p>
+                    <div class="eq-units-list" id="eqUnitsList" role="list" aria-labelledby="eqStockHeading"></div>
+                    <div class="eq-units-actions">
+                        <button type="button" class="eq-units-btn" id="eqUnitsAdd"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add unit</button>
+                        <button type="button" class="eq-units-btn is-quiet" id="eqUnitsBulkToggle" aria-expanded="false" aria-controls="eqUnitsBulk"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> Add several</button>
+                    </div>
+                    <div class="eq-units-bulk" id="eqUnitsBulk" hidden>
+                        <label for="eqUnitsBulkSerials">Serial numbers, one per line</label>
+                        <textarea id="eqUnitsBulkSerials" class="form-control-flat mono" rows="4" placeholder="SN-0001&#10;SN-0002&#10;SN-0003"></textarea>
+                        <div class="eq-units-bulk-row">
+                            <label for="eqUnitsBulkCount" id="eqUnitsBulkCountLabel">or this many units without serial numbers</label>
+                            <input type="number" id="eqUnitsBulkCount" class="form-control-flat" min="1" max="200" inputmode="numeric" placeholder="e.g. 5">
                         </div>
-                        <div class="form-group-flat">
-                            <label for="eqFormTotal">Total Quantity <span class="req" aria-hidden="true">*</span></label>
-                            <input type="number" id="eqFormTotal" name="total_qty" class="form-control-flat" min="0" required value="1" inputmode="numeric" aria-describedby="eqQtyHint">
+                        <div class="eq-units-bulk-actions">
+                            <button type="button" class="eq-units-btn is-quiet" id="eqUnitsBulkCancel">Cancel</button>
+                            <button type="button" class="eq-units-btn" id="eqUnitsBulkAdd">Add units</button>
                         </div>
                     </div>
-                    <p class="form-hint" id="eqQtyHint" aria-live="polite">Available units can't be more than the total.</p>
                     <div class="form-group-flat">
                         <label for="eqFormAccessories">Accessories Included</label>
                         <input type="text" id="eqFormAccessories" name="accessories_included" class="form-control-flat" maxlength="150" placeholder="e.g. Charger, carrying case">

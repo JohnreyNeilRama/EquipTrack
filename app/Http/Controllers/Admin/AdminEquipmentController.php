@@ -7,11 +7,16 @@ use App\Services\AuditLogger;
 use App\Models\Department;
 use App\Models\Equipment;
 use App\Models\EquipmentCategory;
+use App\Models\EquipmentUnit;
+use App\Services\EquipmentUnitForm;
 use App\Support\EquipmentImage;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -30,7 +35,7 @@ class AdminEquipmentController extends Controller
     /** JSON feed for the card grid (legacy equipment.php?action=get_equipment). */
     public function data(): JsonResponse
     {
-        $items = Equipment::with(['category', 'department'])
+        $items = Equipment::with(['category', 'department', 'units' => fn ($q) => $q->withExists('transactions as was_lent')])
             ->orderByDesc('equipment_id')
             ->get()
             ->map(function (Equipment $e) {
@@ -40,6 +45,9 @@ class AdminEquipmentController extends Controller
                     'brand' => $e->brand,
                     'model' => $e->model,
                     'serial_number' => $e->serial_number,
+                    // Its units' serial numbers (else codes), and every one for search.
+                    'unit_labels' => $e->unitLabels(),
+                    'unit_search' => $e->unitSearchText(),
                     'image' => $e->image,
                     'available_qty' => (int) $e->available_qty,
                     'total_qty' => (int) $e->total_qty,
@@ -51,6 +59,7 @@ class AdminEquipmentController extends Controller
                     'department_id' => $e->department_id,
                     'department_name' => $e->department?->department_name,
                     'department_code' => $e->department?->department_code,
+                    'units' => EquipmentUnit::forForm($e->units),
                 ];
             });
 
@@ -197,15 +206,19 @@ class AdminEquipmentController extends Controller
     {
         $isNew = (int) $request->input('equipment_id', 0) <= 0;
 
+        // The window sends its units (EquipmentUnitForm); older clients send
+        // one serial number and typed quantities instead.
+        $unitMode = $request->boolean('units_mode') || $request->has('units');
+
         $data = $request->validate([
             'equipment_id' => ['nullable', 'integer'],
             'name' => ['required', 'string', 'max:100'],
             'brand' => ['required', 'string', 'max:50'],
             'model' => ['nullable', 'string', 'max:50'],
-            'serial_number' => ['required', 'string', 'max:50'],
+            'serial_number' => [Rule::requiredIf(!$unitMode), 'nullable', 'string', 'max:50'],
             'image' => ['nullable', 'string'],
-            'available_qty' => ['required', 'integer', 'min:0'],
-            'total_qty' => ['required', 'integer', 'min:0'],
+            'available_qty' => [Rule::requiredIf(!$unitMode), 'integer', 'min:0'],
+            'total_qty' => [Rule::requiredIf(!$unitMode), 'integer', 'min:0'],
             'status' => ['required', Rule::in(Equipment::STATUSES)],
             // Required for new equipment. When an edit omits it (older clients),
             // the record keeps its saved classification; a value that is sent
@@ -214,41 +227,51 @@ class AdminEquipmentController extends Controller
             'accessories_included' => ['nullable', 'string', 'max:150'],
             'category_id' => ['required', 'integer', Rule::exists('equipment_category', 'category_id')],
             'department_id' => ['required', 'integer', Rule::exists('department', 'department_id')],
-        ]);
+        ] + EquipmentUnitForm::rules(), EquipmentUnitForm::messages());
 
         $equipmentId = (int) ($data['equipment_id'] ?? 0);
+        $equipment = $equipmentId > 0 ? Equipment::find($equipmentId) : null;
+        if ($equipmentId > 0 && !$equipment) {
+            return response()->json(['success' => false, 'message' => 'Equipment not found.'], 404);
+        }
+
+        $plan = null;
+        if ($unitMode) {
+            $plan = EquipmentUnitForm::check($data, $equipment, $data['classification'] ?? $equipment?->classification ?? Equipment::CLASS_NOT_EXPENSIVE);
+            if (is_string($plan)) {
+                return response()->json(['success' => false, 'message' => $plan], 400);
+            }
+        } else {
+            if (EquipmentUnitForm::serialTaken($data['serial_number'], $equipmentId ?: null)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Serial Number "' . e($data['serial_number']) . '" is already registered to another equipment item.',
+                ], 400);
+            }
+
+            if ($data['available_qty'] > $data['total_qty']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Available Quantity cannot be greater than Total Quantity.',
+                ], 400);
+            }
+        }
 
         // Legacy stored whatever the JS posted (base64 data URI or URL). We decode
         // data URIs into real files so the DB keeps paths, matching migrated rows.
         $image = EquipmentImage::normalize($data['image'] ?? '', $equipmentId ?: null);
+        $fields = ['image' => $image] + Arr::except($data, ['units', 'remove_units', 'image']);
 
-        $dupe = Equipment::whereRaw('LOWER(serial_number) = ?', [strtolower($data['serial_number'])])
-            ->when($equipmentId > 0, fn ($q) => $q->where('equipment_id', '!=', $equipmentId))
-            ->exists();
-        if ($dupe) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Serial Number "' . e($data['serial_number']) . '" is already registered to another equipment item.',
-            ], 400);
-        }
-
-        if ($data['available_qty'] > $data['total_qty']) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Available Quantity cannot be greater than Total Quantity.',
-            ], 400);
-        }
-
-        if ($equipmentId > 0) {
-            $equipment = Equipment::find($equipmentId);
-            if (!$equipment) {
-                return response()->json(['success' => false, 'message' => 'Equipment not found.'], 404);
-            }
+        if ($equipment) {
             if ($reason = $this->retireRefusal($equipment, $data['status'])) {
                 return response()->json(['success' => false, 'message' => $reason], 400);
             }
-            $equipment->update([...$data, 'image' => $image]);
-            $this->audit($request, 'Updated equipment #' . $equipmentId . ' (' . $data['name'] . ')', 'equipment:' . $equipmentId);
+            $summary = DB::transaction(function () use ($equipment, $fields, $unitMode, $plan) {
+                $equipment->update($fields);
+
+                return $unitMode ? EquipmentUnitForm::apply($equipment, $plan) : null;
+            });
+            $this->audit($request, 'Updated equipment #' . $equipmentId . ' (' . $data['name'] . ')', 'equipment:' . $equipmentId, $summary);
 
             return response()->json(['success' => true, 'message' => 'Equipment details updated successfully!']);
         }
@@ -257,8 +280,16 @@ class AdminEquipmentController extends Controller
             return response()->json(['success' => false, 'message' => 'New equipment can\'t be registered as Retired. Choose another status.'], 400);
         }
 
-        $equipment = Equipment::create([...$data, 'image' => $image]);
-        $this->audit($request, 'Registered equipment #' . $equipment->equipment_id . ' (' . $data['name'] . ')', 'equipment:' . $equipment->equipment_id);
+        [$equipment, $summary] = DB::transaction(function () use ($fields, $unitMode, $plan) {
+            if (!$unitMode) {
+                return [Equipment::create($fields), null];
+            }
+            // Units come from the window: the item starts with none.
+            $equipment = Equipment::create(['available_qty' => 0, 'total_qty' => 0] + $fields);
+
+            return [$equipment, EquipmentUnitForm::apply($equipment, $plan)];
+        });
+        $this->audit($request, 'Registered equipment #' . $equipment->equipment_id . ' (' . $data['name'] . ')', 'equipment:' . $equipment->equipment_id, $summary);
 
         return response()->json(['success' => true, 'message' => 'Equipment registered successfully!']);
     }
@@ -298,8 +329,8 @@ class AdminEquipmentController extends Controller
         return $equipment->retireBlocker();
     }
 
-    private function audit(Request $request, string $action, string $entity): void
+    private function audit(Request $request, string $action, string $entity, ?string $details = null): void
     {
-        AuditLogger::log($action, $entity, null, AuditLogger::actorFor('admin', auth('admin')->user()), $request);
+        AuditLogger::log($action, $entity, $details, AuditLogger::actorFor('admin', auth('admin')->user()), $request);
     }
 }

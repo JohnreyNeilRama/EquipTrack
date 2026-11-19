@@ -33,8 +33,9 @@ class SharedEquipmentFormTest extends TestCase
                 ->assertSee('EquipmentForm.init(', false)
                 // Field names both servers' save actions read
                 ->assertSee('name="category_id"', false)
-                ->assertSee('name="serial_number"', false)
-                ->assertSee('name="available_qty"', false)
+                // Serial numbers and quantities come from the Units list (one row per unit)
+                ->assertSee('name="units_mode"', false)
+                ->assertSee('id="eqUnitsList"', false)
                 ->assertSee('name="image"', false)
                 // Categories are chosen by id on both pages
                 ->assertSee('<option value="1">Laptop</option>', false);

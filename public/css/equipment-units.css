@@ -1,0 +1,268 @@
+/* --------------------------------------------------------------------------
+   Units section of the Add / Edit Equipment window (Admin Equipment and
+   Department Equipment): one row per physical unit, with its automatic
+   code, serial number, status and a remove button.
+   Behaviour: public/js/equipment-form.js
+   -------------------------------------------------------------------------- */
+
+#equipmentModal .eq-units-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+#equipmentModal .eq-units-summary {
+    font-size: var(--fs-small);
+    font-weight: 600;
+    color: var(--primary-color);
+    white-space: nowrap;
+}
+
+#equipmentModal .eq-units-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#equipmentModal .eq-unit-row {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr) 192px 32px;
+    grid-template-areas: "code serial status remove" ". note note note";
+    align-items: center;
+    gap: 6px 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: var(--card-bg);
+}
+
+#equipmentModal .eq-unit-row.is-retired {
+    opacity: 0.6;
+}
+
+#equipmentModal .eq-unit-code {
+    grid-area: code;
+    font-size: var(--fs-label);
+    font-weight: 600;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#equipmentModal .eq-unit-code.is-new {
+    color: var(--primary-color);
+    font-style: italic;
+    font-weight: 500;
+}
+
+#equipmentModal .eq-unit-serial {
+    grid-area: serial;
+    min-width: 0;
+    height: 38px;
+}
+
+#equipmentModal .eq-unit-serial::placeholder {
+    font-family: inherit;
+    letter-spacing: normal;
+}
+
+#equipmentModal .eq-unit-status-wrap {
+    grid-area: status;
+    min-width: 0;
+}
+
+#equipmentModal .eq-unit-status-wrap select {
+    width: 100%;
+    height: 38px;
+}
+
+#equipmentModal .eq-unit-badge {
+    grid-area: status;
+    justify-self: start;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: var(--fs-small);
+    font-weight: 600;
+    cursor: help;
+}
+
+#equipmentModal .eq-unit-badge.is-loan {
+    background-color: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
+}
+
+#equipmentModal .eq-unit-badge.is-lost {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+#equipmentModal .eq-unit-remove,
+#equipmentModal .eq-unit-remove-spacer {
+    grid-area: remove;
+    width: 32px;
+    height: 32px;
+}
+
+#equipmentModal .eq-unit-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+#equipmentModal .eq-unit-remove:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+}
+
+#equipmentModal .eq-unit-remove:focus-visible {
+    outline: 2px solid #dc2626;
+    outline-offset: 2px;
+}
+
+#equipmentModal .eq-unit-note {
+    grid-area: note;
+    margin: 0;
+    font-size: var(--fs-small);
+    color: #b45309;
+    line-height: 1.4;
+}
+
+/* Add unit / Add several */
+#equipmentModal .eq-units-actions,
+#equipmentModal .eq-units-bulk-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+#equipmentModal .eq-units-bulk-actions {
+    justify-content: flex-end;
+}
+
+#equipmentModal .eq-units-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 14px;
+    border: 1px solid rgba(56, 85, 133, 0.35);
+    border-radius: 8px;
+    background-color: rgba(56, 85, 133, 0.08);
+    color: #385585;
+    font-family: inherit;
+    font-size: var(--fs-label);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+#equipmentModal .eq-units-btn:hover {
+    background-color: #385585;
+    border-color: #385585;
+    color: #ffffff;
+}
+
+#equipmentModal .eq-units-btn.is-quiet {
+    border-color: var(--border-color);
+    background-color: transparent;
+    color: var(--text-main);
+}
+
+#equipmentModal .eq-units-btn.is-quiet:hover {
+    background-color: var(--primary-light);
+    color: var(--text-main);
+}
+
+#equipmentModal .eq-units-btn:focus-visible {
+    outline: 2px solid #385585;
+    outline-offset: 2px;
+}
+
+#equipmentModal .eq-units-bulk {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border: 1px dashed var(--border-color);
+    border-radius: 10px;
+    background-color: var(--primary-light);
+}
+
+#equipmentModal .eq-units-bulk[hidden] {
+    display: none;
+}
+
+#equipmentModal .eq-units-bulk label {
+    font-size: var(--fs-label);
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+#equipmentModal .eq-units-bulk-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 120px;
+    align-items: center;
+    gap: 10px;
+}
+
+#equipmentModal .eq-units-bulk-row label {
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+/* Dark theme */
+.dark-theme #equipmentModal .eq-units-btn {
+    background-color: #334155;
+    border-color: #475569;
+    color: #93c5fd;
+}
+
+.dark-theme #equipmentModal .eq-units-btn:hover {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+.dark-theme #equipmentModal .eq-units-btn.is-quiet {
+    background-color: transparent;
+    color: var(--text-main);
+}
+
+.dark-theme #equipmentModal .eq-units-btn:focus-visible {
+    outline-color: #60a5fa;
+}
+
+.dark-theme #equipmentModal .eq-unit-badge.is-loan {
+    background-color: rgba(96, 165, 250, 0.15);
+    color: #93c5fd;
+}
+
+.dark-theme #equipmentModal .eq-unit-badge.is-lost {
+    background-color: rgba(248, 113, 113, 0.15);
+    color: #fca5a5;
+}
+
+.dark-theme #equipmentModal .eq-unit-note {
+    color: #fbbf24;
+}
+
+/* Phones: code and remove on top, then serial, then status */
+@media (max-width: 576px) {
+    #equipmentModal .eq-unit-row {
+        grid-template-columns: minmax(0, 1fr) 32px;
+        grid-template-areas: "code remove" "serial serial" "status status" "note note";
+    }
+
+    #equipmentModal .eq-units-bulk-row {
+        grid-template-columns: 1fr;
+    }
+}

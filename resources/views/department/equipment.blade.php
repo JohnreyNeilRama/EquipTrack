@@ -4,6 +4,7 @@
 
 @push('css')
 <link rel="stylesheet" href="{{ asset('departments/css/equipment.css') }}?v={{ filemtime(public_path('departments/css/equipment.css')) }}">
+<link rel="stylesheet" href="{{ asset('css/equipment-units.css') }}?v={{ filemtime(public_path('css/equipment-units.css')) }}">
 @endpush
 
 @section('content')
@@ -161,7 +162,7 @@
                             <dd id="viewModalBrand">—</dd>
                         </div>
                         <div>
-                            <dt>Serial Number</dt>
+                            <dt>Units</dt>
                             <dd class="mono" id="viewModalSerial">—</dd>
                         </div>
                         <div>
@@ -327,6 +328,8 @@
                         brand: item.brand,
                         model: item.model,
                         serial_number: item.serial_number,
+                        unit_labels: item.unit_labels,
+                        unit_search: item.unit_search,
                         category: item.category,
                         category_id: item.categoryId,
                         classification: item.classification,
@@ -434,14 +437,12 @@
                     name: item.name,
                     brand: item.brand,
                     model: item.model,
-                    serial_number: item.serial_number,
                     category_id: item.categoryId,
                     classification: item.classification,
                     accessories: item.accessories,
-                    available: item.available,
-                    total: item.total,
                     status: item.status,
                     image: item.imgUrl,
+                    units: item.units || [],
                 });
             };
 
@@ -482,7 +483,8 @@
                 viewModalStockFill.style.width = pct + '%';
 
                 document.getElementById('viewModalBrand').textContent = brandModel(item) || '—';
-                document.getElementById('viewModalSerial').textContent = item.serial_number || '—';
+                // Its units' serial numbers (else codes); Edit lists every unit.
+                document.getElementById('viewModalSerial').textContent = item.unit_labels || '—';
                 document.getElementById('viewModalAccessories').textContent = item.accessories || '—';
                 viewModalCategory.textContent = item.category || '—';
                 if (viewModalDepartment) viewModalDepartment.textContent = DEPARTMENT_NAME;
@@ -517,7 +519,7 @@
                 if (!item) return;
                 const ok = await equipConfirm({
                     title: 'Delete this equipment?',
-                    message: `"${item.name}" (${item.serial_number}) will be permanently deleted. This cannot be undone. Only equipment that was never requested can be deleted; equipment with borrowing history is kept, so set its status to Retired instead.`,
+                    message: `"${item.name}" will be permanently deleted, with its units. This cannot be undone. Only equipment that was never requested can be deleted; equipment with borrowing history is kept, so set its status to Retired instead.`,
                     confirmText: 'Delete',
                     tone: 'danger',
                 });

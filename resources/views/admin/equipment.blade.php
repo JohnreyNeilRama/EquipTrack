@@ -5,6 +5,7 @@
 @push('css')
 <link rel="stylesheet" href="{{ asset('admin/css/admindashboard.css') }}">
 <link rel="stylesheet" href="{{ asset('admin/css/adminequipment.css') }}?v={{ filemtime(public_path('admin/css/adminequipment.css')) }}">
+<link rel="stylesheet" href="{{ asset('css/equipment-units.css') }}?v={{ filemtime(public_path('css/equipment-units.css')) }}">
 <style>
     /* ---------------- Manage Categories window ---------------- */
     .cat-manage-card { max-width: 560px; }
@@ -608,7 +609,7 @@
         {{-- Search + filters card (css/filter-card.css) --}}
         <div class="filter-card-container">
             <div class="search-box-right-icon">
-                <input type="text" id="searchEquipment" placeholder="Search equipment" aria-label="Search equipment">
+                <input type="text" id="searchEquipment" placeholder="Search name, brand or serial no." aria-label="Search equipment">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
             <div class="filter-select-item">
@@ -791,6 +792,8 @@
                 brand: item.brand,
                 model: item.model,
                 serial_number: item.serial_number,
+                unit_labels: item.unit_labels,
+                unit_search: item.unit_search,
                 category: item.category_name,
                 category_id: item.category_id,
                 department: item.department_name,
@@ -1091,11 +1094,12 @@
             let visibleCount = 0;
 
             cards.forEach(card => {
-                const title = card.querySelector('.eq-card-title').textContent.toLowerCase();
+                // Name, brand, model and every unit's serial number and code.
+                const searchText = card.getAttribute('data-search') || card.querySelector('.eq-card-title').textContent.toLowerCase();
                 const cardCatId = card.getAttribute('data-category-id');
                 const cardStatus = card.getAttribute('data-status') || 'available';
 
-                const matchesSearch = title.includes(query);
+                const matchesSearch = searchText.includes(query);
                 const matchesCategory = (selectedCatId === 'all' || cardCatId === selectedCatId);
                 const matchesStatus = selectedStatus === 'all'
                     || (selectedStatus === 'inservice' ? cardStatus !== 'retired' : cardStatus === selectedStatus);
@@ -1144,15 +1148,13 @@
                 name: item.name,
                 brand: item.brand,
                 model: item.model,
-                serial_number: item.serial_number,
                 category_id: item.category_id,
                 department_id: item.department_id,
                 classification: item.classification,
                 accessories: item.accessories_included,
-                available: item.available_qty,
-                total: item.total_qty,
                 status: item.status,
                 image: item.image,
+                units: item.units || [],
             });
         };
 
@@ -1163,7 +1165,7 @@
 
             const ok = await equipConfirm({
                 title: 'Delete this equipment?',
-                message: `"${item.name}" (${item.serial_number}) will be permanently deleted. This cannot be undone. Only equipment that was never requested can be deleted; equipment with borrowing history is kept, so set its status to Retired instead.`,
+                message: `"${item.name}" will be permanently deleted, with its units. This cannot be undone. Only equipment that was never requested can be deleted; equipment with borrowing history is kept, so set its status to Retired instead.`,
                 confirmText: 'Delete',
                 tone: 'danger',
             });

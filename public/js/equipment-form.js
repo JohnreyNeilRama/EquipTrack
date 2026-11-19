@@ -42,7 +42,8 @@
     // ------------------------------------------------------------------
 
     /**
-     * item: { id, name, brand, model, serial_number, category, category_id,
+     * item: { id, name, brand, model, serial_number, unit_labels, unit_search,
+     *         category, category_id,
      *         department, classification, accessories, available, total,
      *         status, image }
      * options.showDepartment: add a Department row (Admin sees every department)
@@ -66,7 +67,7 @@
         el.setAttribute('data-status', status.toLowerCase());
         el.setAttribute('data-category', String(item.category || '').toLowerCase());
         el.setAttribute('data-category-id', item.category_id || '');
-        el.setAttribute('data-search', [item.name, item.brand, item.model, item.serial_number].filter(Boolean).join(' ').toLowerCase());
+        el.setAttribute('data-search', [item.name, item.brand, item.model, item.serial_number, item.unit_search].filter(Boolean).join(' ').toLowerCase());
 
         el.innerHTML = `
             <div class="eq-card-img-wrapper${imgUrl ? '' : ' is-missing'}">
@@ -87,8 +88,8 @@
 
                 <dl class="eq-card-specs">
                     <div class="eq-spec-row">
-                        <dt>Serial No.</dt>
-                        <dd class="mono">${escapeHTML(item.serial_number || '—')}</dd>
+                        <dt>Units</dt>
+                        <dd class="mono" title="${escapeHTML(item.unit_labels || '')}">${escapeHTML(item.unit_labels || item.serial_number || '—')}</dd>
                     </div>
                     <div class="eq-spec-row">
                         <dt>Category</dt>
@@ -159,8 +160,9 @@
      * options.lockClassificationOnEdit       Department: only the admin changes it
      *
      * Returns { openAdd(), openEdit(values), close(), isOpen() }.
-     * openEdit values: { id, name, brand, model, serial_number, category_id,
-     *   department_id, classification, accessories, available, total, status, image }
+     * openEdit values: { id, name, brand, model, category_id, department_id,
+     *   classification, accessories, status, image,
+     *   units: [{ unit_id, unit_code, serial_number, status, remarks, was_lent }] }
      */
     function init(options) {
         const $ = id => document.getElementById(id);
@@ -178,16 +180,12 @@
             name: $('eqFormName'),
             brand: $('eqFormBrand'),
             model: $('eqFormModel'),
-            serial: $('eqFormSerial'),
             category: $('eqFormCategory'),
             department: $('eqFormDepartment'),   // Admin only
             status: $('eqFormStatus'),
             classification: $('eqFormClassification'),
-            accessories: $('eqFormAccessories'),
-            available: $('eqFormAvail'),
-            total: $('eqFormTotal')
+            accessories: $('eqFormAccessories')
         };
-        const qtyHint = $('eqQtyHint');
         const classLockedHint = $('eqClassLockedHint');
 
         // Photo uploader
@@ -278,22 +276,169 @@
         $('btnReplacePreview').addEventListener('click', () => fileInput.click());
         $('btnRemovePreview').addEventListener('click', resetUploader);
 
-        // Available can't exceed Total: flagged as soon as it is typed (the
-        // submit check below still blocks the save).
-        const QTY_HINT = "Available units can't be more than the total.";
+        // ------------------------------------------------------------------
+        // Units: one row per physical unit (code, serial number, status).
+        // The quantities are counted from them by the server.
+        // ------------------------------------------------------------------
+        const unitsList = $('eqUnitsList');
+        const unitsSummary = $('eqUnitsSummary');
+        const unitsHint = $('eqUnitsHint');
+        const bulkPanel = $('eqUnitsBulk');
+        const bulkToggle = $('eqUnitsBulkToggle');
+        const bulkSerials = $('eqUnitsBulkSerials');
+        const bulkCount = $('eqUnitsBulkCount');
+        const EDITABLE = ['Available', 'Under Maintenance', 'Retired'];
+        const GONE = ['Lost', 'Retired'];
+        let removedUnitIds = [];
 
-        function updateQtyState() {
-            const available = parseInt(fields.available.value, 10) || 0;
-            const total = parseInt(fields.total.value, 10) || 0;
-            const invalid = available > total;
-            fields.available.classList.toggle('is-invalid', invalid);
-            fields.available.setAttribute('aria-invalid', invalid ? 'true' : 'false');
-            qtyHint.classList.toggle('is-error', invalid);
-            qtyHint.textContent = invalid ? `Available (${available}) is more than the total (${total}).` : QTY_HINT;
+        const isExpensive = () => fields.classification.value === 'Expensive';
+
+        function unitRow(unit) {
+            const isNew = !unit.unit_id;
+            const status = unit.status || 'Available';
+            const editable = isNew || EDITABLE.includes(status);
+            const removable = isNew || (!unit.was_lent && status !== 'On Loan');
+            const code = isNew ? 'New unit' : unit.unit_code;
+            const row = document.createElement('div');
+            row.className = 'eq-unit-row';
+            row.setAttribute('role', 'listitem');
+            row.dataset.unitId = unit.unit_id || '';
+            row.dataset.status = status;
+
+            const statusOptions = (isNew ? ['Available', 'Under Maintenance'] : EDITABLE)
+                .map(s => `<option value="${s}"${s === status ? ' selected' : ''}>${s}</option>`).join('');
+
+            row.innerHTML = `
+                <span class="eq-unit-code mono${isNew ? ' is-new' : ''}">${escapeHTML(code)}</span>
+                <input type="text" class="form-control-flat mono eq-unit-serial" maxlength="50" autocomplete="off"
+                       value="${escapeHTML(unit.serial_number || '')}" aria-label="Serial number of ${escapeHTML(code)}">
+                ${editable
+                    ? `<div class="select-wrapper eq-unit-status-wrap">
+                           <select class="form-control-flat eq-unit-status" aria-label="Status of ${escapeHTML(code)}">${statusOptions}</select>
+                           <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                       </div>`
+                    : `<span class="eq-unit-badge is-${status === 'On Loan' ? 'loan' : 'lost'}" title="${status === 'On Loan' ? 'With a borrower: it changes when it is returned.' : 'Lost: kept for its history.'}">${escapeHTML(status)}</span>`}
+                ${removable
+                    ? `<button type="button" class="eq-unit-remove" aria-label="Remove ${escapeHTML(code)}" title="Remove this unit"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>`
+                    : '<span class="eq-unit-remove-spacer" aria-hidden="true"></span>'}
+                ${unit.remarks ? `<p class="eq-unit-note">${escapeHTML(unit.remarks)}</p>` : ''}`;
+            return row;
         }
 
-        fields.available.addEventListener('input', updateQtyState);
-        fields.total.addEventListener('input', updateQtyState);
+        function rows() {
+            return Array.from(unitsList.querySelectorAll('.eq-unit-row'));
+        }
+
+        function rowStatus(row) {
+            const select = row.querySelector('.eq-unit-status');
+            return select ? select.value : row.dataset.status;
+        }
+
+        // Summary, hint and the Expensive rule (every unit in use needs a serial number).
+        function refreshUnits() {
+            const all = rows();
+            const inUse = all.filter(r => !GONE.includes(rowStatus(r)));
+            const available = all.filter(r => rowStatus(r) === 'Available').length;
+            unitsSummary.textContent = `${inUse.length} ${inUse.length === 1 ? 'unit' : 'units'} · ${available} available`;
+
+            const expensive = isExpensive();
+            unitsHint.textContent = expensive
+                ? 'Expensive equipment: every unit needs its own serial number.'
+                : 'Serial numbers are optional. A unit without one is known by its code (e.g. EQ-12-003).';
+            all.forEach(r => {
+                const serial = r.querySelector('.eq-unit-serial');
+                const needed = expensive && !GONE.includes(rowStatus(r));
+                serial.required = needed;
+                serial.placeholder = needed ? 'Serial number (required)' : 'Serial number (optional)';
+                r.classList.toggle('is-retired', GONE.includes(rowStatus(r)));
+            });
+            $('eqUnitsBulkCountLabel').textContent = expensive
+                ? 'Expensive units need serial numbers, so add them as a list above.'
+                : 'or this many units without serial numbers';
+            bulkCount.disabled = expensive;
+        }
+
+        function addUnits(units, focusLast = false) {
+            units.forEach(u => unitsList.appendChild(unitRow(u)));
+            refreshUnits();
+            if (focusLast) rows().at(-1)?.querySelector('.eq-unit-serial').focus();
+        }
+
+        function setUnits(units) {
+            unitsList.innerHTML = '';
+            removedUnitIds = [];
+            addUnits(units);
+        }
+
+        unitsList.addEventListener('click', e => {
+            const remove = e.target.closest('.eq-unit-remove');
+            if (!remove) return;
+            const row = remove.closest('.eq-unit-row');
+            if (row.dataset.unitId) removedUnitIds.push(row.dataset.unitId);
+            const next = row.nextElementSibling || row.previousElementSibling;
+            row.remove();
+            refreshUnits();
+            (next?.querySelector('.eq-unit-serial') || $('eqUnitsAdd')).focus();
+        });
+        unitsList.addEventListener('change', e => {
+            if (e.target.matches('.eq-unit-status')) refreshUnits();
+        });
+        fields.classification.addEventListener('change', refreshUnits);
+        $('eqUnitsAdd').addEventListener('click', () => addUnits([{}], true));
+
+        function setBulkOpen(open) {
+            bulkPanel.hidden = !open;
+            bulkToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (open) {
+                bulkSerials.focus();
+            } else {
+                bulkSerials.value = '';
+                bulkCount.value = '';
+            }
+        }
+        bulkToggle.addEventListener('click', () => setBulkOpen(bulkPanel.hidden));
+        $('eqUnitsBulkCancel').addEventListener('click', () => {
+            setBulkOpen(false);
+            bulkToggle.focus();
+        });
+        $('eqUnitsBulkAdd').addEventListener('click', () => {
+            const serials = bulkSerials.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+            const count = bulkCount.disabled ? 0 : Math.min(200, parseInt(bulkCount.value, 10) || 0);
+            if (!serials.length && !count) {
+                notify('Nothing to Add', 'Type serial numbers (one per line) or how many units to add.', 'error');
+                return;
+            }
+            addUnits([...serials.map(s => ({ serial_number: s })), ...Array.from({ length: count }, () => ({}))]);
+            setBulkOpen(false);
+            bulkToggle.focus();
+        });
+
+        // The units as the server reads them (EquipmentUnitForm).
+        function appendUnits(formData) {
+            rows().forEach((r, i) => {
+                formData.append(`units[${i}][unit_id]`, r.dataset.unitId || '');
+                formData.append(`units[${i}][serial_number]`, r.querySelector('.eq-unit-serial').value.trim());
+                const select = r.querySelector('.eq-unit-status');
+                if (select) formData.append(`units[${i}][status]`, select.value);
+            });
+            removedUnitIds.forEach(id => formData.append('remove_units[]', id));
+        }
+
+        // Checked here too, so the problem is shown before anything is sent.
+        function unitsProblem() {
+            const all = rows();
+            if (!all.length && idField.value === '') return 'Add at least one unit.';
+            const seen = new Map();
+            for (const r of all) {
+                const serial = r.querySelector('.eq-unit-serial').value.trim();
+                const name = r.querySelector('.eq-unit-code').textContent;
+                if (!serial) continue;
+                const key = serial.toLowerCase();
+                if (seen.has(key)) return `Serial number "${serial}" is entered twice. Each unit needs its own.`;
+                seen.set(key, name);
+            }
+            return null;
+        }
 
         function setClassificationLocked(locked) {
             fields.classification.disabled = locked;
@@ -301,7 +446,8 @@
         }
 
         function show() {
-            updateQtyState();
+            refreshUnits();
+            setBulkOpen(false);
             modal.querySelector('.eq-modal-body').scrollTop = 0;   // always start at the photo
             modal.classList.add('show');
             setTimeout(() => fields.name.focus({ preventScroll: true }), 50);
@@ -323,6 +469,7 @@
 
         function openAdd() {
             clearForm();
+            setUnits([{}]);   // one new unit to start with
             setHeading(false);
             show();
         }
@@ -333,14 +480,12 @@
             fields.name.value = values.name || '';
             fields.brand.value = values.brand || '';
             fields.model.value = values.model || '';
-            fields.serial.value = values.serial_number || '';
             fields.category.value = values.category_id || '';
             if (fields.department) fields.department.value = values.department_id || '';
             fields.status.value = values.status || 'Available';
             fields.classification.value = values.classification === 'Expensive' ? 'Expensive' : 'Not Expensive';
             fields.accessories.value = values.accessories || '';
-            fields.available.value = values.available ?? 0;
-            fields.total.value = values.total ?? 0;
+            setUnits(values.units || []);
             setClassificationLocked(!!options.lockClassificationOnEdit);
 
             // No photo on file: show the upload box instead of a broken preview
@@ -353,7 +498,7 @@
         function close() {
             modal.classList.remove('show');
             clearForm();
-            updateQtyState();
+            setUnits([]);
         }
 
         function isOpen() {
@@ -376,9 +521,9 @@
                 notify('Image Required', 'Please upload an image or enter an image URL.', 'error');
                 return;
             }
-            if ((parseInt(fields.available.value, 10) || 0) > (parseInt(fields.total.value, 10) || 0)) {
-                updateQtyState();
-                notify('Invalid Quantity', 'Available Quantity cannot be greater than Total Quantity.', 'error');
+            const problem = unitsProblem();
+            if (problem) {
+                notify('Check the Units', problem, 'error');
                 return;
             }
             if (!fields.classification.disabled && !['Expensive', 'Not Expensive'].includes(fields.classification.value)) {
@@ -394,10 +539,13 @@
             submitBtn.disabled = true;
             submitBtn.textContent = 'Saving…';
 
+            const body = new FormData(form);   // a locked (disabled) classification is not sent
+            appendUnits(body);
+
             fetch(options.saveUrl, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': options.csrfToken, 'Accept': 'application/json' },
-                body: new FormData(form)   // a locked (disabled) classification is not sent
+                body
             })
                 .then(res => res.json().then(data => ({ ok: res.ok, data })))
                 .then(({ ok, data }) => {
