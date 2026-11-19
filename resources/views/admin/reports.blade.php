@@ -584,7 +584,7 @@
         // Number columns: wide enough for their header's longest word
         qty: 55, total: 60, on_loan: 60, loan_days: 60, days_overdue: 85, available: 90,
         requests: 90, approved: 95, rejected: 88, pending: 85, cancelled: 96, returned: 90,
-        borrowed: 95, overdue: 85, times: 95, units: 95, utilization: 96
+        borrowed: 95, overdue: 85, times: 95, units: 95, utilization: 96, maintenance: 110
     };
     const DATE_WIDTH = 125;
     const NUM_WIDTH = 90;

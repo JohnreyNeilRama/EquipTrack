@@ -776,7 +776,7 @@ class AdminReportsController extends Controller
             ->groupBy('equipment_id')
             ->map(fn (Collection $group) => (int) $group->sum('qty'));
 
-        $rows = Equipment::with(['category', 'department'])
+        $rows = Equipment::with(['category', 'department', 'units'])
             ->when($filters['category'], fn ($query, $categoryId) => $query->where('category_id', $categoryId))
             ->when($filters['status'] !== '', fn ($query) => $query->where('status', $filters['status']))
             ->orderBy('name')
@@ -784,23 +784,26 @@ class AdminReportsController extends Controller
             ->get()
             ->map(fn (Equipment $item) => [
                 'equipment' => $item->name,
-                'serial' => $item->serial_number,
+                // Each unit still in use: serial number, else its code.
+                'serial' => $item->unitLabels(PHP_INT_MAX),
                 'category' => $item->category ? $item->category->category_name : 'General',
                 'department' => $item->department ? $item->department->department_name : '—',
                 'total' => (int) $item->total_qty,
                 'available' => (int) $item->available_qty,
                 'on_loan' => (int) ($onLoan[$item->equipment_id] ?? 0),
+                'maintenance' => $item->units->where('status', \App\Models\EquipmentUnit::STATUS_MAINTENANCE)->count(),
                 'status' => $item->status,
             ]);
 
         return $this->finish('inventory', [
             $this->col('equipment', 'Equipment'),
-            $this->col('serial', 'Serial No.'),
+            $this->col('serial', 'Units (Serial No.)'),
             $this->col('category', 'Category'),
             $this->col('department', 'Department'),
             $this->col('total', 'Total Units', 'num'),
             $this->col('available', 'Available', 'num'),
             $this->col('on_loan', 'On Loan', 'num'),
+            $this->col('maintenance', 'Under Maintenance', 'num'),
             $this->col('status', 'Status', 'status'),
         ], $rows);
     }

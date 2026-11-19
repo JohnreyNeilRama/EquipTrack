@@ -180,12 +180,13 @@ class EquipmentClassificationApprovalTest extends TestCase
             ->assertOk()
             ->assertJson(['success' => true]);
 
-        $this->assertDatabaseHas('equipment', ['serial_number' => 'SN-EXP-1', 'classification' => 'Expensive']);
+        // Serial numbers belong to the item's units.
+        $this->assertSame('Expensive', \App\Models\EquipmentUnit::where('serial_number', 'SN-EXP-1')->firstOrFail()->equipment->classification);
 
         $this->saveAsAdmin($this->equipmentPayload(['serial_number' => 'SN-CHEAP-1', 'classification' => 'Not Expensive']))
             ->assertOk();
 
-        $this->assertDatabaseHas('equipment', ['serial_number' => 'SN-CHEAP-1', 'classification' => 'Not Expensive']);
+        $this->assertSame('Not Expensive', \App\Models\EquipmentUnit::where('serial_number', 'SN-CHEAP-1')->firstOrFail()->equipment->classification);
     }
 
     public function test_classification_is_required_and_must_be_a_valid_option(): void
@@ -267,7 +268,7 @@ class EquipmentClassificationApprovalTest extends TestCase
         $this->actingAs($this->deptAccount, 'dept')->postJson(route('department.equipment.save'), $payload + ['classification' => 'Expensive'])
             ->assertOk();
 
-        $this->assertDatabaseHas('equipment', ['serial_number' => 'SN-DEPT-1', 'classification' => 'Expensive']);
+        $this->assertSame('Expensive', \App\Models\EquipmentUnit::where('serial_number', 'SN-DEPT-1')->firstOrFail()->equipment->classification);
     }
 
     public function test_a_department_edit_never_changes_the_classification(): void

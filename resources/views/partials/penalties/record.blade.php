@@ -53,7 +53,7 @@
                             <p class="return-item-category" id="prCategory">—</p>
                             <dl class="return-item-facts">
                                 <div>
-                                    <dt>Equipment ID / Serial No.</dt>
+                                    <dt>Units (Serial No.)</dt>
                                     <dd class="mono" id="prSerial">—</dd>
                                 </div>
                                 <div>

@@ -98,7 +98,8 @@ class DepartmentMonitoringTest extends TestCase
             ->assertViewHas('dbMonitoring', fn (array $rows) => collect($rows)
                 ->contains(fn ($row) => $row['status'] === 'Overdue'
                     && $row['equipment'] === 'Dell Latitude'
-                    && $row['serial'] === 'EQ-0001'
+                    // Made without a release, so no unit was recorded on it.
+                    && $row['serial'] === ''
                     && $row['daysOverdue'] === 2
                     && $row['daysUntilDue'] === null
                     && array_key_exists('avatar', $row)))

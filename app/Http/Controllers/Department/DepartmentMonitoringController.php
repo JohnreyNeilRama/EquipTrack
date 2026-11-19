@@ -81,7 +81,8 @@ class DepartmentMonitoringController extends Controller
 
         $matches = array_values(array_filter($rows, function (array $row) use ($status, $search, $role, $wanted, $category) {
             $s = $status($row);
-            $haystack = mb_strtolower("{$row['equipment']} {$row['borrower']} {$row['id_number']} {$row['role']} {$row['status']}");
+            // Includes the units' serial numbers (else codes).
+            $haystack = mb_strtolower("{$row['equipment']} {$row['serial']} {$row['borrower']} {$row['id_number']} {$row['role']} {$row['status']}");
 
             return ($search === '' || str_contains($haystack, $search))
                 && ($role === 'all' || str_contains(mb_strtolower((string) $row['role']), $role))
@@ -138,7 +139,7 @@ class DepartmentMonitoringController extends Controller
             return [];
         }
 
-        $equipmentList = Equipment::with('category')
+        $equipmentList = Equipment::with(['category', 'units'])
             ->forDepartment($departmentId)
             ->inService()
             ->orderBy('equipment_id')
@@ -154,6 +155,7 @@ class DepartmentMonitoringController extends Controller
         $activeTransactions = BorrowTransaction::with([
             'request.user.student',
             'request.user.facultyMember',
+            'units',
         ])
             ->whereIn('status', BorrowTransaction::OPEN)
             ->whereHas('request', function ($query) use ($departmentId) {
@@ -217,7 +219,8 @@ class DepartmentMonitoringController extends Controller
                 $loanRows[] = [
                     'equipment' => $equipment->name,
                     'category' => $category,
-                    'serial' => $equipment->serial_number ?: '',
+                    // The units this borrower has (none chosen yet while Reserved).
+                    'serial' => $transaction->unitLabels(),
                     // Units this borrower has (or has reserved) on this loan.
                     'quantity' => max(1, (int) ($request->quantity ?? 1)),
                     'borrower' => $user->fullName() ?: $user->email,
@@ -247,7 +250,8 @@ class DepartmentMonitoringController extends Controller
             $rows[] = [
                 'equipment' => $equipment->name,
                 'category' => $category,
-                'serial' => $equipment->serial_number ?: '',
+                // The item's units (serial numbers, else codes).
+                'serial' => $equipment->unitLabels(),
                 'borrower' => '—',
                 'id_number' => '—',
                 'role' => '—',

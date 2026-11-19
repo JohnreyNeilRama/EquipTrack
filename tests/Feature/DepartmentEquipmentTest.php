@@ -247,9 +247,10 @@ class DepartmentEquipmentTest extends TestCase
             'department_id' => $this->otherDepartment->department_id,
         ])->assertOk()->assertJson(['success' => true]);
 
+        // Serial numbers belong to the item's units.
+        $this->assertDatabaseHas('equipment_unit', ['serial_number' => 'DEPT-0001']);
         $this->assertDatabaseHas('equipment', [
             'name' => 'Dept Registered Laptop',
-            'serial_number' => 'DEPT-0001',
             'department_id' => $this->department->department_id,
         ]);
 
@@ -429,8 +430,8 @@ class DepartmentEquipmentTest extends TestCase
 
         $this->deptSave()->assertOk()->assertJson(['success' => true]);
 
+        $this->assertDatabaseHas('equipment_unit', ['serial_number' => 'CAM-0001']);
         $this->assertDatabaseHas('equipment', [
-            'serial_number' => 'CAM-0001',
             'model' => 'A7 III',
             'classification' => 'Expensive',
             'accessories_included' => 'Battery, Strap',
@@ -445,7 +446,7 @@ class DepartmentEquipmentTest extends TestCase
     public function test_expensive_equipment_registered_by_the_department_goes_to_admin_review(): void
     {
         $this->deptSave()->assertOk();
-        $equipment = Equipment::where('serial_number', 'CAM-0001')->firstOrFail();
+        $equipment = \App\Models\EquipmentUnit::where('serial_number', 'CAM-0001')->firstOrFail()->equipment;
 
         $this->actingAs($this->user, 'user')->postJson(route('user.borrow.store'), [
             'equipment_id' => $equipment->equipment_id,
