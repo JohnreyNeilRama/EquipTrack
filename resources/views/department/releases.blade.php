@@ -161,6 +161,89 @@
         flex-shrink: 0;
         accent-color: #385585;
     }
+    /* Units to hand over (Release window) */
+    .unit-pick {
+        margin: 0 0 16px;
+        padding: 0;
+        border: 0;
+        min-width: 0;
+    }
+    .unit-pick-legend {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+        margin-bottom: 6px;
+        padding: 0;
+        font-size: var(--fs-body);
+        font-weight: 600;
+        color: var(--text-main);
+    }
+    .unit-pick-count {
+        font-size: var(--fs-small);
+        font-weight: 600;
+        color: #b45309;
+    }
+    .unit-pick-count.is-done { color: #059669; }
+    .unit-pick .release-help { margin-bottom: 10px; }
+    .unit-pick-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-height: 220px;
+        overflow-y: auto;
+    }
+    .unit-pick-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: border-color 0.2s, background-color 0.2s;
+    }
+    .unit-pick-item:hover { border-color: #385585; }
+    .unit-pick-item:has(input:checked) {
+        border-color: #385585;
+        background-color: var(--primary-light);
+    }
+    .unit-pick-item:has(input:disabled) { opacity: 0.55; cursor: not-allowed; }
+    .unit-pick-item input {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        accent-color: #385585;
+    }
+    .unit-pick-item input:focus-visible { outline: 2px solid #385585; outline-offset: 2px; }
+    .unit-pick-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+    .unit-pick-main {
+        font-size: var(--fs-body);
+        font-weight: 600;
+        color: var(--text-main);
+        overflow-wrap: anywhere;
+    }
+    .unit-pick-code {
+        font-size: var(--fs-small);
+        color: var(--text-muted);
+    }
+    .unit-pick-empty {
+        margin: 0;
+        padding: 12px 14px;
+        border: 1px dashed var(--border-color);
+        border-radius: 10px;
+        font-size: var(--fs-label);
+        color: var(--text-muted);
+    }
+    .dark-theme .unit-pick-item:hover,
+    .dark-theme .unit-pick-item:has(input:checked) { border-color: #60a5fa; }
+    .dark-theme .unit-pick-count { color: #fbbf24; }
+    .dark-theme .unit-pick-count.is-done { color: #34d399; }
     .release-help {
         margin: 0 0 16px;
         font-size: var(--fs-label);
@@ -412,7 +495,7 @@
                     <h4 class="view-section-title">Equipment</h4>
                     <dl class="release-summary">
                         <dt>Item</dt><dd id="viewEquipment">—</dd>
-                        <dt>Serial No.</dt><dd id="viewSerial">—</dd>
+                        <dt>Units</dt><dd id="viewSerial">—</dd>
                         <dt>Quantity</dt><dd id="viewQuantity">—</dd>
                     </dl>
                 </section>
@@ -466,6 +549,17 @@
 
                     {{-- Release --}}
                     <div id="releaseFields">
+                        {{-- The exact units handed over: Expensive equipment must be
+                             chosen (check the serial number on the unit); otherwise
+                             the lowest-numbered units start ticked. --}}
+                        <fieldset class="unit-pick" id="relUnitsField">
+                            <legend class="unit-pick-legend">
+                                <span id="relUnitsLegend">Unit to hand over</span>
+                                <span class="unit-pick-count" id="relUnitsCount" aria-live="polite"></span>
+                            </legend>
+                            <p class="release-help" id="relUnitsHelp"></p>
+                            <div class="unit-pick-list" id="relUnitsList"></div>
+                        </fieldset>
                         <label class="id-check">
                             <input type="checkbox" id="relIdVerified">
                             <span>I checked the borrower's school ID and it matches the name and ID number above.</span>
@@ -695,7 +789,7 @@
             setText('viewStatus', r.status);
 
             const history = {
-                'Released': ['Released', `${r.releasedAt} by ${r.releasedBy}`],
+                'Released': ['Released', `${r.releasedAt} by ${r.releasedBy}${(r.units || []).length ? ' · Units: ' + r.units.join(', ') : ''}`],
                 'Not Claimed': ['Marked', r.unclaimedAt],
                 'Cancelled': ['Cancelled', `${r.cancelledAt} by ${r.cancelledBy}${r.cancelReason ? ' · Reason: ' + r.cancelReason : ''}`],
             }[r.status] || ['Release', r.releaseBlocked || 'Can be released now, after the school ID check.'];
@@ -815,7 +909,8 @@
             document.getElementById('relTransactionId').value = r.id;
             document.getElementById('relUser').textContent = `${r.user} (${r.role})`;
             document.getElementById('relIdNumber').textContent = r.idNumber;
-            document.getElementById('relEquipment').textContent = `${r.equipment} · ${r.serial}${r.quantity > 1 ? ' · ×' + r.quantity : ''}`;
+            // The exact units (serial numbers) are chosen below when releasing.
+            document.getElementById('relEquipment').textContent = `${r.equipment}${r.quantity > 1 ? ' · ×' + r.quantity : ''}`;
             document.getElementById('relPickup').textContent = r.pickupDate + (r.pickupNote ? ` (${r.pickupNote})` : '');
             document.getElementById('relDue').textContent = r.dueDate;
             document.getElementById('releaseModalTitle').textContent = releasing ? 'Release Equipment' : 'Mark as Not Claimed';
@@ -827,9 +922,64 @@
             idCheck.checked = false;
             releaseBtn.disabled = true;
             document.getElementById('relNote').value = '';
+            if (releasing) fillUnitChoices(r);
 
             modal.classList.add('show');
         }
+
+        // ------------------------------------------------------------------
+        // Units to hand over: one choice (radio) for a single unit, ticks
+        // for several. Expensive: nothing is pre-chosen, so the serial number
+        // on the unit is checked; otherwise the lowest-numbered units are.
+        // ------------------------------------------------------------------
+        const unitsList = document.getElementById('relUnitsList');
+        let unitsNeeded = 1;
+
+        function fillUnitChoices(r) {
+            unitsNeeded = Math.max(1, r.quantity || 1);
+            const choices = r.unitChoices || [];
+            const single = unitsNeeded === 1;
+            const type = single ? 'radio' : 'checkbox';
+
+            document.getElementById('relUnitsLegend').textContent = single ? 'Unit to hand over' : `Units to hand over (${unitsNeeded})`;
+            document.getElementById('relUnitsHelp').textContent = choices.length < unitsNeeded
+                ? `Only ${choices.length} of the ${unitsNeeded} ${unitsNeeded === 1 ? 'unit is' : 'units are'} in the lab right now.`
+                : (r.expensive
+                    ? 'Check the serial number on the unit and choose the one you are handing over.'
+                    : (single ? 'The first unit in the lab is chosen. Change it if you hand over another one.'
+                              : 'The first units in the lab are ticked. Change them if you hand over others.'));
+
+            unitsList.innerHTML = choices.length
+                ? choices.map((u, i) => `
+                    <label class="unit-pick-item">
+                        <input type="${type}" name="rel_unit" value="${u.id}"${!r.expensive && i < unitsNeeded ? ' checked' : ''}>
+                        <span class="unit-pick-text">
+                            <span class="unit-pick-main">${escapeHTML(u.serial || u.code)}</span>
+                            ${u.serial ? `<span class="unit-pick-code">${escapeHTML(u.code)}</span>` : '<span class="unit-pick-code">No serial number</span>'}
+                        </span>
+                    </label>`).join('')
+                : '<p class="unit-pick-empty">No unit of this equipment is in the lab.</p>';
+            updateReleaseButton();
+        }
+
+        function chosenUnitIds() {
+            return [...unitsList.querySelectorAll('input[name="rel_unit"]:checked')].map(input => input.value);
+        }
+
+        // Release needs the ID check and exactly the loan's number of units.
+        function updateReleaseButton() {
+            const chosen = chosenUnitIds().length;
+            const counter = document.getElementById('relUnitsCount');
+            counter.textContent = unitsNeeded > 1 ? `${chosen} of ${unitsNeeded} chosen` : '';
+            counter.classList.toggle('is-done', chosen === unitsNeeded);
+            // Never more ticks than units to hand over.
+            unitsList.querySelectorAll('input[type="checkbox"]').forEach(input => {
+                input.disabled = !input.checked && chosen >= unitsNeeded;
+            });
+            releaseBtn.disabled = !(idCheck.checked && chosen === unitsNeeded);
+        }
+
+        unitsList.addEventListener('change', updateReleaseButton);
 
         function closeModal() {
             modal.classList.remove('show');
@@ -864,9 +1014,7 @@
             openView(parseInt(event.target.dataset.row, 10));
         });
 
-        idCheck.addEventListener('change', () => {
-            releaseBtn.disabled = !idCheck.checked;
-        });
+        idCheck.addEventListener('change', updateReleaseButton);
 
         form.addEventListener('submit', event => {
             event.preventDefault();
@@ -876,8 +1024,10 @@
             formData.append('transaction_id', document.getElementById('relTransactionId').value);
 
             if (mode === 'release') {
-                if (!idCheck.checked) return;
+                const unitIds = chosenUnitIds();
+                if (!idCheck.checked || unitIds.length !== unitsNeeded) return;
                 formData.append('id_verified', '1');
+                unitIds.forEach(id => formData.append('unit_ids[]', id));
             } else {
                 formData.append('note', document.getElementById('relNote').value.trim());
             }

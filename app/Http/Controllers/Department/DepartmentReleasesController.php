@@ -7,11 +7,13 @@ use App\Support\DepartmentScope;
 use App\Services\AuditLogger;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
+use App\Models\EquipmentUnit;
 use App\Support\LoanTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 /**
@@ -51,20 +53,31 @@ class DepartmentReleasesController extends Controller
         $data = $request->validate([
             'transaction_id' => ['required', 'integer', 'min:1'],
             'id_verified' => ['accepted'],
+            // The units handed over (Expensive: required; otherwise the
+            // lowest-numbered units in the lab are taken when none are chosen).
+            'unit_ids' => ['nullable', 'array', 'max:999'],
+            'unit_ids.*' => ['integer', 'min:1'],
         ], [
             'id_verified.accepted' => "Check the borrower's school ID before releasing the equipment.",
         ]);
 
-        return $this->act($request, (int) $data['transaction_id'], function (BorrowTransaction $transaction, BorrowRequest $borrow, $dept) {
+        $unitIds = isset($data['unit_ids']) && $data['unit_ids'] !== [] ? array_map('intval', $data['unit_ids']) : null;
+
+        return $this->act($request, (int) $data['transaction_id'], function (BorrowTransaction $transaction, BorrowRequest $borrow, $dept) use ($unitIds) {
             // Releases follow the office schedule and the reserved dates.
             if ($reason = $this->releaseBlockedReason($transaction)) {
                 return ['error' => $reason];
             }
 
+            if ($reason = $this->unitChoiceProblem($borrow, $unitIds)) {
+                return ['error' => $reason];
+            }
+
             // The unit must be in the lab: the previous borrower may not have returned it yet.
-            if (!$transaction->takeStock($borrow)) {
+            if (!$transaction->takeStock($borrow, $unitIds)) {
                 return ['error' => $this->notInLabMessage($borrow)];
             }
+            $handedOver = $transaction->units()->get()->sortBy('unit_code')->map(fn ($u) => $u->label())->implode(', ');
 
             $transaction->update([
                 'status' => BorrowTransaction::STATUS_ACTIVE,
@@ -74,7 +87,8 @@ class DepartmentReleasesController extends Controller
 
             return [
                 'action' => 'Released borrow request #' . $borrow->request_id . ' for ' . ($borrow->equipment?->name ?? 'equipment'),
-                'details' => 'Handed to ' . ($borrow->user?->fullName() ?: ($borrow->user?->email ?? 'the borrower')) . ' (school ID checked).',
+                'details' => 'Handed to ' . ($borrow->user?->fullName() ?: ($borrow->user?->email ?? 'the borrower')) . ' (school ID checked).'
+                    . ($handedOver !== '' ? ' Units: ' . $handedOver . '.' : ''),
                 'message' => 'Equipment released. The loan is now active until ' . LoanTime::format($transaction->due_date, 'its due date') . '.',
             ];
         });
@@ -217,6 +231,7 @@ class DepartmentReleasesController extends Controller
             'request.departmentAccount',
             'releaser',
             'canceller',
+            'units',
         ])
             ->whereHas('request', fn ($query) => $query
                 ->where('overall_status', 'Approved')
@@ -238,6 +253,14 @@ class DepartmentReleasesController extends Controller
 
         $fmtDate = fn ($v) => LoanTime::format($v);
         $fmtDateTime = fn ($v) => $v ? Carbon::parse($v)->timezone(config('app.display_timezone'))->format('M d, Y h:i A') : '—';
+
+        // Units in the lab now, per item, for the Release window's choice.
+        $readyEquipmentIds = $transactions->filter->isReadyForPickup()->map(fn ($t) => $t->request?->equipment_id)->filter()->unique();
+        $inLab = EquipmentUnit::whereIn('equipment_id', $readyEquipmentIds->all() ?: [0])
+            ->where('status', EquipmentUnit::STATUS_AVAILABLE)
+            ->get()
+            ->sortBy(fn ($u) => EquipmentUnit::numberOf($u->unit_code))
+            ->groupBy('equipment_id');
 
         $rows = [];
 
@@ -275,7 +298,9 @@ class DepartmentReleasesController extends Controller
                 'idNumber' => $idNumber !== '' ? $idNumber : '—',
                 'equipment' => $equipment->name,
                 'category' => $equipment->category?->category_name ?: 'General',
-                'serial' => $equipment->serial_number ?: ('EQ-' . $equipment->equipment_id),
+                // The units handed over (serial numbers, else codes); while it waits
+                // for pickup, the units are chosen at release.
+                'serial' => $transaction->unitLabels() ?: ($ready ? 'Unit chosen at release' : '—'),
                 'quantity' => max(1, (int) ($borrow->quantity ?? 1)),
                 'requiresBothApprovals' => $borrow->requiresDualApproval(),
                 'purpose' => $borrow->purpose ?: '—',
@@ -308,6 +333,18 @@ class DepartmentReleasesController extends Controller
                 'cancelledBy' => $transaction->canceller?->full_name ?: '—',
                 'cancelReason' => $transaction->cancel_reason ?: '',
                 'canAct' => $ready,
+                // Release window: Expensive equipment names the exact unit; other
+                // equipment starts with the lowest-numbered units ticked.
+                'expensive' => $equipment->isExpensive(),
+                'unitChoices' => $ready
+                    ? ($inLab->get($equipment->equipment_id) ?? collect())->map(fn ($u) => [
+                        'id' => (int) $u->unit_id,
+                        'code' => $u->unit_code,
+                        'serial' => $u->serial_number,
+                    ])->values()->all()
+                    : [],
+                // The units handed over (released loans).
+                'units' => $transaction->units->sortBy(fn ($u) => EquipmentUnit::numberOf($u->unit_code))->map(fn ($u) => $u->label())->values()->all(),
                 // Release only from the pickup date, on office days, before the deadline.
                 'releaseBlocked' => $ready ? $this->releaseBlockedReason($transaction) : null,
                 'releaseBlockedLabel' => $ready ? $this->releaseBlockedLabel($transaction) : null,
@@ -356,6 +393,41 @@ class DepartmentReleasesController extends Controller
         if (LoanTime::isOverdue($transaction->due_date)) {
             return 'This loan was due ' . LoanTime::format($transaction->due_date) . ' by '
                 . LoanTime::clock(LoanTime::deadline()) . ', so it can no longer be released. Mark it Not Claimed; the borrower can submit a new request.';
+        }
+
+        return null;
+    }
+
+    /**
+     * What is wrong with the units chosen for a release, or null when they
+     * can be handed over. Expensive equipment must name the exact unit (its
+     * serial number is checked on the unit); otherwise a choice is optional,
+     * and when given it must be exactly the loan's quantity of this item's
+     * units that are in the lab.
+     */
+    private function unitChoiceProblem(BorrowRequest $borrow, ?array $unitIds): ?string
+    {
+        $quantity = max(1, (int) $borrow->quantity);
+
+        if ($unitIds === null) {
+            return $borrow->equipment?->isExpensive()
+                ? 'Choose the unit you are handing over: check the serial number on the unit itself.'
+                : null;
+        }
+
+        if (count(array_unique($unitIds)) !== $quantity) {
+            return 'Choose exactly ' . $quantity . ' ' . Str::plural('unit', $quantity) . ' to hand over.';
+        }
+
+        $units = EquipmentUnit::whereIn('unit_id', $unitIds)->get();
+        if ($units->count() !== $quantity || $units->contains(fn ($u) => (int) $u->equipment_id !== (int) $borrow->equipment_id)) {
+            return 'A chosen unit is not one of this equipment\'s units. Close the window and try again.';
+        }
+
+        $away = $units->where('status', '!=', EquipmentUnit::STATUS_AVAILABLE);
+        if ($away->isNotEmpty()) {
+            return $away->map(fn ($u) => $u->label() . ' is ' . $u->status)->implode('; ')
+                . ', so it can\'t be handed over. Choose another unit.';
         }
 
         return null;
