@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToDepartment;
+use App\Services\EquipmentUnits;
 use App\Support\LoanTime;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -268,76 +269,83 @@ class BorrowTransaction extends Model
         return LoanTime::daysLate($this->due_date, $end);
     }
 
+    /** The equipment units handed over on this loan, with how each came back. */
+    public function units()
+    {
+        return $this->belongsToMany(EquipmentUnit::class, 'borrow_transaction_unit', 'transaction_id', 'unit_id')
+            ->withPivot('return_condition');
+    }
+
     /**
-     * Takes lost units out of the equipment's total quantity: they no longer
-     * exist. Their stock was never restored, so the available quantity is only
-     * kept within the new total. Call this inside a DB transaction.
+     * The serial numbers (else codes) of the units handed over on this loan,
+     * e.g. "SN-1, EQ-4-002"; $condition keeps only those that came back in
+     * it. Empty before release and for loans from before unit tracking.
+     * Load the units first for lists.
+     */
+    public function unitLabels(?string $condition = null): string
+    {
+        return ($this->relationLoaded('units') ? $this->units : $this->units()->get())
+            ->when($condition !== null, fn ($units) => $units->filter(fn ($u) => $u->pivot?->return_condition === $condition))
+            ->sortBy(fn ($u) => EquipmentUnit::numberOf($u->unit_code))
+            ->map(fn ($u) => $u->label())
+            ->implode(', ');
+    }
+
+    /**
+     * Lost units no longer exist: they are marked Lost, so they leave the
+     * equipment's total quantity (and were never back in stock). The status
+     * is the admin's to set; running out of units doesn't change it. Call this
+     * inside a DB transaction.
      */
     public function removeLostUnits(BorrowRequest $borrow, ?int $units = null): void
     {
-        $equipment = Equipment::where('equipment_id', $borrow->equipment_id)
-            ->lockForUpdate()
-            ->first();
-
-        if (!$equipment) {
-            return;
+        if ($equipment = $this->lockedEquipment($borrow)) {
+            EquipmentUnits::markLost($this, $equipment, $units ?? max(1, (int) $borrow->quantity));
         }
-
-        $equipment->total_qty = max(0, (int) $equipment->total_qty - ($units ?? max(1, (int) $borrow->quantity)));
-        $equipment->available_qty = min((int) $equipment->available_qty, (int) $equipment->total_qty);
-
-        // The status is the admin's to set; running out of units no longer
-        // changes it (dates decide whether the item can be borrowed).
-        $equipment->save();
     }
 
     /**
-     * Takes the released units out of the equipment's available stock: they
-     * are now with the borrower. Returns false (nothing changed) when not
-     * enough units are in the lab, e.g. the previous borrower hasn't returned
-     * it yet. Call this inside a DB transaction.
+     * Release: hands the borrower Available units (they become On Loan and
+     * are recorded on this loan), taking them out of the available stock.
+     * Returns false (nothing changed) when not enough units are in the lab,
+     * e.g. the previous borrower hasn't returned it yet. Call this inside a
+     * DB transaction.
      */
-    public function takeStock(BorrowRequest $borrow): bool
+    public function takeStock(BorrowRequest $borrow, ?array $unitIds = null): bool
     {
-        $equipment = Equipment::where('equipment_id', $borrow->equipment_id)
-            ->lockForUpdate()
-            ->first();
+        $equipment = $this->lockedEquipment($borrow);
 
-        $units = max(1, (int) $borrow->quantity);
-
-        if (!$equipment || (int) $equipment->available_qty < $units) {
-            return false;
-        }
-
-        $equipment->available_qty = (int) $equipment->available_qty - $units;
-        $equipment->save();
-
-        return true;
+        return $equipment !== null && EquipmentUnits::takeOut($this, $equipment, max(1, (int) $borrow->quantity), $unitIds);
     }
 
     /**
-     * Puts the borrowed units back into the equipment's available stock (never
-     * above the total quantity): all of them, or $units when only some came
-     * back Good. The status is left as the admin set it. Only the
-     * department's return confirmation calls this.
+     * Puts the borrowed units back into the available stock: all of them, or
+     * $units when only some came back Good. The status is left as the admin
+     * set it. Only the department's return confirmation calls this.
      *
      * Call this inside a DB transaction.
      */
-    public function restoreStock(BorrowRequest $borrow, ?int $units = null): void
+    public function restoreStock(BorrowRequest $borrow, ?int $units = null, array $keepOut = []): void
     {
-        $equipment = Equipment::where('equipment_id', $borrow->equipment_id)
-            ->lockForUpdate()
-            ->first();
-
-        if (!$equipment) {
-            return;
+        if ($equipment = $this->lockedEquipment($borrow)) {
+            EquipmentUnits::putBack($this, $equipment, $units ?? max(1, (int) $borrow->quantity), $keepOut);
         }
+    }
 
-        $equipment->available_qty = min(
-            (int) $equipment->total_qty,
-            (int) $equipment->available_qty + ($units ?? max(1, (int) $borrow->quantity))
-        );
+    /**
+     * Units that came back Damaged or Incomplete stay out of stock, Under
+     * Maintenance, until they are repaired. Call this inside a DB transaction,
+     * after restoreStock() put the Good ones back.
+     */
+    public function holdDamagedUnits(BorrowRequest $borrow, string $condition): void
+    {
+        if ($equipment = $this->lockedEquipment($borrow)) {
+            EquipmentUnits::holdForRepair($this, $equipment, $condition);
+        }
+    }
 
-        $equipment->save();
+    private function lockedEquipment(BorrowRequest $borrow): ?Equipment
+    {
+        return Equipment::where('equipment_id', $borrow->equipment_id)->lockForUpdate()->first();
     }
 }

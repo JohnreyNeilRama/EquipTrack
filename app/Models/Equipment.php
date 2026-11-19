@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToDepartment;
+use App\Services\EquipmentUnits;
 use Illuminate\Database\Eloquent\Model;
 
 class Equipment extends Model
@@ -38,6 +39,107 @@ class Equipment extends Model
     protected $table = 'equipment';
     protected $primaryKey = 'equipment_id';
     public $timestamps = false;
+
+    /**
+     * A serial number given to the item itself (older clients and tests send
+     * one with typed quantities). Serial numbers belong to units, so it is
+     * put on the item's first unit when the item is saved.
+     */
+    private ?string $pendingSerial = null;
+
+    /**
+     * Units follow the quantities: a new item gets its units (the first one
+     * with a serial number given to the item; units beyond the available
+     * quantity Under Maintenance), and quantities typed on the equipment form
+     * are matched by adding, removing or setting aside units. When stock
+     * moves (release, return, lost), the units move and the counts follow
+     * them (App\Services\EquipmentUnits).
+     */
+    protected static function booted(): void
+    {
+        static::created(function (Equipment $equipment) {
+            $total = max(0, (int) $equipment->total_qty);
+            $available = min($total, max(0, (int) $equipment->available_qty));
+            $serial = $equipment->pendingSerial;
+            $equipment->pendingSerial = null;
+
+            EquipmentUnits::create($equipment, $available, EquipmentUnit::STATUS_AVAILABLE, $serial);
+            EquipmentUnits::create($equipment, $total - $available, EquipmentUnit::STATUS_MAINTENANCE, $available === 0 ? $serial : null);
+        });
+
+        static::updated(function (Equipment $equipment) {
+            if (EquipmentUnits::isSyncing()) {
+                return;
+            }
+
+            if ($equipment->wasChanged(['total_qty', 'available_qty'])) {
+                EquipmentUnits::matchCounts($equipment, (int) $equipment->total_qty, (int) $equipment->available_qty);
+            }
+        });
+
+        // A serial number given to an existing item goes on its first unit
+        // (its own code, sent back unchanged, means "no serial number").
+        static::saved(function (Equipment $equipment) {
+            if ($equipment->pendingSerial === null) {
+                return;
+            }
+            $serial = $equipment->pendingSerial;
+            $equipment->pendingSerial = null;
+
+            $first = $equipment->units()->get()->sortBy(fn ($u) => EquipmentUnit::numberOf($u->unit_code))->first();
+            if ($first && strcasecmp($serial, $first->unit_code) !== 0 && $serial !== $first->serial_number) {
+                $first->update(['serial_number' => $serial !== '' ? $serial : null]);
+            }
+        });
+    }
+
+    /** Older clients' item serial number: kept for the first unit (see booted()). */
+    public function setSerialNumberAttribute($value): void
+    {
+        $this->pendingSerial = trim((string) $value);
+    }
+
+    /**
+     * The item's first unit's serial number, else its code: how older pages
+     * and messages name the item. Units carry the real serial numbers.
+     */
+    public function getSerialNumberAttribute(): ?string
+    {
+        if (!$this->exists) {
+            return $this->pendingSerial;
+        }
+
+        $units = $this->relationLoaded('units') ? $this->units : $this->units()->get();
+        $first = $units->sortBy([
+            fn ($a, $b) => (int) in_array($a->status, EquipmentUnit::GONE, true) <=> (int) in_array($b->status, EquipmentUnit::GONE, true),
+            fn ($a, $b) => EquipmentUnit::numberOf($a->unit_code) <=> EquipmentUnit::numberOf($b->unit_code),
+        ])->first();
+
+        return $first?->label();
+    }
+
+    /**
+     * The serial numbers (else codes) of the units still in use, e.g.
+     * "SN-1, SN-2, EQ-4-003 +2 more". Load the units first for lists.
+     */
+    public function unitLabels(int $max = 3): string
+    {
+        $labels = ($this->relationLoaded('units') ? $this->units : $this->units()->get())
+            ->reject(fn ($u) => in_array($u->status, EquipmentUnit::GONE, true))
+            ->sortBy(fn ($u) => EquipmentUnit::numberOf($u->unit_code))
+            ->map(fn ($u) => $u->label())
+            ->values();
+
+        return $labels->take($max)->implode(', ') . ($labels->count() > $max ? ' +' . ($labels->count() - $max) . ' more' : '');
+    }
+
+    /** Every unit's serial number and code, for searching. */
+    public function unitSearchText(): string
+    {
+        return ($this->relationLoaded('units') ? $this->units : $this->units()->get())
+            ->flatMap(fn ($u) => array_filter([$u->serial_number, $u->unit_code]))
+            ->implode(' ');
+    }
 
     protected $fillable = [
         'name',
@@ -160,6 +262,12 @@ class Equipment extends Model
         }
 
         return null;
+    }
+
+    /** The item's physical units, each with its own code, serial number and status. */
+    public function units()
+    {
+        return $this->hasMany(EquipmentUnit::class, 'equipment_id', 'equipment_id');
     }
 
     public function category()
