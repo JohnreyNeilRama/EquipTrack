@@ -122,10 +122,10 @@ class PenaltySubmissionService
      * item); an approved replacement of a Lost item puts the units back into
      * the equipment's stock.
      */
-    public function approve(PenaltySubmission $submission, bool $itemReceived, array $actor): ?string
+    public function approve(PenaltySubmission $submission, bool $itemReceived, array $actor, array $replacementSerials = []): ?string
     {
         try {
-            DB::transaction(function () use ($submission, $itemReceived, $actor) {
+            DB::transaction(function () use ($submission, $itemReceived, $actor, $replacementSerials) {
                 $locked = PenaltySubmission::with('penalty.transaction.request')
                     ->whereKey($submission->submission_id)
                     ->lockForUpdate()
@@ -161,7 +161,7 @@ class PenaltySubmissionService
                 }
 
                 if ($locked->type === PenaltySubmission::TYPE_REPLACEMENT && $penalty->type === Penalty::TYPE_LOST) {
-                    $this->restockReplacedUnits($penalty);
+                    $this->restockReplacedUnits($penalty, $replacementSerials);
                 }
 
                 AuditLogger::log(
@@ -207,8 +207,12 @@ class PenaltySubmissionService
         });
     }
 
-    /** A lost unit was replaced: it counts as owned and available again. */
-    private function restockReplacedUnits(Penalty $penalty): void
+    /**
+     * A lost unit was replaced: the replacement joins the equipment as a new
+     * Available unit (new code), with the serial number staff entered for it.
+     * Expensive equipment needs one for every replacement unit.
+     */
+    private function restockReplacedUnits(Penalty $penalty, array $serials = []): void
     {
         $borrow = $penalty->transaction?->request;
         $equipment = $borrow
@@ -220,10 +224,32 @@ class PenaltySubmissionService
         }
 
         // Only the units that were lost (all of the loan's for older records).
+        // They join the item as new units (with new codes); the lost ones stay Lost.
         $units = max(1, $penalty->transaction->affectedUnits() ?: (int) $borrow->quantity);
-        $equipment->total_qty = (int) $equipment->total_qty + $units;
-        $equipment->available_qty = min((int) $equipment->total_qty, (int) $equipment->available_qty + $units);
 
-        $equipment->save();
+        $serials = array_values(array_filter(array_map(fn ($s) => trim((string) $s), $serials), fn ($s) => $s !== ''));
+        if (count($serials) > $units) {
+            throw new RuntimeException('Only ' . $units . ' ' . ($units === 1 ? 'unit was' : 'units were') . ' replaced, so enter at most ' . $units . ' serial ' . ($units === 1 ? 'number' : 'numbers') . '.');
+        }
+        if ($equipment->isExpensive() && count($serials) < $units) {
+            throw new RuntimeException('Enter the serial number of ' . ($units === 1 ? 'the replacement unit' : 'each of the ' . $units . ' replacement units')
+                . ': Expensive equipment needs one for every unit.');
+        }
+        $seen = [];
+        foreach ($serials as $serial) {
+            $key = mb_strtolower($serial);
+            if (mb_strlen($serial) > 50) {
+                throw new RuntimeException('A serial number can be at most 50 characters.');
+            }
+            if (preg_match('/^EQ-\d+-\d+$/i', $serial)) {
+                throw new RuntimeException('"' . $serial . '" looks like an automatic unit code. Leave it empty if the unit has no serial number.');
+            }
+            if (isset($seen[$key]) || EquipmentUnitForm::serialTaken($serial)) {
+                throw new RuntimeException('Serial number "' . $serial . '" is already used by another unit.');
+            }
+            $seen[$key] = true;
+        }
+
+        EquipmentUnits::addReplacements($equipment, $units, $serials);
     }
 }

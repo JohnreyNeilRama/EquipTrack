@@ -186,6 +186,12 @@
                             <input type="checkbox" id="pfItemReceived">
                             <span>The replacement or repaired item was received and inspected <span class="req">*</span></span>
                         </label>
+                        {{-- A replaced Lost unit joins the equipment as a new unit, with its own serial number --}}
+                        <div class="penalty-field" data-modes="approveProof" id="pfReplacementField">
+                            <label class="detail-form-label" for="pfReplacementSerials" id="pfReplacementLabel">Serial number of the replacement unit</label>
+                            <textarea id="pfReplacementSerials" class="detail-form-control textarea-control" rows="2" maxlength="2000" placeholder="One per line" style="font-family: monospace;"></textarea>
+                            <p class="penalty-hint" id="pfReplacementHint"></p>
+                        </div>
                         <p class="penalty-note" data-modes="approveProof"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Approving settles the penalty, copies the reference number, notifies the borrower and lifts their borrowing hold.</p>
                         <div class="penalty-field" data-modes="rejectProof">
                             <label class="detail-form-label" for="pfRejectReason">Reason for Rejecting <span class="req">*</span></label>

@@ -224,7 +224,7 @@ class RequestQuantityTest extends TestCase
 
         $this->confirm($id, 'Damaged', 1, 'Cracked board')
             ->assertOk()
-            ->assertJson(['message' => 'Return confirmed: 1 unit damaged (kept out of the available stock until the admin updates it), 2 units back in stock.']);
+            ->assertJson(['message' => 'Return confirmed: 1 unit damaged (Under Maintenance until repaired), 2 units back in stock.']);
 
         $equipment = $this->kits->fresh();
         $this->assertSame(4, (int) $equipment->available_qty, '2 good units came back; 1 damaged stays out.');
@@ -233,7 +233,8 @@ class RequestQuantityTest extends TestCase
         $loan = BorrowTransaction::where('request_id', $id)->first();
         $this->assertSame(1, (int) $loan->affected_qty);
         $this->assertSame(1, $loan->affectedUnits());
-        $this->assertSame('Damaged — 1 of 3 units. Cracked board', $loan->condition_on_return);
+        // Released units are named: the count did not say which one, so the last one is taken.
+        $this->assertMatchesRegularExpression('/^Damaged — 1 of 3 units: EQ-\d+-\d{3}\. Cracked board$/u', $loan->condition_on_return);
     }
 
     public function test_only_the_lost_units_leave_the_total(): void

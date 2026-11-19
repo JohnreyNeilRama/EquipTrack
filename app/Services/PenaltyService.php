@@ -155,6 +155,7 @@ class PenaltyService
         return $query->with([
             'transaction.request.equipment.department',
             'transaction.request.equipment.category',
+            'transaction.units',
             'user.student',
             'user.facultyMember',
             'recordedByAdmin',
@@ -184,7 +185,8 @@ class PenaltyService
                     'role' => $user?->role ?: '—',
                     'email' => $user?->email ?? '',
                     'equipment' => $equipment?->name ?? 'Deleted equipment',
-                    'serial' => $equipment?->serial_number ?: '—',
+                    // The units the penalty is about (e.g. the damaged one), else the loan's units.
+                    'serial' => ($transaction ? ($transaction->unitLabels($penalty->type === Penalty::TYPE_LATE ? null : $penalty->type) ?: $transaction->unitLabels()) : '') ?: '—',
                     // Shown on the department's record view (photo, category, units, borrower picture).
                     'equipmentImage' => $equipment?->imageUrl(),
                     'category' => $equipment?->category?->category_name ?: 'General',
@@ -212,6 +214,12 @@ class PenaltyService
                     'proofState' => $this->proofState($penalty, $latest),
                     'awaitingReview' => (bool) $latest?->isUnderReview(),
                     'proofTypes' => PenaltySubmission::typesFor($penalty->type),
+                    // A replaced Lost unit joins the equipment as a new unit:
+                    // how many, and whether each needs its serial number (Expensive).
+                    'replacementUnits' => $penalty->type === Penalty::TYPE_LOST && $transaction
+                        ? max(1, $transaction->affectedUnits() ?: (int) ($borrow?->quantity ?? 1))
+                        : 0,
+                    'replacementSerialRequired' => (bool) $equipment?->isExpensive(),
                     'proof' => $latest && $proofFileRoute ? $latest->toProofArray($proofFileRoute) : null,
                     'proofHistory' => $proofFileRoute
                         ? $penalty->submissions->slice(1)->map(fn (PenaltySubmission $s) => $s->toProofArray($proofFileRoute))->values()->all()

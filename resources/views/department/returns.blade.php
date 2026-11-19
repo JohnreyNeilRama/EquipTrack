@@ -289,6 +289,45 @@
         font-size: var(--fs-small);
         color: var(--text-muted);
     }
+    /* Units affected, ticked by name (loans that recorded their units) */
+    .affected-unit-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .affected-unit-list[hidden],
+    #affectedUnits[hidden] { display: none; }
+    .affected-unit {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: border-color 0.2s, background-color 0.2s;
+    }
+    .affected-unit:hover { border-color: #ef4444; }
+    .affected-unit:has(input:checked) {
+        border-color: #ef4444;
+        background-color: rgba(239, 68, 68, 0.06);
+    }
+    .affected-unit input {
+        width: 16px;
+        height: 16px;
+        accent-color: #dc2626;
+    }
+    .affected-unit input:focus-visible { outline: 2px solid #dc2626; outline-offset: 2px; }
+    .affected-unit-label {
+        font-size: var(--fs-label);
+        font-weight: 600;
+        color: var(--text-main);
+    }
+    .affected-unit-code {
+        font-size: var(--fs-small);
+        color: var(--text-muted);
+    }
+    .dark-theme .affected-unit:has(input:checked) { background-color: rgba(248, 113, 113, 0.12); border-color: #f87171; }
 
     /* The returned item: reference photo beside its name and details */
     .return-item {
@@ -893,7 +932,7 @@
                                 <p class="return-item-category" id="reviewEquipmentCategory">—</p>
                                 <dl class="return-item-facts">
                                     <div>
-                                        <dt>Equipment ID / Serial No.</dt>
+                                        <dt>Units (Serial No.)</dt>
                                         <dd class="mono" id="reviewEquipmentId">—</dd>
                                     </div>
                                     <div>
@@ -980,6 +1019,8 @@
                                 Units affected <span class="req">*</span>
                             </label>
                             <input type="number" id="affectedUnits" class="detail-form-control" min="1" step="1" inputmode="numeric">
+                            {{-- Loans that recorded their units at release: tick the exact ones --}}
+                            <div class="affected-unit-list" id="affectedUnitList" role="group" aria-label="Units affected" hidden></div>
                             <p class="review-hint" id="affectedUnitsHint"></p>
                         </div>
 
@@ -1319,22 +1360,56 @@
             return reviewing ? Math.max(1, Number(reviewing.quantity) || 1) : 1;
         }
 
+        // The loan's units still out, when it recorded them at release (one
+        // per unit): then the affected ones are ticked by name, not counted.
+        const affectedList = document.getElementById('affectedUnitList');
+
+        function namedUnits() {
+            const out = reviewing ? (reviewing.units || []).filter(u => u.out) : [];
+            return out.length === loanUnits() ? out : [];
+        }
+
+        function fillAffectedList() {
+            affectedList.innerHTML = namedUnits().map(u => `
+                <label class="affected-unit">
+                    <input type="checkbox" value="${u.id}">
+                    <span class="affected-unit-label">${escapeHTML(u.label)}</span>
+                    ${u.label !== u.code ? `<span class="affected-unit-code">${escapeHTML(u.code)}</span>` : ''}
+                </label>`).join('');
+        }
+
+        function tickedUnitIds() {
+            return [...affectedList.querySelectorAll('input:checked')].map(input => Number(input.value));
+        }
+
         function syncAffectedUnits() {
             const condition = selectedCondition();
             const units = loanUnits();
             const show = condition !== 'Good' && units > 1;
             affectedField.hidden = !show;
             if (!show) return;
-            affectedInput.max = units;
-            if (!affectedInput.value || Number(affectedInput.value) > units) affectedInput.value = units;
-            const affected = Number(affectedInput.value) || units;
+            const named = namedUnits().length > 0;
+            affectedInput.hidden = named;
+            affectedList.hidden = !named;
+
+            let affected;
+            if (named) {
+                affected = tickedUnitIds().length;
+            } else {
+                affectedInput.max = units;
+                if (!affectedInput.value || Number(affectedInput.value) > units) affectedInput.value = units;
+                affected = Number(affectedInput.value) || units;
+            }
             const good = Math.max(0, units - affected);
-            affectedHint.textContent = `${affected} of ${units} units ${condition.toLowerCase()}`
-                + (condition === 'Lost' ? ' (removed from the total)' : ' (kept out of stock)')
-                + (good > 0 ? `; ${good} back in stock as Good.` : '.');
+            affectedHint.textContent = named && affected === 0
+                ? `Tick the ${condition === 'Lost' ? 'lost' : condition.toLowerCase()} units; the others go back to stock as Good.`
+                : `${affected} of ${units} units ${condition.toLowerCase()}`
+                    + (condition === 'Lost' ? ' (removed from the total)' : ' (Under Maintenance until repaired)')
+                    + (good > 0 ? `; ${good} back in stock as Good.` : '.');
         }
 
         affectedInput.addEventListener('input', syncAffectedUnits);
+        affectedList.addEventListener('change', syncAffectedUnits);
 
         // ------------------------------------------------------------------
         // Penalty step: suggested from the inspected condition and lateness
@@ -1501,6 +1576,7 @@
                 penaltyDescription.value = '';
                 penaltyDescription.classList.remove('is-invalid');
                 affectedInput.value = '';
+                fillAffectedList();
                 // Start from what the user reported when it is one of the inspection options.
                 setCondition(['Good', 'Damaged', 'Incomplete', 'Lost'].includes(r.reportedCondition) ? r.reportedCondition : 'Good');
                 inspectRemarks.value = '';
@@ -1521,7 +1597,11 @@
                 document.getElementById('resultReasonGroup').style.display = confirmed ? 'none' : 'block';
 
                 const result = document.getElementById('resultCondition');
-                result.textContent = r.condition + (r.affectedUnits > 0 && Number(r.quantity) > 1 ? ` · ${r.affectedUnits} of ${r.quantity} units` : '');
+                // Which units, when the loan recorded them (several units only).
+                const affectedNames = (r.units || []).filter(u => u.condition && u.condition === r.condition).map(u => u.label);
+                result.textContent = r.condition + (r.affectedUnits > 0 && Number(r.quantity) > 1
+                    ? ` · ${r.affectedUnits} of ${r.quantity} units${affectedNames.length ? ' (' + affectedNames.join(', ') + ')' : ''}`
+                    : '');
                 result.className = 'condition-tag ' + conditionClass(r.condition);
                 document.getElementById('resultRemarks').textContent = r.inspectionRemarks || 'None';
                 document.getElementById('resultReason').textContent = r.rejectReason || 'No reason provided.';
@@ -1549,7 +1629,14 @@
         function post(url, payload) {
             const formData = new FormData();
             formData.append('_token', CSRF_TOKEN);
-            Object.entries(payload).forEach(([key, value]) => formData.append(key, value));
+            Object.entries(payload).forEach(([key, value]) => {
+                // Lists (e.g. the affected units) go as key[] entries.
+                if (Array.isArray(value)) {
+                    value.forEach(item => formData.append(`${key}[]`, item));
+                } else {
+                    formData.append(key, value);
+                }
+            });
 
             busy = true;
             return fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: formData })
@@ -1587,7 +1674,16 @@
 
             const payload = { transaction_id: id, condition, remarks };
 
-            if (condition !== 'Good' && loanUnits() > 1) {
+            if (condition !== 'Good' && loanUnits() > 1 && namedUnits().length) {
+                const ids = tickedUnitIds();
+                if (!ids.length) {
+                    affectedList.querySelector('input')?.focus();
+                    showNotification('Units Affected', `Tick the ${condition.toLowerCase()} ${loanUnits() > 1 ? 'units' : 'unit'}; the others go back to stock as Good.`, 'error');
+                    return;
+                }
+                payload.affected_unit_ids = ids;
+                payload.affected_units = ids.length;
+            } else if (condition !== 'Good' && loanUnits() > 1) {
                 const affected = Number(affectedInput.value);
                 if (!Number.isInteger(affected) || affected < 1 || affected > loanUnits()) {
                     affectedInput.focus();

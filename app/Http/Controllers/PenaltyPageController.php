@@ -134,13 +134,16 @@ abstract class PenaltyPageController extends Controller
         $data = $request->validate([
             'penalty_id' => ['required', 'integer', 'min:1'],
             'item_received' => ['nullable', 'boolean'],
+            // A replaced Lost unit: its serial number (one per replacement unit).
+            'replacement_serials' => ['nullable', 'array', 'max:999'],
+            'replacement_serials.*' => ['nullable', 'string', 'max:50'],
         ]);
 
         return $this->act($data['penalty_id'], function (Penalty $penalty) use ($data) {
             $submission = $this->submissionUnderReview($penalty);
 
             return $submission
-                ? $this->submissions->approve($submission, (bool) ($data['item_received'] ?? false), $this->actor())
+                ? $this->submissions->approve($submission, (bool) ($data['item_received'] ?? false), $this->actor(), $data['replacement_serials'] ?? [])
                 : 'There is no proof waiting for review.';
         }, 'Proof approved. The penalty is settled.');
     }

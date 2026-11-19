@@ -372,6 +372,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 + item('Files', `${proof.files.length} attached`);
             // Replacement / repair: staff must have the item in hand.
             $('pfReceivedField').hidden = mode !== 'approveProof' || !proof.needsInspection;
+
+            // A replaced Lost unit becomes a new unit: its serial number
+            // (required for Expensive equipment, else optional).
+            const replaces = proof.type === 'Replacement' ? (p.replacementUnits || 0) : 0;
+            $('pfReplacementField').hidden = mode !== 'approveProof' || replaces === 0;
+            $('pfReplacementSerials').value = '';
+            $('pfReplacementSerials').rows = Math.min(6, Math.max(2, replaces));
+            $('pfReplacementLabel').innerHTML = (replaces > 1 ? `Serial numbers of the ${replaces} replacement units` : 'Serial number of the replacement unit')
+                + (p.replacementSerialRequired ? ' <span class="req">*</span>' : ' <span class="optional">optional</span>');
+            $('pfReplacementHint').textContent = (replaces > 1 ? 'One per line. ' : '')
+                + (p.replacementSerialRequired
+                    ? 'Expensive equipment: every unit needs its serial number.'
+                    : 'Leave it empty if the unit has none; it is then known by its automatic code.');
+        } else {
+            $('pfReplacementField').hidden = true;
         }
 
         const remarksLabel = $('pfRemarksLabel');
@@ -469,6 +484,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             payload.penalty_id = openId;
             payload.item_received = needsItem && $('pfItemReceived').checked ? '1' : '0';
+            if (!$('pfReplacementField').hidden) {
+                const serials = $('pfReplacementSerials').value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+                const row = penalties.find(item => item.id === openId) || {};
+                if (row.replacementSerialRequired && serials.length < (row.replacementUnits || 1)) {
+                    return invalid('pfReplacementSerials', 'Enter the serial number of each replacement unit: Expensive equipment needs one for every unit.');
+                }
+                payload.replacement_serials = serials;
+            }
             url = URLS.approveProof;
         } else if (formMode === 'rejectProof') {
             const reason = $('pfRejectReason').value.trim();
@@ -491,7 +514,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const data = new FormData();
         data.append('_token', CSRF_TOKEN);
-        Object.entries(payload).forEach(([key, value]) => data.append(key, value ?? ''));
+        Object.entries(payload).forEach(([key, value]) => {
+            // Lists (e.g. replacement serial numbers) go as key[] entries.
+            if (Array.isArray(value)) {
+                value.forEach(item => data.append(`${key}[]`, item));
+            } else {
+                data.append(key, value ?? '');
+            }
+        });
 
         busy = true;
         submitBtn.disabled = true;

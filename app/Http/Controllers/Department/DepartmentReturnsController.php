@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Support\DepartmentScope;
 use App\Models\BorrowRequest;
 use App\Models\BorrowTransaction;
+use App\Models\EquipmentUnit;
 use App\Models\Penalty;
 use App\Services\AuditLogger;
 use App\Services\PenaltyService;
@@ -55,7 +56,10 @@ class DepartmentReturnsController extends Controller
             'transaction_id' => ['required', 'integer', 'min:1'],
             'condition' => ['required', Rule::in(BorrowTransaction::INSPECTED_CONDITIONS)],
             'remarks' => ['nullable', 'string', 'max:1000'],
-            // Damaged / Incomplete / Lost: how many of the loan's units (default: all).
+            // Damaged / Incomplete / Lost: which of the loan's units (the window
+            // names them), or only how many (older clients; default: all).
+            'affected_unit_ids' => ['nullable', 'array', 'max:999'],
+            'affected_unit_ids.*' => ['integer', 'min:1'],
             'affected_units' => ['nullable', 'integer', 'min:1', 'max:999'],
             // Optional penalty recorded together with the return.
             'penalty_type' => ['nullable', Rule::in(Penalty::TYPES)],
@@ -80,12 +84,51 @@ class DepartmentReturnsController extends Controller
             $good = $data['condition'] === 'Good';
             $affected = $good ? 0 : (int) ($data['affected_units'] ?? $quantity);
 
+            // The exact units found Damaged / Incomplete / Lost: the loan's units still out.
+            $chosen = [];
+            if (!$good && !empty($data['affected_unit_ids'])) {
+                $chosen = array_values(array_unique(array_map('intval', $data['affected_unit_ids'])));
+                $out = $transaction->units()->where('status', EquipmentUnit::STATUS_ON_LOAN)->pluck('equipment_unit.unit_id')->map(fn ($id) => (int) $id)->all();
+                if (array_diff($chosen, $out)) {
+                    return ['error' => 'A chosen unit was not handed over on this loan. Close the window and try again.', 'code' => 422];
+                }
+                $affected = count($chosen);
+            }
+
             if (!$good && $affected > $quantity) {
                 return ['error' => 'This loan has ' . $quantity . ' ' . ($quantity === 1 ? 'unit' : 'units')
                     . ', so at most ' . $quantity . ' can be ' . strtolower($data['condition']) . '.', 'code' => 422];
             }
 
-            $unitsNote = !$good && $quantity > 1 ? $affected . ' of ' . $quantity . ' units' : '';
+            // Good units go back to stock (never the chosen ones). Legacy loans
+            // never deducted stock, so they never add it back.
+            $goodUnits = $quantity - $affected;
+            if ($goodUnits > 0 && $transaction->return_restores_stock) {
+                $transaction->restoreStock($borrow, $goodUnits, $chosen);
+            }
+
+            // Damaged or incomplete units stay out of stock until they are repaired.
+            if (in_array($data['condition'], ['Damaged', 'Incomplete'], true)) {
+                $transaction->holdDamagedUnits($borrow, $data['condition']);
+            }
+
+            // A lost unit no longer exists, so it leaves the total quantity too.
+            if ($data['condition'] === 'Lost') {
+                $transaction->removeLostUnits($borrow, $affected);
+            }
+
+            // Which units they were (serial number, else code), when the loan recorded its units.
+            $affectedLabels = $good ? '' : $transaction->units()
+                ->wherePivot('return_condition', $data['condition'])
+                ->get()
+                ->sortBy(fn ($u) => EquipmentUnit::numberOf($u->unit_code))
+                ->map(fn ($u) => $u->label())
+                ->implode(', ');
+
+            // Several units: say which (a single unit is already named on the loan).
+            $unitsNote = !$good && $quantity > 1
+                ? $affected . ' of ' . $quantity . ' units' . ($affectedLabels !== '' ? ': ' . $affectedLabels : '')
+                : '';
             $remarksText = trim($unitsNote . ($unitsNote !== '' && $remarks !== '' ? '. ' : '') . $remarks);
 
             $transaction->update([
@@ -104,24 +147,16 @@ class DepartmentReturnsController extends Controller
                 'return_reject_reason' => null,
             ]);
 
-            // Good units go back to stock. Legacy loans never deducted stock,
-            // so they never add it back.
-            $goodUnits = $quantity - $affected;
-            if ($goodUnits > 0 && $transaction->return_restores_stock) {
-                $transaction->restoreStock($borrow, $goodUnits);
-            }
-
-            // A lost unit no longer exists, so it leaves the total quantity too.
-            if ($data['condition'] === 'Lost') {
-                $transaction->removeLostUnits($borrow, $affected);
-            }
-
             $penalty = null;
             if (!empty($data['penalty_type'])) {
+                // The borrower sees which unit the penalty is for.
+                $penaltyUnits = $data['penalty_type'] === Penalty::TYPE_LATE || $affectedLabels === ''
+                    ? ''
+                    : ' (' . (str_contains($affectedLabels, ',') ? 'Units' : 'Unit') . ': ' . $affectedLabels . ')';
                 $penalty = app(PenaltyService::class)->record($transaction, [
                     'type' => $data['penalty_type'],
                     'amount' => $data['penalty_amount'] ?? null,
-                    'description' => $data['penalty_description'],
+                    'description' => rtrim($data['penalty_description']) . $penaltyUnits,
                 ], AuditLogger::actorFor('dept', $dept));
 
                 // Undo the whole confirmation rather than confirm without the penalty.
@@ -134,11 +169,11 @@ class DepartmentReturnsController extends Controller
             $message = match (true) {
                 $good => 'Return confirmed. The equipment is back in stock.',
                 $quantity === 1 && $data['condition'] === 'Lost' => 'Return confirmed as Lost. The unit was removed from the equipment\'s total quantity.',
-                $quantity === 1 => 'Return confirmed as ' . $data['condition'] . '. The unit stays out of the available stock until the admin updates it.',
+                $quantity === 1 => 'Return confirmed as ' . $data['condition'] . '. The unit is Under Maintenance (out of stock) until it is repaired.',
                 $data['condition'] === 'Lost' => 'Return confirmed: ' . $units($affected) . ' lost (removed from the total quantity)'
                     . ($goodUnits > 0 ? ', ' . $units($goodUnits) . ' back in stock.' : '.'),
                 default => 'Return confirmed: ' . $units($affected) . ' ' . strtolower($data['condition'])
-                    . ' (kept out of the available stock until the admin updates it)'
+                    . ' (Under Maintenance until repaired)'
                     . ($goodUnits > 0 ? ', ' . $units($goodUnits) . ' back in stock.' : '.'),
             };
 
@@ -250,6 +285,7 @@ class DepartmentReturnsController extends Controller
             'request.equipment.category',
             'returnReviewer',
             'penalties',
+            'units',
         ])
             ->whereNotNull('return_status')
             ->forDepartment($departmentId)
@@ -290,7 +326,8 @@ class DepartmentReturnsController extends Controller
                 'department' => $user?->department?->department_name ?: '—',
                 'equipment' => $equipment->name,
                 'category' => $equipment->category?->category_name ?: 'General',
-                'equipmentId' => $equipment->serial_number ?: ('EQ-' . $equipment->equipment_id),
+                // The units on this loan (serial numbers, else codes).
+                'equipmentId' => $transaction->unitLabels() ?: '—',
                 // The photo the admin uploaded when adding the equipment (null: none).
                 'equipmentImage' => $equipment->imageUrl(),
                 'quantity' => max(1, (int) ($borrow->quantity ?? 1)),
@@ -311,6 +348,17 @@ class DepartmentReturnsController extends Controller
                 'inspectionRemarks' => $transaction->inspection_remarks ?? '',
                 // Units in the inspected condition (0 for Good); the rest came back Good.
                 'affectedUnits' => $transaction->affectedUnits(),
+                // The units handed over on this loan (serial number, else code), with
+                // how each came back once confirmed; the window ticks the affected ones.
+                'units' => $transaction->units
+                    ->sortBy(fn ($u) => EquipmentUnit::numberOf($u->unit_code))
+                    ->map(fn ($u) => [
+                        'id' => (int) $u->unit_id,
+                        'label' => $u->label(),
+                        'code' => $u->unit_code,
+                        'out' => $u->status === EquipmentUnit::STATUS_ON_LOAN,
+                        'condition' => $u->pivot->return_condition,
+                    ])->values()->all(),
                 'rejectReason' => $transaction->return_reject_reason ?? '',
                 'reviewedBy' => $transaction->returnReviewer?->full_name ?: ($transaction->return_reviewed_by ? 'Department staff' : '—'),
                 'reviewedAt' => $transaction->return_reviewed_at ? $fmtDateTime($transaction->return_reviewed_at) : '—',
